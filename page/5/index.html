@@ -72,6 +72,454 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Flutter/2集成/iOS项目集成Flutter" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/2集成/iOS项目集成Flutter/" class="article-date">
+  <time datetime="2018-12-20T02:00:00.000Z" itemprop="datePublished">2018-12-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/2集成/iOS项目集成Flutter/">第1节：iOS项目集成Flutter</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本节学习内容：在已有的iOS项目中集成Flutter，以使得您的iOS项目中的部分界面/功能可以通过Flutter来实现。</p>
+<p>本节学习用时：<strong>30分钟</strong></p>
+<p>本节学习方式：动手实践</p>
+<hr>
+<p>本节目录：</p>
+<p>一、集成方式介绍</p>
+<p>二、集成方法一：手动配置iOS与Flutter的混编环境</p>
+<p>三、集成方法二：Pod集成Flutter方式</p>
+<p>四、集成后调用Flutter界面的代码编写</p>
+<hr>
+<h4 id="一、集成方式介绍"><a href="#一、集成方式介绍" class="headerlink" title="一、集成方式介绍"></a>一、集成方式介绍</h4><p>本节将介绍两种在已有的iOS项目中集成Flutter的方法，分别为①手动配置iOS与Flutter的混编环境、②Pod集成Flutter方式。</p>
+<p>下面表格是两种集成Flutter的方法比较：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>手动集成Flutter</th>
+<th>Pod集成Flutter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>集成速度</td>
+<td>需要自己建立文件、进行相应配置，并替换</td>
+<td>执行Pod及Run Script即可</td>
+</tr>
+<tr>
+<td>Flutter项目更新时</td>
+<td>每次都需要替换</td>
+<td>不用替换</td>
+</tr>
+<tr>
+<td>Flutter项目与iOS同时路径变更时</td>
+<td>不影响iOS工程</td>
+<td>Flutter工程需要重新编译执行；<br>然后iOS工程需再重新执行Pod</td>
+</tr>
+</tbody>
+</table>
+<h4 id="二、集成方法一：手动配置iOS与Flutter的混编环境"><a href="#二、集成方法一：手动配置iOS与Flutter的混编环境" class="headerlink" title="二、集成方法一：手动配置iOS与Flutter的混编环境"></a>二、集成方法一：手动配置iOS与Flutter的混编环境</h4><h6 id="1-1-集成后的最后项目结构如图："><a href="#1-1-集成后的最后项目结构如图：" class="headerlink" title="1.1 集成后的最后项目结构如图："></a>1.1 集成后的最后项目结构如图：</h6><blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject%20project%20structure.png" alt="myiosproject project structure"></p>
+</blockquote>
+<h6 id="1-2-集成后的最后文件结构如图："><a href="#1-2-集成后的最后文件结构如图：" class="headerlink" title="1.2 集成后的最后文件结构如图："></a>1.2 集成后的最后文件结构如图：</h6><blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject%20file%20structure.png" alt="myiosproject file structure"></p>
+</blockquote>
+<h6 id="1-3-详细的集成实现步骤如下："><a href="#1-3-详细的集成实现步骤如下：" class="headerlink" title="1.3 详细的集成实现步骤如下："></a>1.3 详细的集成实现步骤如下：</h6><ul>
+<li><p>①、通过终端命令在指定目录(这里我们选择iOS项目的同级目录)创建myfluttermodule。<code>flutter create -t module myfluttermodule</code></p>
+</li>
+<li><p>②、Xcode：创建iOS项目，设为myiosproject；</p>
+</li>
+<li><p>③、Xcode：创建配置衔接文件</p>
+<ul>
+<li><p>在②中建立的iOS项目中新建<code>Config</code>目录，用于存放/管理接下来Xcode工程需要创建的的配置衔接文件；</p>
+</li>
+<li><p>选择创建<code>Configuration Settings File</code>文件，分别创建名为 <code>Flutter.xcconfig</code>、<code>Debug.xcconfig</code>、<code>Release.xcconfig</code>的三个配置文件；</p>
+<blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/New%20Configuration%20Settings%20File.png" alt="New Configuration Settings File"></p>
+</blockquote>
+</li>
+<li><p>完善<code>Flutter.xcconfig</code>、<code>Debug.xcconfig</code>、<code>Release.xcconfig</code>三个配置文件的内容为分别如下：</p>
+<blockquote>
+<p>Flutter.xcconfig 配置文件内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; //Flutter.xconfig,用于指向外目录flutter module的`Generated.xcconfig`文件路径引用文件</span><br><span class="line">&gt; </span><br><span class="line">&gt; //这里填写前面建立的 myfluttermodule 的Generated.xcconfig的路径</span><br><span class="line">&gt; #include &quot;../../myfluttermodule/.ios/Flutter/Generated.xcconfig&quot;</span><br><span class="line">&gt; ENABLE_BITCODE=NO</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>Debug.xcconfig 配置文件内容如下：</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt; //Debug.xconfig，Xcode的环境配置文件</span><br><span class="line">&gt; </span><br><span class="line">&gt; #include &quot;Flutter.xcconfig&quot;</span><br><span class="line">&gt; //#include &quot;../Pods/Target Support Files/******.debug.xcconfig&quot;//pod路径</span><br><span class="line">&gt; #include &quot;../Pods/Target Support Files/Pods-myiosproject/Pods-myiosproject.debug.xcconfig&quot;//pod路径</span><br><span class="line">&gt; FLUTTER_BUILD_MODE=debug</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>Release.xcconfig 配置文件内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt; //Release.xconfig，Xcode的环境配置文件</span><br><span class="line">&gt; </span><br><span class="line">&gt; #include &quot;Flutter.xcconfig&quot;</span><br><span class="line">&gt; //#include &quot;../Pods/Target Support Files/******.release.xcconfig&quot;//pod路径</span><br><span class="line">&gt; #include &quot;../Pods/Target Support Files/Pods-myiosproject/Pods-myiosproject.release.xcconfig&quot;//pod路径</span><br><span class="line">&gt; FLUTTER_BUILD_MODE=release</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+</li>
+<li><p>修改Xcode Project的环境配置选择</p>
+<blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject%20Project%20Info%20Configurations.png" alt="myiosproject Project Info Configurations"></p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>④、Xcode -&gt; Target -&gt; Build Phases -&gt; New Run Script Phase，添加要执行的脚本内容引入<code>xcode-backend.sh</code>，此步很重要。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&quot;$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh&quot; build</span><br><span class="line">&quot;$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh&quot; embed</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject%20New%20Script%20xcode-backend.sh.png" alt="myiosproject New Script xcode-backend.sh"></p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><p>⑤、添加/替换flutter编译产物，<strong>如果之前已添加，则这里每次有有新的时候，注意要替换掉，否则界面还是旧的。</strong></p>
+<blockquote>
+<p>即复制 myfluttermodule/.ios/Flutter下的<code>App.framework</code>、<code>engine</code>、<code>flutter_assets</code>进行替换。</p>
+<p>然后Xcode重新编译即可。</p>
+<p>注意：<code>flutter_assets</code> 并不能使用<code>Create groups</code> 的方式添加，只能使用<code>Creat folder references</code> 的方式添加进Xcode项目内，否则跳转flutter会页面渲染失败（页面空白）。</p>
+</blockquote>
+</li>
+<li><p>⑥、至此，恭喜你，到这里您可向往常一样直接执行已集成Flutter的Xcode项目了。</p>
+</li>
+</ul>
+<h4 id="三、集成方法二：Pod集成Flutter方式"><a href="#三、集成方法二：Pod集成Flutter方式" class="headerlink" title="三、集成方法二：Pod集成Flutter方式"></a>三、集成方法二：Pod集成Flutter方式</h4><h6 id="2-1-最后的项目结构如图："><a href="#2-1-最后的项目结构如图：" class="headerlink" title="2.1 最后的项目结构如图："></a>2.1 最后的项目结构如图：</h6><blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject2%20project%20structure.png" alt="myiosproject2 project structure"></p>
+</blockquote>
+<h6 id="2-2-实现步骤如下："><a href="#2-2-实现步骤如下：" class="headerlink" title="2.2 实现步骤如下："></a>2.2 实现步骤如下：</h6><ul>
+<li><p>①、通过终端命令在指定目录(这里我们选择iOS项目的同级目录)创建myfluttermodule。<code>flutter create -t module myfluttermodule</code>。这里因为我们已经在1中实现，所以不再重复创建。</p>
+</li>
+<li><p>②、Xcode：创建myiosproject2；添加如Podfile，及在Podfile中如结构图中所示，补充</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">flutter_application_path = &apos;./../myfluttermodule/&apos;</span><br><span class="line">eval(File.read(File.join(flutter_application_path, &apos;.ios&apos;, &apos;Flutter&apos;, &apos;podhelper.rb&apos;)), binding)</span><br></pre></td></tr></table></figure>
+<p>后，执行pod install</p>
+<blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/myiosproject2%20pod%20install.png" alt="myiosproject2 pod install"></p>
+</blockquote>
+</li>
+<li><p>③、Xcode -&gt; Target -&gt; Build Phases -&gt; New Run Script Phase，添加要执行的脚本内容引入<code>xcode-backend.sh</code>，此步很重要。同1中一样的做法。</p>
+</li>
+<li><p>④、至此，混编环境配置成功！</p>
+</li>
+</ul>
+<h4 id="四、集成后调用Flutter界面的代码编写"><a href="#四、集成后调用Flutter界面的代码编写" class="headerlink" title="四、集成后调用Flutter界面的代码编写"></a>四、集成后调用Flutter界面的代码编写</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;AppDelegate.h&quot;</span><br><span class="line">#import &lt;Flutter/Flutter.h&gt;</span><br><span class="line"></span><br><span class="line">- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions &#123;</span><br><span class="line">    // Override point for customization after application launch.</span><br><span class="line">    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];</span><br><span class="line">//    ViewController *viewController = [[ViewController alloc] init];</span><br><span class="line">//    UIViewController *rootViewController = [[UINavigationController alloc] initWithRootViewController:viewController];</span><br><span class="line">    UIViewController *rootViewController = [[FlutterViewController alloc] initWithProject:nil nibName:nil bundle:nil];</span><br><span class="line">    self.window.rootViewController = rootViewController;</span><br><span class="line">    [self.window makeKeyAndVisible];</span><br><span class="line">    </span><br><span class="line">    return YES;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>而后，正常执行Xcode项目即可。</p>
+<h2 id="三、更多混编"><a href="#三、更多混编" class="headerlink" title="三、更多混编"></a>三、更多混编</h2><p>更多混编知识，请查看<a href="https://flutterchina.club/platform-channels/" target="_blank" rel="noopener">官网：使用平台通道编写平台特定的代码</a></p>
+<blockquote>
+<p><img src="/Flutter/2集成/iOS项目集成Flutter/platform%20channel.png" alt="platform channel"></p>
+</blockquote>
+<h2 id="附："><a href="#附：" class="headerlink" title="附："></a>附：</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/2集成/iOS项目集成Flutter/" data-id="cjt2tvd4t001sfcrxusev6g8s" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/集成/">集成</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/2集成/README" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/2集成/README/" class="article-date">
+  <time datetime="2018-12-20T02:00:00.000Z" itemprop="datePublished">2018-12-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/2集成/README/">第二章：集成Flutter到原生项目</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本章介绍在已有的原生项目中集成Flutter，以使得您的原生项目中的部分界面/功能可以通过Flutter来实现。</p>
+<p>本章目前主要介绍在iOS项目中集成Flutter、在Android项目中集成Flutter两个部分。</p>
+<hr>
+<p>其他参考资料：</p>
+<ul>
+<li><a href="https://github.com/flutter/flutter/wiki/Add-Flutter-to-existing-apps" target="_blank" rel="noopener">flutter自家的混编wiki:Add Flutter to existing apps</a></li>
+</ul>
+<hr>
+<p><a href="./iOS项目集成Flutter.md">点击此处，进入本章第1节的正式学习 &gt;</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/2集成/README/" data-id="cjt2tvd4c001hfcrx2h2s0xas" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/集成/">集成</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/1入门/README" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/1入门/README/" class="article-date">
+  <time datetime="2018-12-19T02:00:00.000Z" itemprop="datePublished">2018-12-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/1入门/README/">第一章：入门</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本章介绍Flutter入门必须掌握的知识点。</p>
+<p><a href="./Flutter开发环境搭建.md">点击此处，进入本章第1节的正式学习 &gt;</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/1入门/README/" data-id="cjt2tvd49001cfcrx3inszehh" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/1入门/Flutter开发环境搭建与运行" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/1入门/Flutter开发环境搭建与运行/" class="article-date">
+  <time datetime="2018-12-19T02:00:00.000Z" itemprop="datePublished">2018-12-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/1入门/Flutter开发环境搭建与运行/">第1节：Flutter开发环境搭建与运行</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本节学习内容：Flutter的环境搭建及创建运行您的第一个Flutter项目。</p>
+<p>本节学习用时：<strong>30分钟</strong></p>
+<p>本节学习方式：动手实践</p>
+<hr>
+<p>本节目录：</p>
+<p>一、检测您是否具备了Flutter的开发环境</p>
+<p>二、创建并运行第一个Flutter项目</p>
+<p>附</p>
+<hr>
+<h2 id="一、检测您是否具备了Flutter的开发环境"><a href="#一、检测您是否具备了Flutter的开发环境" class="headerlink" title="一、检测您是否具备了Flutter的开发环境"></a>一、检测您是否具备了Flutter的开发环境</h2><p>因为您可能之前已经有配置过Flutter的开发环境了，所以为了避免重复安装，我们通过在终端运行<code>flutter doctor</code>命令，来进行检测，查看是否缺少。</p>
+<h4 id="1、环境已完善时"><a href="#1、环境已完善时" class="headerlink" title="1、环境已完善时"></a>1、环境已完善时</h4><p>如果您的环境之前已经配置过且已完全配置好的话，您的命令执行结果可能会如图所示：</p>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/flutter doctor 检测出无问题.png" alt="flutter doctor 检测出无问题"></p>
+<h4 id="2、环境未完善时"><a href="#2、环境未完善时" class="headerlink" title="2、环境未完善时"></a>2、环境未完善时</h4><ul>
+<li>如果有提示错误的(<strong>如果你是第一次，那肯定有很多问题</strong>)，请参照本节最后的<code>【附1】、flutter doctor问题解决</code>中的内容进行解决。</li>
+</ul>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/分割图1.jpg" alt="分割图1"></p>
+<h2 id="二、创建并运行第一个Flutter项目"><a href="#二、创建并运行第一个Flutter项目" class="headerlink" title="二、创建并运行第一个Flutter项目"></a>二、创建并运行第一个Flutter项目</h2><h4 id="1、最简单的创建Flutter项目的方法"><a href="#1、最简单的创建Flutter项目的方法" class="headerlink" title="1、最简单的创建Flutter项目的方法"></a>1、最简单的创建Flutter项目的方法</h4><p>在终端执行<code>flutter create originflutterproject</code>即可在指定目录建立Flutter项目。</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/flutter%20create%20originflutterproject.png" alt="flutter create originflutterproject"></p>
+</blockquote>
+<h4 id="2、运行Flutter项目"><a href="#2、运行Flutter项目" class="headerlink" title="2、运行Flutter项目"></a>2、运行Flutter项目</h4><p>在指定设备上运行Flutter项目</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/flutter%20run%20-d%20deviceid.png" alt="flutter run -d deviceid"></p>
+</blockquote>
+<h4 id="2-1-问题一、缺少第三方库"><a href="#2-1-问题一、缺少第三方库" class="headerlink" title="2.1 问题一、缺少第三方库"></a>2.1 问题一、缺少第三方库</h4><p>如果缺少依赖的第三方库，在pubspec.yaml 文件中找到 dependencies 在里面填写 第三方库。</p>
+<p>并请在终端执行<code>flutter packages get</code>，以拉取声明的第三方库到本地工程即可。</p>
+<p><strong>flutter第三方库官网：<a href="https://pub.dartlang.org/" target="_blank" rel="noopener">https://pub.dartlang.org/</a></strong></p>
+<p>如要了解更多请查看：<a href="https://flutterchina.club/get-started/test-drive/#terminal" target="_blank" rel="noopener">官网Flutter起步: 体验</a></p>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/分割图1.jpg" alt="分割图1"></p>
+<h2 id="附"><a href="#附" class="headerlink" title="附"></a>附</h2><h4 id="【附1】、flutter-doctor问题解决"><a href="#【附1】、flutter-doctor问题解决" class="headerlink" title="【附1】、flutter doctor问题解决"></a>【附1】、flutter doctor问题解决</h4><p>flutter doctor该命令的作用：查看是否需要安装其它依赖项来完成安装。</p>
+<p>下面涵盖的错误介绍及解决有：</p>
+<ul>
+<li>1.1、<em>-bash: flutter: command not found</em></li>
+<li>1.2、缺少依赖项</li>
+<li>其他问题，请查看<code>【附2】、flutter 安装过程中的其他问题解决</code></li>
+</ul>
+<h6 id="1-1、-bash-flutter-command-not-found"><a href="#1-1、-bash-flutter-command-not-found" class="headerlink" title="1.1、-bash: flutter: command not found"></a>1.1、<code>-bash: flutter: command not found</code></h6><p>原因：Flutter相关命令无效(此时<code>flutter -h</code>肯定也是一样的问题)</p>
+<p>附：完好的flutter -h结果应为如图所示：</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/%20flutter%20-h%20%E6%A3%80%E6%B5%8Bflutter.png" alt=" flutter -h 检测flutter"></p>
+</blockquote>
+<p>解决：下载Flutter SDK，并配置Flutter环境变量到PATH中即可。</p>
+<p>步骤：</p>
+<ul>
+<li><p>①下载Flutter SDK。</p>
+<p><a href="https://flutter.io/docs/get-started/install/macos" target="_blank" rel="noopener">Flutter SDK官网地址</a>。（如果您觉得速度慢，这里提供一个已经下载好的地址：<a href="https://pan.baidu.com/s/1yB5WRTvIRA2eISpUHtGP3w" target="_blank" rel="noopener">Flutter SDK 1.0.0 网盘下载地址</a>  密码:nm09）</p>
+</li>
+<li><p>②配置Flutter环境变量方法：即在<em>~/.bash_profile</em>文件里添加需要配置的内容即可。</p>
+<p>下面是我的~/.bash_profile文件内容：</p>
+</li>
+</ul>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/%E6%88%91%E7%9A%84~:.bash_profile.png" alt="我的~/.bash_profile"></p>
+</blockquote>
+<p>但在这里目前我们只需要上图中我圈出来的那行<code>export PATH=/Applications/flutter/bin:$PATH  #配置Flutter环境变量</code>即可。这里我们先满足目前认知Flutter所需的即可，没必要把如下其他行是暂时不需要的所有的都加上去，当然你加上去可以以后更省事。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Flutter</span></span><br><span class="line"><span class="built_in">export</span> PATH=/Applications/flutter/bin:<span class="variable">$PATH</span>  <span class="comment">#配置Flutter环境变量</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置pub源，才能让你在国内愉快的使用别人写的库</span></span><br><span class="line"><span class="built_in">export</span> PUB_HOSTED_URL=https://pub.flutter-io.cn</span><br><span class="line"><span class="built_in">export</span> FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn</span><br><span class="line"></span><br><span class="line"><span class="comment"># ANDROID</span></span><br><span class="line"><span class="built_in">export</span> ANDROID_HOME=/Users/lichaoqian/Library/Android/sdk <span class="comment">#android sdk目录，替换为你自己的即可</span></span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$&#123;PATH&#125;</span>:<span class="variable">$&#123;ANDROID_HOME&#125;</span>/tools</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$&#123;PATH&#125;</span>:<span class="variable">$&#123;ANDROID_HOME&#125;</span>/platform-tools</span><br></pre></td></tr></table></figure>
+<h6 id="1-2、缺少依赖项"><a href="#1-2、缺少依赖项" class="headerlink" title="1.2、缺少依赖项"></a>1.2、缺少依赖项</h6><p>如果您不缺依赖项，那您命令的执行结果会为</p>
+<p>如果flutter doctor 检测出问题，此时的命令执行结果一般如下：</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/flutter%20doctor%20%E6%A3%80%E6%B5%8B%E5%87%BA%E9%97%AE%E9%A2%98.png" alt="flutter doctor 检测出问题"></p>
+</blockquote>
+<p>原因：缺少依赖项</p>
+<p>解决：遇到什么错误，根据提示操作即可。</p>
+<p>①、根据提示终端执行命令，解决<code>iOS toolchain - develop for iOS devices （Xcode 10.1）</code>后</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/iOS%20toolchain%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E5%90%8E.png" alt="iOS toolchain问题解决后"></p>
+</blockquote>
+<p>②、根据提示<a href="http://www.androiddevtools.cn/" target="_blank" rel="noopener">下载Android SDK</a>，并放置ANDROD_HOME指定的目录下后，</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/Android%20SDK%E5%AE%89%E8%A3%85%E5%90%8E.png" alt="Android SDK安装后"></p>
+</blockquote>
+<p>③、为Android Studio安装Flutter Plugins后</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/Android%20Studio%E5%AE%89%E8%A3%85Flutter%20Plugins%E5%90%8E.png" alt="Android Studio安装Flutter Plugins后"></p>
+</blockquote>
+<p>安装过程中，如遇Plugins搜索不到时候，如</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/Android%20Plugins%E6%90%9C%E7%B4%A2%E4%B8%8D%E5%88%B0%E7%9A%84%E7%A4%BA%E4%BE%8B%E6%88%AA%E5%9B%BE.png" alt="Android Plugins搜索不到的示例截图"></p>
+</blockquote>
+<p>请确保如下图中的路径<code>Perferences -&gt; Appearance &amp; Behavior -&gt; System Settings -&gt; Updates -&gt; Use secure connection</code>中的勾是取消的，如果不是请取消掉，并重启Android Studio后，重新搜索即可。</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/Android%20Plugins%E6%90%9C%E7%B4%A2%E4%B8%8D%E5%88%B0%E7%9A%84%E5%A4%84%E7%90%861.png" alt="Android Plugins搜索不到的处理1"></p>
+</blockquote>
+<p>或者可以直接从<code>http://plugins.jetbrains.com/</code>上下载插件后，通过选择插件安装方式为Install plugin from disk来进行安装，如下图：</p>
+<blockquote>
+<p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85%E6%96%B9%E5%BC%8F%E9%80%89%E6%8B%A9%E4%B8%BAInstall%20plugin%20from%20disk.png" alt="插件安装方式选择为Install plugin from disk"></p>
+</blockquote>
+<p>附：这是<a href="https://pan.baidu.com/s/1yyUxP2lRb7hamJN-MHA1zw" target="_blank" rel="noopener">已经下载好后存在网盘上的Flutter插件</a></p>
+<p>④为Intelij IDEA安装Flutter Plugins后的结果，即为不缺依赖的情况了。</p>
+<p>其他资料：官网中的<a href="https://flutterchina.club/setup-macos/#使用镜像" target="_blank" rel="noopener">入门: 在macOS上搭建Flutter开发环境</a></p>
+<p>如果还没解决安装问题，请查看<code>【附2】、flutter 安装过程中的其他问题解决</code></p>
+<h4 id="【附2】、flutter-安装过程中的其他问题解决"><a href="#【附2】、flutter-安装过程中的其他问题解决" class="headerlink" title="【附2】、flutter 安装过程中的其他问题解决"></a>【附2】、flutter 安装过程中的其他问题解决</h4><p><img src="/Flutter/1入门/Flutter开发环境搭建与运行/flutter%20doctor%E5%85%B6%E4%BB%96%E9%97%AE%E9%A2%981.png" alt="flutter doctor其他问题1"></p>
+<p>原因：您的Flutter SDK 要求你Android Studio中的Flutter plugin版本至少到16.0.0。但你当前的Android Studio版本却只允许你最高只能装到Flutter plugin version 12.1。</p>
+<p>解决：升级你的Android Studio后，重新安装其Flutter plugin。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/1入门/Flutter开发环境搭建与运行/" data-id="cjt2tvd470019fcrxhsk3fbbx" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/README" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/README/" class="article-date">
+  <time datetime="2018-12-19T02:00:00.000Z" itemprop="datePublished">2018-12-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/README/">前言</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>为更好的学习Flutter，特地将Flutter的学习从零整理及总结成本书，方便大家的快速学习！</p>
+<p>其他权威网站：<a href="https://flutterchina.club/" target="_blank" rel="noopener">Flutter中文网</a>、<a href="https://book.flutterchina.club" target="_blank" rel="noopener">Flutter实战书籍</a></p>
+<h2 id="主流跨平台语言对比"><a href="#主流跨平台语言对比" class="headerlink" title="主流跨平台语言对比"></a>主流跨平台语言对比</h2><p>主流跨平台语言(Flutter和RN、Weex)之间的对比：</p>
+<p><img src="/Flutter/README/主流跨平台语言对比.jpg" alt="主流跨平台语言对比"></p>
+<ul>
+<li>渲染性能</li>
+</ul>
+<p>和RN和Weex将javascript转化为原生控件渲染不同，Flutter完全挣脱了原生控件的“束缚”，如下图所示，Flutter使用了分层架构，分为Framework和Engine两个部分，其中Framework层提供各种基础组件库，包括各种Widget，动画等，Engine层则完全由C和C++实现，使用Skia进行渲染（对！就是chrome用的那个图形渲染框架），官方宣称可以达到原生app的渲染性能。</p>
+<p><img src="/Flutter/README/Flutter结构.jpg" alt="Flutter结构"></p>
+<ul>
+<li>Google新操作系统Fuchsia(被认为是Android的继任者)也使用Flutter作为其UI框架，今后的发展不可限量。</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/README/" data-id="cjt2tvd1k0004fcrx8im4zulz" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/SUMMARY" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/SUMMARY/" class="article-date">
@@ -128,7 +576,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/SUMMARY/" data-id="cjsyh2rzm0004psrxgna50199" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/SUMMARY/" data-id="cjt2tvd1m0005fcrxwvm5t439" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -140,14 +588,14 @@
 
 
   
-    <article id="post-Flutter/README" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Flutter/1入门/Flutter的Hello World" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/README/" class="article-date">
+    <a href="/Flutter/1入门/Flutter的Hello World/" class="article-date">
   <time datetime="2018-12-19T02:00:00.000Z" itemprop="datePublished">2018-12-19</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a>
   </div>
 
   </div>
@@ -158,7 +606,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/README/">前言</a>
+      <a class="article-title" href="/Flutter/1入门/Flutter的Hello World/">第2节：Flutter的Hello World</a>
     </h1>
   
 
@@ -166,23 +614,119 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>为更好的学习Flutter，特地将Flutter的学习从零整理及总结成本书，方便大家的快速学习！</p>
-<p>其他权威网站：<a href="https://flutterchina.club/" target="_blank" rel="noopener">Flutter中文网</a>、<a href="https://book.flutterchina.club" target="_blank" rel="noopener">Flutter实战书籍</a></p>
-<h2 id="主流跨平台语言对比"><a href="#主流跨平台语言对比" class="headerlink" title="主流跨平台语言对比"></a>主流跨平台语言对比</h2><p>主流跨平台语言(Flutter和RN、Weex)之间的对比：</p>
-<p><img src="/Flutter/README/主流跨平台语言对比.jpg" alt="主流跨平台语言对比"></p>
-<ul>
-<li>渲染性能</li>
-</ul>
-<p>和RN和Weex将javascript转化为原生控件渲染不同，Flutter完全挣脱了原生控件的“束缚”，如下图所示，Flutter使用了分层架构，分为Framework和Engine两个部分，其中Framework层提供各种基础组件库，包括各种Widget，动画等，Engine层则完全由C和C++实现，使用Skia进行渲染（对！就是chrome用的那个图形渲染框架），官方宣称可以达到原生app的渲染性能。</p>
-<p><img src="/Flutter/README/Flutter结构.jpg" alt="Flutter结构"></p>
-<ul>
-<li>Google新操作系统Fuchsia(被认为是Android的继任者)也使用Flutter作为其UI框架，今后的发展不可限量。</li>
-</ul>
+        <p>本节学习内容：分别通过多种方法实现Hello world! ，让您对Flutter有一个初步的认识！</p>
+<p>本节学习用时：<strong>3分钟</strong></p>
+<p>本节学习方式：<strong>推荐直接看懂代码即可</strong></p>
+<hr>
+<p>本节目录：</p>
+<p>一、本节内容介绍</p>
+<p>二、本节代码解释</p>
+<hr>
+<h2 id="一、本节内容介绍"><a href="#一、本节内容介绍" class="headerlink" title="一、本节内容介绍"></a>一、本节内容介绍</h2><h4 id="1、本节代码"><a href="#1、本节代码" class="headerlink" title="1、本节代码"></a>1、本节代码</h4><p>本节所有代码文件为：<code>main.dart</code>。</p>
+<blockquote>
+<p>您可自己通过<code>flutter create helloworldproject</code>创建helloworldproject项目后，将其lib文件夹下的代码文件替换为如下即可。</p>
+</blockquote>
+<h6 id="1-1、其中完整的main-dart代码如下："><a href="#1-1、其中完整的main-dart代码如下：" class="headerlink" title="1.1、其中完整的main.dart代码如下："></a>1.1、其中完整的<code>main.dart</code>代码如下：</h6><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法①</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; start &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="comment">// void main() =&gt; runApp(const Center(</span></span><br><span class="line"><span class="comment">//     child: Text('1.Hello, world! in Main', textDirection: TextDirection.ltr)));</span></span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;  end  &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法②</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; 方法② &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="comment">// void main() =&gt; runApp(MyApp());</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// class MyApp extends StatelessWidget &#123;</span></span><br><span class="line"><span class="comment">//   @override</span></span><br><span class="line"><span class="comment">//   Widget build(BuildContext context) &#123;</span></span><br><span class="line"><span class="comment">//     return const Center(</span></span><br><span class="line"><span class="comment">//         child: Text('2.Hello, world! in MyApp return!', textDirection: TextDirection.ltr));</span></span><br><span class="line"><span class="comment">//   &#125;</span></span><br><span class="line"><span class="comment">// &#125;</span></span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; 方法② &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法③</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; 方法③ &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="comment">// void main() =&gt; runApp(MyApp());</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// class MyApp extends StatelessWidget &#123;</span></span><br><span class="line"><span class="comment">//    helloWorldPage() &#123;</span></span><br><span class="line"><span class="comment">//      return Center(</span></span><br><span class="line"><span class="comment">//        child: Text('3.Hello world! in helloWorldPage',</span></span><br><span class="line"><span class="comment">//            textDirection: TextDirection.ltr),</span></span><br><span class="line"><span class="comment">//      );</span></span><br><span class="line"><span class="comment">//    &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//    @override</span></span><br><span class="line"><span class="comment">//    Widget build(BuildContext context) &#123;</span></span><br><span class="line"><span class="comment">//      return helloWorldPage();</span></span><br><span class="line"><span class="comment">//  &#125;</span></span><br><span class="line"><span class="comment">// &#125;</span></span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; 方法③ &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法④</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; 方法④ &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="keyword">void</span> main() =&gt; runApp(MyApp());</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyApp</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> HelloWorldPage();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HelloWorldPage</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Center(</span><br><span class="line">      child: Text(<span class="string">'4.Hello world! in HelloWorldPage'</span>,</span><br><span class="line">          textDirection: TextDirection.ltr),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; 方法④ &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br></pre></td></tr></table></figure>
+<h4 id="2、代码说明"><a href="#2、代码说明" class="headerlink" title="2、代码说明"></a>2、代码说明</h4><p>略</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/README/" data-id="cjsyh2rzn0005psrxt9p86nnl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/1入门/Flutter的Hello World/" data-id="cjt2tvd48001afcrxei1womxv" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/1入门/Flutter的最基础知识" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/1入门/Flutter的最基础知识/" class="article-date">
+  <time datetime="2018-12-19T02:00:00.000Z" itemprop="datePublished">2018-12-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/1入门/Flutter的最基础知识/">第3节：Flutter的最基础知识</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本节学习内容：通过最基础的Flutter控件等实现一个app ，让您对Flutter构建的app有一个初步的认识！</p>
+<p>本节学习用时：<strong>30分钟</strong></p>
+<p>本节学习方式：<strong>推荐直接看懂代码即可</strong></p>
+<hr>
+<p>本节目录：</p>
+<p>一、本节内容介绍</p>
+<p>二、本节代码解释</p>
+<hr>
+<h2 id="最基础知识"><a href="#最基础知识" class="headerlink" title="最基础知识"></a>最基础知识</h2><h3 id="1、颜色"><a href="#1、颜色" class="headerlink" title="1、颜色"></a>1、颜色</h3><ul>
+<li><a href="https://ninghao.net/blog/6414" target="_blank" rel="noopener">Flutter 移动应用开发 #4：颜色</a></li>
+</ul>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Colors.transparent,  <span class="comment">//透明色</span></span><br></pre></td></tr></table></figure>
+<h3 id="2、图片"><a href="#2、图片" class="headerlink" title="2、图片"></a>2、图片</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">new Image.asset(&apos;images/goods_image.png&apos;, width: 30.0, height: 30.0,),</span><br></pre></td></tr></table></figure>
+<h2 id="一、本节内容介绍"><a href="#一、本节内容介绍" class="headerlink" title="一、本节内容介绍"></a>一、本节内容介绍</h2><p>本节通过实现以下界面/功能效果，为您介绍一些最基础的Flutter知识点。</p>
+<h4 id="1、主要介绍的知识点有："><a href="#1、主要介绍的知识点有：" class="headerlink" title="1、主要介绍的知识点有："></a>1、主要介绍的知识点有：</h4><ul>
+<li>MaterialApp的应用</li>
+<li>Scaffold的应用</li>
+<li>文本的应用：Text</li>
+<li>按钮的应用：FloatingActionButton</li>
+<li>页面的跳转</li>
+</ul>
+<h4 id="2、要实现的效果如下图所示："><a href="#2、要实现的效果如下图所示：" class="headerlink" title="2、要实现的效果如下图所示："></a>2、要实现的效果如下图所示：</h4><blockquote>
+<p><img src="/Flutter/1入门/Flutter的最基础知识/materialappproject.png" alt="materialappproject效果图"></p>
+</blockquote>
+<h4 id="3、实现本节效果的代码"><a href="#3、实现本节效果的代码" class="headerlink" title="3、实现本节效果的代码"></a>3、实现本节效果的代码</h4><p>本节所有代码文件为：<code>main.dart</code>、<code>NewRoute.dart</code>。</p>
+<blockquote>
+<p>您可自己通过<code>flutter create materialappproject</code>创建materialappproject项目后，将其lib文件夹下的代码文件替换为如下即可。</p>
+</blockquote>
+<h6 id="3-1、其中完整的main-dart代码如下："><a href="#3-1、其中完整的main-dart代码如下：" class="headerlink" title="3.1、其中完整的main.dart代码如下："></a>3.1、其中完整的<code>main.dart</code>代码如下：</h6><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'NewRoute.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 写法①</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; runApp写法① &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="comment">// void main() &#123;</span></span><br><span class="line"><span class="comment">//   runApp(new MaterialApp(</span></span><br><span class="line"><span class="comment">//     title: '1.MaterialApp in main',</span></span><br><span class="line"><span class="comment">//     home: new HelloWorldPage(),</span></span><br><span class="line"><span class="comment">//   ));</span></span><br><span class="line"><span class="comment">// &#125;</span></span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; runApp写法① &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 写法②</span></span><br><span class="line"><span class="comment">// &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; runApp写法② &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span><br><span class="line"><span class="keyword">void</span> main() =&gt; runApp(MyApp());</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyApp</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> MaterialApp(</span><br><span class="line">      title: <span class="string">'2.MaterialApp in MyApp'</span>,</span><br><span class="line"></span><br><span class="line">      <span class="comment">// 页面跳转的方式②：注册路由表</span></span><br><span class="line">      <span class="comment">// 详情查看[官网路由管理](https://book.flutterchina.club/chapter2/flutter_router.html)</span></span><br><span class="line">      <span class="comment">// 缺点：路由传递的参数无法动态修改(如果路由有参数)</span></span><br><span class="line">      routes: &#123;</span><br><span class="line">        <span class="string">"new_page"</span>: (context) =&gt; NewRoute(),</span><br><span class="line">      &#125;,</span><br><span class="line"></span><br><span class="line">      home: HelloWorldPage(),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; runApp写法② &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HelloWorldPage</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="comment">//Scaffold是Material中主要的布局组件.</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Scaffold(</span><br><span class="line">        appBar: <span class="keyword">new</span> AppBar(</span><br><span class="line">          leading: <span class="keyword">new</span> IconButton(</span><br><span class="line">            icon: <span class="keyword">new</span> Icon(Icons.menu),</span><br><span class="line">            tooltip: <span class="string">'Navigation menu'</span>,</span><br><span class="line">            onPressed: <span class="keyword">null</span>,</span><br><span class="line">          ),</span><br><span class="line">          title: <span class="keyword">new</span> Text(<span class="string">'MaterialApp Example title'</span>),</span><br><span class="line">          actions: &lt;Widget&gt;[</span><br><span class="line">            <span class="keyword">new</span> IconButton(</span><br><span class="line">              icon: <span class="keyword">new</span> Icon(Icons.search),</span><br><span class="line">              tooltip: <span class="string">'Search'</span>,</span><br><span class="line">              onPressed: <span class="keyword">null</span>,</span><br><span class="line">            ),</span><br><span class="line">          ],</span><br><span class="line">        ),</span><br><span class="line">        <span class="comment">//body占屏幕的大部分</span></span><br><span class="line">        body: <span class="keyword">new</span> Center(</span><br><span class="line">          child: <span class="keyword">new</span> Text(<span class="string">'Hello, world2!'</span>),</span><br><span class="line">        ),</span><br><span class="line">        floatingActionButton: <span class="keyword">new</span> FloatingActionButton(</span><br><span class="line">          tooltip: <span class="string">'Add'</span>, <span class="comment">// used by assistive technologies</span></span><br><span class="line">          child: <span class="keyword">new</span> Icon(Icons.add),</span><br><span class="line">          <span class="comment">// 1、无方法</span></span><br><span class="line">          <span class="comment">// 写法①</span></span><br><span class="line">          <span class="comment">// onPressed: null,</span></span><br><span class="line">          <span class="comment">// 写法②</span></span><br><span class="line">          <span class="comment">// onPressed: () &#123;&#125;</span></span><br><span class="line">          <span class="comment">// 写法③</span></span><br><span class="line">          <span class="comment">// onPressed: () =&gt; &#123;&#125;</span></span><br><span class="line"></span><br><span class="line">          <span class="comment">// 2、有方法，但该方法无参数</span></span><br><span class="line">          <span class="comment">// 写法①</span></span><br><span class="line">          <span class="comment">// onPressed: printLog,</span></span><br><span class="line">          <span class="comment">// 写法②</span></span><br><span class="line">          <span class="comment">// onPressed: () &#123;</span></span><br><span class="line">          <span class="comment">//   printLog();</span></span><br><span class="line">          <span class="comment">// &#125;,</span></span><br><span class="line"></span><br><span class="line">          <span class="comment">// 3、有方法，且该方法有参数</span></span><br><span class="line">          <span class="comment">// onPressed:() &#123;</span></span><br><span class="line">          <span class="comment">//   printText("Hello world");</span></span><br><span class="line">          <span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">          <span class="comment">// 4.页面跳转方式</span></span><br><span class="line">          <span class="comment">// 写法①</span></span><br><span class="line">          <span class="comment">// onPressed: () &#123;</span></span><br><span class="line">          <span class="comment">//   goNextPage(context);</span></span><br><span class="line">          <span class="comment">// &#125;,</span></span><br><span class="line">          <span class="comment">// 写法②</span></span><br><span class="line">          <span class="comment">// onPressed: () &#123;</span></span><br><span class="line">          <span class="comment">//   Navigator.pushNamed(context, "new_page");</span></span><br><span class="line">          <span class="comment">// &#125;,</span></span><br><span class="line">          <span class="comment">// 写法③</span></span><br><span class="line">          onPressed: () &#123;</span><br><span class="line">            Navigator.push(context, <span class="keyword">new</span> MaterialPageRoute(builder: (context) &#123;</span><br><span class="line">              <span class="keyword">return</span> <span class="keyword">new</span> NewRoute();</span><br><span class="line">            &#125;));</span><br><span class="line">          &#125;,</span><br><span class="line">        )</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> printLog() &#123;</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">"This is printLog Method"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> printText($text) &#123;</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">"The text is "</span> + $text);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> goNextPage(context) &#123;</span><br><span class="line">  <span class="comment">// 导航到新路由</span></span><br><span class="line">  Navigator.push(context, <span class="keyword">new</span> MaterialPageRoute(builder: (context) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> NewRoute();</span><br><span class="line">  &#125;));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h6 id="3-2、其中完整的NewRoute-dart代码如下："><a href="#3-2、其中完整的NewRoute-dart代码如下：" class="headerlink" title="3.2、其中完整的NewRoute.dart代码如下："></a>3.2、其中完整的<code>NewRoute.dart</code>代码如下：</h6><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NewRoute</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: Text(<span class="string">"New route"</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Text(<span class="string">"This is new route"</span>),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、本节代码解释"><a href="#二、本节代码解释" class="headerlink" title="二、本节代码解释"></a>二、本节代码解释</h2><h4 id="1、MaterialApp的使用方式介绍"><a href="#1、MaterialApp的使用方式介绍" class="headerlink" title="1、MaterialApp的使用方式介绍"></a>1、MaterialApp的使用方式介绍</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 写法①</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> main() &#123;</span><br><span class="line">  runApp(<span class="keyword">new</span> MaterialApp(</span><br><span class="line">    title: <span class="string">'1.MaterialApp in main'</span>,</span><br><span class="line">    home: <span class="keyword">new</span> HelloWorldPage(),</span><br><span class="line">  ));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// ------------------- 我是分割线，下面介绍的是另一种写法 ------------------- //</span></span><br><span class="line"><span class="comment">// 写法②</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> main() =&gt; runApp(MyApp());</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyApp</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> MaterialApp(</span><br><span class="line">      title: <span class="string">'2.MaterialApp in MyApp'</span>,</span><br><span class="line">      home: HelloWorldPage(),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2、Scaffold的使用方式介绍"><a href="#2、Scaffold的使用方式介绍" class="headerlink" title="2、Scaffold的使用方式介绍"></a>2、Scaffold的使用方式介绍</h4><p>以创建一个新页面<code>NewRoute.dart</code>为例，该文件代码如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NewRoute</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: Text(<span class="string">"New route"</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Text(<span class="string">"This is new route"</span>),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="3、文本Text以及按钮Button的使用介绍"><a href="#3、文本Text以及按钮Button的使用介绍" class="headerlink" title="3、文本Text以及按钮Button的使用介绍"></a>3、文本Text以及按钮Button的使用介绍</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HelloWorldPage</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="comment">//Scaffold是Material中主要的布局组件.</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Scaffold(</span><br><span class="line">      appBar: <span class="keyword">new</span> AppBar(</span><br><span class="line">        leading: <span class="keyword">new</span> IconButton(</span><br><span class="line">          icon: <span class="keyword">new</span> Icon(Icons.menu),</span><br><span class="line">          tooltip: <span class="string">'Navigation menu'</span>,</span><br><span class="line">          onPressed: <span class="keyword">null</span>,</span><br><span class="line">        ),</span><br><span class="line">        title: <span class="keyword">new</span> Text(<span class="string">'MaterialApp Example title'</span>),</span><br><span class="line">        actions: &lt;Widget&gt;[</span><br><span class="line">          <span class="keyword">new</span> IconButton(</span><br><span class="line">            icon: <span class="keyword">new</span> Icon(Icons.search),</span><br><span class="line">            tooltip: <span class="string">'Search'</span>,</span><br><span class="line">            onPressed: <span class="keyword">null</span>,</span><br><span class="line">          ),</span><br><span class="line">        ],</span><br><span class="line">      ),</span><br><span class="line">      <span class="comment">//body占屏幕的大部分</span></span><br><span class="line">      body: <span class="keyword">new</span> Center(</span><br><span class="line">        child: <span class="keyword">new</span> Text(<span class="string">'Hello, world2!'</span>),</span><br><span class="line">      ),</span><br><span class="line">      floatingActionButton: <span class="keyword">new</span> FloatingActionButton(</span><br><span class="line">        tooltip: <span class="string">'Add'</span>, <span class="comment">// used by assistive technologies</span></span><br><span class="line">        child: <span class="keyword">new</span> Icon(Icons.add),</span><br><span class="line">        onPressed: <span class="keyword">null</span>,</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="三、按钮Button"><a href="#三、按钮Button" class="headerlink" title="三、按钮Button"></a>三、按钮Button</h2><h4 id="1、按钮形式"><a href="#1、按钮形式" class="headerlink" title="1、按钮形式"></a>1、按钮形式</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">floatingActionButton: <span class="keyword">new</span> FloatingActionButton(</span><br><span class="line">         tooltip: <span class="string">'Add'</span>, <span class="comment">// used by assistive technologies</span></span><br><span class="line">         child: <span class="keyword">new</span> Icon(Icons.add),</span><br><span class="line">         <span class="comment">// 点击进行页面跳转</span></span><br><span class="line">         onPressed:() &#123;</span><br><span class="line">           goNextPage(context);</span><br><span class="line">         &#125;</span><br><span class="line">         ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<h4 id="2、按钮的事件写法"><a href="#2、按钮的事件写法" class="headerlink" title="2、按钮的事件写法"></a>2、按钮的事件写法</h4><h6 id="2-1、无方法"><a href="#2-1、无方法" class="headerlink" title="2.1、无方法"></a>2.1、无方法</h6><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 写法①</span></span><br><span class="line">onPressed: <span class="keyword">null</span>,</span><br><span class="line"><span class="comment">// 写法②</span></span><br><span class="line">onPressed: () &#123;&#125;</span><br><span class="line"><span class="comment">// 写法③</span></span><br><span class="line">onPressed: () =&gt; &#123;&#125;</span><br></pre></td></tr></table></figure>
+<h6 id="2-2、有方法，但该方法无参数"><a href="#2-2、有方法，但该方法无参数" class="headerlink" title="2.2、有方法，但该方法无参数"></a>2.2、有方法，但该方法无参数</h6><p>设方法为：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> printLog() &#123;</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">"This is printLog Method"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>则按钮点击事件为：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 写法①</span></span><br><span class="line">onPressed: printLog,</span><br><span class="line"></span><br><span class="line"><span class="comment">// 写法②</span></span><br><span class="line">onPressed: () &#123;</span><br><span class="line">    printLog();</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+<h6 id="2-3、有方法，且该方法有参数"><a href="#2-3、有方法，且该方法有参数" class="headerlink" title="2.3、有方法，且该方法有参数"></a>2.3、有方法，且该方法有参数</h6><p>设方法为：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> printText($text) &#123;</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">"The text is "</span> + $text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>则按钮点击事件为：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">onPressed:() &#123;</span><br><span class="line">	printText(<span class="string">"Hello world"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、新页面的创建"><a href="#四、新页面的创建" class="headerlink" title="四、新页面的创建"></a>四、新页面的创建</h2><p>以创建一个新页面<code>NewRoute.dart</code>为例，该文件代码如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NewRoute</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: Text(<span class="string">"New route"</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Text(<span class="string">"This is new route"</span>),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="五、页面的跳转-amp-路由的管理"><a href="#五、页面的跳转-amp-路由的管理" class="headerlink" title="五、页面的跳转 &amp; 路由的管理"></a>五、页面的跳转 &amp; 路由的管理</h2><h4 id="5-1-直接跳转"><a href="#5-1-直接跳转" class="headerlink" title="5.1 直接跳转"></a>5.1 直接跳转</h4><p>以跳转到上述建立的<code>NewRoute.dart</code>为例，则跳转方法：</p>
+<p>方式①：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'NewRoute.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 按钮处的写法</span></span><br><span class="line">onPressed: () &#123;</span><br><span class="line">    Navigator.push(context, <span class="keyword">new</span> MaterialPageRoute(builder: (context) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> NewRoute();</span><br><span class="line">    &#125;));</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+<p>方式②：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'NewRoute.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义导航到新路由的方法</span></span><br><span class="line"><span class="keyword">void</span> goNextPage(context) &#123;</span><br><span class="line">  Navigator.push(context, <span class="keyword">new</span> MaterialPageRoute(builder: (context) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> NewRoute();</span><br><span class="line">  &#125;));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 则按钮处的写法，自然如下：</span></span><br><span class="line">onPressed:() &#123;</span><br><span class="line">    goNextPage(context);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="5-2-使用路由管理"><a href="#5-2-使用路由管理" class="headerlink" title="5.2 使用路由管理"></a>5.2 使用路由管理</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'NewRoute.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在MaterialApp中注册路由表</span></span><br><span class="line">routes: &#123;</span><br><span class="line">    <span class="string">"new_page"</span>: (context) =&gt; NewRoute(),</span><br><span class="line">&#125;,</span><br><span class="line"></span><br><span class="line"><span class="comment">// 按钮位置写法</span></span><br><span class="line">onPressed: () &#123;</span><br><span class="line">    Navigator.pushNamed(context, <span class="string">"new_page"</span>);</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/1入门/Flutter的最基础知识/" data-id="cjt2tvd94008gfcrxuzy8be4p" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -221,6 +765,7 @@
     <div class="article-entry" itemprop="articleBody">
       
         <h2 id="一、资源文件的显示"><a href="#一、资源文件的显示" class="headerlink" title="一、资源文件的显示"></a>一、资源文件的显示</h2><p>创建md的同名文件夹后，资源文件的路径不能写为<code>./xxx/1.jpg</code>(虽然markdown有效)，只能为<code>xxx/1.jpg</code>。</p>
+<p>其他参考：<a href="https://hexo.io/zh-cn/docs/asset-folders" target="_blank" rel="noopener">hexo官网：资源文件夹</a></p>
 <h2 id="二、hexo链接的持久化"><a href="#二、hexo链接的持久化" class="headerlink" title="二、hexo链接的持久化"></a>二、hexo链接的持久化</h2><p>参考文档：</p>
 <p>永久链接（Permalinks）的官网文档：<a href="https://hexo.io/zh-cn/docs/permalinks.html" target="_blank" rel="noopener">https://hexo.io/zh-cn/docs/permalinks.html</a></p>
 <p>hexo链接持久化终极解决之道：<a href="https://blog.csdn.net/yanzi1225627/article/details/77761488?utm_source=blogxgwz4" target="_blank" rel="noopener">https://blog.csdn.net/yanzi1225627/article/details/77761488?utm_source=blogxgwz4</a></p>
@@ -247,7 +792,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Hexo/2Hexo的进阶/" data-id="cjsyh2s4t0048psrxh6rtfq2y" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Hexo/2Hexo的进阶/" data-id="cjt2tvd80004ufcrxrtpw9exn" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
@@ -363,357 +908,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Hexo/1Hexo的使用/" data-id="cjsyh2s4r0043psrxagt8qdls" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Hexo/1Hexo的使用/" data-id="cjt2tvd7y004qfcrxeh31k4jw" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Hexo/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Hexo/README/" class="article-date">
-  <time datetime="2018-12-09T01:00:00.000Z" itemprop="datePublished">2018-12-09</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Hexo/README/">Hexo前言</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>本章介绍</p>
-<ul>
-<li>①Hexo的使用</li>
-<li>②Hexo的进阶</li>
-</ul>
-<hr>
-<p><a href="../1Hexo的使用">点击此处，进入本章第1节的正式学习 &gt;</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Hexo/README/" data-id="cjsyh2s4u004bpsrxim20u6uv" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/GitBook/1GitBook的使用" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/GitBook/1GitBook的使用/" class="article-date">
-  <time datetime="2018-12-03T02:00:00.000Z" itemprop="datePublished">2018-12-03</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/GitBook/">GitBook</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/GitBook/1GitBook的使用/">第1节：GitBook的使用</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
-<li><a href="https://blog.csdn.net/lu_embedded/article/details/81100704" target="_blank" rel="noopener">GitBook 从懵逼到入门</a></li>
-</ul>
-<h2 id="一、主要命令"><a href="#一、主要命令" class="headerlink" title="一、主要命令"></a>一、主要命令</h2><table>
-<thead>
-<tr>
-<th>操作</th>
-<th>命令/配置</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>初始化/生成书籍目录</td>
-<td><code>gitbook init</code></td>
-<td>执行完后，你会看到多了两个文件：README.md 和 SUMMARY.md</td>
-</tr>
-<tr>
-<td>本地预览查看</td>
-<td><code>gitbook serve</code></td>
-<td>开启gitbook服务器，用于本地查看。其包含了也包含在 <code>gitbook build</code>命令</td>
-</tr>
-<tr>
-<td>构建书籍</td>
-<td><code>gitbook build</code></td>
-<td>默认将生成的静态网站输出到 _book 目录</td>
-</tr>
-</tbody>
-</table>
-<p>编辑 SUMMARY.md 文件的示例：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 目录</span></span><br><span class="line"></span><br><span class="line">* [前言](README.md)</span><br><span class="line">* [第一章](Chapter1/README.md)</span><br><span class="line">  * [第1节：衣](Chapter1/衣.md)</span><br><span class="line">  * [第2节：食](Chapter1/食.md)</span><br><span class="line">  * [第3节：住](Chapter1/住.md)</span><br><span class="line">  * [第4节：行](Chapter1/行.md)</span><br><span class="line">* [第二章](Chapter2/README.md)</span><br><span class="line">* [第三章](Chapter3/README.md)</span><br><span class="line">* [第四章](Chapter4/README.md)</span><br></pre></td></tr></table></figure>
-<h2 id="二、常用的创建"><a href="#二、常用的创建" class="headerlink" title="二、常用的创建"></a>二、常用的创建</h2><table>
-<thead>
-<tr>
-<th>操作</th>
-<th>命令</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>创建md博文</td>
-<td>新建文件</td>
-<td></td>
-</tr>
-<tr>
-<td>创建分类</td>
-<td>新建文件夹</td>
-<td></td>
-</tr>
-<tr>
-<td>创建关于</td>
-<td>新建文件夹</td>
-</tr>
-</tbody>
-</table>
-<h2 id="三、常用的主题"><a href="#三、常用的主题" class="headerlink" title="三、常用的主题"></a>三、常用的主题</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/GitBook/1GitBook的使用/" data-id="cjsyh2s4n003wpsrx9doibdno" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/GitBook/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/GitBook/README/" class="article-date">
-  <time datetime="2018-12-03T01:00:00.000Z" itemprop="datePublished">2018-12-03</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/GitBook/README/">GitBook前言</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>本章介绍</p>
-<ul>
-<li>①GitBook的使用</li>
-<li>②GitBook的进阶</li>
-</ul>
-<hr>
-<p><a href="../1GitBook的使用">点击此处，进入本章第1节的正式学习 &gt;</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/GitBook/README/" data-id="cjsyh2s4p0040psrxl0fkr2a0" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/README/" class="article-date">
-  <time datetime="2018-12-01T02:00:00.000Z" itemprop="datePublished">2018-12-01</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/文档管理/">文档管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/README/">文档管理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="为什么要用新的文档创作平台"><a href="#为什么要用新的文档创作平台" class="headerlink" title="为什么要用新的文档创作平台"></a>为什么要用新的文档创作平台</h2><p>​    通常，我们最开始学习和使用的办公软件就是 Word、Excel 和 PowerPoint。这里不是说它们已经过时了，不是说 GitBook 能够替代它们。相反，Microsoft 的办公软件很优秀并且经受了时间的考验，但是正因为它功能丰富，导致稍显臃肿（二八定律：80%的时间里我们只会只用20%的功能）。</p>
-<p>​    所以，如果你和我一样，不满足于传统的写作方式，正在寻找一种令人愉悦的写作方式，那么可以尝试以下几种文档创作方式！</p>
-<h2 id="一、gitbook与hexo的比较"><a href="#一、gitbook与hexo的比较" class="headerlink" title="一、gitbook与hexo的比较"></a>一、gitbook与hexo的比较</h2><table>
-<thead>
-<tr>
-<th></th>
-<th>gitbook</th>
-<th>hexo+GithubPage</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>网址</td>
-<td><a href="https://www.gitbook.com/?t=2" target="_blank" rel="noopener">gitbook官网</a></td>
-<td><a href="https://hexo.io/zh-cn/" target="_blank" rel="noopener">hexo官网</a></td>
-</tr>
-<tr>
-<td>常用于</td>
-<td>书籍文档类</td>
-<td>博客文档类</td>
-</tr>
-<tr>
-<td>参考案例</td>
-<td><a href="https://mta.qq.com/docs/" target="_blank" rel="noopener">腾讯移动分析</a></td>
-<td><a href="https://tech.meituan.com" target="_blank" rel="noopener">美团技术团队博客</a> 只是猜测</td>
-</tr>
-<tr>
-<td>个人实践</td>
-<td><a href="https://devbook.site" target="_blank" rel="noopener">https://devbook.site</a></td>
-<td><a href="https://dvlproad.github.io">https://dvlproad.github.io</a></td>
-</tr>
-<tr>
-<td>定制型</td>
-<td>相对固定</td>
-<td>根据设置的不同<a href="https://hexo.io/themes/" target="_blank" rel="noopener">hexo主题</a>，显示不同排版效果</td>
-</tr>
-<tr>
-<td>优点</td>
-<td>以书籍形态，层次顺序明确；<br>非常适合知识架构的分类整理及递进。</td>
-<td>虽不是书籍类，但也有层次；<br>定制型更强。</td>
-</tr>
-<tr>
-<td>缺点</td>
-<td>官网非翻墙使用不了<br>所以需要申请域名来映射使用</td>
-<td></td>
-</tr>
-<tr>
-<td>访问限制</td>
-<td>暂未了解，目前都是无差别访问</td>
-<td>暂未了解，目前都是无差别访问</td>
-</tr>
-<tr>
-<td>文档存放</td>
-<td>GitHub</td>
-<td>GitHub、Gitlab、SVN等都可以</td>
-</tr>
-<tr>
-<td>文档编写</td>
-<td>Markdown本地编写</td>
-<td>Markdown本地编写</td>
-</tr>
-<tr>
-<td>本地预览</td>
-<td>执行<code>gitbook seve</code>即可预览</td>
-<td>执行<code>hexo seve</code>即可预览</td>
-</tr>
-<tr>
-<td>远程生效</td>
-<td>更新GitHub就可以</td>
-<td>执行<code>hexo d</code>进行发布即可</td>
-</tr>
-</tbody>
-</table>
-<h2 id="附：几个类似GitBook的在线文档创作平台"><a href="#附：几个类似GitBook的在线文档创作平台" class="headerlink" title="附：几个类似GitBook的在线文档创作平台"></a>附：几个类似GitBook的在线文档创作平台</h2><p>参考：<a href="https://weibo.com/ttarticle/p/show?id=2309404295034223596106&amp;sudaref=www.baidu.com&amp;display=0&amp;retcode=6102" target="_blank" rel="noopener">几个类似GitBook的在线文档创作平台</a></p>
-<table>
-<thead>
-<tr>
-<th>在线文档创作平台</th>
-<th>为免费用户提供</th>
-<th>官网地址</th>
-<th>文档示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>GitBook</strong>(首推)<br><img src="https://r.sinaimg.cn/large/article/d9a1e0d1189c72b8a25f288be301aea2" alt="img"></td>
-<td>① 一个公共空间<br>②一个私有空间（支持两个用户的团队）<br>③ 支持自定义域名</td>
-<td><a href="https://www.gitbook.com/" target="_blank" rel="noopener">https://www.gitbook.com/</a></td>
-<td><a href="https://amazing-apps.gitbooks.io/windows-apps-that-amaze-us/zh-CN/" target="_blank" rel="noopener">https://amazing-apps.gitbooks.io/windows-apps-that-amaze-us/zh-CN/</a></td>
-</tr>
-<tr>
-<td><strong>看云</strong>(国内最靠谱的选择)<br><img src="https://r.sinaimg.cn/large/article/152fb6eeafff0fbc98b6ffe47f578559" alt="img"></td>
-<td>①不限量公开文档<br>②0个私有文档<br>③完整文档功能</td>
-<td><a href="https://www.kancloud.cn/" target="_blank" rel="noopener">https://www.kancloud.cn/</a></td>
-<td><a href="https://www.kancloud.cn/manual/thinkphp/1678" target="_blank" rel="noopener">https://www.kancloud.cn/manual/thinkphp/1678</a></td>
-</tr>
-<tr>
-<td><strong>北半球</strong><br><img src="https://r.sinaimg.cn/large/article/fd629460e5819a3d460d9c0ff03b4167" alt="img"></td>
-<td>感觉规模并不大，所幸这是一个开源项目，你可以自行搭建属于自己的北半球</td>
-<td><a href="https://www.beibq.cn/" target="_blank" rel="noopener">https://www.beibq.cn/</a></td>
-<td><a href="https://www.beibq.cn/book/beibq_guide" target="_blank" rel="noopener">https://www.beibq.cn/book/beibq_guide</a></td>
-</tr>
-</tbody>
-</table>
-<p>总结：</p>
-<p>如果希望托管在平台，请根据项目数量选择使用GitBook或者看云；</p>
-<p>如果自建，则只有GitBook和北半球提供了源代码，供用户自行搭建。</p>
-<hr>
-<p><a href="/文档管理/Hexo/1Hexo的使用">点击此处，进入本章第1节的正式学习 &gt;</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/README/" data-id="cjsyh2s09000ipsrxwjuv048k" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hexo/">Hexo</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/博客/">博客</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
 
     </footer>
   </div>
@@ -726,7 +924,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/4/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span>
+    <a class="extend prev" rel="prev" href="/page/4/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/6/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -737,7 +935,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/Flutter阶段目标/">Flutter阶段目标</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Shell/">Shell</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/文档管理/">文档管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/Flutter阶段目标/">Flutter阶段目标</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/文档管理/">文档管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li></ul>
     </div>
   </div>
 
@@ -747,7 +945,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/博客/">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/博客/">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
     </div>
   </div>
 
@@ -757,7 +955,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Flutter/" style="font-size: 20px;">Flutter</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/Shell/" style="font-size: 10px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.67px;">Swift</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/交互/" style="font-size: 15px;">交互</a> <a href="/tags/博客/" style="font-size: 10px;">博客</a> <a href="/tags/实用工具/" style="font-size: 18.33px;">实用工具</a> <a href="/tags/文档管理/" style="font-size: 16.67px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10px;">环境搭建</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 15px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/自动化/" style="font-size: 10px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/集成/" style="font-size: 13.33px;">集成</a>
+      <a href="/tags/Flutter/" style="font-size: 20px;">Flutter</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Python/" style="font-size: 10px;">Python</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.71px;">Script</a> <a href="/tags/Shell/" style="font-size: 10px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.43px;">Swift</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 17.14px;">iOS</a> <a href="/tags/交互/" style="font-size: 14.29px;">交互</a> <a href="/tags/博客/" style="font-size: 10px;">博客</a> <a href="/tags/实用工具/" style="font-size: 18.57px;">实用工具</a> <a href="/tags/文档管理/" style="font-size: 17.14px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10px;">环境搭建</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 14.29px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/自动化/" style="font-size: 10px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/集成/" style="font-size: 12.86px;">集成</a>
     </div>
   </div>
 
@@ -779,23 +977,23 @@
       <ul>
         
           <li>
-            <a href="/Terminal/终端命令安装/">终端命令安装</a>
+            <a href="/Flutter/6进阶/iOS项目集成Flutter高级/">第1节：iOS项目继承Flutter高级</a>
           </li>
         
           <li>
-            <a href="/实用工具/Zentao/Zentao问题整理/">Zentao问题整理</a>
+            <a href="/Script/JavaScript/JavaScript入门/">JavaScript入门</a>
           </li>
         
           <li>
-            <a href="/实用工具/XAMPP/XAMPP问题整理/">XAMPP问题整理</a>
+            <a href="/Script/Script README/">Script README</a>
           </li>
         
           <li>
-            <a href="/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a>
+            <a href="/Script/Python/Python入门/">Python入门</a>
           </li>
         
           <li>
-            <a href="/Flutter/总结/">总结</a>
+            <a href="/Script/Ruby/Ruby入门/">Ruby入门</a>
           </li>
         
       </ul>
