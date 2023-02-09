@@ -1,0 +1,45 @@
+<hr>
+<p>title: Git Log<br>date: 2013-01-07 10:51:37<br>categories: </p>
+<ul>
+<li>代码管理<br>tags:</li>
+<li>Git</li>
+</ul>
+<hr>
+<h2 id="Git-log"><a href="#Git-log" class="headerlink" title="Git log"></a>Git log</h2><pre><code class="shell">git log --merges --after="2022-10-13" --oneline --decorate
+git log --after="2022-10-13" --oneline --decorate
+
+git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)&lt;%an&gt;%Creset' --abbrev-commit --date=relative --all --after '10-13-2022' --merges
+</code></pre>
+<p>查看历史版本记录–指定显示条数</p>
+<p>同时，与git log相同的是，git reflog也提供了控制显示条数的选项：</p>
+<p>命令：git reflog -n </p>
+<h2 id="1、获取本分支合入指定分支的commitId"><a href="#1、获取本分支合入指定分支的commitId" class="headerlink" title="1、获取本分支合入指定分支的commitId"></a>1、获取本分支合入指定分支的commitId</h2><p>有些时候需要解析分支，tag，或者其他对于提交的间接引用。对于这种情况，你可以使用<code>git rev-parse</code>命令。下面的命令返回指向<code>development</code>分支的提交哈希串。</p>
+<pre><code class="bash">git rev-parse development
+</code></pre>
+<p>这对于编写只接受提交ID作为参数的自定义脚本非常有用。你可以使用<code>git rev-parse</code>命令来标准化脚本的输入，进而进入对于提交的统一处理。这就避免了脚本用户需要手动解析提交的引用。</p>
+<h2 id="二、获取commitId的信息"><a href="#二、获取commitId的信息" class="headerlink" title="二、获取commitId的信息"></a>二、获取commitId的信息</h2><h3 id="1、获取commitId的提交信息"><a href="#1、获取commitId的提交信息" class="headerlink" title="1、获取commitId的提交信息"></a>1、获取commitId的提交信息</h3><p>想要将此哈希串作为参数传递给其他Git命令，只需要提供足够长度的字符串就可以了。比如说，你可以通过下面的命令来传入上面的哈希串，以便使用<code>git show</code>命令查看那次提交的具体内容。</p>
+<pre><code class="bash">git show 0c708f
+
+git show -s --oneline 3d21461a7ef205ed0cee0baf45e95e782f4e84af
+</code></pre>
+<h3 id="2、获取commitId的根源远程分支"><a href="#2、获取commitId的根源远程分支" class="headerlink" title="2、获取commitId的根源远程分支"></a>2、获取commitId的根源远程分支</h3><h4 id="①、获取有哪些远程分支里已经合入了commitId"><a href="#①、获取有哪些远程分支里已经合入了commitId" class="headerlink" title="①、获取有哪些远程分支里已经合入了commitId"></a>①、获取有哪些远程分支里已经合入了commitId</h4><ul>
+<li><a href="https://www.jianshu.com/p/6ad6981f8ec5">git获取某次commit是在哪个分支提交的</a></li>
+</ul>
+<pre><code class="shell">git branch --contains eb0633b76925041f84b592a2e261e0b8537953f7 -r # -r标识远程分支
+</code></pre>
+<h4 id="②、第一个合入commitId的远程分支，即为commitId的根源分支"><a href="#②、第一个合入commitId的远程分支，即为commitId的根源分支" class="headerlink" title="②、第一个合入commitId的远程分支，即为commitId的根源分支"></a>②、第一个合入commitId的远程分支，即为commitId的根源分支</h4><pre><code class="shell">branchResultForFisrtCommit=$(git branch --contains "${firstCommitId}" -r)
+echo "${branchResultForFisrtCommit}"
+
+branchArrayForFisrtCommit=(${branchResultForFisrtCommit})
+branchCountForFisrtCommit=${#branchArrayForFisrtCommit[@]}
+<span class="meta">#</span><span class="bash"><span class="built_in">echo</span> <span class="string">"branchCountForFisrtCommit=<span class="variable">$branchCountForFisrtCommit</span>"</span></span>
+<span class="meta">#</span><span class="bash"><span class="keyword">for</span> ((i=0;i&lt;branchCountForFisrtCommit;i+=1))</span>
+<span class="meta">#</span><span class="bash">{</span>
+<span class="meta">#</span><span class="bash">    branchName=<span class="variable">${branchArrayForFisrtCommit[i]}</span></span>
+<span class="meta">#</span><span class="bash">    <span class="built_in">echo</span> <span class="string">"branchName=<span class="variable">${branchName}</span>"</span></span>
+<span class="meta">#</span><span class="bash">}</span>
+
+echo "\n------下面开始获取firstCommitId:${firstCommitId}的提交所属的根源远程功能分支名------"
+sourceBranchForFisrtCommit=${branchArrayForFisrtCommit[${branchCountForFisrtCommit}-1]}
+echo "sourceBranchForFisrtCommit=${sourceBranchForFisrtCommit}"
+</code></pre>
