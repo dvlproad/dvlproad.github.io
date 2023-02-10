@@ -72,6 +72,61 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程间通信" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p></p><p id="线程间的通信"></p><p></p>
+<h2 id="二、谈谈你对线程间的通信的了解"><a href="#二、谈谈你对线程间的通信的了解" class="headerlink" title="二、谈谈你对线程间的通信的了解"></a>二、谈谈你对线程间的通信的了解</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>在1个进程中，线程往往不是孤立存在的，多个线程之间需要经常进行通信。</p>
+<p>线程间通信的体现:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 一个线程传递数据给另一个线程</span><br><span class="line">2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br></pre></td></tr></table></figure>
+<p>线程间通信应用举例：（即在一个线程中执行完特定任务后，转到另一个线程继续执行任务，并将该线程数据传递给另一个线程的应用举例）</p>
+<blockquote>
+<p>以下例子摘自：<a href="https://www.cnblogs.com/supper-Ho/p/6379606.html" target="_blank" rel="noopener">线程间通讯</a></p>
+<p>①<code>NSThread</code>可以先将自己的当前线程对象注册到某个全局的对象中去，这样相互之间就可以获取对方的线程对象，然后就可以使用下面的方法进行线程间的通信了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&gt;回到主线程执行，执行self的showImage方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelectorOnMainThread:(SEL)aSelector withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到后台线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到xx线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelector:(SEL)aSelector onThread:(NSThread *)thr withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>②、<code>GCD</code>一个线程传递数据给另一个线程。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&gt; dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">&gt;     NSLog(@&quot;donwload---%@&quot;, [NSThread currentThread]);</span><br><span class="line">&gt;     // 1.子线程下载图片</span><br><span class="line">&gt;     NSURL *url = [NSURL URLWithString:@&quot;http://d.jpg&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.回到主线程设置图片</span><br><span class="line">&gt;     dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         NSLog(@&quot;setting---%@ %@&quot;, [NSThread currentThread], image);</span><br><span class="line">&gt;         [self.button setImage:image forState:UIControlStateNormal];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt; &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>③、NSOperation线程通信的举例：在其他线程完成了耗时操作时，需要回到主线程，那么就用到了线程之间的通讯。这里有两种方法，一种是线程里转线程，另一种是线程间使用依赖。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 1.创建一个新的队列</span><br><span class="line">&gt; NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">&gt; // 2.添加任务(操作)</span><br><span class="line">&gt; [queue addOperationWithBlock:^&#123;</span><br><span class="line">&gt;     // 2.1在子线程中下载图片</span><br><span class="line">&gt;     NSURL *url  = [NSURL URLWithString:@&quot;http://imgcache.mysodao.com/img2/M04/8C/74/CgAPDk9dyjvS1AanAAJPpRypnFA573_700x0x1.JPG&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.2回到主线程更新UI</span><br><span class="line">&gt;     [[NSOperationQueue mainQueue] addOperationWithBlock:^&#123;</span><br><span class="line">&gt;         self.imageView.image = image;</span><br><span class="line">&gt;     &#125;];</span><br><span class="line">&gt; &#125;];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>首先我们先来说说线程与线程间的关系，其引入了我们下面的第二点线程等待(线程同步)问题、线程依赖问题。</p>
+<p>然后我们再来说说，有时候我们还常经常在多个线程中操作一个全局变量，这个的话，也算线程间通信吗？不管他算不算(应该是不算的，个人觉得)，但是他的存在使得我们引入了另一个线程安全的问题，即多个线程操作同一个变量。也就是下面说的第三点，线程安全问题。</p>
+<h4 id="附：其他传值方法总结"><a href="#附：其他传值方法总结" class="headerlink" title="附：其他传值方法总结"></a>附：其他传值方法总结</h4><p>参考：<a href="http://blog.csdn.net/DJH996064549/article/details/50497371" target="_blank" rel="noopener">其他传值方法总结</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、A界面到B界面的正向传值，即A界面传值给B界面使用</span><br><span class="line">2、。。。</span><br></pre></td></tr></table></figure></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="cldy04qd900uejur4cevy5z05" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
@@ -119,67 +174,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cldwzeg5700uszir4du8cn3vg" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程GCD" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程GCD"><a href="#必备知识架构-线程与网络-①线程GCD" class="headerlink" title="必备知识架构-线程与网络-①线程GCD"></a>必备知识架构-线程与网络-①线程GCD</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="GCD"></p><p></p>
-<h2 id="六、GCD"><a href="#六、GCD" class="headerlink" title="六、GCD"></a>六、GCD</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>精： <a href="http://www.cnblogs.com/wendingding/p/3806821.html" target="_blank" rel="noopener">iOS开发多线程篇—GCD介绍</a></p>
-<h4 id="0、dispatch-sync、dispatch-async"><a href="#0、dispatch-sync、dispatch-async" class="headerlink" title="0、dispatch_sync、dispatch_async"></a>0、dispatch_sync、dispatch_async</h4><p>1.GCD中有2个用来执行任务的函数</p>
-<p>说明：<code>把右边的参数（任务）提交给左边的参数（队列）进行执行</code>。</p>
-<p>（1）用同步的方式执行任务 dispatch_sync(dispatch_queue_t queue, dispatch_block_t block);</p>
-<p>（2）用异步的方式执行任务 dispatch_async(dispatch_queue_t queue, dispatch_block_t block);</p>
-<p>以下参考自：<a href="http://www.cnblogs.com/ygm900/p/3696371.html" target="_blank" rel="noopener">dispatch_group_async 使用详解</a></p>
-<h4 id="1、dispatch-group-async-（可实现队列同步）"><a href="#1、dispatch-group-async-（可实现队列同步）" class="headerlink" title="1、dispatch_group_async （可实现队列同步）"></a>1、dispatch_group_async （可实现队列同步）</h4><p><code>要实现监听一组任务是否全部完成，等到全部完成后执行其他的操作可以使用dispatch_group_async（这个方法很有用）</code>。比如异步下载多张图片，等所有图片下载完成之后，再去做一些事情（比如才通知界面说完成的）。</p>
-<p>如果想在dispatch_queue中所有的任务执行完成后在做某种操作，在串行队列中，我们只需把该操作放到最后一个任务来执行就可以，但是在并行队列中怎么做呢。答案是用dispatch_group任务组来做。</p>
-<p>思路：<code>创建一个任务组，然后将异步操作都放进任务组里面，在最后用notify 告知所有任务完成，并做相应处理，一般最后的处理都是在主线程里面刷新UI来提示用户。</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0); //创建并行队列queue</span><br><span class="line">dispatch_group_t group = dispatch_group_create();          //创建任务组group</span><br><span class="line"></span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group1&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group2&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group3&quot;);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    NSLog(@&quot;updateUi&quot;); </span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_release(group);</span><br></pre></td></tr></table></figure>
-<p>附：下面的两种调用其实是等价的， </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">A)</span><br><span class="line"></span><br><span class="line">dispatch_group_async(group, queue, ^&#123; </span><br><span class="line"></span><br><span class="line">　　// 。。。 </span><br><span class="line"></span><br><span class="line">&#125;); </span><br><span class="line"></span><br><span class="line">B) </span><br><span class="line"></span><br><span class="line">dispatch_group_enter(group);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line"></span><br><span class="line">　　//。。。</span><br><span class="line"></span><br><span class="line">　　dispatch_group_leave(group);</span><br><span class="line"></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-<p> 其他：</p>
-<p><a href="http://zhidao.baidu.com/link?url=T16NuXqHjBDteT_OQYav1f4lEWM6EVfATRuBMcuKSKh6rIPlupbFkTPVZGQ4reP7pFojqox7BGdgo2d8Isk3qZ3O0GUxj5EEfsWc1rGLVtK" target="_blank" rel="noopener">使用gcd怎么让两个线程执行完结束后再去执行另一个线程</a></p>
-<p><a href="http://blog.csdn.net/wangzitao126/article/details/43195533" target="_blank" rel="noopener">多线程并发流程控制之dispatch_group 有关函数</a></p>
-<h4 id="2、dispatch-barrier-async（可实现队列同步）"><a href="#2、dispatch-barrier-async（可实现队列同步）" class="headerlink" title="2、dispatch_barrier_async（可实现队列同步）"></a>2、dispatch_barrier_async（可实现队列同步）</h4><p>dispatch_barrier_async是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_queue_create(&quot;**test.abc.queue&quot;, DISPATCH_QUEUE_CONCURRENT);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:2];</span><br><span class="line">    NSLog(@&quot;dispatch_async1&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:4];</span><br><span class="line">    NSLog(@&quot;dispatch_async2&quot;);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_barrier_async(queue, ^&#123; //dispatch_barrier_async是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行</span><br><span class="line">    NSLog(@&quot;dispatch_barrier_async&quot;);</span><br><span class="line">    [NSThread sleepForTimeInterval:4];</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:1]; </span><br><span class="line">    NSLog(@&quot;dispatch_async3&quot;); </span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-<h4 id="3、dispatch-apply"><a href="#3、dispatch-apply" class="headerlink" title="3、dispatch_apply"></a>3、dispatch_apply</h4><p>dispatch_apply执行某个代码片段N次。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_apply(5, globalQ, ^(size_t index) &#123;</span><br><span class="line">// 执行5次</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-<h4 id="4、小结dispatch-group-async、dispatch-barrier-async、dispatch-apply分别是什么？"><a href="#4、小结dispatch-group-async、dispatch-barrier-async、dispatch-apply分别是什么？" class="headerlink" title="4、小结dispatch_group_async、dispatch_barrier_async、dispatch_apply分别是什么？"></a>4、小结dispatch_group_async、dispatch_barrier_async、dispatch_apply分别是什么？</h4><p><code>dispatch_group_async</code> 可以实现监听一组任务是否完成，完成后得到通知执行其他的操作。这个方法很有用，比如你执行三个下载任务，当三个任务都下载完成后你才通知界面说完成的了<br><code>dispatch_barrier_async</code> 是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行<br><code>dispatch_apply</code> 执行某个代码片段N次。</p>
-<h4 id="5、GCD四大队列"><a href="#5、GCD四大队列" class="headerlink" title="5、GCD四大队列"></a>5、GCD四大队列</h4><p><a href="https://www.jianshu.com/p/368e8621dc27" target="_blank" rel="noopener">iOS GCD四大队列</a></p>
-<h6 id="1-、串行队列"><a href="#1-、串行队列" class="headerlink" title="(1)、串行队列"></a>(1)、串行队列</h6><h6 id="2-、并发队列"><a href="#2-、并发队列" class="headerlink" title="(2)、并发队列"></a>(2)、并发队列</h6><h6 id="3-、全局队列"><a href="#3-、全局队列" class="headerlink" title="(3)、全局队列"></a>(3)、全局队列</h6><p>全局队列:<br>和并发队列,执行效果一样,只是说,并发队列,需要我们程序员,自己创建<br>而全局队列,是由于系统提供</p>
-<h6 id="4-、主队列"><a href="#4-、主队列" class="headerlink" title="(4)、主队列"></a>(4)、主队列</h6><p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="cldwzeg5l00uuzir4irch01s0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cldy04qdn00ufjur41j2mkftc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -295,7 +290,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldwzeg5y00uwzir4pjyrbmef" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldy04qe100ugjur4wt306re5" class="article-share-link">Share</a>
       
       
     </footer>
@@ -361,46 +356,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cldwzegck00vezir4h5a12sw6" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-④图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-④图片/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-④图片"><a href="#必备知识架构-视图-④图片" class="headerlink" title="必备知识架构-视图-④图片"></a>必备知识架构-视图-④图片</h1><ul>
-<li><a href="https://www.jianshu.com/p/7c44c3b2a056" target="_blank" rel="noopener">2019 iOS面试题—UI相关：事件传递，图像显示，性能优化，离屏渲染</a></li>
-</ul>
-<ul>
-<li><p><a href="https://www.cnblogs.com/sunyanyan/p/5417792.html" target="_blank" rel="noopener">SDWebImageDecoder</a></p>
-<blockquote>
-<p>由于UIImage的imageWithData函数是每次画图的时候才将Data解压成ARGB的图像，</p>
-<p>所以在每次画图的时候，会有一个解压操作，这样效率很低。为了提高效率，通过SDWebImageDecoder将包装在Data下的资源解压，然后画在另外一张图片上，这样这张新图片就不再需要重复解压了。</p>
-</blockquote>
-</li>
-<li><p><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cldwzegde00vgzir4wn88juk4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cldy04qbj00uajur4ytpr1tp3" class="article-share-link">Share</a>
       
       
     </footer>
@@ -453,7 +409,122 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cldwzegds00vhzir4jrzg6dvy" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cldy04qbx00ubjur42g8ay2q0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/3视图/3视图-④图片" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/3视图/3视图-④图片/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-视图-④图片"><a href="#必备知识架构-视图-④图片" class="headerlink" title="必备知识架构-视图-④图片"></a>必备知识架构-视图-④图片</h1><ul>
+<li><a href="https://www.jianshu.com/p/7c44c3b2a056" target="_blank" rel="noopener">2019 iOS面试题—UI相关：事件传递，图像显示，性能优化，离屏渲染</a></li>
+</ul>
+<ul>
+<li><p><a href="https://www.cnblogs.com/sunyanyan/p/5417792.html" target="_blank" rel="noopener">SDWebImageDecoder</a></p>
+<blockquote>
+<p>由于UIImage的imageWithData函数是每次画图的时候才将Data解压成ARGB的图像，</p>
+<p>所以在每次画图的时候，会有一个解压操作，这样效率很低。为了提高效率，通过SDWebImageDecoder将包装在Data下的资源解压，然后画在另外一张图片上，这样这张新图片就不再需要重复解压了。</p>
+</blockquote>
+</li>
+<li><p><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cldy04qcv00udjur48qy59xr8" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/3视图/3视图-①本质RunLoop" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.620Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-视图-①本质"><a href="#必备知识架构-视图-①本质" class="headerlink" title="必备知识架构-视图-①本质"></a>必备知识架构-视图-①本质</h1><p>[toc]</p>
+<p></p><p id="RunLoop"></p><p></p>
+<h2 id="四、RunLoop"><a href="#四、RunLoop" class="headerlink" title="四、RunLoop"></a>四、RunLoop</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
+<h3 id="2、RunLoop和线程的关系？"><a href="#2、RunLoop和线程的关系？" class="headerlink" title="2、RunLoop和线程的关系？"></a>2、RunLoop和线程的关系？</h3><p>run loop和线程是紧密相连的，可以这样说run loop是为了线程而生，没有线程，它就没有存在的必要。Run loops是线程相关的基础框架的一部分，Cocoa和CoreFundation都提供了run loop对象方便配置和管理线程的run loop（以下都已Cocoa为例）。</p>
+<p>每个线程，包括程序的主线程（main thread）都有与之相应的run loop对象。</p>
+<p>①、主线程的run loop默认是启动的。</p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>重点是UIApplicationMain()函数，这个方法会为main thread设置一个NSRunLoop对象，这就解释了本文开始说的为什么我们的应用可以在无人操作的时候休息，需要让它干活的时候又能立马响应。</p>
+</blockquote>
+<p>②、对其它线程来说，run loop默认是没有启动的，如果你需要更多的线程交互则可以手动配置和启动，如果线程只是去执行一个长时间的已确定的任务则不需要。</p>
+<p>③、在任何一个Cocoa程序的线程中，都可以通过：<code>NSRunLoop *runloop = [NSRunLoop currentRunLoop];</code>来获取到当前线程的run loop。</p>
+<h3 id="3、RunLoop相关各类关系"><a href="#3、RunLoop相关各类关系" class="headerlink" title="3、RunLoop相关各类关系"></a>3、RunLoop相关各类关系</h3><p>在 CoreFoundation 里面关于 RunLoop 有5个类:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
+<p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系/RunLoop相关各类关系，如下图所示：</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop相关各类关系.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source/Timer/Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source/Timer/Observer，让其互不影响。</p>
+<p>RunLoop的内部逻辑<br><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop的内部逻辑.png" alt="RunLoop的内部逻辑"></p>
+</blockquote>
+<h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
+<ul>
+<li>Source0 只包含了一个回调（函数指针），它并不能主动触发事件。使用时，你需要先调用 CFRunLoopSourceSignal(source)，将这个 Source 标记为待处理，然后手动调用 CFRunLoopWakeUp(runloop) 来唤醒 RunLoop，让其处理这个事件。</li>
+<li>Source1 包含了一个 mach_port 和一个回调（函数指针），被用于通过内核和其他线程相互发送消息。这种 Source 能主动唤醒 RunLoop 的线程，其原理在下面会讲到。</li>
+</ul>
+<p>苹果注册了一个 Source1 (基于 mach port 的) 用来接收系统事件，其回调函数为 __IOHIDEventSystemClientQueueCallback()。</p>
+<p>在iOS 中，除了source1可以自己唤醒run loop之外，其他的事件都需要用户手动唤醒run loop才可以。</p>
+<h5 id="3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述"><a href="#3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述" class="headerlink" title="3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)"></a>3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)</h5><blockquote>
+<p>大概为：当一个硬件事件(触摸/锁屏/摇晃等)发生后，<br>①、首先由 IOKit.framework 生成一个 IOHIDEvent 事件，Source1 接收到系统事件，<em>RunLoop被唤醒</em>。<br>②、RunLoop<em>通知Observer，处理Timer和Source 0</em>。<br>③、<em>RunLoop处理Source 1，Source1 触发回调，并调用_UIApplicationHandleEventQueue() 进行应用内部的分发</em>。<br>_UIApplicationHandleEventQueue() 会把 IOHIDEvent 处理并包装成 UIEvent 进行处理或分发，其中包括识别 UIGesture/处理屏幕旋转/发送给 UIWindow 等。通常事件比如 UIButton 点击、touchesBegin/Move/End/Cancel 事件都是在这个回调中完成的。<br>④、Springboard接受touch event，并用source1 的 之后mach port 转发给App进程。<br>⑤、<em>RunLoop处理完毕进入睡眠，此前会释放旧的autorelease pool并新建一个autorelease pool。</em></p>
+</blockquote>
+<h4 id="3-2-CFRunLoopTimerRef"><a href="#3-2-CFRunLoopTimerRef" class="headerlink" title="3.2 CFRunLoopTimerRef"></a>3.2 CFRunLoopTimerRef</h4><p>CFRunLoopTimerRef 是基于时间的触发器，它和 NSTimer 是toll-free bridged 的，可以混用。其包含一个时间长度和一个回调（函数指针）。<strong>当其加入到 RunLoop 时，RunLoop会注册对应的时间点，当时间点到时，RunLoop会被唤醒以执行那个回调</strong>（NSTimer 其实就是 CFRunLoopTimerRef）。</p>
+<h4 id="3-3-CFRunLoopObserverRef"><a href="#3-3-CFRunLoopObserverRef" class="headerlink" title="3.3 CFRunLoopObserverRef"></a>3.3 CFRunLoopObserverRef</h4><p>CFRunLoopObserverRef 是观察者，每个 Observer 都包含了一个回调（函数指针），当 RunLoop 的状态发生变化时，观察者就能通过回调接受到这个变化。</p>
+<p>上面的 Source/Timer/Observer 被统称为 mode item，一个 item 可以被同时加入多个 mode。但一个 item 被重复加入同一个 mode 时是不会有效果的。如果一个 mode 中一个 item 都没有，则 RunLoop 会直接退出，不进入循环。</p>
+<h3 id="4、RunLoop的应用"><a href="#4、RunLoop的应用" class="headerlink" title="4、RunLoop的应用"></a>4、RunLoop的应用</h3><p>最常见的为定时器 NSTimer</p>
+<blockquote>
+<p>NSTimer 其实就是 CFRunLoopTimerRef，他们之间是 toll-free bridged 的。一个 NSTimer 注册到 RunLoop 后，RunLoop 会为其重复的时间点注册好事件。例如 10:00, 10:10, 10:20 这几个时间点。RunLoop为了节省资源，并不会在非常准确的时间点回调这个Timer。Timer 有个属性叫做 Tolerance (宽容度)，标示了当时间点到后，容许有多少最大误差。</p>
+</blockquote>
+<p>如果某个时间点被错过了，例如执行了一个很长的任务，则那个时间点的回调也会跳过去，不会延后执行。就比如等公交，如果 10:10 时我忙着玩手机错过了那个点的公交，那我只能等 10:20 这一趟了。</p>
+<p>讲到RunLoop，我们需明确一点。<strong>runloop会对timer有强引用，timer会对目标对象进行强引用</strong></p>
+<p>其他详细参考以下文章：</p>
+<ul>
+<li><a href="https://blog.ibireme.com/2015/05/18/runloop/" target="_blank" rel="noopener">深入理解RunLoop</a></li>
+<li><a href="https://www.cnblogs.com/jiangzzz/p/5619512.html" target="_blank" rel="noopener">iOS面试题之runloop</a></li>
+</ul>
+<h4 id="4-1、autoreleasepool-自动释放池"><a href="#4-1、autoreleasepool-自动释放池" class="headerlink" title="4.1、autoreleasepool 自动释放池"></a>4.1、autoreleasepool 自动释放池</h4><p>既然说到runloop，简单说下autoreleasepool自动释放池。runloop会默认创建autoreleasepool，在runloop睡眠前或者退出前会执行pop操作。线程池详情查看下面的内存管理中的介绍。</p>
+<p>@autoreleasepool是自动释放池，让我们更自由的管理内存;所以我们下面说说内存管理。</p>
+<h4 id="4-2、runloop、autorelease-pool以及线程之间的关系"><a href="#4-2、runloop、autorelease-pool以及线程之间的关系" class="headerlink" title="4.2、runloop、autorelease pool以及线程之间的关系"></a>4.2、runloop、autorelease pool以及线程之间的关系</h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cldy04qae00u7jur4wdo618jq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -537,7 +608,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cldwzegbm00vbzir403xoiicz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cldy04qb600u9jur4ao1iinzo" class="article-share-link">Share</a>
       
       
     </footer>
@@ -547,10 +618,10 @@
 
 
   
-    <article id="post-iOS/3必备知识架构/3视图/3视图-①本质RunLoop" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/2内存/时间计时器等" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.620Z" itemprop="datePublished">2022-03-16</time>
+    <a href="/iOS/3必备知识架构/2内存/时间计时器等/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.613Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
   </div>
@@ -559,61 +630,21 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-视图-①本质"><a href="#必备知识架构-视图-①本质" class="headerlink" title="必备知识架构-视图-①本质"></a>必备知识架构-视图-①本质</h1><p>[toc]</p>
-<p></p><p id="RunLoop"></p><p></p>
-<h2 id="四、RunLoop"><a href="#四、RunLoop" class="headerlink" title="四、RunLoop"></a>四、RunLoop</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-<h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
-<h3 id="2、RunLoop和线程的关系？"><a href="#2、RunLoop和线程的关系？" class="headerlink" title="2、RunLoop和线程的关系？"></a>2、RunLoop和线程的关系？</h3><p>run loop和线程是紧密相连的，可以这样说run loop是为了线程而生，没有线程，它就没有存在的必要。Run loops是线程相关的基础框架的一部分，Cocoa和CoreFundation都提供了run loop对象方便配置和管理线程的run loop（以下都已Cocoa为例）。</p>
-<p>每个线程，包括程序的主线程（main thread）都有与之相应的run loop对象。</p>
-<p>①、主线程的run loop默认是启动的。</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>重点是UIApplicationMain()函数，这个方法会为main thread设置一个NSRunLoop对象，这就解释了本文开始说的为什么我们的应用可以在无人操作的时候休息，需要让它干活的时候又能立马响应。</p>
-</blockquote>
-<p>②、对其它线程来说，run loop默认是没有启动的，如果你需要更多的线程交互则可以手动配置和启动，如果线程只是去执行一个长时间的已确定的任务则不需要。</p>
-<p>③、在任何一个Cocoa程序的线程中，都可以通过：<code>NSRunLoop *runloop = [NSRunLoop currentRunLoop];</code>来获取到当前线程的run loop。</p>
-<h3 id="3、RunLoop相关各类关系"><a href="#3、RunLoop相关各类关系" class="headerlink" title="3、RunLoop相关各类关系"></a>3、RunLoop相关各类关系</h3><p>在 CoreFoundation 里面关于 RunLoop 有5个类:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
-<p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系/RunLoop相关各类关系，如下图所示：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop相关各类关系.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source/Timer/Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source/Timer/Observer，让其互不影响。</p>
-<p>RunLoop的内部逻辑<br><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop的内部逻辑.png" alt="RunLoop的内部逻辑"></p>
-</blockquote>
-<h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
-<ul>
-<li>Source0 只包含了一个回调（函数指针），它并不能主动触发事件。使用时，你需要先调用 CFRunLoopSourceSignal(source)，将这个 Source 标记为待处理，然后手动调用 CFRunLoopWakeUp(runloop) 来唤醒 RunLoop，让其处理这个事件。</li>
-<li>Source1 包含了一个 mach_port 和一个回调（函数指针），被用于通过内核和其他线程相互发送消息。这种 Source 能主动唤醒 RunLoop 的线程，其原理在下面会讲到。</li>
-</ul>
-<p>苹果注册了一个 Source1 (基于 mach port 的) 用来接收系统事件，其回调函数为 __IOHIDEventSystemClientQueueCallback()。</p>
-<p>在iOS 中，除了source1可以自己唤醒run loop之外，其他的事件都需要用户手动唤醒run loop才可以。</p>
-<h5 id="3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述"><a href="#3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述" class="headerlink" title="3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)"></a>3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)</h5><blockquote>
-<p>大概为：当一个硬件事件(触摸/锁屏/摇晃等)发生后，<br>①、首先由 IOKit.framework 生成一个 IOHIDEvent 事件，Source1 接收到系统事件，<em>RunLoop被唤醒</em>。<br>②、RunLoop<em>通知Observer，处理Timer和Source 0</em>。<br>③、<em>RunLoop处理Source 1，Source1 触发回调，并调用_UIApplicationHandleEventQueue() 进行应用内部的分发</em>。<br>_UIApplicationHandleEventQueue() 会把 IOHIDEvent 处理并包装成 UIEvent 进行处理或分发，其中包括识别 UIGesture/处理屏幕旋转/发送给 UIWindow 等。通常事件比如 UIButton 点击、touchesBegin/Move/End/Cancel 事件都是在这个回调中完成的。<br>④、Springboard接受touch event，并用source1 的 之后mach port 转发给App进程。<br>⑤、<em>RunLoop处理完毕进入睡眠，此前会释放旧的autorelease pool并新建一个autorelease pool。</em></p>
-</blockquote>
-<h4 id="3-2-CFRunLoopTimerRef"><a href="#3-2-CFRunLoopTimerRef" class="headerlink" title="3.2 CFRunLoopTimerRef"></a>3.2 CFRunLoopTimerRef</h4><p>CFRunLoopTimerRef 是基于时间的触发器，它和 NSTimer 是toll-free bridged 的，可以混用。其包含一个时间长度和一个回调（函数指针）。<strong>当其加入到 RunLoop 时，RunLoop会注册对应的时间点，当时间点到时，RunLoop会被唤醒以执行那个回调</strong>（NSTimer 其实就是 CFRunLoopTimerRef）。</p>
-<h4 id="3-3-CFRunLoopObserverRef"><a href="#3-3-CFRunLoopObserverRef" class="headerlink" title="3.3 CFRunLoopObserverRef"></a>3.3 CFRunLoopObserverRef</h4><p>CFRunLoopObserverRef 是观察者，每个 Observer 都包含了一个回调（函数指针），当 RunLoop 的状态发生变化时，观察者就能通过回调接受到这个变化。</p>
-<p>上面的 Source/Timer/Observer 被统称为 mode item，一个 item 可以被同时加入多个 mode。但一个 item 被重复加入同一个 mode 时是不会有效果的。如果一个 mode 中一个 item 都没有，则 RunLoop 会直接退出，不进入循环。</p>
-<h3 id="4、RunLoop的应用"><a href="#4、RunLoop的应用" class="headerlink" title="4、RunLoop的应用"></a>4、RunLoop的应用</h3><p>最常见的为定时器 NSTimer</p>
-<blockquote>
-<p>NSTimer 其实就是 CFRunLoopTimerRef，他们之间是 toll-free bridged 的。一个 NSTimer 注册到 RunLoop 后，RunLoop 会为其重复的时间点注册好事件。例如 10:00, 10:10, 10:20 这几个时间点。RunLoop为了节省资源，并不会在非常准确的时间点回调这个Timer。Timer 有个属性叫做 Tolerance (宽容度)，标示了当时间点到后，容许有多少最大误差。</p>
-</blockquote>
-<p>如果某个时间点被错过了，例如执行了一个很长的任务，则那个时间点的回调也会跳过去，不会延后执行。就比如等公交，如果 10:10 时我忙着玩手机错过了那个点的公交，那我只能等 10:20 这一趟了。</p>
-<p>讲到RunLoop，我们需明确一点。<strong>runloop会对timer有强引用，timer会对目标对象进行强引用</strong></p>
-<p>其他详细参考以下文章：</p>
-<ul>
-<li><a href="https://blog.ibireme.com/2015/05/18/runloop/" target="_blank" rel="noopener">深入理解RunLoop</a></li>
-<li><a href="https://www.cnblogs.com/jiangzzz/p/5619512.html" target="_blank" rel="noopener">iOS面试题之runloop</a></li>
-</ul>
-<h4 id="4-1、autoreleasepool-自动释放池"><a href="#4-1、autoreleasepool-自动释放池" class="headerlink" title="4.1、autoreleasepool 自动释放池"></a>4.1、autoreleasepool 自动释放池</h4><p>既然说到runloop，简单说下autoreleasepool自动释放池。runloop会默认创建autoreleasepool，在runloop睡眠前或者退出前会执行pop操作。线程池详情查看下面的内存管理中的介绍。</p>
-<p>@autoreleasepool是自动释放池，让我们更自由的管理内存;所以我们下面说说内存管理。</p>
-<h4 id="4-2、runloop、autorelease-pool以及线程之间的关系"><a href="#4-2、runloop、autorelease-pool以及线程之间的关系" class="headerlink" title="4.2、runloop、autorelease pool以及线程之间的关系"></a>4.2、runloop、autorelease pool以及线程之间的关系</h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+        <h1 id="NSTimer、NSDate"><a href="#NSTimer、NSDate" class="headerlink" title="NSTimer、NSDate"></a>NSTimer、NSDate</h1><p>###iOS时间那点事<br><strong>经典看前必先看：<a href="http://my.oschina.net/yongbin45/blog/156181" target="_blank" rel="noopener">iOS时间那点事NSCalendar + NSDateComponents</a></strong><br><a href="http://blog.csdn.net/samrtian/article/details/37569705" target="_blank" rel="noopener"> iOS 时区日期处理及定时 (NSDate,NSCalendar,NSTimer,NSTimeZone)</a></p>
+<h3 id="NSTimer"><a href="#NSTimer" class="headerlink" title="NSTimer"></a>NSTimer</h3><p><a href="http://my.oschina.net/u/2340880/blog/398598" target="_blank" rel="noopener">NSTimer 定时器用法总结</a></p>
+<h5 id="自动加一秒-dateByAddingComponents和dateByAddingTimeInterval"><a href="#自动加一秒-dateByAddingComponents和dateByAddingTimeInterval" class="headerlink" title="自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)"></a>自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)</h5><p>参考：<a href="http://www.cnblogs.com/wayne23/archive/2013/03/25/2981009.html" target="_blank" rel="noopener">时间与日期处理</a><br>涉及知识点：<br><strong>NSDate的生成</strong><br>方法①通过<code>NSDateFormatter</code>的<code>dateFromString:</code>方法对dateString生成NSDate；</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">[dateFormatter setDateFormat:@&quot;yyyy-MM-dd HH:mm:ss&quot;];</span><br><span class="line"></span><br><span class="line">NSString *dateString = @&quot;2016-08-15 22:55:03&quot;;</span><br><span class="line">NSDate *date = [dateFormatter dateFromString:dateString];</span><br></pre></td></tr></table></figure>
+<p>方法②通过<code>NSCalendar</code>的<code>dateFromComponents:</code>方法对dateComponents生成NSDate;(dateComponents由分个字段生成)<br><code>[greCalendar dateFromComponents:dateComponents];</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">[dateComponents setYear:2016];</span><br><span class="line">[dateComponents setMonth:8];</span><br><span class="line">[dateComponents setDay:15];</span><br><span class="line">NSDate *operationDate = [greCalendar dateFromComponents:dateComponents];</span><br></pre></td></tr></table></figure>
+<p><strong>NSDate转NSString</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">NSDate *operationDate;</span><br><span class="line"></span><br><span class="line">- (void)updateTimeExample &#123;</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [dateComponents setYear:2016];</span><br><span class="line">    [dateComponents setMonth:8];</span><br><span class="line">    [dateComponents setDay:15];</span><br><span class="line">    operationDate = [greCalendar dateFromComponents:dateComponents];</span><br><span class="line">    </span><br><span class="line">    if (!self.timer) &#123;</span><br><span class="line">        self.timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target: self selector:@selector(addOneSecondToDate:) userInfo:nil repeats:YES];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">    </span><br><span class="line">- (void)addOneSecondToDate:(NSTimer *)timer &#123;</span><br><span class="line">//    NSDate *operationDate = [timer userInfo];</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">    NSDateComponents *offsetDateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [offsetDateComponents setMinute:1];</span><br><span class="line">    [offsetDateComponents setSecond:1];</span><br><span class="line">    NSDate *finalDate = [greCalendar dateByAddingComponents:offsetDateComponents toDate:operationDate options:0];</span><br><span class="line">    operationDate = finalDate;</span><br><span class="line">    </span><br><span class="line">    //NSDate转NSString</span><br><span class="line">    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">    [dateFormatter setDateFormat:@&quot;yyyy年MM月dd HH:mm:ss&quot;];</span><br><span class="line">    NSString *dateString = [dateFormatter stringFromDate:finalDate];</span><br><span class="line">    </span><br><span class="line">    self.networkTimeLabel.text = dateString;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>#####NSJSONSerialization 去除不必要的空格回车<br><a href="http://blog.csdn.net/uxyheaven/article/details/7888559" target="_blank" rel="noopener">NSJSONSerialization介绍</a><br><a href="http://blog.sina.com.cn/s/blog_916e0cff0101gdlf.html" target="_blank" rel="noopener">NSJSONSerialization四个枚举什么意思</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 要去除不必要的空格回车，只需将参数Option设置为0即可。如果设置NSJSONWritingPrettyPrinted会使格式化的json更加可读，即添加空格和换行，但如果设为0，则不添加空格和换行</span><br><span class="line">    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary</span><br><span class="line">                                                   options:0</span><br><span class="line">                                                     error:nil];</span><br><span class="line">    NSString *JSON = [[NSString alloc] initWithData:data</span><br><span class="line">                                           encoding:NSUTF8StringEncoding];</span><br></pre></td></tr></table></figure></p>
+<p>######颜色渐变 CAGradientLayer<br><a href="http://blog.csdn.net/ch_soft/article/details/7534542" target="_blank" rel="noopener">CAGradientLayer简介</a></p>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cldwzegd000vfzir4urn3bcbl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cldy04q6q00txjur43hsy8c2r" class="article-share-link">Share</a>
       
       
     </footer>
@@ -794,43 +825,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cldwzegb800v9zir4skdsqbtc" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/2内存/时间计时器等" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/时间计时器等/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.613Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="NSTimer、NSDate"><a href="#NSTimer、NSDate" class="headerlink" title="NSTimer、NSDate"></a>NSTimer、NSDate</h1><p>###iOS时间那点事<br><strong>经典看前必先看：<a href="http://my.oschina.net/yongbin45/blog/156181" target="_blank" rel="noopener">iOS时间那点事NSCalendar + NSDateComponents</a></strong><br><a href="http://blog.csdn.net/samrtian/article/details/37569705" target="_blank" rel="noopener"> iOS 时区日期处理及定时 (NSDate,NSCalendar,NSTimer,NSTimeZone)</a></p>
-<h3 id="NSTimer"><a href="#NSTimer" class="headerlink" title="NSTimer"></a>NSTimer</h3><p><a href="http://my.oschina.net/u/2340880/blog/398598" target="_blank" rel="noopener">NSTimer 定时器用法总结</a></p>
-<h5 id="自动加一秒-dateByAddingComponents和dateByAddingTimeInterval"><a href="#自动加一秒-dateByAddingComponents和dateByAddingTimeInterval" class="headerlink" title="自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)"></a>自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)</h5><p>参考：<a href="http://www.cnblogs.com/wayne23/archive/2013/03/25/2981009.html" target="_blank" rel="noopener">时间与日期处理</a><br>涉及知识点：<br><strong>NSDate的生成</strong><br>方法①通过<code>NSDateFormatter</code>的<code>dateFromString:</code>方法对dateString生成NSDate；</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">[dateFormatter setDateFormat:@&quot;yyyy-MM-dd HH:mm:ss&quot;];</span><br><span class="line"></span><br><span class="line">NSString *dateString = @&quot;2016-08-15 22:55:03&quot;;</span><br><span class="line">NSDate *date = [dateFormatter dateFromString:dateString];</span><br></pre></td></tr></table></figure>
-<p>方法②通过<code>NSCalendar</code>的<code>dateFromComponents:</code>方法对dateComponents生成NSDate;(dateComponents由分个字段生成)<br><code>[greCalendar dateFromComponents:dateComponents];</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">[dateComponents setYear:2016];</span><br><span class="line">[dateComponents setMonth:8];</span><br><span class="line">[dateComponents setDay:15];</span><br><span class="line">NSDate *operationDate = [greCalendar dateFromComponents:dateComponents];</span><br></pre></td></tr></table></figure>
-<p><strong>NSDate转NSString</strong></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">NSDate *operationDate;</span><br><span class="line"></span><br><span class="line">- (void)updateTimeExample &#123;</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [dateComponents setYear:2016];</span><br><span class="line">    [dateComponents setMonth:8];</span><br><span class="line">    [dateComponents setDay:15];</span><br><span class="line">    operationDate = [greCalendar dateFromComponents:dateComponents];</span><br><span class="line">    </span><br><span class="line">    if (!self.timer) &#123;</span><br><span class="line">        self.timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target: self selector:@selector(addOneSecondToDate:) userInfo:nil repeats:YES];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">    </span><br><span class="line">- (void)addOneSecondToDate:(NSTimer *)timer &#123;</span><br><span class="line">//    NSDate *operationDate = [timer userInfo];</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">    NSDateComponents *offsetDateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [offsetDateComponents setMinute:1];</span><br><span class="line">    [offsetDateComponents setSecond:1];</span><br><span class="line">    NSDate *finalDate = [greCalendar dateByAddingComponents:offsetDateComponents toDate:operationDate options:0];</span><br><span class="line">    operationDate = finalDate;</span><br><span class="line">    </span><br><span class="line">    //NSDate转NSString</span><br><span class="line">    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">    [dateFormatter setDateFormat:@&quot;yyyy年MM月dd HH:mm:ss&quot;];</span><br><span class="line">    NSString *dateString = [dateFormatter stringFromDate:finalDate];</span><br><span class="line">    </span><br><span class="line">    self.networkTimeLabel.text = dateString;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>#####NSJSONSerialization 去除不必要的空格回车<br><a href="http://blog.csdn.net/uxyheaven/article/details/7888559" target="_blank" rel="noopener">NSJSONSerialization介绍</a><br><a href="http://blog.sina.com.cn/s/blog_916e0cff0101gdlf.html" target="_blank" rel="noopener">NSJSONSerialization四个枚举什么意思</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 要去除不必要的空格回车，只需将参数Option设置为0即可。如果设置NSJSONWritingPrettyPrinted会使格式化的json更加可读，即添加空格和换行，但如果设为0，则不添加空格和换行</span><br><span class="line">    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary</span><br><span class="line">                                                   options:0</span><br><span class="line">                                                     error:nil];</span><br><span class="line">    NSString *JSON = [[NSString alloc] initWithData:data</span><br><span class="line">                                           encoding:NSUTF8StringEncoding];</span><br></pre></td></tr></table></figure></p>
-<p>######颜色渐变 CAGradientLayer<br><a href="http://blog.csdn.net/ch_soft/article/details/7534542" target="_blank" rel="noopener">CAGradientLayer简介</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cldwzeggk00vozir4e7t87gjl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cldy04qas00u8jur4s5u0b7j0" class="article-share-link">Share</a>
       
       
     </footer>
@@ -884,7 +879,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -897,19 +892,19 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5js/test_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/test_h5js_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/总目录/">总目录</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
           </li>
         
           <li>
