@@ -72,6 +72,164 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/">第三方库SDWebImag②请求-①避免重复请求问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题"><a href="#必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题" class="headerlink" title="必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题"></a>必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题</h1><p>[toc]</p>
+<h2 id="iOS-如何避免在短时间内频繁发出相同的网络请求？"><a href="#iOS-如何避免在短时间内频繁发出相同的网络请求？" class="headerlink" title="iOS 如何避免在短时间内频繁发出相同的网络请求？"></a>iOS 如何避免在短时间内频繁发出相同的网络请求？</h2><ul>
+<li><p><a href="https://www.jianshu.com/p/85cfc47276d5" target="_blank" rel="noopener">iOS 如何避免在短时间内频繁发出相同的网络请求？</a></p>
+</li>
+<li><p><a href="https://cloud.tencent.com/developer/article/1492729" target="_blank" rel="noopener">iOS多个线程发起相同请求，避免重复</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/lipengfei_1993/article/details/84872511" target="_blank" rel="noopener">iOS客户端防止发送重复点击发请求</a></p>
+<blockquote>
+<p>1、利用遮罩等控件阻止一个请求后，下一个重复请求的发出。<br>众所周知MBProgressHud或者SVProgresHud经常被利用在项目中，主要是在网络请求发起到网络相应收到的这段时间在客户端形成一个遮罩，可以用来阻止用户点击UI进行操作，防止某些意外的请求产生。</p>
+<p>2、利用运行时设置相应按钮点击间隔<br>①对UIControl进行扩展<br>②对UIButton进行扩展</p>
+<p>3、客户端网络请求方法中过滤</p>
+<p>4、交给服务器解决</p>
+</blockquote>
+</li>
+<li><p><a href="https://www.jianshu.com/p/149a871fd7f1" target="_blank" rel="noopener">SDWebImage 同一时间请求相同URL时，只进行一次网络请求</a></p>
+</li>
+</ul>
+<h2 id="SDWebImage框架特征"><a href="#SDWebImage框架特征" class="headerlink" title="SDWebImage框架特征"></a>SDWebImage框架特征</h2><ul>
+<li>类别UIImageView，UIButton，MKAnnotationView- - 添加Web图像和高速缓存管理</li>
+<li>异步图像下载器</li>
+<li>具有自动缓存到期处理的异步内存+磁盘映像缓存</li>
+<li>背景图像解压缩</li>
+<li>保证相同的URL不会被下载多次</li>
+<li>保证虚假网址不会重复重试</li>
+<li>保证主线程永远不会被阻止</li>
+<li>使用GCD和ARC</li>
+</ul>
+<h2 id="一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？"><a href="#一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？" class="headerlink" title="一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？"></a>一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？</h2><p>SDWebImage是如何避免在短时间内频繁发出相同的网络请求？</p>
+<p>设想：一个列表所有的图片请求都是同一个url。</p>
+<p>答：</p>
+<h3 id="1、如何确保不生成重复的网络请求"><a href="#1、如何确保不生成重复的网络请求" class="headerlink" title="1、如何确保不生成重复的网络请求"></a>1、如何确保不生成重复的网络请求</h3><p>图片下载的回调信息存储在SDWebImageDownloader类的URLOperations属性中，该属性是一个字典，key是图片的URL地址，value则是一个SDWebImageDownloaderOperation对象，包含每个图片的多组回调信息。由于我们允许多个图片同时下载，因此可能会有多个线程同时操作URLOperations属性。需要保证URLOperations操作（添加、删除）的线程安全性。</p>
+<p><strong>为了避免同一个URL在被多次任务请求的时候，进行多次的重复网络下载。</strong></p>
+<p><strong>1、将下载地址URL与其对应的网络下载请求，通过下载管理器SDWebImageDownloader的URLOperations属性管理起来。（该属性是一个字典，key是图片的URL地址，value是operation）</strong></p>
+<p><strong>2、我们并不会对每次操作一进来就进行创建请求任务，而是先通过之前缓存的下载任务URLOperations，通过URL寻找是否有该操作了，①如果有则不创建，而是直接取出来使用；②如果没有才创建operation来使用，并添加到URLOperations中。以备后续有同样URL请求的时候，能会从URLOperations中得到operation，就不会导致重复创建和添加到队列中了。（通过URLOperations，我们以此保证一个URL同时在被请求多次的情况下，生成/取到的是同一个，也只有一个SDWebImageDownloaderOperation，从而也就只会被下载一次。）。</strong></p>
+<p>在SDWebImage版本5.8.1中的相关代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">SD_LOCK(self.operationsLock);	// 6、加锁，防止添加过程中，又有数据需要添加，保证线程安全</span><br><span class="line">id downloadOperationCancelToken;</span><br><span class="line">  NSOperation&lt;SDWebImageDownloaderOperation&gt; *operation = [self.URLOperations objectForKey:url]; // 1、从进行中的 URLOperations 获取</span><br><span class="line">  if (!operation || operation.isFinished || operation.isCancelled) &#123;</span><br><span class="line">      operation = [self createDownloaderOperationWithUrl:url options:options context:context]; // 2、如果之前没有下载操作，则创建，并加入到 URLOperations 中</span><br><span class="line">      // ....省略一堆代码</span><br><span class="line">      @weakify(self);</span><br><span class="line">      operation.completionBlock = ^&#123;</span><br><span class="line">          @strongify(self);</span><br><span class="line">          if (!self) &#123;</span><br><span class="line">              return;</span><br><span class="line">          &#125;</span><br><span class="line">          SD_LOCK(self.operationsLock);</span><br><span class="line">          [self.URLOperations removeObjectForKey:url];	// 3、下载完成后，记得删除操作</span><br><span class="line">          SD_UNLOCK(self.operationsLock);</span><br><span class="line">      &#125;;</span><br><span class="line">      self.URLOperations[url] = operation;					// 4、保存到 URLOperations 中，用于判断</span><br><span class="line">    	downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">      [self.downloadQueue addOperation:operation];	// 4、添加操作</span><br><span class="line">    </span><br><span class="line">  &#125; else &#123;</span><br><span class="line">      // ....省略一堆代码</span><br><span class="line">    	@synchronized (operation) &#123;</span><br><span class="line">        	// 5、如果之前有下载操作，则不用创建操作，但是仍然需要保存回调，不然其他位置的图片的请求就丢失了(虽然说它们是同一张图片)</span><br><span class="line">          downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  SD_UNLOCK(self.operationsLock);	// 6、解锁</span><br></pre></td></tr></table></figure>
+<p>3、问：重复的url请求，没有创建operation了，那operation的回调怎么办？</p>
+<p>答：虽然重复的URL只有一个SDWebImageDownloaderOperation。但是这个opeartion的<code>callbackBlocks</code>是个数组，所有的回调都用这个数组保存起来的，所以不会丢失的（这里<code>callbackBlocks</code>数组里存放字典，对应进行时候的ProgressCallback回调和结束时候的CompletedCallback回调）。</p>
+<p>4、问：对同一个operation的<code>callbackBlocks</code>数组操作，有什么要注意的？</p>
+<p>答：因为不管同个url不管有没有新的operation生成，我们都会有一个当前任务对应<code>downloadOperationCancelToken</code>生成，来给这个operation添加回调。即同一个url所对应opeartion里的callbackBlocks数组，在有多次图片任务时候，就会有多次操作callbackBlocks的情况。所以对callbackBlocks的操作，也要保证线程安全。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">- (nullable SDWebImageDownloadToken *)downloadImageWithURL:(nullable NSURL *)url</span><br><span class="line">                                                   options:(SDWebImageDownloaderOptions)options</span><br><span class="line">                                                   context:(nullable SDWebImageContext *)context</span><br><span class="line">                                                  progress:(nullable SDWebImageDownloaderProgressBlock)progressBlock</span><br><span class="line">                                                 completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock &#123;</span><br><span class="line">    // ....省略一堆代码</span><br><span class="line">                                                   </span><br><span class="line">    SD_LOCK(self.operationsLock);</span><br><span class="line">    id downloadOperationCancelToken;</span><br><span class="line">    NSOperation&lt;SDWebImageDownloaderOperation&gt; *operation = [self.URLOperations objectForKey:url];</span><br><span class="line">    if (!operation || operation.isFinished || operation.isCancelled) &#123;</span><br><span class="line">       	// ....省略一堆代码</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // When we reuse the download operation to attach more callbacks, there may be thread safe issue because the getter of callbacks may in another queue (decoding queue or delegate queue)</span><br><span class="line">        // So we lock the operation here, and in `SDWebImageDownloaderOperation`, we use `@synchonzied (self)`, to ensure the thread safe between these two classes.</span><br><span class="line">        @synchronized (operation) &#123;</span><br><span class="line">            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">        &#125;</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">    &#125;</span><br><span class="line">    SD_UNLOCK(self.operationsLock);</span><br><span class="line">    </span><br><span class="line">    // 虽然重复的URL只有一个SDWebImageDownloaderOperation。但是SDWebImageDownloadToken是每个URL都会有一个的，只是他们的SDWebImageDownloaderOperation是同一个。</span><br><span class="line">    SDWebImageDownloadToken *token = [[SDWebImageDownloadToken alloc] initWithDownloadOperation:operation];</span><br><span class="line">    token.url = url;</span><br><span class="line">    token.request = operation.request;</span><br><span class="line">    token.downloadOperationCancelToken = downloadOperationCancelToken;</span><br><span class="line">    </span><br><span class="line">    return token;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对callbackBlocks的操作，也要保证线程安全，代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloaderOperation.m</span><br><span class="line"></span><br><span class="line">@property (strong, nonatomic, nonnull) NSMutableArray&lt;SDCallbacksDictionary *&gt; *callbackBlocks;</span><br><span class="line"></span><br><span class="line">- (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock</span><br><span class="line">                            completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock &#123;</span><br><span class="line">    SDCallbacksDictionary *callbacks = [NSMutableDictionary new];</span><br><span class="line">    if (progressBlock) callbacks[kProgressCallbackKey] = [progressBlock copy];</span><br><span class="line">    if (completedBlock) callbacks[kCompletedCallbackKey] = [completedBlock copy];</span><br><span class="line">    @synchronized (self) &#123;</span><br><span class="line">        [self.callbackBlocks addObject:callbacks];</span><br><span class="line">    &#125;</span><br><span class="line">    return callbacks;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、它是如何保证请求管理的线程安全"><a href="#2、它是如何保证请求管理的线程安全" class="headerlink" title="2、它是如何保证请求管理的线程安全"></a>2、它是如何保证请求管理的线程安全</h3><p>说明：由于我们允许多个任务同时进行，也就造成了会有多个线程同时操作<code>URLOperations</code>属性。为了保证URLOperations操作(添加、删除)的线程安全性，我们添加了一个锁，且考虑到各种具备锁功能的性能问题，这里我们使用信号量semaphore。所以，<strong>我们控制线程安全的锁是使用信号量实现的<code>operationsLock</code>，且其初始值为1，用它来确保同一时间只有一个线程操作URLOperations属性</strong>。</p>
+<p>在SDWebImage版本5.8.1中的相关代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)init &#123;</span><br><span class="line">    return [self initWithConfig:SDWebImageDownloaderConfig.defaultDownloaderConfig];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (instancetype)initWithConfig:(SDWebImageDownloaderConfig *)config &#123;</span><br><span class="line">    self = [super init];</span><br><span class="line">    if (self) &#123;</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">        _downloadQueue = [NSOperationQueue new];</span><br><span class="line">        _downloadQueue.maxConcurrentOperationCount = _config.maxConcurrentDownloads;</span><br><span class="line">        _downloadQueue.name = @&quot;com.hackemist.SDWebImageDownloader&quot;;</span><br><span class="line">        _URLOperations = [NSMutableDictionary new];</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">        _operationsLock = dispatch_semaphore_create(1);</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">    &#125;</span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、其它知识说明"><a href="#3、其它知识说明" class="headerlink" title="3、其它知识说明"></a>3、其它知识说明</h3><h4 id="3-1、SDWebImageDownloader-是什么？-异步的图片下载器"><a href="#3-1、SDWebImageDownloader-是什么？-异步的图片下载器" class="headerlink" title="3.1、SDWebImageDownloader 是什么？(异步的图片下载器)"></a>3.1、SDWebImageDownloader 是什么？(异步的图片下载器)</h4><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。</p>
+<p>图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line">@property (strong, nonatomic, nonnull) NSOperationQueue *downloadQueue;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">				_downloadQueue = [NSOperationQueue new];</span><br><span class="line">        _downloadQueue.maxConcurrentOperationCount = _config.maxConcurrentDownloads;</span><br><span class="line"></span><br><span class="line">// SDWebImageDownloaderConfig.h</span><br><span class="line">/**</span><br><span class="line"> * The maximum number of concurrent downloads.</span><br><span class="line"> * Defaults to 6.</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, assign) NSInteger maxConcurrentDownloads;</span><br></pre></td></tr></table></figure>
+<p>如果需要的话，我们可以通过修改maxConcurrentDownloads属性来修改并发下载数。</p>
+<h2 id="二、其他版本的SDWebImage的代码解析"><a href="#二、其他版本的SDWebImage的代码解析" class="headerlink" title="二、其他版本的SDWebImage的代码解析"></a>二、其他版本的SDWebImage的代码解析</h2><h3 id="1、SDWebImageDownloader-是什么？-异步的图片下载器"><a href="#1、SDWebImageDownloader-是什么？-异步的图片下载器" class="headerlink" title="1、SDWebImageDownloader 是什么？(异步的图片下载器)"></a>1、SDWebImageDownloader 是什么？(异步的图片下载器)</h3><p>其声明及定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">//SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">@property (SDDispatchQueueSetterSementics, nonatomic) dispatch_queue_t barrierQueue;</span><br><span class="line"></span><br><span class="line">- (id)init &#123;</span><br><span class="line">    if ((self = [super init])) &#123;</span><br><span class="line">        ...</span><br><span class="line">        _barrierQueue = dispatch_queue_create(&quot;com.hackemist.SDWebImageDownloaderBarrierQueue&quot;, DISPATCH_QUEUE_CONCURRENT);	// 并发队列</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>每有一个图片下载请求，SDWebImageDownloader图片下载管理器就会生成一个继承自NSOperation的下载操作SDWebImageDownloaderOperation，并添加到下载队列downloadQueue中。</p>
+<p><code>[sself.downloadQueue addOperation:operation];</code></p>
+<p>该队列允许修改最大并发数。</p>
+<p>1、由于我们允许多个任务同时进行，也就造成了会有多个线程同时操作<code>URLOperations</code>属性。为了保证URLOperations操作(添加、删除)的线程安全性，我们添加了线程操作的<strong>信号量<code>operationsLock</code>，其初始值为1，来确保同一时间只有一个线程操作URLOperations属性</strong>，我们以添加操作为例，如下代码所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">LOCK(self.operationsLock);</span><br><span class="line">SDWebImageDownloaderOperation *operation = [self.URLOperations objectForKey:url];</span><br><span class="line">if (!operation) &#123;</span><br><span class="line">    operation = createCallback();</span><br><span class="line">    __weak typeof(self) wself = self;</span><br><span class="line">    operation.completionBlock = ^&#123;</span><br><span class="line">        __strong typeof(wself) sself = wself;</span><br><span class="line">        if (!sself) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">        LOCK(sself.operationsLock);</span><br><span class="line">        [sself.URLOperations removeObjectForKey:url];</span><br><span class="line">        UNLOCK(sself.operationsLock);</span><br><span class="line">    &#125;;</span><br><span class="line">    [self.URLOperations setObject:operation forKey:url];</span><br><span class="line">&#125;</span><br><span class="line">UNLOCK(self.operationsLock);</span><br></pre></td></tr></table></figure>
+<p>2、同样由于为了避免同一个URL的图片被下载多次，所以我们并不会对每次操作一进来就进行创建请求任务，而是先通过之前缓存的下载任务URLOperations中通过URL寻找是否有该操作了，如果有则不创建，如果没有才创建。因此，这里就会有一个URL同时在被请求多次的情况下，生成/取到的是同一个SDWebImageDownloaderOperation。</p>
+<h2 id="三、其他"><a href="#三、其他" class="headerlink" title="三、其他"></a>三、其他</h2><p>对于下载任务的执行，SDWebImage还允许我们设置是默认的先进先出还是后进先出。该功能的实现，其自然是通过队列操作的依赖来完成的(其中lastAddedOperation指的是上一次的操作)。源代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[sself.downloadQueue addOperation:operation];</span><br><span class="line">if (sself.executionOrder == SDWebImageDownloaderLIFOExecutionOrder) &#123;</span><br><span class="line">    // Emulate LIFO execution order by systematically adding new operations as last operation&apos;s dependency</span><br><span class="line">    [sself.lastAddedOperation addDependency:operation];</span><br><span class="line">    sself.lastAddedOperation = operation;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="其他参考文章"><a href="#其他参考文章" class="headerlink" title="其他参考文章"></a>其他参考文章</h2><ul>
+<li><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></li>
+</ul>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cldy3hf2k00v9unr4p5hyawh7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
+<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
+<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
+<p>①、SDWebImageDownloaderOperation的下载请求</p>
+<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
+<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cldy3hf2k00vcunr4amx2kxde" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
@@ -769,428 +927,6 @@
 
 
   
-    <article id="post-iOS/进阶/iOS进阶_多Target" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/进阶/iOS进阶_多Target/" class="article-date">
-  <time datetime="2019-04-23T02:30:02.000Z" itemprop="datePublished">2019-04-23</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/进阶/iOS进阶_多Target/">iOS进阶_多Target</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="利用多Target开发相似app"><a href="#利用多Target开发相似app" class="headerlink" title="利用多Target开发相似app"></a>利用多Target开发相似app</h1><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>开发一个与之前几乎一样的app。只是app名字等基本信息变更。</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>错误做法</th>
-<th>正确做法</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>项目</td>
-<td>再创建了新的项目</td>
-<td>使用同一项目</td>
-<td></td>
-</tr>
-<tr>
-<td>原因</td>
-<td>极容易出现后来新开发的功能两个app都要支持</td>
-<td>保证可共用到以后新开发的功能</td>
-</tr>
-</tbody>
-</table>
-<p>下面我们开始介绍如何利用多Target开发相似app。</p>
-<h2 id="二、操作步骤"><a href="#二、操作步骤" class="headerlink" title="二、操作步骤"></a>二、操作步骤</h2><h4 id="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-gt-New-gt-Target）"><a href="#1、生成新的Target（这里推荐采用Duplicate方式，而不是File-gt-New-gt-Target）" class="headerlink" title="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）"></a>1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）</h4><h5 id="1-1、Duplicate方法略。"><a href="#1-1、Duplicate方法略。" class="headerlink" title="1.1、Duplicate方法略。"></a>1.1、Duplicate方法略。</h5><h5 id="1-2、Duplicate后，需要修改的东西"><a href="#1-2、Duplicate后，需要修改的东西" class="headerlink" title="1.2、Duplicate后，需要修改的东西"></a>1.2、Duplicate后，需要修改的东西</h5><table>
-<thead>
-<tr>
-<th>必选需修改项</th>
-<th>操作方法</th>
-<th>得到</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Info.plist</td>
-<td>①复制一份。<br>②并重新为Target选择Info.plist<br>③跟新Info.plist中的名字、签名等</td>
-<td>App1Info.plist、App2Info.plist</td>
-</tr>
-<tr>
-<td>Scheme</td>
-<td>Manager Scheme -&gt; 双击重命名</td>
-<td>新的App2Scheme</td>
-</tr>
-<tr>
-<td>证书&amp;描述文件</td>
-<td>更具新的BundleId，添加证书&amp;描述文件</td>
-<td>真机编译通过</td>
-</tr>
-</tbody>
-</table>
-<p><strong>特别注意</strong>：add Info.plist等文件的时候，一定要注意选择对应的Target。不多多勾选☑️，也不要少勾选。</p>
-<h5 id="1-3、其他APP定制项更改"><a href="#1-3、其他APP定制项更改" class="headerlink" title="1.3、其他APP定制项更改"></a>1.3、其他APP定制项更改</h5><table>
-<thead>
-<tr>
-<th>可选修改项</th>
-<th>操作方法</th>
-<th>得到</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>icon</td>
-<td>修改InfoPlist</td>
-<td>新APP的Icon</td>
-</tr>
-<tr>
-<td>名字</td>
-<td>修改InfoPlist</td>
-<td>新APP的名字</td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="2、Target区分"><a href="#2、Target区分" class="headerlink" title="2、Target区分"></a>2、Target区分</h4><p>需求背景：有些共用的文件在不同的Target下是有细微不同的，那么我们在具体实现的时候就需要作出区分。</p>
-<h5 id="2-1、Objective-C、C、C-的LLVM预处理宏的添加"><a href="#2-1、Objective-C、C、C-的LLVM预处理宏的添加" class="headerlink" title="2.1、Objective-C、C、C++的LLVM预处理宏的添加"></a>2.1、Objective-C、C、C++的LLVM预处理宏的添加</h5><p>Objective-C、C、C++的LLVM预处理宏在Preprocessor Macros处定义。如图创建工程时已经默认创建好了在Debug时定义DEBUG=1 宏标记。</p>
-<h5 id="2-2、Swift"><a href="#2-2、Swift" class="headerlink" title="2.2、Swift"></a>2.2、Swift</h5><p>因为Swift 中没有宏定义的概念，因此我们不能使用 <code>#ifdef</code> 的方法来检查某个符号是否经过宏定义。</p>
-<p>在项目的 Build Settings 中，找到 Swift Compiler - Custom Flags，并在其中的 Other Swift Flags </p>
-<p>为APP1加上 <code>-D APPTARGET1</code> 就可以了；为APP2加上 <code>-D APPTARGET2</code> 就可以了；</p>
-<p>其他参考文章：<a href="https://blog.csdn.net/kaiyuanheshang/article/details/78862382" target="_blank" rel="noopener">https://blog.csdn.net/kaiyuanheshang/article/details/78862382</a></p>
-<p>解决办法：这里解决的方法是针对不同的Target在<code>Preprocessor Macros</code>中定义宏，如添加<code>TargetTYPE</code>。</p>
-<ul>
-<li>在Preprocessor Macros中添加<code>TARGETTYPE</code>后</li>
-</ul>
-<p><img src="/iOS/进阶/iOS进阶_多Target/PreprocessorMacros添加后.png" alt="PreprocessorMacros添加后"></p>
-<p>Target代码区分需用到的知识：</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>含义</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>#if</code></td>
-<td>既关心宏是否定义，又关心宏的逻辑的真假</td>
-<td></td>
-</tr>
-<tr>
-<td><code>#ifdef</code><br><code>#ifndef</code></td>
-<td>仅仅关心宏是否被定义，不关心宏的逻辑真假</td>
-</tr>
-</tbody>
-</table>
-<p>代码区分如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if TARGETTYPE == 0</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;6d79992bc988b60f68e059edeef82538&quot;;</span><br><span class="line">#elif TARGETTYPE == 1</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;aef6d9dabe4cdd1da9e923e52b5d40ca&quot;;</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p>至此，你直接编译，发现”好像”完成了。实际上如果你的项目没有使用POD的，确实是到此就完成了 。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/分割图1.jpg" alt="分割图1"></p>
-<p>下面我们额外补充，当你的项目有使用POD的时候，你还需要处理的东西。</p>
-<h4 id="3、Pod修改"><a href="#3、Pod修改" class="headerlink" title="3、Pod修改"></a>3、Pod修改</h4><p>在上述中，你可能发现好像我使用了POD的但是依然正确编译通过啊。</p>
-<p>是的，是通过了，但是这是假象。或者准确的说，当你下次使用POD相关命令，如<code>pod install</code>的时候，你会发现之前的项目编译不通过了。</p>
-<p>所以，你需要修改PodFile，并重新pod install。PodFile的修改方法如下：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">target 'APP1' do</span><br><span class="line">	pod 'AFNetworking'</span><br><span class="line"> 	pod 'APP1SDK'</span><br><span class="line">end</span><br><span class="line">  </span><br><span class="line">target 'APP2' do</span><br><span class="line">  pod 'AFNetworking'</span><br><span class="line">  pod 'APP2SDK'</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-<ul>
-<li>修改方式1：</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> There are no targets called <span class="string">"APPCommon"</span> <span class="keyword">in</span> any Xcode projects</span></span><br><span class="line">abstract_target 'APPCommon' do</span><br><span class="line">  pod 'AFNetworking'</span><br><span class="line">  </span><br><span class="line"><span class="meta">  #</span><span class="bash"> Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target 'APP1' do</span><br><span class="line">    pod 'APP1SDK'</span><br><span class="line">  end</span><br><span class="line">  </span><br><span class="line"><span class="meta">  #</span><span class="bash"> Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target 'APP2' do</span><br><span class="line">    pod 'APP2SDK'</span><br><span class="line">  end</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-<ul>
-<li>修改方式2：</li>
-</ul>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 共用的第三方库</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">AppCommon_Pods</span></span></span><br><span class="line">  pod <span class="string">'AFNetworking'</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP1所需的第三方库</span></span><br><span class="line">target <span class="string">'APP1'</span> <span class="keyword">do</span></span><br><span class="line">	AppCommon_Pods</span><br><span class="line"> 	pod <span class="string">'APP1SDK'</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP2所需的第三方库</span></span><br><span class="line">target <span class="string">'APP2'</span> <span class="keyword">do</span></span><br><span class="line">  AppCommon_Pods</span><br><span class="line">  pod <span class="string">'APP2SDK'</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p>最后修改完后，重新pod install后即可。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/分割图1.jpg" alt="分割图1"></p>
-<h4 id="4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题"><a href="#4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题" class="headerlink" title="4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题"></a>4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题</h4><p>多Target后旧的libPods-xxx引起的问题</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/多Target后旧的libPods-xxx引起的问题.png" alt="多Target后旧的libPods-xxx引起的问题"></p>
-<p>多Target后旧的libPods-xxx的问题解决否的判断</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/多Target后旧的libPods-xxx的问题解决否的判断.png" alt="多Target后旧的libPods-xxx的问题解决否的判断"></p>
-<h2 id="三、Swift中的条件编译"><a href="#三、Swift中的条件编译" class="headerlink" title="三、Swift中的条件编译"></a>三、Swift中的条件编译</h2><p>在C 系语言中，我们可以通过预处理宏定义一些参数，使用#if或者#ifdef编译条件分支来控制哪些代码需要编译，而哪些代码不需要。但是在swift中没有宏定义的概念，虽然不能使用 #ifdef 的方法来检查某个符号是否经过宏定义，但是可以支持“#if/#else/#endif”语句。</p>
-<h2 id="四、其他"><a href="#四、其他" class="headerlink" title="四、其他"></a>四、其他</h2><p><a href="#https://www.jianshu.com/p/cce38ab8bf91">只用一个target，配合一个脚本，可以进行茫茫多target的管理了</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cldy3hdw400j8unr4mzrqo0oy" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/进阶/iOS进阶_多Configuration" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/进阶/iOS进阶_多Configuration/" class="article-date">
-  <time datetime="2019-04-23T02:30:02.000Z" itemprop="datePublished">2019-04-23</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/进阶/iOS进阶_多Configuration/">iOS进阶_多Configuration</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="利用多Configuration打包不同环境"><a href="#利用多Configuration打包不同环境" class="headerlink" title="利用多Configuration打包不同环境"></a>利用多Configuration打包不同环境</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><blockquote>
-<p>序言：</p>
-<p>现象：Xcode默认只有DEBUG和RELEASE两种模式。</p>
-<p>问题：如果我们在项目中想增加预发布环境或者再增加其他多个环境呢？</p>
-<p>错误(不当)做法：如果在项目中用if else 弄个全局变量来控制，每次打包之前去手动修改，这样不仅繁琐，而且还会出错。</p>
-<p>正确(推荐)做法：下面来一下在Xcode中添加多个环境变量的方法.</p>
-<p>详细做法参考：<a href="https://blog.csdn.net/FreshManCode/article/details/80354936" target="_blank" rel="noopener">使用Xcode增加环境变量(多种环境区分)</a>，不再累诉。</p>
-</blockquote>
-<h2 id="一、认识"><a href="#一、认识" class="headerlink" title="一、认识"></a>一、认识</h2><h3 id="1、几个描述文件的认识与区别"><a href="#1、几个描述文件的认识与区别" class="headerlink" title="1、几个描述文件的认识与区别"></a>1、几个描述文件的认识与区别</h3><p>通过以下表格，你将认识到为什么你这个环境需要使用这个描述文件打包，用其他描述文件会有什么问题。</p>
-<table>
-<thead>
-<tr>
-<th>描述文件类型</th>
-<th style="text-align:center">可安装的设备</th>
-<th style="text-align:center">证书环境(开发/生产)</th>
-<th style="text-align:center">使用的推送</th>
-<th style="text-align:center">描述文件使用的环境(测试/预生产/生产)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>development</td>
-<td style="text-align:center">已注册的设备</td>
-<td style="text-align:center">开发环境的证书</td>
-<td style="text-align:center">测试环境的推送</td>
-<td style="text-align:center">测试环境</td>
-</tr>
-<tr>
-<td>adhoc</td>
-<td style="text-align:center">已注册的设备<br>(查看描述文件即可知道它没法做到在所有设备上都能安装的)</td>
-<td style="text-align:center">生产环境的证书</td>
-<td style="text-align:center">生产环境的推送<br>(这个创建描述文件的时候你就该知道的)</td>
-<td style="text-align:center">预生产环境</td>
-</tr>
-<tr>
-<td>appstore/<br>inhouse</td>
-<td style="text-align:center">所有的设备</td>
-<td style="text-align:center">生产环境的证书</td>
-<td style="text-align:center">生产环境的推送</td>
-<td style="text-align:center">生产环境</td>
-</tr>
-</tbody>
-</table>
-<h3 id="2、几种环境的认识"><a href="#2、几种环境的认识" class="headerlink" title="2、几种环境的认识"></a>2、几种环境的认识</h3><table>
-<thead>
-<tr>
-<th>环境</th>
-<th>需要可以安装的设备</th>
-<th>需要测试的推送</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>测试环境</td>
-<td>在《已注册的设备》上可安装即可</td>
-<td>测试环境的推送</td>
-</tr>
-<tr>
-<td>预生产环境</td>
-<td>至少《已注册的设备》上都能够安装吧</td>
-<td>生产环境的推送</td>
-</tr>
-<tr>
-<td>生产环境</td>
-<td>要《所有的设备》上都能安装才行</td>
-<td>生产环境的推送</td>
-</tr>
-</tbody>
-</table>
-<h3 id="3、环境与描述文件的总结"><a href="#3、环境与描述文件的总结" class="headerlink" title="3、环境与描述文件的总结"></a>3、环境与描述文件的总结</h3><table>
-<thead>
-<tr>
-<th>环境</th>
-<th>应该使用的描述文件</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>测试环境</td>
-<td>development</td>
-<td>不需要上线</td>
-</tr>
-<tr>
-<td>预生产环境</td>
-<td>adhoc</td>
-<td>不需要上线</td>
-</tr>
-<tr>
-<td>生产环境</td>
-<td>appstore / inhouse</td>
-<td>需要上线</td>
-</tr>
-</tbody>
-</table>
-<h3 id="4、Configuration的认识"><a href="#4、Configuration的认识" class="headerlink" title="4、Configuration的认识"></a>4、Configuration的认识</h3><h4 id="4-1、错误认识"><a href="#4-1、错误认识" class="headerlink" title="4.1、错误认识"></a>4.1、错误认识</h4><p>  只知道Archive打包的时候使用的是Release模式，殊不知任何操作Archive打包的时候使用的模式都是可以通过<code>Edit Scheme</code>来更改的。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_2.png" alt="image-20190427145459385"></p>
-<h4 id="4-2、正确认识："><a href="#4-2、正确认识：" class="headerlink" title="4.2、正确认识："></a>4.2、正确认识：</h4><p>他代表着各种配置。</p>
-<h2 id="二、问题背景"><a href="#二、问题背景" class="headerlink" title="二、问题背景"></a>二、问题背景</h2><h3 id="1、需要多Configuration的问题背景"><a href="#1、需要多Configuration的问题背景" class="headerlink" title="1、需要多Configuration的问题背景"></a>1、需要多Configuration的问题背景</h3><p>对话：帮我打个测试包</p>
-<p>对话：帮我打个预生产的包吧</p>
-<p>对话：预生产测好了，帮我最后打个生产环境的包，我再测下，没问题就可以上线了。</p>
-<p>那么，你就可能出现，每次打包的时候，去配置里面修改证书(dev、adhoc、appstore/inhouse)。</p>
-<p>为了每次还得去切换证书，你何不多建个Configuration呢？(Xcode默认的已经有且只有DEBUG和RELEASE两种模式)</p>
-<h3 id="2、多Configuration使用的问题背景"><a href="#2、多Configuration使用的问题背景" class="headerlink" title="2、多Configuration使用的问题背景"></a>2、多Configuration使用的问题背景</h3><h4 id="2-1、默认情况下的Configuration常见使用"><a href="#2-1、默认情况下的Configuration常见使用" class="headerlink" title="2.1、默认情况下的Configuration常见使用"></a>2.1、默认情况下的Configuration常见使用</h4><p>Xcode默认只有DEBUG和RELEASE两种模式，如下图：</p>
-<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_1.png" alt="Xcode默认只有DEBUG和RELEASE两种模式"></p>
-<p>通常我们的做法：</p>
-<table>
-<thead>
-<tr>
-<th>Configuration</th>
-<th>通过作为什么环境使用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>DEBUG</td>
-<td>开发环境</td>
-</tr>
-<tr>
-<td>RELEASE</td>
-<td>生产环境</td>
-</tr>
-</tbody>
-</table>
-<h4 id="2-2、默认情况下的Configuration使用的问题"><a href="#2-2、默认情况下的Configuration使用的问题" class="headerlink" title="2.2、默认情况下的Configuration使用的问题"></a>2.2、默认情况下的Configuration使用的问题</h4><p>问题：如果我们在项目中想增加预发布环境或者再增加其他多个环境呢?</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>错误(不当)做法</th>
-<th>正确(推荐)做法</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>项目</td>
-<td>从一开始就没考虑到Configuration的使用，在项目中用if else 弄个全局变量来控制,每次打包之前去手动修改</td>
-<td>根据需要新增的环境个数，增加对应的Configuration个数。</td>
-</tr>
-<tr>
-<td>原因</td>
-<td>这样不仅繁琐,而且还会出错</td>
-<td>确保不用修改代码，只需要在<code>Edit Scheme</code>中修改想要使用的Configuration即可。</td>
-</tr>
-</tbody>
-</table>
-<h2 id="三、操作步骤"><a href="#三、操作步骤" class="headerlink" title="三、操作步骤"></a>三、操作步骤</h2><h4 id="1、生成新的Configuration（只能使用Duplicate方式）"><a href="#1、生成新的Configuration（只能使用Duplicate方式）" class="headerlink" title="1、生成新的Configuration（只能使用Duplicate方式）"></a>1、生成新的Configuration（只能使用Duplicate方式）</h4><h5 id="1-1、Duplicate方法略。"><a href="#1-1、Duplicate方法略。" class="headerlink" title="1.1、Duplicate方法略。"></a>1.1、Duplicate方法略。</h5><h5 id="1-2、Duplicate后，必须需要修改的东西"><a href="#1-2、Duplicate后，必须需要修改的东西" class="headerlink" title="1.2、Duplicate后，必须需要修改的东西"></a>1.2、Duplicate后，必须需要修改的东西</h5><table>
-<thead>
-<tr>
-<th>必选需修改项</th>
-<th>操作方法</th>
-<th>得到</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>更新新增Configuration使用的Pod</td>
-<td>重新执行pod install</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="2、Configuration区分"><a href="#2、Configuration区分" class="headerlink" title="2、Configuration区分"></a>2、Configuration区分</h4><p>需求背景：区分配置</p>
-<p>解决办法：为Target的Prerelease Configuration在<code>PreprocessorMacros</code>中添加宏，如添加<code>PRERELEASE=1</code>。</p>
-<ul>
-<li>在PreprocessorMacros中的Prerelease中添加<code>PRERELEASE=1</code>后</li>
-</ul>
-<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_PreprocessorMacros添加后.png" alt="多Configuration_PreprocessorMacros添加后"></p>
-<p>Configuration代码区分需用到的知识：</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>含义</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>#if</code></td>
-<td>既关心宏是否定义，又关心宏的逻辑的真假</td>
-<td></td>
-</tr>
-<tr>
-<td><code>#ifdef</code><br><code>#ifndef</code></td>
-<td>仅仅关心宏是否被定义，不关心宏的逻辑真假</td>
-</tr>
-</tbody>
-</table>
-<p>代码区分如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if DEBUG</span><br><span class="line">    </span><br><span class="line">#elif PRERELEASE</span><br><span class="line">    </span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p>至此，Configuration添加完成 。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Target/分割图1.jpg" alt="分割图1"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cldy3hdw800jeunr40qgoh60u" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
 
 
   <nav id="page-nav">
@@ -1248,23 +984,23 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5js/dvlp_h5js_demo/test_h5js_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/总目录/">总目录</a>
-          </li>
-        
-          <li>
-            <a href="/Threads/Flutter_Dart/Future/">Future</a>
           </li>
         
       </ul>
