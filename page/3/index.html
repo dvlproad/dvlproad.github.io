@@ -72,6 +72,61 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程间通信" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p></p><p id="线程间的通信"></p><p></p>
+<h2 id="二、谈谈你对线程间的通信的了解"><a href="#二、谈谈你对线程间的通信的了解" class="headerlink" title="二、谈谈你对线程间的通信的了解"></a>二、谈谈你对线程间的通信的了解</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>在1个进程中，线程往往不是孤立存在的，多个线程之间需要经常进行通信。</p>
+<p>线程间通信的体现:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 一个线程传递数据给另一个线程</span><br><span class="line">2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br></pre></td></tr></table></figure>
+<p>线程间通信应用举例：（即在一个线程中执行完特定任务后，转到另一个线程继续执行任务，并将该线程数据传递给另一个线程的应用举例）</p>
+<blockquote>
+<p>以下例子摘自：<a href="https://www.cnblogs.com/supper-Ho/p/6379606.html" target="_blank" rel="noopener">线程间通讯</a></p>
+<p>①<code>NSThread</code>可以先将自己的当前线程对象注册到某个全局的对象中去，这样相互之间就可以获取对方的线程对象，然后就可以使用下面的方法进行线程间的通信了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&gt;回到主线程执行，执行self的showImage方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelectorOnMainThread:(SEL)aSelector withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到后台线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到xx线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelector:(SEL)aSelector onThread:(NSThread *)thr withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>②、<code>GCD</code>一个线程传递数据给另一个线程。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&gt; dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">&gt;     NSLog(@&quot;donwload---%@&quot;, [NSThread currentThread]);</span><br><span class="line">&gt;     // 1.子线程下载图片</span><br><span class="line">&gt;     NSURL *url = [NSURL URLWithString:@&quot;http://d.jpg&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.回到主线程设置图片</span><br><span class="line">&gt;     dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         NSLog(@&quot;setting---%@ %@&quot;, [NSThread currentThread], image);</span><br><span class="line">&gt;         [self.button setImage:image forState:UIControlStateNormal];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt; &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>③、NSOperation线程通信的举例：在其他线程完成了耗时操作时，需要回到主线程，那么就用到了线程之间的通讯。这里有两种方法，一种是线程里转线程，另一种是线程间使用依赖。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 1.创建一个新的队列</span><br><span class="line">&gt; NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">&gt; // 2.添加任务(操作)</span><br><span class="line">&gt; [queue addOperationWithBlock:^&#123;</span><br><span class="line">&gt;     // 2.1在子线程中下载图片</span><br><span class="line">&gt;     NSURL *url  = [NSURL URLWithString:@&quot;http://imgcache.mysodao.com/img2/M04/8C/74/CgAPDk9dyjvS1AanAAJPpRypnFA573_700x0x1.JPG&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.2回到主线程更新UI</span><br><span class="line">&gt;     [[NSOperationQueue mainQueue] addOperationWithBlock:^&#123;</span><br><span class="line">&gt;         self.imageView.image = image;</span><br><span class="line">&gt;     &#125;];</span><br><span class="line">&gt; &#125;];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>首先我们先来说说线程与线程间的关系，其引入了我们下面的第二点线程等待(线程同步)问题、线程依赖问题。</p>
+<p>然后我们再来说说，有时候我们还常经常在多个线程中操作一个全局变量，这个的话，也算线程间通信吗？不管他算不算(应该是不算的，个人觉得)，但是他的存在使得我们引入了另一个线程安全的问题，即多个线程操作同一个变量。也就是下面说的第三点，线程安全问题。</p>
+<h4 id="附：其他传值方法总结"><a href="#附：其他传值方法总结" class="headerlink" title="附：其他传值方法总结"></a>附：其他传值方法总结</h4><p>参考：<a href="http://blog.csdn.net/DJH996064549/article/details/50497371" target="_blank" rel="noopener">其他传值方法总结</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、A界面到B界面的正向传值，即A界面传值给B界面使用</span><br><span class="line">2、。。。</span><br></pre></td></tr></table></figure></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="cldy3heto00u2unr43bazye42" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程GCD" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" class="article-date">
@@ -122,7 +177,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="cldy2laig00uyqhr4niq1da8f" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="cldy3heu200u3unr4u5pfzzgu" class="article-share-link">Share</a>
       
       
     </footer>
@@ -238,64 +293,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldy2laiu00uzqhr4t7q4d3e2" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
-<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
-<p>一个程序至少一个进程，一个进程至少一个线程。</p>
-<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
-</blockquote>
-<p>进程线程的区别：</p>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
-<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
-<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
-<blockquote>
-<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
-</blockquote>
-<blockquote>
-<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
-</blockquote>
-<blockquote>
-<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
-</blockquote>
-<blockquote>
-<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
-</blockquote>
-<blockquote>
-<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cldy2lajz00v2qhr4be788aug" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldy3heuh00u4unr4d9iepa9r" class="article-share-link">Share</a>
       
       
     </footer>
@@ -361,7 +359,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cldy2lapc00vfqhr4uggndiir" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cldy3hes600tyunr4xqxxobcb" class="article-share-link">Share</a>
       
       
     </footer>
@@ -414,7 +412,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cldy2lapv00vgqhr41kavb3xu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cldy3hesj00tzunr49xar6dmo" class="article-share-link">Share</a>
       
       
     </footer>
@@ -453,7 +451,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cldy2laqb00vhqhr49jrgrfqn" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cldy3hesw00u0unr4eiwmze6o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -529,7 +527,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cldy2lao300vcqhr4j420s90y" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cldy3heqi00tuunr418bfyoke" class="article-share-link">Share</a>
       
       
     </footer>
@@ -613,7 +611,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cldy2laox00veqhr4d81qqe5i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cldy3hers00txunr4csvz7udp" class="article-share-link">Share</a>
       
       
     </footer>
@@ -649,7 +647,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cldy2lamv00v9qhr4qij7wqmk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cldy3hepc00trunr4ekti3ywz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -830,7 +828,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cldy2laoi00vdqhr4i64eoinc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cldy3heqy00tvunr4hmm5hu09" class="article-share-link">Share</a>
       
       
     </footer>

@@ -72,73 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/性能相关/性能优化-①TableView优化" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/性能相关/性能优化-①TableView优化/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/性能相关/性能优化-①TableView优化/">性能监控-①TableView优化</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="TableView优化"><a href="#TableView优化" class="headerlink" title="TableView优化"></a>TableView优化</h1><p>[toc]</p>
-<h2 id="三、UITableView的性能优化"><a href="#三、UITableView的性能优化" class="headerlink" title="三、UITableView的性能优化"></a>三、UITableView的性能优化</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>参考资料：<a href="http://blog.csdn.net/u011452278/article/details/60961350" target="_blank" rel="noopener">UITableView性能优化，超实用</a></p>
-<blockquote>
-<p>①Cell重用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 返回Cell的代理方法会调用很多次，为防止重复创建，我们使用static 保证只创建一次reuseID，提高性能</span><br><span class="line">&gt; static NSString *reuseID = “reuseCellID”;</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 从缓存池中取相应identifier的Cell并更新数据。</span><br><span class="line">&gt; // 如果没有，才开始alloc新的Cell，并用identifier标识Cell。每个Cell都会注册一个identifier（重用标识符）放入缓存池，当需要调用的时候就直接从缓存池里找对应的id，当不需要时就放入缓存池等待调用。（移出屏幕的Cell才会放入缓存池中，并不会被release）</span><br><span class="line">&gt; UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>附：比较</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; 缓存池获取可重用Cell两个方法的区别</span><br><span class="line">&gt; </span><br><span class="line">&gt; -(nullable __kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier; </span><br><span class="line">&gt; // 方法1：这个方法会查询可重用Cell，如果注册了原型Cell，能够查询到，否则，返回nil；而且需要判断if（cell == nil），才会创建Cell，不推荐</span><br><span class="line">&gt; </span><br><span class="line">&gt; -(__kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier forIndexPath:(NSIndexPath *)indexPath NS_AVAILABLE_IOS(6_0);</span><br><span class="line">&gt; // 方法2：使用这个方法之前，必须通过xib（storyboard）或是Class（纯代码）注册可重用Cell，而且这个方法一定会返回一个Cell</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 附：方法2需要的注册Cell的方法</span><br><span class="line">&gt; - (void)registerNib:(nullable UINib *)nib forCellReuseIdentifier:(NSString *)identifier NS_AVAILABLE_IOS(5_0);</span><br><span class="line">&gt; - (void)registerClass:(nullable Class)cellClass forCellReuseIdentifier:(NSString *)identifier NS_AVAILABLE_IOS(6_0);</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 好处：如果缓冲区 Cell 不存在，会使用原型 Cell 实例化一个新的 Cell，不需要再判断，同时代码结构更清晰。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>②定义一种(尽量少)类型的Cell及善用hidden隐藏(显示)subviews。即可以初始化时就添加，然后通过hide来控制是否显示。（比如朋友圈），而不要用addView给Cell动态添加View，</p>
-<p>③提前计算并缓存Cell的高度；(Model去缓存，或者使用SDAutoLayout工具)<br>④网络数据的异步加载(如cell中的图片加载)，不要阻塞主线程；<br>⑤滑动时，按需加载，常见于大量图片时候。即当UITableView静止或者减速滑动结束之后才去进行异步加载图片。<br>⑥渲染优化：减少subviews的个数和层级；对于不透明的View，设置opaque为YES；阴影绘制及性能优化。</p>
-<p>更新时候：使用局部更新，如果只是更新某组的话，使用reloadSection进行局部更新</p>
-<ul>
-<li><a href="https://www.cnblogs.com/fishbay/p/7217471.html?utm_source=itdadao&amp;utm_medium=referral" target="_blank" rel="noopener">阴影绘制及性能优化</a></li>
-</ul>
-</blockquote>
-<h3 id="1、Cell的重用"><a href="#1、Cell的重用" class="headerlink" title="1、Cell的重用"></a>1、Cell的重用</h3><blockquote>
-<p>基于Cell的重用，真正运行时铺满屏幕所需的Cell数量大致是固定的，设为N个。所以<br>①如果如果只有一种Cell，那就是只有N个Cell的实例；<br>②但是如果有M种Cell，那么运行时最多可能会是“M x N = MN”个Cell的实例；<br>虽然可能并不会占用太多内存，但是能少点不是更好吗。</p>
-</blockquote>
-<h2 id="四、列表加载图片的优化"><a href="#四、列表加载图片的优化" class="headerlink" title="四、列表加载图片的优化"></a>四、列表加载图片的优化</h2><h3 id="1、缩略图的使用"><a href="#1、缩略图的使用" class="headerlink" title="1、缩略图的使用"></a>1、缩略图的使用</h3><p>图片划分两个地址.一个地址获取缩略图,一个地址获取原图&gt;&gt; 这样你就可以在TableViewCell使用缩略图(展示用),点击图片查看(使用原图). 这样就大大减少了内存的使用.</p>
-<h3 id="2、UITableView优化"><a href="#2、UITableView优化" class="headerlink" title="2、UITableView优化"></a>2、UITableView优化</h3>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能优化-①TableView优化/" data-id="cldy2l9hy00hdqhr4a0s7b44w" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/性能相关/性能优化-②其他" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/性能相关/性能优化-②其他/" class="article-date">
@@ -260,7 +193,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能优化-②其他/" data-id="cldy2l9hz00hgqhr4gytm2mtw" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能优化-②其他/" data-id="cldy3hdvi00hhunr4gkfwbfk4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -308,7 +241,74 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能监控-①卡顿监控/" data-id="cldy2l9i300hnqhr46ano8r7z" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能监控-①卡顿监控/" data-id="cldy3hdvi00hkunr4ir635bew" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/性能相关/性能优化-①TableView优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/性能相关/性能优化-①TableView优化/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/性能相关/性能优化-①TableView优化/">性能监控-①TableView优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="TableView优化"><a href="#TableView优化" class="headerlink" title="TableView优化"></a>TableView优化</h1><p>[toc]</p>
+<h2 id="三、UITableView的性能优化"><a href="#三、UITableView的性能优化" class="headerlink" title="三、UITableView的性能优化"></a>三、UITableView的性能优化</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>参考资料：<a href="http://blog.csdn.net/u011452278/article/details/60961350" target="_blank" rel="noopener">UITableView性能优化，超实用</a></p>
+<blockquote>
+<p>①Cell重用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 返回Cell的代理方法会调用很多次，为防止重复创建，我们使用static 保证只创建一次reuseID，提高性能</span><br><span class="line">&gt; static NSString *reuseID = “reuseCellID”;</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 从缓存池中取相应identifier的Cell并更新数据。</span><br><span class="line">&gt; // 如果没有，才开始alloc新的Cell，并用identifier标识Cell。每个Cell都会注册一个identifier（重用标识符）放入缓存池，当需要调用的时候就直接从缓存池里找对应的id，当不需要时就放入缓存池等待调用。（移出屏幕的Cell才会放入缓存池中，并不会被release）</span><br><span class="line">&gt; UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>附：比较</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; 缓存池获取可重用Cell两个方法的区别</span><br><span class="line">&gt; </span><br><span class="line">&gt; -(nullable __kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier; </span><br><span class="line">&gt; // 方法1：这个方法会查询可重用Cell，如果注册了原型Cell，能够查询到，否则，返回nil；而且需要判断if（cell == nil），才会创建Cell，不推荐</span><br><span class="line">&gt; </span><br><span class="line">&gt; -(__kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier forIndexPath:(NSIndexPath *)indexPath NS_AVAILABLE_IOS(6_0);</span><br><span class="line">&gt; // 方法2：使用这个方法之前，必须通过xib（storyboard）或是Class（纯代码）注册可重用Cell，而且这个方法一定会返回一个Cell</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 附：方法2需要的注册Cell的方法</span><br><span class="line">&gt; - (void)registerNib:(nullable UINib *)nib forCellReuseIdentifier:(NSString *)identifier NS_AVAILABLE_IOS(5_0);</span><br><span class="line">&gt; - (void)registerClass:(nullable Class)cellClass forCellReuseIdentifier:(NSString *)identifier NS_AVAILABLE_IOS(6_0);</span><br><span class="line">&gt; </span><br><span class="line">&gt; // 好处：如果缓冲区 Cell 不存在，会使用原型 Cell 实例化一个新的 Cell，不需要再判断，同时代码结构更清晰。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>②定义一种(尽量少)类型的Cell及善用hidden隐藏(显示)subviews。即可以初始化时就添加，然后通过hide来控制是否显示。（比如朋友圈），而不要用addView给Cell动态添加View，</p>
+<p>③提前计算并缓存Cell的高度；(Model去缓存，或者使用SDAutoLayout工具)<br>④网络数据的异步加载(如cell中的图片加载)，不要阻塞主线程；<br>⑤滑动时，按需加载，常见于大量图片时候。即当UITableView静止或者减速滑动结束之后才去进行异步加载图片。<br>⑥渲染优化：减少subviews的个数和层级；对于不透明的View，设置opaque为YES；阴影绘制及性能优化。</p>
+<p>更新时候：使用局部更新，如果只是更新某组的话，使用reloadSection进行局部更新</p>
+<ul>
+<li><a href="https://www.cnblogs.com/fishbay/p/7217471.html?utm_source=itdadao&amp;utm_medium=referral" target="_blank" rel="noopener">阴影绘制及性能优化</a></li>
+</ul>
+</blockquote>
+<h3 id="1、Cell的重用"><a href="#1、Cell的重用" class="headerlink" title="1、Cell的重用"></a>1、Cell的重用</h3><blockquote>
+<p>基于Cell的重用，真正运行时铺满屏幕所需的Cell数量大致是固定的，设为N个。所以<br>①如果如果只有一种Cell，那就是只有N个Cell的实例；<br>②但是如果有M种Cell，那么运行时最多可能会是“M x N = MN”个Cell的实例；<br>虽然可能并不会占用太多内存，但是能少点不是更好吗。</p>
+</blockquote>
+<h2 id="四、列表加载图片的优化"><a href="#四、列表加载图片的优化" class="headerlink" title="四、列表加载图片的优化"></a>四、列表加载图片的优化</h2><h3 id="1、缩略图的使用"><a href="#1、缩略图的使用" class="headerlink" title="1、缩略图的使用"></a>1、缩略图的使用</h3><p>图片划分两个地址.一个地址获取缩略图,一个地址获取原图&gt;&gt; 这样你就可以在TableViewCell使用缩略图(展示用),点击图片查看(使用原图). 这样就大大减少了内存的使用.</p>
+<h3 id="2、UITableView优化"><a href="#2、UITableView优化" class="headerlink" title="2、UITableView优化"></a>2、UITableView优化</h3>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/性能相关/性能优化-①TableView优化/" data-id="cldy3hdvj00hnunr4mxq2e14w" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -352,7 +352,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/APNS+TCP推送流程/" data-id="cldy2l9iq00jyqhr4etb9jhbu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/APNS+TCP推送流程/" data-id="cldy3hdvz00iyunr4w6innqbq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -585,7 +585,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="cldy2lady00ufqhr492x1mgwo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="cldy3hewj00u9unr4lrnowzee" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -664,74 +664,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="cldy2laty00vvqhr4uwo1zzms" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="SDWebImage"></p><p></p>
-<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
-<ul>
-<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
-<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
-</ul>
-<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
-<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
-<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
-<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
-<p>2 GCD 异步下载 </p>
-<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
-<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
-<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
-<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
-<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
-<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
-<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
-<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
-<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
-<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
-<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
-<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cldy2latz00vwqhr4d1jvenwx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="cldy3hf2i00v4unr4884wpbz0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -816,7 +749,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="cldy2lau000vyqhr4gbrw3w2v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="cldy3hf2j00v5unr4ehw5w7hb" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -828,9 +761,9 @@
 
 
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -846,7 +779,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
     </h1>
   
 
@@ -854,22 +787,36 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
-<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
-<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
-<p>①、SDWebImageDownloaderOperation的下载请求</p>
-<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
-<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="SDWebImage"></p><p></p>
+<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
+<ul>
+<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
+<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
+</ul>
+<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
+<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
+<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
+<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
+<p>2 GCD 异步下载 </p>
+<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
+<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
+<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
+<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
+<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
+<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
+<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
+<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
+<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
+<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
+<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
+<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cldy2lau100w0qhr4zxve520v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cldy3hf2j00v7unr4rbmwwube" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -974,7 +921,60 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cldy2lau200w6qhr4yxf8l47e" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cldy3hf2k00v9unr4p5hyawh7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
+<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
+<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
+<p>①、SDWebImageDownloaderOperation的下载请求</p>
+<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
+<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cldy3hf2k00vcunr4amx2kxde" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
