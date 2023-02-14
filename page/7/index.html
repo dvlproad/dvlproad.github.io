@@ -72,6 +72,408 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Flutter/开发随笔/UI+App demo" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/UI+App demo/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="UI-App-demo"><a href="#UI-App-demo" class="headerlink" title="UI+App demo"></a>UI+App demo</h1><ul>
+<li><p><a href="https://blog.csdn.net/xhmj12/article/details/107273449/" target="_blank" rel="noopener">推荐四个Flutter重磅开源APP项目！</a></p>
+<blockquote>
+<ul>
+<li><a href="https://github.com/mjl0602/flutter_tiktok" target="_blank" rel="noopener">精仿抖音</a></li>
+<li><a href="https://github.com/yukilzw/dy_flutter" target="_blank" rel="noopener">斗鱼APP</a></li>
+<li><a href="https://github.com/kaina404/FlutterDouBan" target="_blank" rel="noopener">豆瓣客户端</a></li>
+<li></li>
+</ul>
+</blockquote>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="cldyf7ztq00bh00r4ixhn82oq" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter 最常出现的错误" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter 最常出现的错误/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-最常出现的错误"><a href="#Flutter-最常出现的错误" class="headerlink" title="Flutter 最常出现的错误"></a>Flutter 最常出现的错误</h1><h2 id="典型错误一：无法掌握的Future"><a href="#典型错误一：无法掌握的Future" class="headerlink" title="典型错误一：无法掌握的Future"></a>典型错误一：无法掌握的Future</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;markNeedsBuild&#39; was called on null.</code></p>
+<p>这个错误常出现在异步任务（Future）处理，比如某个页面请求一个网络API数据，根据数据刷新 Widget State。</p>
+<p>异步任务结束在页面被pop之后，但没有检查State 是否还是 <code>mounted</code>，继续调用 <code>setState</code> 就会出现这个错误。</p>
+<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>一段很常见的获取网络数据的代码，调用 <code>requestApi()</code>，等待Future从中获取<code>response</code>，进而<code>setState</code>刷新 Widget：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State&lt;AWidget&gt; &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    setState(()&#123;</span><br><span class="line">      this.data = response.data;</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>response</code> 的获取为<code>async-await</code>异步任务，完全有可能在<code>AWidgetState</code>被 <code>dispose</code>之后才等到返回，那时候和该<code>State</code> 绑定的 <code>Element</code> 已经不在了。故而在<code>setState</code>时需要容错。</p>
+<h3 id="解决办法：-setState之前检查是否-mounted"><a href="#解决办法：-setState之前检查是否-mounted" class="headerlink" title="解决办法： setState之前检查是否 mounted"></a>解决办法： <code>setState</code>之前检查是否 <code>mounted</code></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">      setState(()&#123;</span><br><span class="line">        this.data = response.data;</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个<code>mounted</code>检查很重要，其实只要涉及到异步还有各种回调(callback)，都不要忘了检查该值。</p>
+<p>比如，在 <code>FrameCallback</code>里执行一个动画(AnimationController)：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  WidgetsBinding.instance.addPostFrameCallback((_) &#123;</span><br><span class="line">    <span class="keyword">if</span> (mounted) _animationController.forward();</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>AnimationController</code>有可能随着 State 一起 <code>dispose</code>了，但是<code>FrameCallback</code>仍然会被执行，进而导致异常。</p>
+<p>又比如，在动画监听的回调里搞点事：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  _animationController.animation.addListener(_handleAnimationTick);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">void _handleAnimationTick() &#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) updateWidget(...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样的在<code>_handleAnimationTick</code>被回调前，State 也有可能已经被<code>dispose</code>了。</p>
+<p>如果你还不理解为什么，请仔细回味一下<code>Event loop</code> 还有复习一下 Dart 的线程模型。</p>
+<h2 id="典型错误二：Navigator-of-context-是个-null"><a href="#典型错误二：Navigator-of-context-是个-null" class="headerlink" title="典型错误二：Navigator.of(context) 是个 null"></a>典型错误二：Navigator.of(context) 是个 null</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;pop&#39; was called on null.</code></p>
+<p>常在 <code>showDialog</code> 后处理 dialog 的 pop() 出现。</p>
+<h3 id="示例代码-1"><a href="#示例代码-1" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个方法里获取网络数据，为了更好的提示用户，会先弹一个 loading 窗，之后再根据数据执行别的操作…</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// show loading dialog on request data</span></span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> Center(</span><br><span class="line">      child: CircularIndicator(),</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"><span class="comment">// got it, pop dialog</span></span><br><span class="line">Navigator.of(context).pop();</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析："><a href="#原因分析：" class="headerlink" title="原因分析："></a>原因分析：</h3><p>出错的原因在于—— Android 原生的返回键：虽然代码指定了<code>barrierDismissible: false</code>，用户不可以点半透明区域关闭弹窗，但当用户点击返回键时，Flutter 引擎代码会调用 <code>NavigationChannel.popRoute()</code>，最终这个 loading dialog 甚至包括页面也被关掉，进而导致<code>Navigator.of(context)</code>返回的是<code>null</code>，因为该<code>context</code>已经被<code>unmount</code>，从一个已经凋零的树叶上是找不到它的根的，于是错误出现。</p>
+<p>另外，代码里的<code>Navigator.of(context)</code> 所用的<code>context</code>也不是很正确，它其实是属于<code>showDialog</code>调用者的而非 dialog 所有，理论上应该用<code>builder</code>里传过来的<code>context</code>，沿着错误的树干虽然也能找到根，但实际上不是那么回事，特别是当你的APP里有<code>Navigator</code>嵌套时更应该注意。</p>
+<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>首先，确保 <code>Navigator.of(context)</code> 的 <code>context</code> 是 dialog 的<code>context</code>；其次，检查 <code>null</code>，以应对被手动关闭的情况。</p>
+<p><code>showDialog</code> 时传入 <code>GlobalKey</code>，通过 <code>GlobalKey</code>去获取正确的<code>context</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">GlobalKey key = GlobalKey();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> KeyedSubtree(</span><br><span class="line">      key: key,</span><br><span class="line">      child: Center(</span><br><span class="line">        child: CircularIndicator(),</span><br><span class="line">      )</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> (key.currentContext != null) &#123;</span><br><span class="line">  Navigator.of(key.currentContext)?.pop();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>key.currentContext</code> 为<code>null</code>意为着该 dialog 已经被<code>dispose</code>，亦即已经从 WidgetTree 中<code>unmount</code>。</p>
+<p>其实，类似的<code>XXX.of(context)</code>方法在 Flutter 代码里很常见，比如 <code>MediaQuery.of(context)</code>、<code>Theme.of(context)</code>、<code>DefaultTextStyle.of(context)</code>，<code>DefaultAssetBundle.of(context)</code>等等，都要注意传入的<code>context</code>是来自正确节点的，否则会有惊喜在等你。</p>
+<p>写 Flutter 代码时，脑海里一定要对<code>context</code>的树干脉络有清晰的认知，如果你还不是很理解<code>context</code>，可以看看 《深入理解BuildContext》 - Vadaski。</p>
+<h2 id="典型错误三：ScrollController-里薛定谔的-position"><a href="#典型错误三：ScrollController-里薛定谔的-position" class="headerlink" title="典型错误三：ScrollController 里薛定谔的 position"></a>典型错误三：ScrollController 里薛定谔的 position</h2><p>在获取<code>ScrollController</code>的<code>position</code>、<code>offset</code>，或者调用<code>jumpTo()</code>等方法时，常出现<code>StateError</code>错误。</p>
+<p>错误信息：<code>StateError Bad state: Too many elements</code>，<code>StateError Bad state: No element</code></p>
+<h3 id="示例代码-2"><a href="#示例代码-2" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个按钮点击后，通过<code>ScrollController</code> 控制<code>ListView</code>滚动到开头：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-1"><a href="#原因分析-1" class="headerlink" title="原因分析"></a>原因分析</h3><p>先看<code>ScrollController</code>的源码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  @protected</span><br><span class="line">  Iterable&lt;ScrollPosition&gt; get positions =&gt; _positions;</span><br><span class="line">  final List&lt;ScrollPosition&gt; _positions = &lt;ScrollPosition&gt;[];</span><br><span class="line"> </span><br><span class="line">  double get offset =&gt; position.pixels;</span><br><span class="line"> </span><br><span class="line">  ScrollPosition get position &#123;</span><br><span class="line">    assert(_positions.isNotEmpty, <span class="string">'ScrollController not attached to any scroll views.'</span>);</span><br><span class="line">    assert(_positions.length == <span class="number">1</span>, <span class="string">'ScrollController attached to multiple scroll views.'</span>);</span><br><span class="line">    <span class="keyword">return</span> _positions.single;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>很明显，<code>ScrollController</code> 的 <code>offest</code> 是从 <code>position</code> 中获得，而<code>position</code> 则是来自变量 <code>_positions</code>。</p>
+<p><code>StateError</code>错误，就是<code>_positions.single</code> 这一行抛出：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">abstract class Iterable&lt;E&gt; &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  E get single &#123;</span><br><span class="line">    Iterator&lt;E&gt; it = iterator;</span><br><span class="line">    <span class="keyword">if</span> (!it.moveNext()) throw IterableElementError.noElement();</span><br><span class="line">    E result = it.current;</span><br><span class="line">    <span class="keyword">if</span> (it.moveNext()) throw IterableElementError.tooMany();</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么问题来了，这个<code>_positions</code> 为什么忽而一滴不剩，忽而却嫌它给的太多了呢？ˊ_&gt;ˋ</p>
+<p>还是要回到 <code>ScrollController</code> 的源码里找找。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  void attach(ScrollPosition position) &#123;</span><br><span class="line">    assert(!_positions.contains(position));</span><br><span class="line">    _positions.add(position);</span><br><span class="line">    position.addListener(notifyListeners);</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  void detach(ScrollPosition position) &#123;</span><br><span class="line">    assert(_positions.contains(position));</span><br><span class="line">    position.removeListener(notifyListeners);</span><br><span class="line">    _positions.remove(position);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>为什么没有数据(No element)： <code>ScrollController</code>还没有 <code>attach</code> 一个 <code>position</code>。原因有两个：一个可能是还没被 mount 到树上(没有被<code>Scrollable</code>使用到)；另外一个就是已经被 <code>detach</code>了。</p>
+</li>
+<li><p>为什么多了(Too many elements)： <code>ScrollController</code>还没来得及 <code>detach</code>旧的 <code>position</code>，就又<code>attach</code>了一个新的。原因多半是因为<code>ScrollController</code>的用法不对，同一时间被多个 <code>Scrollable</code>关注到了。</p>
+</li>
+</ol>
+<h3 id="解决办法-1"><a href="#解决办法-1" class="headerlink" title="解决办法"></a>解决办法</h3><p>针对 No element 错误，只需判断一下 <code>_positions</code>是不是空的就行了，即<code>hasClients</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.hasClients &amp;&amp; _primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>针对 Too many elements 错误，确保<code>ScrollController</code>只会被一个 <code>Scrollable</code>绑定，别让它劈腿了，且被正确 <code>dispose()</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">class WidgetState extends State &#123;</span><br><span class="line">  final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> ListView.builder(</span><br><span class="line">      controller: _primaryScrollController,</span><br><span class="line">      itemCount: _itemCount,</span><br><span class="line">      itemBuilder: _buildItem,</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  <span class="keyword">int</span> get _itemCount =&gt; ...;</span><br><span class="line">  Widget _buildItem(context, index) =&gt; ...;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  void dispose() &#123;</span><br><span class="line">    super.dispose();</span><br><span class="line">    _primaryScrollController.dispose();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="典型错误四：四处碰壁-null"><a href="#典型错误四：四处碰壁-null" class="headerlink" title="典型错误四：四处碰壁 null"></a>典型错误四：四处碰壁 null</h2><p>Dart 这个语言可静可动，类型系统也独树一帜。万物都可以赋值<code>null</code>，就导致写惯了 Java 代码的同志们常常因为<code>bool</code> <code>int</code> <code>double</code>这种看起来是”primitive”的类型被<code>null</code>附体而头晕。</p>
+<p>典型错误信息：</p>
+<ul>
+<li><code>Failed assertion: boolean expression must not be null</code></li>
+<li><code>NoSuchMethodError: The method &#39;&gt;&#39; was called on null.</code></li>
+<li><code>NoSuchMethodError: The method &#39;+&#39; was called on null.</code></li>
+<li><code>NoSuchMethodError: The method &#39;*&#39; was called on null.</code></li>
+</ul>
+<h3 id="示例代码-3"><a href="#示例代码-3" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，较常发生在使用服务端返回的数据model时。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>],</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">StyleItem item = StyleItem.fromJson(jsonDecode(...));</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Widget build(StyleItem item) &#123;</span><br><span class="line">  <span class="keyword">if</span> (item.hasNew &amp;&amp; item.id &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> Text(item.name);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> SizedBox.shrink();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-2"><a href="#原因分析-2" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>StyleItem.fromJson()</code> 对数据没有容错处理，应当认为 map 里的value都有可能是 <code>null</code>。</p>
+<h3 id="解决办法：容错"><a href="#解决办法：容错" class="headerlink" title="解决办法：容错"></a>解决办法：容错</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>] ?? <span class="number">0</span>,</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>] ?? <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一定要习惯 Dart 的类型系统，什么都有可能是<code>null</code>，比如下面一段代码，你细品有几处可能报错：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Test &#123;</span><br><span class="line">  double fraction(Rect boundsA, Rect boundsB) &#123;</span><br><span class="line">    double areaA = boundsA.width * boundsA.height;</span><br><span class="line">    double areaB = boundsB.width * boundsB.height;</span><br><span class="line">    <span class="keyword">return</span> areaA / areaB;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  void requestData(params, void onDone(data)) &#123;</span><br><span class="line">    _requestApi(params).then((response) =&gt; onDone(response.data));</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  Future&lt;dynamic&gt; _requestApi(params) =&gt; ...;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>小提示，<code>onDone()</code>也可以是<code>null</code> ＞﹏＜。</p>
+<p>在和原生用 <code>MethodChannel</code>传数据时更要特别注意，小心驶得万年船。</p>
+<h2 id="典型错误五：泛型里的-dynamic-一点也不-dynamic"><a href="#典型错误五：泛型里的-dynamic-一点也不-dynamic" class="headerlink" title="典型错误五：泛型里的 dynamic 一点也不 dynamic"></a>典型错误五：泛型里的 dynamic 一点也不 dynamic</h2><p>典型错误信息：</p>
+<ul>
+<li><code>type &#39;List&lt;dynamic&gt;&#39; is not a subtype of type &#39;List&lt;int&gt;&#39;</code></li>
+<li><code>type &#39;_InternalLinkedHashMap&lt;dynamic, dynamic&gt;&#39; is not a subtype of type &#39;Map&lt;String, String&gt;&#39;</code></li>
+</ul>
+<p>常发生在给某个List、Map 变量赋值时。</p>
+<h3 id="示例代码-4"><a href="#示例代码-4" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，也较常发生在使用服务端返回的数据model时。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = json[<span class="string">'ids'</span>],</span><br><span class="line">    this.ext= json[<span class="string">'ext'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">var</span> json = jsonDecode(<span class="string">""</span><span class="string">"&#123;"</span>ids<span class="string">": [1,2,3], "</span>ext<span class="string">": &#123;"</span>key<span class="string">": "</span>value<span class="string">"&#125;&#125;"</span><span class="string">""</span>);</span><br><span class="line">Model m = Model.fromJson(json);</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-3"><a href="#原因分析-3" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>jsonDecode()</code>这个方法转换出来的map的泛型是<code>Map&lt;String, dynamic&gt;</code>，意为 value 可能是任何类型(dynamic)，当 value 是容器类型时，它其实是<code>List&lt;dynamic&gt;</code>或者<code>Map&lt;dynamic, dynamic&gt;</code>等等。</p>
+<p>而 Dart 的类型系统中，虽然<code>dynamic</code>可以代表所有类型，在赋值时，如果数据类型事实上匹配（运行时类型相等）是可以被自动转换，但泛型里 <code>dynamic</code> 是不可以自动转换的。可以认为 <code>List&lt;dynamic&gt;</code> 和 <code>List&lt;int&gt;</code>是两种运行时类型。</p>
+<h3 id="解决办法：使用-List-from-Map-from"><a href="#解决办法：使用-List-from-Map-from" class="headerlink" title="解决办法：使用 List.from, Map.from"></a>解决办法：使用 List.from, Map.from</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = List.from(json[<span class="string">'ids'</span>] ?? <span class="keyword">const</span> []),</span><br><span class="line">    this.ext= Map.from(json[<span class="string">'ext'</span>] ?? <span class="keyword">const</span> &#123;&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 最常出现的错误/" data-id="cldyf7zu000bk00r4yg07qqao" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/开发随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/开发随笔/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="开发随笔"><a href="#开发随笔" class="headerlink" title="开发随笔"></a>开发随笔</h1><p>带皇冠的头像优化：</p>
+<p><a href="https://blog.csdn.net/lqw200931116/article/details/123372095" target="_blank" rel="noopener">https://blog.csdn.net/lqw200931116/article/details/123372095</a></p>
+<ul>
+<li><strong>clipBehavior：此属性决定如何显示超出Stack的子组件是否被剪切；值为Clip.hardEdge时，超出部分会被剪裁（隐藏），值为Clip.none 时则不会，超出部分会显示</strong></li>
+</ul>
+<ul>
+<li><a href="https://www.kancloud.cn/alex_wsc/flutter_demo/1559549" target="_blank" rel="noopener">Flutter核心技术与实战</a></li>
+</ul>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/e0321ccb6e1c" target="_blank" rel="noopener">Flutter Package 涉及关键字的探究</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/1a7cca6230a5" target="_blank" rel="noopener">flutter 文件与库的引用导出（import、import as、import show、part、part of、library）</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/af78b5f359f4" target="_blank" rel="noopener">Flutter 中extends、implements、with</a></p>
+<blockquote>
+<p>implements：类似面向协议</p>
+</blockquote>
+</li>
+<li><p><a href="https://www.jianshu.com/p/d45cf49f2245" target="_blank" rel="noopener">Futter 屏幕适配框架flutter_ScreenUtil 用法</a></p>
+</li>
+<li><p><a href="https://juejin.cn/post/6904604605028990983" target="_blank" rel="noopener">为什么<code>Overlay</code>插入的<code>OverlayEntry</code>会在页面上面悬浮呢</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/ma1756295644/article/details/103011896" target="_blank" rel="noopener">Flutter - Stream基础知识</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/weixin_44492423/article/details/104388056" target="_blank" rel="noopener">Flutter EasyLoading的实现原理</a></p>
+</li>
+</ul>
+<h2 id="图片"><a href="#图片" class="headerlink" title="图片"></a>图片</h2><ul>
+<li><a href="https://bbs.huaweicloud.com/blogs/317278" target="_blank" rel="noopener">如何在 Flutter 中使用MemoryImage【Flutter专题】</a></li>
+</ul>
+<p>为什么 Button 里 不要再设置颜色。猜测是由于<a href="https://blog.csdn.net/jungle_pig/article/details/94383759" target="_blank" rel="noopener">DefaultTextStyle</a></p>
+<p>[flutter 解决：setState() called after dispose()]</p>
+<h4 id="防止页面关闭执行setState-方法"><a href="#防止页面关闭执行setState-方法" class="headerlink" title="防止页面关闭执行setState()方法"></a>防止页面关闭执行setState()方法</h4><p>解决方法</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> updateState(fn)&#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">    setState(fn);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a href="https://www.jianshu.com/p/63621f29eced" target="_blank" rel="noopener">Flutter：获取状态state的几种方式</a></p>
+<p>baseui_kit中的 data_util.dart</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"><span class="comment">// import 'dart:ui';</span></span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">///枚举类型转string</span></span></span><br><span class="line"><span class="built_in">String</span> enumToString(o) =&gt; o.toString().split(<span class="string">'.'</span>).last;</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">///string转枚举类型</span></span></span><br><span class="line">T enumFromString&lt;T&gt;(<span class="built_in">Iterable</span>&lt;T&gt; values, <span class="built_in">String</span> value) &#123;</span><br><span class="line">  <span class="keyword">return</span> values.firstWhere((type) =&gt; type.toString().split(<span class="string">'.'</span>).last == value,</span><br><span class="line">      orElse: () =&gt; <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>字符串与日期相互转换</p>
+<p>String–&gt;DateTime</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">DateTime</span>.parse(<span class="built_in">String</span>)；</span><br></pre></td></tr></table></figure>
+<p>DateTime –&gt;formatString</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:date_format/date_format.dart'</span>;</span><br><span class="line"></span><br><span class="line">formatDate(<span class="built_in">DateTime</span>(<span class="number">2020</span>, <span class="number">12</span>, <span class="number">23</span>) ,[<span class="string">'yyyy'</span>, <span class="string">'-'</span>, <span class="string">'mm'</span>, <span class="string">'-'</span>, <span class="string">'dd'</span>]);</span><br><span class="line">formatDate(<span class="built_in">DateTime</span>(<span class="number">2020</span>, <span class="number">12</span>, <span class="number">23</span>, <span class="number">20</span>, <span class="number">40</span>, <span class="number">10</span>), [‘HH’, <span class="string">':'</span>, ‘nn’, <span class="string">':'</span>, ‘ss’])</span><br><span class="line"></span><br><span class="line">这里使用了日期格式化库：date_format。</span><br></pre></td></tr></table></figure>
+<p><a href="https://blog.csdn.net/u011578734/article/details/111816323" target="_blank" rel="noopener">Flutter 日期格式化库 date_format</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">flutter sdk 版本升级到2.0或者更高的版本后就发现运行时会报错：</span><br><span class="line">Error: Cannot run with sound null safety, because the following dependencies</span><br><span class="line">don&apos;t support null safety:</span><br><span class="line"></span><br><span class="line"> - package:loading_indicator_view</span><br><span class="line"> - package:flutter_swiper</span><br><span class="line"> - package:flutter_page_indicator</span><br><span class="line"> - package:transformer_page_view</span><br><span class="line"></span><br><span class="line">For solutions, see https://dart.dev/go/unsound-null-safety</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">FAILURE: Build failed with an exception.</span><br><span class="line"></span><br><span class="line">也就是说以上有些包不支持 safety模式。</span><br><span class="line"></span><br><span class="line">解决方案：--no-sound-null-safety</span><br><span class="line">run</span><br><span class="line">flutter run --no-sound-null-safety</span><br><span class="line">build</span><br><span class="line">flutter build apk --no-sound-null-safety</span><br></pre></td></tr></table></figure>
+<p><a href="https://blog.csdn.net/mixin716/article/details/119762233" target="_blank" rel="noopener">Flutter Error: Cannot run with sound null safety, because the following dependencies don‘t support</a></p>
+<p><a href="https://www.jianshu.com/p/7ad5dddf0549" target="_blank" rel="noopener">Flutter2 的 Sound null safety 是个什么鬼？！</a></p>
+<p><a href="http://findsrc.com/flutter/detail/8713" target="_blank" rel="noopener">flutter_webview_plugin和webview_flutter</a></p>
+<p><a href="https://www.jianshu.com/p/6cce42245c58?from=timeline@" target="_blank" rel="noopener">iOS中WKWebView加载网页失败或者无网络状态判断</a></p>
+<p><a href="https://blog.csdn.net/weixin_42134878/article/details/117781623" target="_blank" rel="noopener">flutter嵌入HTML5页面,Flutter加载Html并实现与JS 的双向调用</a></p>
+<p><a href="https://songshizhao.com/blog/blogpage/1367.html" target="_blank" rel="noopener">几种常见视频格式ContentType和FileType对照表</a></p>
+<p>Content-Type的格式</p>
+<p>Content-Type：type/subtype ;parameter</p>
+<p>type：主类型，任意的字符串，如text，如果是<em>号代表所有；<br>subtype：子类型，任意的字符串，如html，如果是</em>号代表所有，用“/”与主类型隔开；<br>parameter：可选参数，如charset，boundary等。<br>例如：</p>
+<p>Content-Type: text/html;<br>Content-Type: application/json;charset:utf-8;<br>Content-Type: application/x-www-form-urlencoded;charset:utf-8;</p>
+<h2 id="Flutter-Fix"><a href="#Flutter-Fix" class="headerlink" title="Flutter Fix"></a>Flutter Fix</h2><ul>
+<li><p><a href="https://flutter.cn/docs/development/tools/flutter-fix" target="_blank" rel="noopener">Flutter Fix</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/bcf1afc61a3e" target="_blank" rel="noopener">Flutter 升级空安全攻略</a></p>
+</li>
+</ul>
+<h2 id="共享数据"><a href="#共享数据" class="headerlink" title="共享数据"></a>共享数据</h2><ul>
+<li><a href="https://book.flutterchina.club/chapter7/inherited_widget.html#_7-2-1-inheritedwidget" target="_blank" rel="noopener">7.2 数据共享（InheritedWidget）</a></li>
+</ul>
+<h2 id="三方库"><a href="#三方库" class="headerlink" title="三方库"></a>三方库</h2><ul>
+<li><p><a href="https://github.com/justsoft/video_thumbnail" target="_blank" rel="noopener">Flutter使用第三方库video_thumbnail获取视频缩略图</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/c079347c9486" target="_blank" rel="noopener">常用的Flutter第三方库 2022-05-17 周二</a></p>
+<blockquote>
+<p>从字符串提取链接：linkify</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><a href="https://blog.csdn.net/weixin_38912070/article/details/112690614" target="_blank" rel="noopener">Flutter 高性能、多功能的全场景滚动容器，一定要看！</a></li>
+</ul>
+<h1 id="flutter-SliverAppBar"><a href="#flutter-SliverAppBar" class="headerlink" title="flutter SliverAppBar"></a>flutter SliverAppBar</h1><ul>
+<li><p><a href="http://www.javashuo.com/article/p-wavghldk-ws.html" target="_blank" rel="noopener">Flutter 滑动体系</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/u011272795/article/details/82740389?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-82740389-blog-104031790.pc_relevant_antiscanv2&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">flutter SliverAppBar</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/mengks1987/article/details/104031790?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-104031790-blog-122330541.pc_relevant_default&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">Flutter之SliverAppBar</a></p>
+</li>
+<li><a href="https://blog.csdn.net/nicepainkiller/article/details/122330541" target="_blank" rel="noopener">SliverAppBar</a></li>
+<li><a href="https://wenku.baidu.com/view/0d0e891480c4bb4cf7ec4afe04a1b0717fd5b399.html" target="_blank" rel="noopener">FlutterSliverAppBar全解析，你要的效果都在这了！</a></li>
+<li><a href="http://www.javashuo.com/article/p-quluupvq-kp.html" target="_blank" rel="noopener">Flutter 实现相似美团外卖店铺页面滑动效果</a></li>
+<li><a href="https://github.com/CyJaySong/flutter_meituan_shop" target="_blank" rel="noopener">flutter_meituan_shop</a></li>
+<li><a href="https://blog.csdn.net/weixin_34379433/article/details/91460115" target="_blank" rel="noopener">Flutter的滚动以及sliver约束</a></li>
+</ul>
+<h2 id="埋点"><a href="#埋点" class="headerlink" title="埋点"></a>埋点</h2><ul>
+<li><p><a href="https://manual.sensorsdata.cn/sa/latest/ios-1573995.html" target="_blank" rel="noopener">神策全埋点 (iOS)</a></p>
+</li>
+<li><p><a href="https://github.com/sensorsdata" target="_blank" rel="noopener">神策数据github官网 Sensors Data</a></p>
+</li>
+<li><p><a href="https://juejin.cn/post/6892371163859976199" target="_blank" rel="noopener">Flutter之全埋点思考与实现</a></p>
+</li>
+</ul>
+<p>曝光</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/31f362fb9113" target="_blank" rel="noopener">Flutter 如何优雅的实现滑动元素曝光</a></li>
+</ul>
+<p><a href="https://www.jianshu.com/p/721672352d4a" target="_blank" rel="noopener">Flutter 解决TextOverflow.ellipsis截断字符</a></p>
+<h2 id="布局"><a href="#布局" class="headerlink" title="布局"></a>布局</h2><ul>
+<li><a href="https://blog.csdn.net/computerclass/article/details/118142471" target="_blank" rel="noopener">flutter 之AspectRatio 按比例显示</a></li>
+</ul>
+<h2 id="布局的性能优化"><a href="#布局的性能优化" class="headerlink" title="布局的性能优化"></a>布局的性能优化</h2><ul>
+<li><a href="https://blog.csdn.net/sinat_37255207/article/details/107233657" target="_blank" rel="noopener">flutter 页面频繁刷新节省页面性能的组件RepaintBoundary</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="cldyf7zwb00ck00r4glyj1r67" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/Git-Flow" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/Git-Flow/" class="article-date">
+  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Git-Flow"><a href="#Git-Flow" class="headerlink" title="Git Flow"></a>Git Flow</h1><h2 id="分支类型"><a href="#分支类型" class="headerlink" title="分支类型"></a>分支类型</h2><ul>
+<li>master</li>
+<li>dev</li>
+<li>feature</li>
+<li>hotfix</li>
+<li>preproduct</li>
+</ul>
+<h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>线上代码分支。</p>
+<p>【创建】在创建 repo 的时候创建 <code>master</code> 分支。</p>
+<p>【命名】master</p>
+<p>【描述】所有 release 的 tag 都打在 <code>master</code>，并且 <code>master</code> 不能直接 commit，只能通过 merge 来完成代码提交。</p>
+<p>【输入】合并自 <code>preproduct</code> <code>hotfix</code></p>
+<p>【输出】<code>hotfix</code></p>
+<p>【销毁】master 分支是恒定存在的</p>
+<h3 id="dev"><a href="#dev" class="headerlink" title="dev"></a>dev</h3><p>稳定开发分支</p>
+<p>【创建】在创建 <code>master</code> 分支时，立即创建 <code>dev</code> 分支</p>
+<p>【命名】dev</p>
+<p>【描述】新版本需求来的时候管理员会从 <code>dev</code> 中拉出一条版本分支。<code>dev</code> 分支里保存完整的版本迭代和测试环境下已经修复的 bug。</p>
+<p>【输入】合并自 <code>feature</code> <code>hotfix</code> <code>preproduct</code></p>
+<p>【输出】版本 release 时并入 <code>master</code></p>
+<p>【销毁】dev 分支是恒定存在的</p>
+<h3 id="feature-version"><a href="#feature-version" class="headerlink" title="feature / version"></a>feature / version</h3><p>功能分支、新版本分支</p>
+<p>【创建】当有新版本计划时，从 <code>dev</code> 中拉取</p>
+<p>【命名】dev_1.0.0</p>
+<p>【描述】存放某个版本的集成代码，包括这个版本在内测环境下的 bug 修复代码</p>
+<p>【输入】开发人员 commit</p>
+<p>【输出】版本结束后并入 <code>dev</code></p>
+<p>【销毁】并入后销毁</p>
+<h3 id="preproduct"><a href="#preproduct" class="headerlink" title="preproduct"></a>preproduct</h3><p>某版本预生产分支</p>
+<p>【创建】当某个版本的测试环境通过后，从 feature 分支并入 dev 分支时，从 dev 分支拉取出的分支</p>
+<p>【命名】pre_1.0.0</p>
+<p>【描述】存放某个版本的预生产代码，修复预生产时候的 bug</p>
+<p>【输入】从 <code>dev</code> 中拉取，开发人员 commit</p>
+<p>【输出】版本结束后同时并入 <code>master</code> 和 <code>dev</code>（不是并入 <code>dev</code> 再从 <code>dev</code> 并入 <code>master</code>）</p>
+<p>【销毁】并入后销毁</p>
+<h3 id="hotfix"><a href="#hotfix" class="headerlink" title="hotfix"></a>hotfix</h3><p>热补丁分支</p>
+<p>【创建】从 <code>master</code> 拉取。</p>
+<p>【命名】hotfix/新版本号</p>
+<p>【描述】需要紧急上线一个补丁版本，且已有新版本的 <code>feature</code> 分支时，需要创建该分支。如果当前没有新版本的 <code>feature</code> 分支，则按正常开发逻辑走流程。</p>
+<p>【输入】开发人员 commit</p>
+<p>【输出】先并入 <code>master</code>；判断 <code>preproduct</code> 是否存在 ？ 并入 <code>preproduct</code> : 并入 <code>dev</code></p>
+<p>【销毁】并入后销毁</p>
+<h2 id="提交格式"><a href="#提交格式" class="headerlink" title="提交格式"></a>提交格式</h2><p>使用 SourceTree 完成 commit，message 可以换行。</p>
+<p>大致格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【信息分类】简略描述</span><br><span class="line">详细描述</span><br><span class="line">【URL】bugly 地址，或者 JIRA 地址</span><br></pre></td></tr></table></figure>
+<h3 id="信息分类"><a href="#信息分类" class="headerlink" title="信息分类"></a>信息分类</h3><h4 id="Bugfix"><a href="#Bugfix" class="headerlink" title="Bugfix"></a>Bugfix</h4><p>【修复】修复自己开发过程中自测出来的问题</p>
+<p>【修复-jira-{id}】修复 jira 上的问题，附带 bug id</p>
+<p>【修复-bugly-{id}】修复 bugly 上的问题，附带 bug id</p>
+<h3 id="Feature"><a href="#Feature" class="headerlink" title="Feature"></a>Feature</h3><p>【新增】增加新的功能</p>
+<h3 id="Optmize"><a href="#Optmize" class="headerlink" title="Optmize"></a>Optmize</h3><p>【优化】优化某些代码</p>
+<h3 id="Resource"><a href="#Resource" class="headerlink" title="Resource"></a>Resource</h3><p>【资源】资源文件的修改，不涉及代码</p>
+<h3 id="Configuration"><a href="#Configuration" class="headerlink" title="Configuration"></a>Configuration</h3><p>【配置】修改版本号，修改打包脚本，修改工程配置，不涉及代码</p>
+<h3 id="PS"><a href="#PS" class="headerlink" title="PS"></a>PS</h3><p>增加文件会更改到工程文件，此部分更改属于 Feature 的内容。</p>
+<h3 id="举例"><a href="#举例" class="headerlink" title="举例"></a>举例</h3><p>增加某个功能：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【新增】购物车一键清空功能</span><br><span class="line">批量删除购物车内的商品。</span><br></pre></td></tr></table></figure>
+<p>修复了某个自测 bug</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【修复】清空购物车的时跳出支付页面</span><br><span class="line">清空购物车的时候并没有删除商品，而是全选并支付。</span><br></pre></td></tr></table></figure>
+<p>修复了某个内测 bug</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-jira-10019】清空购物车按钮点击无效果</span><br><span class="line">selector 编辑错误，导致 controller 没有响应事件。</span><br><span class="line">【URL】http://jira.luckincoffee.com/products/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
+<p>修复了某个线上 bug</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-bugly-1191】WebView 闪退</span><br><span class="line">对 WebView 中的编辑框操作（复制、全选、粘贴）时会闪退。</span><br><span class="line">【URL】http://bugly.qq.com/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
+<h2 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h2><p><img src="/Architecture架构/Git-Flow/gitflow-feature.png" alt="feature"></p>
+<p><img src="/Architecture架构/Git-Flow/gitflow-hotfix.png" alt="feature"></p>
+<h2 id="GitFlow-alfredsnippets-使用"><a href="#GitFlow-alfredsnippets-使用" class="headerlink" title="GitFlow.alfredsnippets 使用"></a>GitFlow.alfredsnippets 使用</h2><p>电脑安装 Alfred 3</p>
+<p>双击 <em>GitFlow.alfredsnippets</em> 文件，导入到 Alfred 中</p>
+<blockquote>
+<p>GitFlow.alfredsnippets 文件在此 repo 的 /page/iOS-Git-Flow 文件夹下可以找到</p>
+</blockquote>
+<p>光标选中 SourceTree 的 commit 信息编辑框</p>
+<p><img src="/Architecture架构/Git-Flow/sourcetree.png" style="zoom: 50%;"></p>
+<p>激活 Alfred 窗口（ 默认快捷键是 <code>Option</code> + <code>Space</code> ），输入 <code>snip git</code> 即可出现 commit 模板。</p>
+<p><img src="/Architecture架构/Git-Flow/alfred.png" alt=""></p>
+<p>选中想要提交的内容，按 <code>cmd + 数字</code> 即可。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/Git-Flow/" data-id="cldyf7ys3000d00r4dltlbu26" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/苹果设备注册管理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/苹果设备注册管理/" class="article-date">
+  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>各位需要安装app的苹果手机用户们，晚上好。如您在通过如下地址：<br><a href="https://www.pgyer.com/kKTt" target="_blank" rel="noopener">https://www.pgyer.com/kKTt</a><br>下载愿望屋app的时候，发现无法安装，则可能是您的设备未进行证书注册(如果您可以安装则证明已注册，请忽略本消息)。<br>如您对安装有需求，则可通过如下地址<br><a href="https://www.pgyer.com/tools/udid" target="_blank" rel="noopener">https://www.pgyer.com/tools/udid</a><br>将您的苹果手机udid告知我们，我们为您添加后。当我们打新包的时候，就可以安装上app啦。<br>因证书注册设备只能添加100台，即使添加上去之后，再删除也算是一台。所以如果您非必要安装，请忽略本消息。<br>最后，提前祝大家节日快乐！</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/苹果设备注册管理/" data-id="cldyf7ysl001800r4gn8x5s0p" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-电脑使用/旧电脑数据清理" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/电脑使用/旧电脑数据清理/" class="article-date">
@@ -159,7 +561,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cldy3hcqd0045unr45umdocb6" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cldyf7yvq003y00r45pz92s36" class="article-share-link">Share</a>
       
       
     </footer>
@@ -325,44 +727,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/新电脑初始安装/" data-id="cldy3hcqn0047unr4u9usnabi" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/远程桌面连接" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/远程桌面连接/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
-<h2 id="一、mac被远程连接"><a href="#一、mac被远程连接" class="headerlink" title="一、mac被远程连接"></a>一、mac被远程连接</h2><p>1、先请在苹果 Mac 电脑上的“系统偏好设置”窗口中打开“共享”功能</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>2、接着在共享窗口中的左侧点击启用“屏幕共享”选项</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>3、当屏幕共享功能打开以后，请点击“电脑设置”按钮</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>4、随后请勾选二个选项： VNC 显示程序可以使用密码控制屏幕，并且设置一个连接密码</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>5、随后会提示我们是否真的要连接此电脑，点击 Continue 按钮继续。</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<h2 id="二、mac连接已设置允许远程连接的mac"><a href="#二、mac连接已设置允许远程连接的mac" class="headerlink" title="二、mac连接已设置允许远程连接的mac"></a>二、mac连接已设置允许远程连接的mac</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程桌面连接/" data-id="cldy3hcr3004eunr4983c4lmg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/新电脑初始安装/" data-id="cldyf7yvh003t00r4djqxzsrr" class="article-share-link">Share</a>
       
       
     </footer>
@@ -421,7 +786,44 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="cldy3hcrj004gunr4211qfgw6" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="cldyf7yw6004500r4sx9ino2q" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-电脑使用/远程桌面连接" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/电脑使用/远程桌面连接/" class="article-date">
+  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
+<h2 id="一、mac被远程连接"><a href="#一、mac被远程连接" class="headerlink" title="一、mac被远程连接"></a>一、mac被远程连接</h2><p>1、先请在苹果 Mac 电脑上的“系统偏好设置”窗口中打开“共享”功能</p>
+<p><a href="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
+<p>2、接着在共享窗口中的左侧点击启用“屏幕共享”选项</p>
+<p><a href="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
+<p>3、当屏幕共享功能打开以后，请点击“电脑设置”按钮</p>
+<p><a href="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
+<p>4、随后请勾选二个选项： VNC 显示程序可以使用密码控制屏幕，并且设置一个连接密码</p>
+<p><a href="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
+<p>5、随后会提示我们是否真的要连接此电脑，点击 Continue 按钮继续。</p>
+<p><a href="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
+<h2 id="二、mac连接已设置允许远程连接的mac"><a href="#二、mac连接已设置允许远程连接的mac" class="headerlink" title="二、mac连接已设置允许远程连接的mac"></a>二、mac连接已设置允许远程连接的mac</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/电脑使用/远程桌面连接/" data-id="cldyf7ywf004900r4sg7izuki" class="article-share-link">Share</a>
       
       
     </footer>
@@ -450,204 +852,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/npmjs/npm的命令/" data-id="cldy3hf2s00w4unr4ahqzxiuw" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/CocoaPods" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/CocoaPods/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.965Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="CocoaPods"><a href="#CocoaPods" class="headerlink" title="CocoaPods"></a>CocoaPods</h1><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>最新ruby源<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gem sources --remove https://gems.ruby-china.org</span><br><span class="line">gem sources -l</span><br><span class="line">gem sources --add https://gems.ruby-china.com</span><br></pre></td></tr></table></figure></p>
-<h2 id="一、cocoapods-的安装和升级"><a href="#一、cocoapods-的安装和升级" class="headerlink" title="一、cocoapods 的安装和升级"></a>一、cocoapods 的安装和升级</h2><p>1、查看pod版本</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod --version</span><br></pre></td></tr></table></figure>
-<p>2、安装 CocoaPods</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo gem install -n /usr/local/bin cocoapods  # OS X 版本大于 10.11，使用此命令安装</span><br><span class="line">sudo gem install cocoapods # OS X 版本小于等于 10.11，使用此命令安装</span><br></pre></td></tr></table></figure>
-<p>其他参考：<a href="https://lbsyun.baidu.com/index.php?title=iossdk/guide/create-project/cocoapods" target="_blank" rel="noopener">百度地图中的CocoaPods文章</a></p>
-<p>3、升级</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">sudo gem update cocoapods</span><br><span class="line">// 以下该行命令可升级cocoapods</span><br><span class="line">gem install cocoapods</span><br><span class="line"></span><br><span class="line">// 移除现有pod</span><br><span class="line">rm -rf /usr/local/bin/pod</span><br><span class="line">// 重新下载pod</span><br><span class="line">sudo gem install cocoapods</span><br></pre></td></tr></table></figure>
-<h2 id="五、创建spec-repo"><a href="#五、创建spec-repo" class="headerlink" title="五、创建spec repo"></a>五、创建spec repo</h2><ul>
-<li><p>进入文件夹<code>cd ~/.cocoapods/repos</code>可以查看本地<code>spec repo</code></p>
-</li>
-<li><p>指定管理 <code>lib repo</code>的 <code>specs repo</code>的 <code>url</code><br><code>pod repo add dvlproad https://gitee.com/dvlproad/dvlproadSpecs.git</code><br>注意 此处地址是<code>spec</code>仓库地址</p>
-</li>
-</ul>
-<h4 id="End"><a href="#End" class="headerlink" title="End"></a>End</h4>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods/" data-id="cldy3hf2o00vrunr48adnhr2b" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/Cocoapod常见问题" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/Cocoapod常见问题/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.965Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Cocoapod常见问题"><a href="#Cocoapod常见问题" class="headerlink" title="Cocoapod常见问题"></a>Cocoapod常见问题</h2><h2 id="iOS-Xcode-14-创建新项目Pod-init及Pod-install-报错"><a href="#iOS-Xcode-14-创建新项目Pod-init及Pod-install-报错" class="headerlink" title="iOS Xcode 14 创建新项目Pod init及Pod install 报错"></a>iOS Xcode 14 创建新项目Pod init及Pod install 报错</h2><blockquote>
-<p>in `initialize_from_file’: [Xcodeproj] Unknown object version (56). (RuntimeError)</p>
-</blockquote>
-<p>原因：Xcode与cocoapods不兼容。</p>
-<p>解决：修改<code>compatibilityVersion</code>，将<code>Project Format</code> 改为<code>Xcode 13.0-compatible</code></p>
-<ul>
-<li><a href="https://blog.csdn.net/weixin_36162680/article/details/126959349?csdn_share_tail=%7B%22type%22%3A%22blog%22%2C%22rType%22%3A%22article%22%2C%22rId%22%3A%22126959349%22%2C%22source%22%3A%22weixin_36162680%22%7D&amp;fromshare=blogdetail" target="_blank" rel="noopener">iOS Xcode 14 创建新项目Pod init及Pod install 报错</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/Cocoapod常见问题/" data-id="cldy3hf2p00vxunr4fywynn09" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/podspec写法及常见错误" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/podspec写法及常见错误/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.965Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="podspec写法"><a href="#podspec写法" class="headerlink" title="podspec写法"></a>podspec写法</h2><p>Podspec编辑方法：<br>首先确认编辑环境，podspec的引号”是否正确</p>
-<p>如果Podspec有依赖的系统库，则添加方法如下：<br>s.libraries = “sqlite3”</p>
-<p>如果Podspec有依赖的第三方库，则添加方法如下：<br>s.dependency ‘FMDB’, ‘~&gt; 2.5’</p>
-<p>如果Podspec有依赖的资源，则添加方法如下：<br>s.resources = “CJSliderViewController/*<em>/</em>.png”</p>
-<h2 id="podspec常见错误"><a href="#podspec常见错误" class="headerlink" title="podspec常见错误"></a>podspec常见错误</h2><p><img src="/代码管理/库管理/CocoaPods/podspec写法及常见错误/./podspec常见错误/podspec常见错误1.png" alt="SVN配置代码库1"></p>
-<p>解答：参考<a href="http://cache.baiducontent.com/c?m=9f65cb4a8c8507ed4fece76310579135480ddd276b97844b22918448e435061e5a25a4ec66644b598f84616706a5435beef4346f665e71eac88ad51ccabbe47972d7656f2e4fc01a4f8f0eafbd12769a7ed14de9d95cbdedac2593d88c8e8c02089606127af6bad00a1714bc3bab4a66f7e3c408435057e6be603ba84e7758d97e57b636b9a76e7907f0a78003139076867611e6b835c12913c552e25f406653a13ced53013130911e7fe8454d45ccb00bb06a6e4153f213e4fcd6b79b19d180ac71c5a495f86f826196d2ea8e6643000ea175a9abcca53d155203a9ddde60d332cdbcb6e10dfe14a6560ffa0821697cce1acbd9&amp;p=9f7aca16d9c116bc08e291784408&amp;newp=857ac316d9c11fff57e892371b0a92695803ed6337d4d34b&amp;user=baidu&amp;fm=sc&amp;query=Unable+to+run+command+%27StripNIB+CJSliderViewController%2Enib%27+%2D+this+target+might+include+its+own+prod&amp;qid=90bdb8ed0002f11f&amp;p1=1" target="_blank" rel="noopener">Cocoapod compilation fails when loading .xib file</a><br>即错误原因为：把非.h.m的文件都放到resouces中，而不要放到soucres中</p>
-<p>完！</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/podspec写法及常见错误/" data-id="cldy3hf2q00vzunr4w54ncnbz" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/SVN" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/SVN/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.960Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="SVN"><a href="#SVN" class="headerlink" title="SVN"></a>SVN</h1><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>1.Mac下搭建SVN服务器</p>
-<h2 id="1"><a href="#1" class="headerlink" title="1"></a>1</h2><p><a href="http://www.cnblogs.com/dafozhang/archive/2012/06/28/2567769.html" target="_blank" rel="noopener">SVN中trunk,branches,tags用法详解</a></p>
-<p>svn://proj/|+-trunk+-branches+-tags<br>这是一个标准的布局，trunk为主开发目录，branches为分支开发目录，tags为tag存档目录（不允许修改）。但是具体这几个目录应该如何使用，svn并没有明确的规范，更多的还是用户自己的习惯。</p>
-<p>对于这几个开发目录，一般的使用方法有两种。我更多的是从软件产品的角度出发（比如freebsd），因为互联网的开发模式是完全不一样的。 1.第一种方法，使用trunk作为主要的开发目录<br>一般的，我们的所有的开发都是基于trunk进行开发，当一个版本/release开发告一段落（开发、测试、文档、制作安装程序、打包等）结束后，代码处于冻结状态（人为规定，可以通过hook来进行管理）。此时应该基于当前冻结的代码库，打tag。当下一个版本/阶段的开发任务开始，继续在trunk进行开发。<br>此时，如果发现了上一个已发行版本（Released Version）有一些bug，或者一些很急迫的功能要求，而正在开发的版本（Developing Version）无法满足时间要求，这时候就需要在上一个版本上进行修改了。应该基于发行版对应的tag，做相应的分支（branch）进行开发。<br>例如，刚刚发布1.0，正在开发2.0，此时要在1.0的基础上进行bug修正。</p>
-<p><a href="http://blog.csdn.net/lilongsheng1125/article/details/8742200" target="_blank" rel="noopener">SVN 中trunk、tags、branches使用</a></p>
-<p><a href="http://blog.csdn.net/njuitjf/article/details/7546189" target="_blank" rel="noopener">svn中的revert和update</a></p>
-<p><a href="http://blog.csdn.net/gf771115/article/details/41008853" target="_blank" rel="noopener">iOS 用CornerStone配置SVN，HTTP及svn简单使用说明</a></p>
-<h3 id="Mac下搭建SVN服务器"><a href="#Mac下搭建SVN服务器" class="headerlink" title="Mac下搭建SVN服务器"></a>Mac下搭建SVN服务器</h3><p>有些MAC用户想在自己的电脑中建立一个SVN服务器，那么该怎么做呢？<br>具体步骤：</p>
-<ul>
-<li>第一步，启动终端。命令如下：<code>svnadmin create /Users/lichaoqian/Project/SVN</code>，这样我们就在自己的主目录下建立了一个名为“SVN”的代码库。 得到的目录为：<br><img src="/代码管理/SVN/./Screenshots/SVN/SVN create catalog.png" alt="SVN创建后的目录结构"></li>
-<li>第二步，配置这个代码仓库。</li>
-<li>①首先修改conf文件夹中的svnserve.conf文件，只要把<code>#password-db = passwd</code>这句话的#去掉，使得这个配置项生效即可。保存退出。<br><img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile1.png" alt="SVN配置代码库1"></li>
-<li>②接着修改passwd文件，这个里面存着这个代码库接受的用户名和密码<br>　　采用的形式是［用户名］=［密码］。可以增加一个用户“user”，密码“pass”，形如：<code>user=pass</code>,<br>　　<img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile2.png" alt="SVN配置代码库2"><br>　　这里改为只接受用户名为lichaoqian,密码也为lichaoqian的用户。<br>　　<img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile3.png" alt="SVN配置代码库3"><br>　　保存退出。</li>
-<li>第三步，启动服务器。终端中继续，命令如下：<br><code>svnserve -d -r /Users/lichaoqian/Project/SVN</code><br>没有任何提示就说明启动成功了。附停止服务器：<code>killall -9 svnserve</code><br>以上就是在MAC中建立SVN服务器的具体步骤了，想要自己建立SVN服务器的用户，快来看看吧</li>
-</ul>
-<h3 id="CornerStone的使用"><a href="#CornerStone的使用" class="headerlink" title="CornerStone的使用"></a>CornerStone的使用</h3><p><a href="http://blog.csdn.net/keda8997110/article/details/21813035" target="_blank" rel="noopener">svn的merge使用例子</a><br><a href="http://www.jianshu.com/p/d97b1d82d6cf" target="_blank" rel="noopener">Cornerstone Merge操作详解</a><br><a href="http://blog.csdn.net/qq_30513483/article/details/52219036" target="_blank" rel="noopener">CornerStone的使用</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/SVN/" data-id="cldy3hcp7003bunr4ec4a7k4l" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/Git使用" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/Git使用/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.959Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="Git使用"><a href="#Git使用" class="headerlink" title="Git使用"></a>Git使用</h1><p>详细而全的文档：<a href="http://git.oschina.net/progit/" target="_blank" rel="noopener">Pro Git（中文版）</a></p>
-<h4 id="Git回滚代码到某个commit"><a href="#Git回滚代码到某个commit" class="headerlink" title="Git回滚代码到某个commit"></a>Git回滚代码到某个commit</h4><p>回退命令：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">在git push的时候，有时候我们会想办法撤销git commit的内容 </span><br><span class="line">1、找到之前提交的git commit的id </span><br><span class="line">git log </span><br><span class="line">找到想要撤销的id </span><br><span class="line">2、git reset –hard id </span><br><span class="line">完成撤销,同时将代码恢复到前一commit_id 对应的版本 </span><br><span class="line">3、git reset id </span><br><span class="line">完成Commit命令的撤销，但是不对代码修改进行撤销，可以直接通过git commit 重新提交对本地代码的修改</span><br></pre></td></tr></table></figure>
-<ul>
-<li><a href="https://blog.csdn.net/YoungStunner/article/details/78696763" target="_blank" rel="noopener">Git-撤销（回退）已经add，commit或push的提交</a></li>
-<li><a href="https://blog.csdn.net/youshaoduo/article/details/52755573" target="_blank" rel="noopener">SourceTree超前一个版本，落后N个版本</a></li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ git reset HEAD^         			回退到上个版本，代码还在</span><br><span class="line"></span><br><span class="line">注意：如果加上使用--hard会导致这里虽然回到了上个版本，但是commit上去，未push出去的就没法找回了</span><br><span class="line">$ git reset --hard HEAD^         回退到上个版本</span><br><span class="line">$ git reset --hard HEAD~3        回退到前3次提交之前，以此类推，回退到n次提交之前</span><br><span class="line">$ git reset --hard commit_id     退到/进到 指定commit的sha码</span><br></pre></td></tr></table></figure>
-<p>当你有多处备份的时候，你可以强制性的执行</p>
-<p>git reset –hard HEAD^ </p>
-<p>但是你刚commit上去，未push出去的就没法找回了。</p>
-<h4 id="pod-install报错：ArgumentError-Malformed-version-number-string"><a href="#pod-install报错：ArgumentError-Malformed-version-number-string" class="headerlink" title="pod install报错：ArgumentError - Malformed version number string"></a>pod install报错：ArgumentError - Malformed version number string</h4><p>网上的参考：<a href="https://www.jianshu.com/p/3155a187f884" target="_blank" rel="noopener">pod install报错：ArgumentError - Malformed version number string</a></p>
-<p>实际：通过执行<code>sudo gem install cocoapods</code>命令重装cocoapods即解决了。</p>
-<p>其他<a href="https://www.jianshu.com/p/af554a4cc335" target="_blank" rel="noopener">CocoaPods那些错</a></p>
-<h4 id="GitHub-出现-POST-git-receive-pack-chunked-解决方案详解"><a href="#GitHub-出现-POST-git-receive-pack-chunked-解决方案详解" class="headerlink" title="GitHub 出现 POST git-receive-pack (chunked) 解决方案详解"></a>GitHub 出现 POST git-receive-pack (chunked) 解决方案详解</h4><p>出现 POST git-receive-pack (chunked) 的原因就是 当使用 HTTPS 提交到 Git 上时使用不检查加密要是东西过多将导致提交停止。</p>
-<p>解决方法：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">方案1&gt;  使用 Git 提交代码</span><br><span class="line">进入到要提交的代码的目录，里面包含 .git 文件夹，输入指令 git config http.postBuffer 524288000</span><br><span class="line"></span><br><span class="line">方案2&gt; 使用 SourceTreee 提交代码</span><br><span class="line">如图按照顺序依次点击在最后一步增加</span><br><span class="line">[http] </span><br><span class="line">    postBuffer = 524288000</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/代码管理/Git使用/POST git-receive-pack (chunked" alt="POST git-receive-pack (chunked)">.png)</p>
-</blockquote>
-<p>再次提交将会成功。</p>
-<p>相关参考：<a href="https://www.cnblogs.com/gongyuhonglou/p/8671200.html" target="_blank" rel="noopener">GitHub 出现 POST git-receive-pack (chunked) 解决方案详解</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/Git使用/" data-id="cldy3hcp40037unr4ig58hmrb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/代码管理/库管理/npmjs/npm的命令/" data-id="cldyf80r600tw00r4yqce4ip8" class="article-share-link">Share</a>
       
       
     </footer>
@@ -661,7 +866,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -714,23 +919,23 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/test_h5js_demo/">(no title)</a>
+            <a href="/HTML/common_js/url_util/">(no title)</a>
           </li>
         
       </ul>

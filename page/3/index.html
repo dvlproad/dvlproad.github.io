@@ -72,6 +72,547 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-数据结构/9数据结构-①nil、isEqual、Hash" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/数据结构/9数据结构-①nil、isEqual、Hash/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据结构-①nil、isEqual、Hash"><a href="#必备知识架构-数据结构-①nil、isEqual、Hash" class="headerlink" title="必备知识架构-数据结构-①nil、isEqual、Hash"></a>必备知识架构-数据结构-①nil、isEqual、Hash</h1><p>[toc]</p>
+<h2 id="前言：你真的懂isEqual与hash？"><a href="#前言：你真的懂isEqual与hash？" class="headerlink" title="前言：你真的懂isEqual与hash？"></a>前言：你真的懂isEqual与hash？</h2><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/915356e280fc" target="_blank" rel="noopener">iOS开发 之 不要告诉我你真的懂isEqual与hash!</a></li>
+<li><a href="https://www.jianshu.com/p/2a71b027b723?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation" target="_blank" rel="noopener">哈希算法详解（附带 iOS 开发中实际应用）</a></li>
+<li><a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase" target="_blank" rel="noopener">iOS weak关键字实现原理</a></li>
+</ul>
+<p>eg：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、NSMutableSet/NSSet中添加对象的时候，就会调用- (NSUInteger)hash方法。</span><br><span class="line">2、NSMutableSet/NSSet中添加 obj2 对象的时候，如果NSMutableSet/NSSet 中之前就已经存在 obj1 对象，且 obj1 对象的 - (NSUInteger)hash 返回值和当前要添加的 obj2 的- (NSUInteger)hash 返回值相等, 则 obj2 会继续调用- (BOOL)isEqual:方法，其中此方法以 obj1 为参数；否则不等, 继续下一个元素判断。</span><br></pre></td></tr></table></figure>
+<p>通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
+<h2 id="一、基础"><a href="#一、基础" class="headerlink" title="一、基础"></a>一、基础</h2><h3 id="1、nil-Nil-NULL-与-NSNull-的区别"><a href="#1、nil-Nil-NULL-与-NSNull-的区别" class="headerlink" title="1、nil, Nil,NULL 与 NSNull 的区别"></a>1、nil, Nil,NULL 与 NSNull 的区别</h3><ul>
+<li>nil 指向一个<strong>对象的指针</strong>为空,在objc.h 的定义如下: <code>NSString *name = nil;</code></li>
+<li>Nil 指向一个<strong>类的指针</strong>为空,定义如下: <code>Class aClass = Nil;</code></li>
+<li>NULL 指向<strong>C类型的指针</strong>为空, 例如: <code>int*pInt = NULL;</code></li>
+<li>NSNull 在Objective-C中是一个类,只是名字中有个Null，多用于集合(NSArray,NSDictionary)中值为空的对象</li>
+</ul>
+<h3 id="2、-、-isEqualToString、isEqual"><a href="#2、-、-isEqualToString、isEqual" class="headerlink" title="2、==、 isEqualToString、isEqual"></a>2、==、 isEqualToString、isEqual</h3><h4 id="2-1、背景：为什么要有isEqual方法"><a href="#2-1、背景：为什么要有isEqual方法" class="headerlink" title="2.1、背景：为什么要有isEqual方法?"></a>2.1、背景：为什么要有isEqual方法?</h4><p>答：判断两个对象是否相等（而不是判断两个对象的地址是否相等）。</p>
+<blockquote>
+<p>对于基本类型, ==运算符比较的是值;<br><strong>对于对象类型, ==运算符比较的是对象的地址(即是否为同一对象)</strong></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIColor *color1 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">UIColor *color2 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">NSLog(@&quot;color1 == color2 = %@&quot;, color1 == color2 ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line">NSLog(@&quot;[color1 isEqual:color2] = %@&quot;, [color1 isEqual:color2] ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line"></span><br><span class="line">// 打印结果如下：</span><br><span class="line">color1 == color2 = NO</span><br><span class="line">[color1 isEqual:color2] = YES</span><br></pre></td></tr></table></figure>
+<p>总结：</p>
+<blockquote>
+<p>1、==<br>判断指针指向的地址，即指针值，是否相等<br>①对于基本类型, ==运算符比较的是值;<br>②对于对象类型, ==运算符比较的是对象的地址(即是否为同一对象)）</p>
+<p>2、isEqualToString<br>直接判断字符串内容是否相等</p>
+<p>3、isEqual<br>先判断两个对象的地址是否相同，再判断类型是否一致，然后再判断对象的具体内容是否一致<br>//情况①：地址相同则肯定相等；<br>//情况②：地址不同时候，如果类型一致且里面的内容相等，则也算相等</p>
+</blockquote>
+<h4 id="2-1、苹果官方重写isEqual-的demo"><a href="#2-1、苹果官方重写isEqual-的demo" class="headerlink" title="2.1、苹果官方重写isEqual 的demo"></a>2.1、苹果官方重写isEqual 的demo</h4><p><code>isEqual</code>：先判断两个对象的地址是否相同(采用<code>==</code>)，再判断类型是否一致(采用<code>isKindOfClass</code>)，然后再判断对象的具体内容是否一致</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)isEqual:(id)object &#123;</span><br><span class="line">    if (self == object) &#123;</span><br><span class="line">        return YES;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (![object isKindOfClass:[Person class]]) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return [self isEqualToPerson:(Person *)object];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (BOOL)isEqualToPerson:(Person *)person &#123;</span><br><span class="line">    if (!person) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    BOOL haveEqualNames = (!self.name &amp;&amp; !person.name) || </span><br><span class="line">      										[self.name isEqualToString:person.name];</span><br><span class="line">    BOOL haveEqualBirthdays = (!self.birthday &amp;&amp; !person.birthday) || </span><br><span class="line">      										[self.birthday isEqualToDate:person.birthday];</span><br><span class="line"></span><br><span class="line">    return haveEqualNames &amp;&amp; haveEqualBirthdays;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>附：通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
+<h4 id="2-2、-、-isEqualToString、isEqual验证示例"><a href="#2-2、-、-isEqualToString、isEqual验证示例" class="headerlink" title="2.2、==、 isEqualToString、isEqual验证示例"></a>2.2、==、 isEqualToString、isEqual验证示例</h4><blockquote>
+<p><img src="/数据结构/9数据结构-①nil、isEqual、Hash/1语言/equal.jpg" alt="equal"></p>
+</blockquote>
+<h2 id="二、Hash"><a href="#二、Hash" class="headerlink" title="二、Hash"></a>二、Hash</h2><h3 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h3><p>当要在一堆数据中进行查找的时候，需要频繁的进行判等比较。<strong>为了提高整个查找的速度</strong>，我们引入hash。</p>
+<p>问：为什么需要hash？</p>
+<blockquote>
+<p>答：为了提高查找的速度。(附：主要是用于在Hash Table查询成员用的)</p>
+</blockquote>
+<p>问：和数组相比，基于hash值索引的Hash Table【查找某个成员的过程】就是</p>
+<blockquote>
+<p>Step 1: 通过hash值直接找到查找目标的位置；<br>Step 2: 如果目标位置上有多个相同hash值得成员, 此时再按照数组方式进行查找。</p>
+</blockquote>
+<p>问：基于hash值索引的Hash Table在【查找某个成员的过程】如何确定找的对象是我们想要的？或hash方法与isEqual的关系?（优化判等）</p>
+<blockquote>
+<p>答：我们以基于hash的NSSet和NSDictionary举例，其在判断成员是否相等时, <strong>为了优化判等的效率</strong>，会这样做<br>Step 1: 集成成员的hash值是否和目标hash值相等, 如果相同进入Step 2, 如果不等, 直接判断不相等；<br>Step 2: hash值相同(即Step 1)的情况下, 再进行对象判等, 作为判等的结果。</p>
+</blockquote>
+<h3 id="2、Hash-表的实际应用"><a href="#2、Hash-表的实际应用" class="headerlink" title="2、Hash 表的实际应用"></a>2、Hash 表的实际应用</h3><ul>
+<li>应用1：找出两文件找出重复的元素</li>
+</ul>
+<blockquote>
+<p>假设有两个文件，文件中均包含一些短字符串，字符串个数分别为n。它们是有重复的字符串，现在需要找出所有重复的字符串。<br>最笨的解决办法可能是：遍历文件 1 中的每个元素，取出每一个元素分别去文件 2 中进行查找，这样的时间复杂度为O（n^2）。<br>但是借助 Hash 表可以有一种相对巧妙的方法，我们知道<strong>相同元素的 Hash 值相同</strong>。所以我们分别遍历文件 1 中的元素和文件 2 中的元素，然后放入 Hash Table 中，对于遍历的每一个元素我们只要简单的做一下计数处理即可。最后遍历整个 Hash 列表，找出所有个数大于 1 的元素即为重复的元素。</p>
+</blockquote>
+<ul>
+<li>应用2：找出两文件找出出现次数最多的元素</li>
+</ul>
+<blockquote>
+<p>同<code>找出两文件找出重复的元素</code>这样的问题解决方案类似，只是在最后遍历的时找计数最大的元素，即为出现次数最多的元素。</p>
+</blockquote>
+<h3 id="3、hash什么时候调用"><a href="#3、hash什么时候调用" class="headerlink" title="3、hash什么时候调用"></a>3、hash什么时候调用</h3><p>hash方法只在对象被添加至NSSet和设置为NSDictionary的key时会调用。</p>
+<p>HashTable是一种基本数据结构，<strong>NSSet和NSDictionary都是使用HashTable存储数据的</strong>，因此可以可以确保他们查询成员的速度为O(1)。而NSArray使用了顺序表存储数据，查询数据的时间复杂度为O(n)。</p>
+<h2 id="三、哈希-Hash-表-散列表"><a href="#三、哈希-Hash-表-散列表" class="headerlink" title="三、哈希(Hash)表/散列表"></a>三、哈希(Hash)表/散列表</h2><p>参考文章：</p>
+<ul>
+<li><a href="https://blog.csdn.net/u011109881/article/details/80379505" target="_blank" rel="noopener">数据结构 Hash表（哈希表）</a></li>
+</ul>
+<h3 id="1、哈希函数-amp-Hash地址"><a href="#1、哈希函数-amp-Hash地址" class="headerlink" title="1、哈希函数 &amp; Hash地址"></a>1、哈希函数 &amp; Hash地址</h3><p>要想知道什么是哈希表，那得先了解<strong>哈希函数</strong>。</p>
+<p>hash函数就是根据key计算出应该存储地址的位置，而哈希表是基于哈希函数建立的一种查找表</p>
+<p><strong>地址index=H（key）</strong></p>
+<p>通过Hash函数和关键字计算出来的存储位置（<strong>注意这里的存储位置只是表中的存储位置，并不是实际的物理地址</strong>）称作为Hash地址。</p>
+<p>重要：<strong>相同元素的 Hash 值相同</strong>。附：两个相等的实例，他们的hash值一定相等。但是hash值相等的两个实例，不一定相等。</p>
+<h3 id="2、哈希函数的构造方法"><a href="#2、哈希函数的构造方法" class="headerlink" title="2、哈希函数的构造方法"></a>2、哈希函数的构造方法</h3><p><strong>除留余数法</strong>用的较多<br>H（key）=key MOD p （p&lt;=m m为表长）<br>很明显，如何选取p是个关键问题。</p>
+<blockquote>
+<p>p应为不大于m的质数或是不含20以下的质因子的合数，这样可以减少地址的重复（冲突）</p>
+</blockquote>
+<p>比如key = 7，39，18，24，33，21时取表长m为9 p为7 那么存储如下</p>
+<table>
+<thead>
+<tr>
+<th>index</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key</td>
+<td>7</td>
+<td>21(冲突后移)</td>
+<td></td>
+<td>24</td>
+<td>4</td>
+<td>18(冲突后移)</td>
+<td>33(冲突后移)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="3、哈希冲突的解决方案"><a href="#3、哈希冲突的解决方案" class="headerlink" title="3、哈希冲突的解决方案"></a>3、哈希冲突的解决方案</h3><p>哈希冲突即不同key值产生相同的地址，H（key1）=H（key2）<br>比如我们上面说的存储3 6 9，p取7是<br>7 MOD 7 == 21 MOD 7<br>此时7和21都发生了hash冲突</p>
+<h3 id="4、hash表的查找"><a href="#4、hash表的查找" class="headerlink" title="4、hash表的查找"></a>4、hash表的查找</h3><p>查找过程和造表过程一致，假设采用开放定址法处理冲突，则查找过程为：<br>对于给定的key，计算hash地址index = H（key）<br>如果数组arr【index】的值为空 则查找不成功<br>如果数组arr【index】== key 则查找成功<br>否则 使用冲突解决方法求下一个地址，直到arr【index】== key或者 arr【index】==null</p>
+<p>哈希表（hash table，也叫散列表），是根据键（key）直接访问访问在内存储存位置的数据结构。</p>
+<p><a href="https://link.juejin.im/?target=https%3A%2F%2Fzh.wikipedia.org%2Fwiki%2F%E5%93%88%E5%B8%8C%E8%A1%A8" target="_blank" rel="noopener">哈希表</a>本质是一个数组，数组中的每一个元素成为一个箱子，箱子中存放的是键值对。根据下标index从数组中取value。关键是如何获取index，这就需要一个固定的函数（哈希函数），将key转换成index。</p>
+<p><a href="https://www.jianshu.com/p/4e64fce04a38" target="_blank" rel="noopener">哈希表—什么是哈希表</a> 有助于理解哈希表</p>
+<h2 id="四、weak"><a href="#四、weak" class="headerlink" title="四、weak"></a>四、weak</h2><p>以下内容来自： <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase" target="_blank" rel="noopener">iOS weak关键字实现原理</a></p>
+<ul>
+<li>1、weak关键字修饰对象的【初始化及重新赋值】实现原理</li>
+<li>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</li>
+<li>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</li>
+</ul>
+<h3 id="1、weak关键字修饰对象初始化及重新赋值实现原理"><a href="#1、weak关键字修饰对象初始化及重新赋值实现原理" class="headerlink" title="1、weak关键字修饰对象初始化及重新赋值实现原理"></a>1、weak关键字修饰对象初始化及重新赋值实现原理</h3><p><code>objc_initWeak</code>：当初始化一个weak对象并将内存对象赋值给该weak对象时会调用该方法。</p>
+<p><code>objc_storeWeak</code>：当为一个weak对象赋新值时会调用该方法。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">objc_initWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//对内存对象进行非nil判断</span></span><br><span class="line">    <span class="keyword">if</span> (!newObj) &#123;</span><br><span class="line">        *location = nil;</span><br><span class="line">        <span class="keyword">return</span> nil;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">false</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object*)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">objc_storeWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">true</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object *)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由官方文档可知，无论是初始化weak对象还是为weak对象赋值，最终都会调用到 <code>storeWeak</code>方法，不同点在于，二者传入三个模板值不同。</p>
+<p>如果weak对象与旧内存对象的关联，则先调用<code>weak_unregister_no_lock</code>，将weak对象与旧内存对象解除指向关系。</p>
+<p>然后在将weak对象与旧内存对象的关联解除后，就调用 <code>weak_register_no_lock</code>方法将weak对象与新内存对象进行关联</p>
+<p>至此，weak关键字修饰对象的初始化和重新赋值流程就完成了。</p>
+<h3 id="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"><a href="#2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？" class="headerlink" title="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"></a>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</h3><p>问：weak关键字是如何保证【在weak对象执行语句时】内存对象【不被释放】的呢？</p>
+<p>答：其实很简单，就是对内存对象进行计数增加。</p>
+<p>每次在使用weak对象时，都相当于调用一次 <code>objc_loadWeak</code>。</p>
+<p>在weak对象执行的语句中，weak对象所指向的内存对象计数会+1，这样就保证在语句中不会发生执行一半而释放内存对象的问题。</p>
+<h3 id="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"><a href="#3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？" class="headerlink" title="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"></a>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</h3><p>当内存对象释放时，会调用到一个叫<code>weak_claer_no_lock</code>的方法。在 <code>weak_claer_no_lock</code>方法中，会进行对weak对象的置空操作。</p>
+<h3 id="4、Weak-Strong搭配使用的误解"><a href="#4、Weak-Strong搭配使用的误解" class="headerlink" title="4、Weak-Strong搭配使用的误解"></a>4、Weak-Strong搭配使用的误解</h3><p>在使用Block时，我们可以使用weak关键字来避免外部变量被Block强引用而导致的循环引用，同时为了Block中的代码能够正常执行，许多开发者提出了Weak-Strong搭配使用的方式，类似如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        __strong typeof(weakSelf) strongSelf = weakSelf;</span><br><span class="line">        [strongSelf test1];</span><br><span class="line">        [strongSelf test2];</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以上代码相对于单独使用weak来说还是有好处的，使用Weak-Strong搭配的方式的话，可以保证在执行 [strongSelf test1]和 [strongSelf test2]时，是向同一对象发送消息。</p>
+<p>为什么这么说呢？当开始执行Block语句时，若self还存在，那么strongSelf可以保证在整个Block代码块中不会被释放，即使Block中调用无数次strongSelf，strongSelf也不会因为多线程而在半途被释放；若开始执行Block时，self已经被释放，那么之后所有的消息都会被发送至nil。所以Weak-Strong搭配可以保证Block中语句被处理为一个事务。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        [weakSelf test1];	// 可能这时候self还没释放，有值。</span><br><span class="line">        [weakSelf test2];	// 而到这时候self刚好释放，为ni。导致Block中语句不是被发送给同一对象去处理。</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以说，Weak-Strong并不能保证Block中语句一定会被执行，它只能保证Block中语句作为一个事务被发送到同一对象处。只要理解了weak实现原理，我们就能明白何时单独使用weak也能完成代码功能，而何时必须使用Weak-Strong来保证代码事务能力。</p>
+<h3 id="5、weak关键字涉及到的数据结构"><a href="#5、weak关键字涉及到的数据结构" class="headerlink" title="5、weak关键字涉及到的数据结构"></a>5、weak关键字涉及到的数据结构</h3><p>略。请查看 <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase" target="_blank" rel="noopener">iOS weak关键字实现原理</a></p>
+<blockquote>
+<p>1、SideTables</p>
+<blockquote>
+<p><code>SideTables</code>本质上是一个全局的 <code>StripedMap</code>。而<code>StripedMap</code>本质是一个数组。</p>
+<p>在 <code>SideTables</code>中， Item类型为 <code>SideTable</code></p>
+</blockquote>
+<p>2、SideTable</p>
+<blockquote>
+<p><code>SideTable</code>中包含三个元素，分别是 1.自旋锁 2.记录对象引用计数的字典 3.记录对象弱引用信息的数据结构 <code>weak_table_t</code>。</p>
+</blockquote>
+<p>3、weak_table_t</p>
+<blockquote>
+<p><code>weak_table_t</code>本质上是一个数组，其中每个Item为 <code>weak_entry_t</code>。</p>
+</blockquote>
+<p>4、weak_entry_t</p>
+<blockquote>
+<p><code>weak_entry_t</code>就比较有意思了，它本质上是个字典。其中的key值为对象，而value对应为一个数组，数组中保存的值均为 <code>weak_referrer_t</code>类型的数据。</p>
+</blockquote>
+<p>5、weak_referrer_t</p>
+<blockquote>
+<p><code>weak_referrer_t</code>本质上是 <code>objc_object **</code>，即Objective-C对象的地址。</p>
+</blockquote>
+</blockquote>
+<p>所以，<code>weak_entry_t</code>value数组中，每一个Item均为一个地址，即weak对象的地址。</p>
+<p>在项目中有某个功能需要用到多个delegate对象，这就需要把delegate放到容器中，但又只能弱引用weak保存delegate，否则会导致delegate对象不能被释放。所以，我们的需求就是希望能在容器中只保存弱引用的delegate对象。</p>
+<blockquote>
+<p>在OC中Foundation框架中的常用容器类（NSSet，NSDictionary，NSArray）及其可变子类在加入元素时，均会对元素进行强引用。有的时候（比如持有多个Delegate对象时），希望有对应的弱引用容器使用。</p>
+</blockquote>
+<p>支持弱引用的容器类，有如下：</p>
+<p>[NSHashTable weakObjectsHashTable]</p>
+<p>[NSPointerArray weakObjectsPointerArray]</p>
+<p>[NSPointerArray pointerArrayWithOptions:]</p>
+<p>详见：<a href="https://www.jianshu.com/p/cf4e15b26f64" target="_blank" rel="noopener">YYKit学习笔记之NSHashTable与NSMapTable</a></p>
+<p>其他参考：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/f0c33d6c39bb" target="_blank" rel="noopener">OC弱引用容器实现方案总结</a></li>
+<li><p><a href="http://blog.sina.com.cn/s/blog_48d4cf2d0102v1jh.html" target="_blank" rel="noopener">iOS如何在容器类中使用弱引用(weak reference) </a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/de3e0ffa9fde" target="_blank" rel="noopener">数组或字典如何弱引用对象</a></p>
+</li>
+<li><a href="https://www.jianshu.com/p/51156d4ae885" target="_blank" rel="noopener">iOS - 如何实现弱引用字典</a></li>
+</ul>
+<p><strong><em>在iOS项目开发过程中，我们经常会使用到<code>NSSet</code>、<code>NSArray</code>、<code>NSDictionary</code>三个类，它们为我们设计较友好的数据结构时提供了很方便的方法\</em></strong></p>
+<p>对于NSSet来说，object是强引用的，和NSDictionary中的value是一样的。而NSDictionary中的key则是copy的，因此当开发者想要使NSSet的objects或者NSDictionary的values为weak，或者NSDictionary使用没有实现协议的对象作为key时，比较麻烦（需要使用NSValue的方法valueWithNonretainedObject）。<br>还好苹果为我们提供了相对于NSSet和NSDictionary更通用的两个类NSHashTable和NSMapTable。</p>
+<h2 id="关联对象实现原理"><a href="#关联对象实现原理" class="headerlink" title="关联对象实现原理"></a>关联对象实现原理</h2><p><a href="https://juejin.im/post/5af86b276fb9a07aa34a59e6" target="_blank" rel="noopener">iOS底层原理总结 - 关联对象实现原理</a></p>
+<blockquote>
+<p><strong>关联对象并不是存储在被关联对象本身内存中，而是存储在全局的统一的一个AssociationsManager中，如果设置关联对象为nil，就相当于是移除关联对象。</strong></p>
+</blockquote>
+<p>回过头来看objc_AssociationPolicy policy 参数: 属性以什么形式保存的策略。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef OBJC_ENUM(uintptr_t, objc_AssociationPolicy) &#123;</span><br><span class="line">    OBJC_ASSOCIATION_ASSIGN = 0,  // 指定一个弱引用相关联的对象</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN_NONATOMIC = 1, // 指定相关对象的强引用，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY_NONATOMIC = 3,  // 指定相关的对象被复制，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN = 01401,  // 指定相关对象的强引用，原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY = 01403     // 指定相关的对象被复制，原子性   </span><br><span class="line">&#125;;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+<p>我们会发现其中只有RETAIN和COPY而为什么没有weak呢？</p>
+<h2 id="NSPointerArray"><a href="#NSPointerArray" class="headerlink" title="NSPointerArray"></a>NSPointerArray</h2><h3 id="1、NSPointerArray"><a href="#1、NSPointerArray" class="headerlink" title="1、NSPointerArray"></a>1、NSPointerArray</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">- (instancetype)init &#123;</span><br><span class="line">  if (self = [super init]) &#123;</span><br><span class="line">    _delegates = [NSPointerArray weakObjectsPointerArray];</span><br><span class="line">  &#125;</span><br><span class="line">  return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 添加对象指针</span><br><span class="line">- (void)addDelegate:(id)delegate &#123;</span><br><span class="line">  [_delegates addPointer:(__bridge void*)delegate];</span><br><span class="line">&#125;</span><br><span class="line">// 和 NSArray在概念上不一样的地方是，NSPointerArray需要添加的是对象的指针地址，尽管他俩都是在操作指针。所以在添加对象时，需要将其转换为指针类型，__bridge转换十分具有 CoreFoundation特色</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 移除对象指针</span><br><span class="line">- (void)removeDelegate:(id)delegate &#123;</span><br><span class="line">  NSUInteger index = [self indexOfDelegate:delegate];</span><br><span class="line">  if (index != NSNotFound) &#123;</span><br><span class="line">    [_delegates removePointerAtIndex:index];</span><br><span class="line">  &#125;</span><br><span class="line">  [_delegates compact];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSUInteger)indexOfDelegate:(id)delegate &#123;</span><br><span class="line">  for (NSUInteger i = 0; i &lt; _delegates.count; i += 1) &#123;</span><br><span class="line">    if ([_delegates pointerAtIndex:i] == (__bridge void*)delegate) &#123;</span><br><span class="line">      return i;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  return NSNotFound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/" data-id="cldyf7yv2003h00r4lwqefmy2" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-数据结构/9数据结构-②二叉树" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/数据结构/9数据结构-②二叉树/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1><p>[toc]</p>
+<blockquote>
+<p>Here are main question we will ask during interview:<br>1.Data Structure:<br>a.linked lists<br>b.Stacks<br>c.Queues<br>d.binary trees<br>e.hash tables<br>2.Algorithms:<br>a.Sort (like quick sort and merge sort), binary search, greedy algorithms.<br>b.Binary tree(like traversal, construction, manipulation..)<br>You can find more to do exercises on <a href="https://leetcode.com/" target="_blank" rel="noopener">https://leetcode.com/</a></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">以下是我们在面试中要问的主要问题：</span><br><span class="line"></span><br><span class="line">1.数据结构：</span><br><span class="line">a、 链接列表</span><br><span class="line">b、 堆栈</span><br><span class="line">c、 队列</span><br><span class="line">d、 二叉树</span><br><span class="line">e、 哈希表</span><br><span class="line"></span><br><span class="line">2.算法：</span><br><span class="line">a、 排序（像快速排序和合并排序），二进制搜索，贪婪算法。</span><br><span class="line">b、 二叉树（比如遍历、构造、操作…）</span><br><span class="line"></span><br><span class="line">你可以找到更多的练习https://leetcode.com/</span><br></pre></td></tr></table></figure>
+<h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树1.png" alt="二叉树"></p>
+<p>在二叉树中，一个元素也称作一个结点。</p>
+<blockquote>
+<p>节点:二叉树中每个元素都称为节点。</p>
+</blockquote>
+<p>叶子结点：就是出度为0的结点，就是没有子结点的结点。</p>
+<h2 id="二、几种二叉树"><a href="#二、几种二叉树" class="headerlink" title="二、几种二叉树"></a>二、几种二叉树</h2><p><a href="https://www.cnblogs.com/-citywall123/p/11788764.html" target="_blank" rel="noopener">满二叉树、完全二叉树、平衡二叉树、最优二叉树</a></p>
+<h3 id="1、完全二叉树"><a href="#1、完全二叉树" class="headerlink" title="1、完全二叉树"></a>1、完全二叉树</h3><p>若设二叉树的深度为k，除第 k 层外，其它各层 (1～k-1) 的结点数都达到最大个数，第k 层所有的结点都<strong>连续集中在最左边</strong>，这就是完全二叉树。</p>
+<h3 id="2、满二叉树"><a href="#2、满二叉树" class="headerlink" title="2、满二叉树"></a>2、满二叉树</h3><p>一个二叉树，如果每一个层的结点数都达到最大值，则这个二叉树就是满二叉树。</p>
+<p>也就是说，如果一个二叉树的层数为K，且结点总数是(2^k) -1 ，则它就是满二叉树。</p>
+<p>满二叉树的第i层上有2</p>
+<p><img src="https://bkimg.cdn.bcebos.com/formula/16caf8be3a55b3d5cffcc3cff4245aae.svg" alt="img"></p>
+<p> 个结点 (i≥1)。</p>
+<p>满二叉树肯定是完全二叉树，而完全二叉树不一定是满二叉树。</p>
+<h3 id="3、平衡二叉树"><a href="#3、平衡二叉树" class="headerlink" title="3、平衡二叉树"></a>3、平衡二叉树</h3><p><a href="https://baijiahao.baidu.com/s?id=1646617486319372351&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">一文读懂平衡二叉树｜技术头条</a></p>
+<p>二叉搜索树（Binary Search Tree），又叫二叉排序树，简单而言就是左子树上所有节点的值均小于根节点的值，而右子树上所有结点的值均大于根节点的值，左小右大，并不是乱序，因此得名二叉排序树。</p>
+<p> <img src="https://pics0.baidu.com/feed/9922720e0cf3d7ca3a57dd116fa0320c6a63a97d.png?token=5501bf9c3284d38423dfc047fa7bec94&amp;s=79A834724182D945487C11DA030070B1" alt="二叉搜索树"></p>
+<p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
+<p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
+<p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉搜索树_链表.png" alt="二叉搜索树_链表"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/平衡二叉树1.png" alt="平衡二叉树"></p>
+<h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a></p>
+<p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
+<p><strong>概念1：什么是路径？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的所有结点，被我们称为两个结点之间的路径。</p>
+<p><strong>概念2：什么是路径长度？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的“边”的数量，被我们称为两个结点之间的路径长度。</p>
+<p><strong>概念3：什么是结点的带权路径长度？</strong></p>
+<p>结点的带权路径长度，是指树的【根结点到该结点的路径长度】和【该结点权重】的【乘积】。</p>
+<p><strong>概念4：什么是树的带权路径长度？</strong></p>
+<p>在一棵树中，【所有】【叶子结点】的带权路径长度之和，被称为树的带权路径长度，也被简称为WPL。</p>
+<p>哈夫曼树（Huffman Tree）是在叶子结点和权重确定的情况下，带权路径长度最小的二叉树，也被称为最优二叉树。</p>
+<p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
+<p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
+<p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树.png" alt="哈弗曼树"> </p>
+<p><code>1*3+3*3+4*2+6*2+8*2=48</code>                                                        <code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
+<p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树2.png" alt="哈弗曼树2"></p>
+<p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
+<p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
+<h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/树的遍历" target="_blank" rel="noopener">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
+<p>参考文章：<a href="https://www.cnblogs.com/lanhaicode/p/10390147.html" target="_blank" rel="noopener">二叉树的遍历（前序、中序、后序、已知前中序求后序、已知中后序求前序）</a></p>
+<p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
+<p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
+<p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;"></p>
+<ul>
+<li>前序遍历结果：GDAFEMHZ</li>
+<li>中序遍历结果：ADEFGHMZ</li>
+<li>后序遍历结果：AEFDHZMG</li>
+</ul>
+<h2 id="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"><a href="#进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）" class="headerlink" title="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"></a>进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）</h2><p><strong>1、前序遍历的第一元素是整个二叉树的根节点</strong></p>
+<p><strong>2、中序遍历中根节点的左边的元素是左子树，根节点右边的元素是右子树</strong></p>
+<p><strong>3、后序遍历的最后一个元素是整个二叉树的根节点</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②二叉树/" data-id="cldyf7ywv004d00r4lyn2wdqz" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-⑤面试" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-⑤面试/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程-⑤面试"><a href="#必备知识架构-线程-⑤面试" class="headerlink" title="必备知识架构-线程-⑤面试"></a>必备知识架构-线程-⑤面试</h1><p>[toc]</p>
+<h2 id="六、队列-gt-任务-gt-线程-gt-数据安全"><a href="#六、队列-gt-任务-gt-线程-gt-数据安全" class="headerlink" title="六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全"></a>六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全</h2><p>有队列，就有需要处理的任务，有任务就有线程相关的要考虑(附队列本身也处在线程中)，有多线程的考虑，就要考虑数据安全。</p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p>3、队列和数据安全</p>
+<p>那我们先来知道一个非常重要的事情：</p>
+<p>——- 队列只是负责任务的调度，而不负责任务的执行  ———</p>
+<p>——- 任务是在线程中执行的 ———</p>
+<p>所以，这个问题其实问得就不大对。让人不知怎么答。</p>
+<p>我们这里说下，分情况。</p>
+<p>如果是串行队列，数据是安全的。</p>
+<p>如果是并发队列，在读写的时候，数据是不安全的。我们可以通过以下几种方式将其处理成安全的。</p>
+<p>①、并发队列，改成串行执行。</p>
+<blockquote>
+<p>可以通过</p>
+<p>任务是同步任务；</p>
+<p>异步任务用依赖；</p>
+<p>异步任务用信号量控制并发量为1</p>
+</blockquote>
+<p>②、加锁</p>
+<blockquote>
+<p>@synchronized</p>
+<p>NSLock</p>
+<p>dispatch_semaphore</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-⑤面试/" data-id="cldyf81in00uv00r4yutnljc4" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①锁"><a href="#必备知识架构-线程与网络-①锁" class="headerlink" title="必备知识架构-线程与网络-①锁"></a>必备知识架构-线程与网络-①锁</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h2 id="四、线程安全问题"><a href="#四、线程安全问题" class="headerlink" title="四、线程安全问题"></a>四、线程安全问题</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、线程安全"><a href="#1、线程安全" class="headerlink" title="1、线程安全"></a>1、线程安全</h4><p>当多个线程访问同一块资源时，很容易引发数据错乱和数据安全问题。就好比几个人在同一时修改同一个表格，造成数据的错乱。</p>
+<p>参考：<a href="https://www.jianshu.com/p/938d68ed832c" target="_blank" rel="noopener">iOS中保证线程安全的几种方式与性能对比</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">性能对比</span><br><span class="line">对以上各个锁进行1000000此的加锁解锁的空操作时间如下：</span><br><span class="line">OSSpinLock: 46.15 ms</span><br><span class="line">dispatch_semaphore: 56.50 ms</span><br><span class="line">pthread_mutex: 178.28 ms</span><br><span class="line">NSCondition: 193.38 ms</span><br><span class="line">NSLock: 175.02 ms</span><br><span class="line">pthread_mutex(recursive): 172.56 ms</span><br><span class="line">NSRecursiveLock: 157.44 ms</span><br><span class="line">NSConditionLock: 490.04 ms</span><br><span class="line">@synchronized: 371.17 ms</span><br><span class="line"></span><br><span class="line">总的来说：</span><br><span class="line"></span><br><span class="line">OSSpinLock 自旋锁(性能最高的锁)和 dispatch_semaphore 信号量的效率远远高于其他。</span><br><span class="line">@synchronized和NSConditionLock效率较差。</span><br><span class="line"></span><br><span class="line">dispatch_semaphore 是信号量，但当信号总量设为 1 时也可以当作锁来。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。</span><br><span class="line">OSSpinLock 自旋锁，性能最高的锁。原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。 不过最近YY大神在自己的博客不再安全的 OSSpinLock中说明了OSSpinLock已经不再安全，请大家谨慎使用。 </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">鉴于OSSpinLock的不安全，所以我们在开发中如果考虑性能的话，建议使用dispatch_semaphore。</span><br><span class="line">如果不考虑性能，只是图个方便的话，那就使用@synchronized。</span><br></pre></td></tr></table></figure>
+<h4 id="NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的"><a href="#NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的" class="headerlink" title="NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的"></a>NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的</h4><ul>
+<li>参考文章：<a href="https://blog.csdn.net/zskm001/article/details/51883076" target="_blank" rel="noopener">关于NSDateFormatter的线程安全问题</a></li>
+</ul>
+<h3 id="2、死锁"><a href="#2、死锁" class="headerlink" title="2、死锁"></a>2、死锁</h3><p><strong>死锁是指两个或两个以上的进程（线程）在运行过程中因争夺资源而造成的一种僵局（Deadly-Embrace) ) ，若无外力作用，这些进程（线程）都将无法向前推进。</strong></p>
+<p>死锁的4个必要条件</p>
+<h2 id="一、-synchronized"><a href="#一、-synchronized" class="headerlink" title="一、@synchronized"></a>一、@synchronized</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">NSObject *obj = [[NSObject alloc] init];</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">          sleep(3);</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      sleep(1);</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作2&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+<p>@synchronized(obj)指令使用的obj为该锁的唯一标识，<strong>只有当标识相同时，才为满足互斥</strong>，如果线程2中的@synchronized(obj)改为@synchronized(self),刚线程2就不会被阻塞，</p>
+<h2 id="二、NSLock"><a href="#二、NSLock" class="headerlink" title="二、NSLock"></a>二、NSLock</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      [lock lock];	// 加锁</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">    	sleep(2);</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      [lock unlock]; // 解锁</span><br><span class="line">      </span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+<h2 id="三、NSRecursiveLock递归锁的使用"><a href="#三、NSRecursiveLock递归锁的使用" class="headerlink" title="三、NSRecursiveLock递归锁的使用"></a>三、NSRecursiveLock递归锁的使用</h2><p>我们先写一个典型的死锁情况。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];	// 此锁在本代码中会造成死锁</span><br><span class="line">//NSRecursiveLock *lock = [[NSRecursiveLock alloc] init]; //要想下面的递归调用不会造成死锁，只要这里将锁改成递归锁NSRecursiveLock就可以了。NSRecursiveLock递归锁，这个锁可以被同一线程多次请求，而不会引起死锁。这主要是用在循环或递归操作中。</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        [lock lock];</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);	// 此时lock还没解锁，就有执行这个block，而block里又给加了次锁，从而造成了死锁</span><br><span class="line">        &#125;</span><br><span class="line">        [lock unlock];</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>在是跟你面的代码中，在我们的线程中，RecursiveMethod是递归调用的。所以每次进入这个block时，都会去加一次锁，而从第二次开始，由于锁已经被使用了且没有解锁，所以它需要等待锁被解除，这样就导致了死锁，线程被阻塞住了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">		[lock lock];</span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">    [lock unlock];</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h2 id="四、NSCondition-amp-NSConditionLock-条件锁"><a href="#四、NSCondition-amp-NSConditionLock-条件锁" class="headerlink" title="四、NSCondition &amp; NSConditionLock 条件锁"></a>四、NSCondition &amp; NSConditionLock 条件锁</h2><p><code>wait</code>方法是傻等；</p>
+<p><code>waitUntilDate</code>:方法是等一会；</p>
+<p><code>signal</code>是唤起一个在等待的线程。</p>
+<p>通过<code>wait()</code>和<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>这两个方法都可以实现线程阻塞即线程睡眠。</p>
+<p>不同之处在于</p>
+<p><code>wait()</code>会使线程一直处于休眠状态，直到收到<code>signal()</code>为止；</p>
+<p>而<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>在使线程睡眠的同时会设置睡眠的终止时间。</p>
+<blockquote>
+<p>如果在终止时间前收到了<code>signal()</code>就会唤醒线程；<br>当到达终止时间的时候，即使没有收到<code>signal()</code>，也会直接唤醒线程，而不会像<code>wait()</code>方法那样一直睡眠下去。</p>
+</blockquote>
+<h3 id="1、NSCondition"><a href="#1、NSCondition" class="headerlink" title="1、NSCondition"></a>1、NSCondition</h3><p>基本的条件锁，手动的控制。wait</p>
+<h3 id="2、NSConditionLock-条件锁"><a href="#2、NSConditionLock-条件锁" class="headerlink" title="2、NSConditionLock 条件锁"></a>2、NSConditionLock 条件锁</h3><p>条件锁，这里的条件并不是bool表达式中的条件，而是一个特定的int值。</p>
+<p>条件锁，不是简单的加锁/解锁， 而是需要根据一定条件满足后进行 加锁/解锁.</p>
+<p>以一个生产中与消费者的例子，介绍条件锁的用法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">static NSInteger CONDITION_NO_DATA        //条件一： 没有数据</span><br><span class="line">static NSInteger CONDITION_HAS_DATA       //条件二： 有数据</span><br><span class="line"></span><br><span class="line">// 初始化锁时，指定一个默认的条件</span><br><span class="line">NSConditionLock *lock = [[NSConditionLock alloc] initWithCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">//生产者，加锁与解锁的过程</span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【没有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 生产者生成数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，已经有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_HAS_DATA];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">//消费者，加锁与解锁的过程 </span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_HAS_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 消费者消费数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，没有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_NO_DATA];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="五、OSSpinLock自旋锁-amp-os-unfair-lock"><a href="#五、OSSpinLock自旋锁-amp-os-unfair-lock" class="headerlink" title="五、OSSpinLock自旋锁 &amp; os_unfair_lock"></a>五、OSSpinLock自旋锁 &amp; os_unfair_lock</h1><p>由于OSSpinLock不再安全，所以这里我们就直接说一下os_unfair_lock，这个是苹果用于代替OSSpinLock的。效率很高用法很简单如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">os_unfair_lock_t</span> lock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line">os_unfair_lock_lock(&amp;lock);</span><br><span class="line">NSLog(@<span class="string">"os_unfair_lock_t"</span>);</span><br><span class="line">os_unfair_lock_unlock(&amp;lock);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;ViewController.h&quot;</span><br><span class="line">#import &lt;libkern/OSAtomic.h&gt;</span><br><span class="line">@interface ViewController ()</span><br><span class="line">@property (nonatomic,assign)  int ticket;</span><br><span class="line">//@property (nonatomic,assign)  OSSpinLock lock;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation ViewController</span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">//    self.lock = OS_SPINLOCK_INIT;</span><br><span class="line">    self.ticket=50;</span><br><span class="line">    [self ticketsTest];</span><br><span class="line">    // Do any additional setup after loading the view.</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)ticketsTest&#123;</span><br><span class="line">  	// 这里我们开两个线程处理同一件事</span><br><span class="line">    dispatch_queue_t queue = dispatch_get_global_queue(0, 0);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)saleTicket&#123;</span><br><span class="line">    //静态创建、则不需要新建属性</span><br><span class="line">    static OSSpinLock lock = OS_SPINLOCK_INIT;</span><br><span class="line">    //若后面是个函数、则需</span><br><span class="line">    /*</span><br><span class="line">    static OSSpinLock lock = nil;</span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        lock = OS_SPINLOCK_INIT;</span><br><span class="line">    &#125;);</span><br><span class="line">     */</span><br><span class="line">    //其他线程执行到这里时，发现锁被加锁了 就会再这排队等待、直到这个锁被打开</span><br><span class="line">    //加锁</span><br><span class="line">    OSSpinLockLock(&amp;lock);</span><br><span class="line">    int ticket = self.ticket;</span><br><span class="line">    sleep(.2);</span><br><span class="line">    ticket--;</span><br><span class="line">    self.ticket=ticket;</span><br><span class="line">    NSLog(@&quot;%d&quot;,self.ticket);</span><br><span class="line">    //解锁</span><br><span class="line">    OSSpinLockUnlock(&amp;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="iOS-互斥锁-amp-amp-自旋锁-多线程安全隐患"><a href="#iOS-互斥锁-amp-amp-自旋锁-多线程安全隐患" class="headerlink" title="iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患"></a>iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</h1><p><a href="https://www.bbsmax.com/A/QV5ZQk92Jy/" target="_blank" rel="noopener">iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</a></p>
+<p><strong>一、多线程安全隐患</strong></p>
+<p><strong>资源共享</strong><br> 一块资源可能会被多个线程共享，也就是多个线程可能会访问到一块资源<br> 比如多个线程访问同一个对象，同一个变量，同一个文件。<br> 当多线程访问同一块资源的时候，很容易引发数据错乱和数据安全问题<br>二、原子和非原子属性<br> 1&gt;OC 在定义属性的时候有nonatomic和atomic两种选择<br>   * <strong>atomic</strong>：原子属性，为 setter 方法加锁<br>   * <strong>nonatomic</strong>：非原子属性，不会为 setter 方法加锁<br>    普通情况下都是在主线程做操作，所以一般都不会加锁。<br> 对比：<br>   <strong>* atomic</strong>：线程安全，需要消耗大量的资源<br>   <strong>* nonatomic</strong>：非线程安全，适合内存小的移动设备<br> 2&gt;synchronized 与 atomic<br>   * <strong>synchronized</strong>：互斥锁<br>   * <strong>atomic</strong>：自旋锁<br> <strong>共同点</strong>：都能保证同一时刻只能有一个线程操作锁住的代码<br>  <strong>区别</strong>：<br>   <strong>互斥锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会进入睡眠状态等待任务执行完毕，当上一个线程的任务执行完毕，下一个线程会.  自动唤醒然后执行任务。<br>   <strong>自旋锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会一直等待（不会睡眠），当上一个线程的任务执行完毕，下一个线程会立即执行。<br> <strong>自旋锁应用场景</strong>：比较适合做一些不耗时的操作<br>三、互斥锁<br>· 注意点：<br>   - 如果多线程访问同一个资源，那么必须使用同一把锁才能锁住<br>   - 在开发中，尽量不要加锁，能在服务端做尽量在服务端做，如果必须要加锁，一定要记住，锁的范围不能太大，哪里有安全隐患就加在哪里。<br> 技巧：因为必须使用同一把锁，开发中如果需要加锁，直接使用 self 即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">@synchronized(self) &#123;</span><br><span class="line">  //线程1进来之后，锁住，2和3都再外面等待</span><br><span class="line">  //1、查询剩余的票数 NSUInteger count = self.totalCount;</span><br><span class="line">  //2、判断是否还有余票</span><br><span class="line">  //2.1卖票</span><br><span class="line">  //3 、提示客户，没有票了</span><br><span class="line">  if (count&gt;0) &#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:0.1];</span><br><span class="line">    self.totalCount = count-1;</span><br><span class="line">    NSLog(@&quot;%@卖了一张票,还剩%zd票&quot;,[NSThread currentThread].name,self.totalCount);</span><br><span class="line">  &#125;</span><br><span class="line">  else</span><br><span class="line">  &#123;</span><br><span class="line">    NSLog(@&quot;没票了&quot;);</span><br><span class="line">    break;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">//解锁</span><br></pre></td></tr></table></figure>
+<p>四、自旋锁<br>注意点:<br>只会给 setter 方法加锁，并不会给getter方法加锁。</p>
+<p><a href="https://juejin.im/post/5c67e349f265da2de33f1275" target="_blank" rel="noopener">ObjC 多线程简析（一）-多线程简述和线程锁的基本应用</a></p>
+<p>在iOS10之后apple废弃了<code>OSSpinLock</code>自旋锁，使用<code>os_unfair_lock</code>互斥锁来替代。</p>
+<p>在iOS10之后apple已经不再建议使用<code>OSSpinLock</code>自旋锁了，它的替代方案是一个互斥锁，所以一般情况下我们使用互斥锁来解决线程同步的问题才是比较合理的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化OSSpinLock</span><br><span class="line">_osspinlock = OS_SPINLOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">OSSpinLockLock(&amp;_osspinlock);</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">OSSpinLockUnlock(&amp;_osspinlock);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化os_unfair_lock</span><br><span class="line">_osunfairLock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">os_unfair_lock_lock(&amp;(_osunfairLock));</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">os_unfair_lock_unlock(&amp;(_osunfairLock));</span><br></pre></td></tr></table></figure>
+<p><a href="https://www.jianshu.com/p/c2f488ad638e" target="_blank" rel="noopener">iOS中的线程同步方案</a></p>
+<p><strong>自旋锁、互斥锁比较:</strong></p>
+<p>a, 什么情况使用自旋锁比较划算？</p>
+<p>预计线程等待锁的时间很短</p>
+<p>加锁的代码（临界区）经常被调用，但竞争情况很少发生</p>
+<p>CPU资源不紧张</p>
+<p>多核处理器</p>
+<p>b,什么情况使用互斥锁比较划算？</p>
+<p>预计线程等待锁的时间较长</p>
+<p>单核处理器</p>
+<p>临界区有IO操作</p>
+<p>临界区代码复杂或者循环量大</p>
+<p>临界区竞争非常激烈</p>
+<h6 id="4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列"><a href="#4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列" class="headerlink" title="(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)"></a>(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)</h6><p>eg：主线程的主队列是串行队列，不可能在该队列上添加同步任务，否则会造成死锁。所以，同时存在同步任务和异步任务的队列应该只能是并发队列。</p>
+<p>最终的执行顺序，还是看这些各式各样的任务所在的队列是什么队列，串行的还是并发的。</p>
+<h4 id="1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION"><a href="#1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION" class="headerlink" title="1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)"></a>1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</h4><h6 id="1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"><a href="#1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁" class="headerlink" title="(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"></a>(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</h6><p>代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock1:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    	NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	dispatch_sync(q1, ^&#123; // 添加的同步任务和外面的任务是同一个串行队列</span><br><span class="line">    			sleep(2);</span><br><span class="line">    			NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	&#125;);</span><br><span class="line">    	NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h6 id="2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要"><a href="#2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要" class="headerlink" title="(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)"></a>(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</h6><h6 id="3-、死锁原因分析："><a href="#3-、死锁原因分析：" class="headerlink" title="(3)、死锁原因分析："></a>(3)、死锁原因分析：</h6><p>要了解<strong>通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</strong>，或者说<strong>往串行队列里添加的同步任务卡住该串行队列的时候会发生死锁</strong>的原因，我们首先需要知道几个概念：</p>
+<blockquote>
+<p>知识点①：创建同步任务的操作，在创建完之后，需要立马执行所创建的同步任务。即创建完同步任务的操作后，只有连其所创建的同步任务也结束了才能继续执行下去；</p>
+<p>知识点②：而创建异步任务的操作，在创建完之后，即可继续执行下去，不需要等待所创建的异步任务结束。</p>
+<p>附：在线程组的使用中，我们会遇到需要监听多个子线程中的所有任务都结束后，才去执行最后的更新UI的操作。假设最后更新UI的操作，除了需要子线程的任务结束，还需要子线程中的异步线程，如网络请求也结束后，才能更新UI，那么为了不让子线程提前退出，而是等到网络请求也结束后才退出，我们通常会通过使用gcd的enter leave或者信号量来等待。</p>
+<p>知识点③：串行队列里的任务是一个执行完，才接着执行下一个；</p>
+</blockquote>
+<p>所以，由以上①②③知识点，我们就能分析出其造成死锁的原因如下：</p>
+<blockquote>
+<p>首先，对于标记<code>1</code>、<code>2</code>、<code>3</code>，先只看是同步任务还是异步任务，而不管是串行队列，还是并行队列，或者说是哪个队列。</p>
+<p>从代码上我们很容易看出其是同步任务，所以由以上同步的知识点②，可以知道，最终标记输出的正确顺序应该依次是标记<code>1</code>、标记<code>2</code>、标记<code>3</code>。</p>
+<p>即我们的关注点是标记<code>2</code>能否在标记<code>1</code>之后输出。</p>
+<p>答，在上述代码中，标记<code>2</code>处的同步任务是被添加到串行队列的，而且还是当前的串行队列。</p>
+<p>我们知道串行队列里的任务是一个执行完，才接着执行下一个的，也就是说，往串行队列里添加的任务要执行的条件一定是在所添加的新任务之前的所有任务都已经全部执行完了后，才会执行到这一个的。</p>
+<p>这里我们依次往串行队列里添加了第一个任务块和第二个任务块。</p>
+<p>要完成第一个任务块需要同时完成任务<code>1</code>+第二个任务块<code>2</code>+任务<code>3</code>。</p>
+<p>第二个任务块要执行，根据串行队列的性质，我们知道第二个任务块要等待第一个任务块结束才会执行。（如果两个任务即使都是添加到串行队列，但是他们是不同串行队列的时候就不会需要等待）</p>
+<p>由此死锁。</p>
+<p>显然这里任务②需要等到任务①真正完成，而任务①的真正完成需要等任务②完成，这样的一个互相等待也就构成了一个死锁，导致我们<strong> EXC_BAD_INSTRUCTION</strong>的崩溃了。</p>
+</blockquote>
+<p>那么以上死锁的问题，怎么解决呢？</p>
+<blockquote>
+<p>答：其实只要解决标记<code>2</code>即任务②，可以在标记<code>1</code>执行之后执行就可以了。<br>解决方法有：将任务②改成异步任务，或者将任务②这个同步任务添加到非本串行队列下，可以是其他串行队列，也可以是其他并行队列都可以。即以下这种修改方案是能够解决死锁的。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock2:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    dispatch_queue_t q2 = dispatch_queue_create(&quot;serial_queue_2&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    ​    dispatch_sync(q2, ^&#123;</span><br><span class="line">    ​        sleep(2);</span><br><span class="line">    ​        NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？"><a href="#2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？" class="headerlink" title="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？"></a>2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？</h4><p>回答本问题前，我们需要先了解的知识点是：</p>
+<blockquote>
+<p>知识点①：主线程和主队列的关系：</p>
+<p>主队列是主线程中的一个串行队列。每一个应用程序只有唯一的一个主队列用来update UI。所有的和UI的操作(刷新或者点击按钮)都必须在主线程中的主队列中去执行，否则无法更新UI。</p>
+</blockquote>
+<p>因为主线程是一个串行队列，<strong>所以往主队列里添加同步任务</strong>（如果不是往主队列添加同步任务就不会）是<em>很有可能</em>发生死锁卡死的。如以下代码就会发生死锁。代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;打印1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;打印2&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    NSLog(@&quot;打印3&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由引述，我们已经知道<strong>往串行队列里添加的同步任务，如果卡住的是该串行队列，则会发生死锁</strong>，所以显然即执行往这个串行队列里添加同步任务的该任务也是在这个串行队列里的话，那么由于相互等待会造成死锁。</p>
+<p>最简单的解决方法：将sync同步方法，替换成异步方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记5、标记3</span><br></pre></td></tr></table></figure>
+<p>其他修改方法：将同步任务卡住的队列改成并发队列。如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">- (void)testDeadLock &#123;</span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line">    dispatch_queue_t other_queue = dispatch_queue_create(&quot;other_queue&quot;, DISPATCH_QUEUE_SERIAL);//不管是串行队列还是并发队列，都能解决这个死锁问题，因为它同步方法没有卡住这个other_queue。</span><br><span class="line">    dispatch_async(other_queue, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;标记2&quot;);</span><br><span class="line">    ​    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;标记4&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    sleep(2);</span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记2、标记5、标记3、标记4。</span><br></pre></td></tr></table></figure>
+<p>有了这些基础，你再看以下文章中的例子时，就能轻松判断是否会造成死锁了 。</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/c39c1db05305" target="_blank" rel="noopener">dispatch_get_main_queue()卡死</a></li>
+</ul>
+<p>#### </p>
+<h1 id="iOS中自旋锁与互斥锁的区别"><a href="#iOS中自旋锁与互斥锁的区别" class="headerlink" title="iOS中自旋锁与互斥锁的区别"></a>iOS中自旋锁与互斥锁的区别</h1><p><strong>自旋锁（spinlock）</strong>：是指当一个线程在获取锁的时候，如果锁已经被其它线程获取，那么该线程将循环等待，然后不断的判断锁是否能够被成功获取，直到获取到锁才会退出循环。（附：获取锁的线程一直处于活跃状态，但是并没有执行任何有效的任务，使用这种锁会造成busy-waiting。自旋锁不会使线程状态发生切换，一直处于用户态，即线程一直都是active活跃状态的；不会使线程进入阻塞状态，减少了不必要的上下文切换，执行速度快）</p>
+<p>其他参考文章：<a href="https://www.jianshu.com/p/d69495dac8cb" target="_blank" rel="noopener">iOS中自旋锁与互斥锁的区别</a></p>
+<p>pthread_mutex 表示互斥锁。互斥锁可以传入不同参数，实现递归锁pthread_mutex(recursive)。</p>
+<blockquote>
+<p>NSLock，NSCondition，NSRecursiveLock，NSConditionLock都是内部封装的pthread_mutex，即都属于互斥锁。@synchronized是NSLock的一种封装，牺牲了效率，简洁了语法。</p>
+</blockquote>
+<p>OSSpinLock 表示自旋锁，从上图可以看到自旋锁的效率最高，但是现在的iOS因为优先级反转的问题，已经不安全，所以推荐使用pthread_mutex或者dispatch_semaphore。</p>
+<p><strong>总结</strong>：<br>　　自旋锁会忙等: 所谓忙等，即在访问被锁资源时，调用者线程不会休眠，而是不停循环在那里，直到被锁资源释放锁。<br>　　互斥锁会休眠: 所谓休眠，即在访问被锁资源时，调用者线程会休眠，此时cpu可以调度其他线程工作。直到被锁资源释放锁。此时会唤醒休眠线程。</p>
+<p><strong>优缺点</strong>：<br>　　自旋锁的优点在于，因为自旋锁不会引起调用者睡眠，所以不会进行线程调度，cpu时间片轮转等耗时操作。所有如果能在很短的时间内获得锁，自旋锁的效率远高于互斥锁。<br>　　缺点在于，自旋锁一直占用CPU，他在未获得锁的情况下，一直运行－－自旋，所以占用着CPU，如果不能在很短的时 间内获得锁，这无疑会使CPU效率降低。自旋锁不能实现递归调用。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" data-id="cldyf81j100uw00r4i1xa4qzp" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/多线程、锁、队列" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/多线程、锁、队列/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="多线程、锁、队列"><a href="#多线程、锁、队列" class="headerlink" title="多线程、锁、队列"></a>多线程、锁、队列</h1><ul>
+<li><a href="https://www.jianshu.com/p/1f9f6814e3a2" target="_blank" rel="noopener">ios多线程中使用信号量形成死锁，阻塞主线程</a></li>
+<li><a href="https://www.jianshu.com/p/17afd8db5b79" target="_blank" rel="noopener">iOS锁系列-信号量dispatch_semaphore</a></li>
+</ul>
+<p>信号量</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_semaphore_t sem = dispatch_semaphore_create(0);</span><br><span class="line">②dispatch_semaphore_signal(sem);</span><br><span class="line">③dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);</span><br></pre></td></tr></table></figure>
+<p>GCD</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_group_t group = dispatch_group_create();</span><br><span class="line">②dispatch_group_enter(group);</span><br><span class="line">③dispatch_group_leave(group);</span><br><span class="line">④dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        这里跑去干自己的事情。。。。</span><br><span class="line">    &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>用信号量时候，</p>
+<p>某个线程锁住后，就处于等待状态，即该线程也就无法再继续操作，所以试图尝试在该线程锁住的时候去发送信号，增加信号量，会造成死锁。</p>
+<p>举例：</p>
+<p>信号量使用场景</p>
+<ul>
+<li><a href="https://www.cnblogs.com/mnstar/articles/6050296.html" target="_blank" rel="noopener">iOS 使用信号量等待block完成</a></li>
+</ul>
+<h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p><a href="https://www.jianshu.com/p/042c135552b8" target="_blank" rel="noopener">iOS 实现并发和串行任务</a><br>串行队列如何知道任务已经完成<br><a href="https://blog.csdn.net/u010105969/article/details/69914369" target="_blank" rel="noopener">iOS开发中的并发、串行队列，同步、异步任务</a></p>
+<p><a href="https://www.jianshu.com/p/c6ab011f449f" target="_blank" rel="noopener">iOS代码同步到主线程的三种方法</a></p>
+<p>autoreleasepool 使用场景、什么时候释放</p>
+<p>临时变量什么时候释放</p>
+<h4 id="RunLoop和线程间的关系"><a href="#RunLoop和线程间的关系" class="headerlink" title="RunLoop和线程间的关系"></a>RunLoop和线程间的关系</h4><p>每条线程都有唯一的一个与之对应的RunLoop对象，RunLoop保存在一个全局的Dictionary里，线程作为key,RunLoop作为value，主线程的RunLoop已经自动创建好了，子线程的RunLoop需要主动创建，RunLoop在第一次获取时创建，在线程结束时销毁。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/多线程、锁、队列/" data-id="cldyf81jg00ux00r4ztk9o7s6" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" class="article-date">
@@ -96,64 +637,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="cldy3hew400u8unr42txynf7a" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
-<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
-<p>一个程序至少一个进程，一个进程至少一个线程。</p>
-<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
-</blockquote>
-<p>进程线程的区别：</p>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
-<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
-<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
-<blockquote>
-<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
-</blockquote>
-<blockquote>
-<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
-</blockquote>
-<blockquote>
-<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
-</blockquote>
-<blockquote>
-<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
-</blockquote>
-<blockquote>
-<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cldy3heta00u1unr40r2bdrhv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="cldyf81jw00uy00r40n40o1mz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -208,7 +692,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="cldy3heto00u2unr43bazye42" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="cldyf81h100ur00r4w73xilpp" class="article-share-link">Share</a>
       
       
     </footer>
@@ -268,7 +752,64 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="cldy3heu200u3unr4u5pfzzgu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="cldyf81hg00us00r4smvn8l21" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
+<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
+<p>一个程序至少一个进程，一个进程至少一个线程。</p>
+<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
+</blockquote>
+<p>进程线程的区别：</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
+<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
+<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
+<blockquote>
+<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
+</blockquote>
+<blockquote>
+<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
+</blockquote>
+<blockquote>
+<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
+</blockquote>
+<blockquote>
+<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
+</blockquote>
+<blockquote>
+<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cldyf81hv00ut00r4uyslzdm2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -384,325 +925,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldy3heuh00u4unr4d9iepa9r" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-②生命周期" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-②生命周期/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-②生命周期"><a href="#必备知识架构-视图-②生命周期" class="headerlink" title="必备知识架构-视图-②生命周期"></a>必备知识架构-视图-②生命周期</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#生命周期">五、控制器View的生命周期</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="生命周期"></p><p></p>
-<h2 id="五、控制器View的生命周期"><a href="#五、控制器View的生命周期" class="headerlink" title="五、控制器View的生命周期"></a>五、控制器View的生命周期</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p>更详细的生命周期请查看：<a href="https://www.jianshu.com/p/d60b388b19f5" target="_blank" rel="noopener">iOS程序执行顺序和UIViewController 的生命周期(整理)</a></p>
-<h5 id="题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的"><a href="#题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的" class="headerlink" title="题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?"></a>题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1.在视图显示之前调用viewWillAppear;该函数可以调用多次; </span><br><span class="line">2.视图显示完毕,调用viewDidAppear;</span><br><span class="line">3.在视图消失之前调用viewWillDisAppear;该函数可以调用多次(如需要);</span><br><span class="line">4.在布局变化前后,调用viewWill/DidLayoutSubviews处理相关信息;</span><br></pre></td></tr></table></figure>
-<p>viewWillAppear——-》viewWillLayoutSubviews—–》viewDidLayoutSubviews———–》</p>
-<p>viewDidAppear</p>
-<h5 id="题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的"><a href="#题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的" class="headerlink" title="题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的."></a>题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</h5><p><a href="http://blog.csdn.net/w_sx_/article/details/39431205" target="_blank" rel="noopener">loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</a></p>
-<h4 id="3、layoutSubviews布局与drawRect重绘"><a href="#3、layoutSubviews布局与drawRect重绘" class="headerlink" title="3、layoutSubviews布局与drawRect重绘"></a>3、layoutSubviews布局与drawRect重绘</h4><h6 id="1-、layoutSubviews布局"><a href="#1-、layoutSubviews布局" class="headerlink" title="(1)、layoutSubviews布局"></a>(1)、layoutSubviews布局</h6><p>layoutSubviews是对subviews重新布局；<br>比如，我们想更新子视图的位置的时候，可以通过调用layoutSubviews方法，即可以实现对子视图重新布局。但实际上<strong>一般我们都是不要直接手动调用layoutSubviews方法</strong>。因为有操作时候，系统会自动调用layoutSubviews。</p>
-<blockquote>
-<p>那我们进行哪些操作会触发layoutSubviews方法呢？答如下：</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">首先注意：</span><br><span class="line">①init初始化不会触发layoutSubviews，</span><br><span class="line">但是使用initWithFrame进行初始化时，当rect的值不为CGRectZero时，会触发layoutSubviews。</span><br><span class="line">②、直接调用setLayoutSubviews。</span><br><span class="line">③、addSubview的时候一般都会触发layoutSubviews。(最常见) 注：但当本View的frame为0时,addSubView也不会调用layoutSubViews。</span><br><span class="line">④、当view的frame发生改变的时候触发layoutSubviews。</span><br><span class="line">⑤、滑动UIScrollView的时候触发layoutSubviews。</span><br><span class="line">⑥、旋转Screen会触发父UIView上的layoutSubviews事件。</span><br><span class="line">⑦、改变一个UIView大小的时候也会触发父UIView上的layoutSubviews事件。</span><br></pre></td></tr></table></figure>
-<p>所以我们可以看出当视图约束/frame变化时候，会触发layoutSubviews，进行重新布局。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：</span><br><span class="line">如果你还是想强制更新布局，你可以调用setNeedsLayout方法；</span><br><span class="line">如果你想立即显示你的views，你需要调用layoutIfNeed方法。</span><br><span class="line"></span><br><span class="line">①、- (void)layoutSubviews; </span><br><span class="line">这个方法，默认没有做任何事情，需要子类进行重写；</span><br><span class="line">②、- (void)setNeedsLayout; </span><br><span class="line">标记为需要重新布局，异步调用layoutIfNeeded刷新布局，不立即刷新，但layoutSubviews一定会被调用；</span><br><span class="line">③、- (void)layoutIfNeeded; </span><br><span class="line">如果，有需要刷新的标记，立即调用layoutSubviews进行布局（如果没有标记，不会调用layoutSubviews）。</span><br></pre></td></tr></table></figure>
-<p>其他参考文章:<a href="https://blog.csdn.net/u011146511/article/details/51234907" target="_blank" rel="noopener">iOS layoutSubview的方法总结／重绘drawRect</a></p>
-<p>什么时候用layoutSubviews?</p>
-<blockquote>
-<p>答：仅仅在以下情况下:自动布局达不到想要效果时你才有必要重写这个方法.可以直接设置subviews的尺寸.</p>
-</blockquote>
-<h6 id="2-、drawRect重绘"><a href="#2-、drawRect重绘" class="headerlink" title="(2)、drawRect重绘"></a>(2)、drawRect重绘</h6><p>重绘作用：重写该方法以实现自定义的绘制内容</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drawRect:(CGRect)rect方法：重写此方法，执行重绘任务</span><br><span class="line">-setNeedsDisplay方法：标记为需要重绘，异步调用drawRect</span><br><span class="line">-setNeedsDisplayInRect:(CGRect)invalidRect方法：标记为需要局部重绘</span><br></pre></td></tr></table></figure>
-<h6 id="3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"><a href="#3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序" class="headerlink" title="(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"></a>(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">layoutSubviews是对subviews重新布局；</span><br><span class="line">drawRect重绘；</span><br><span class="line">layoutSubviews方法调用先于drawRect，也就是先布局子视图，在重绘。</span><br></pre></td></tr></table></figure>
-<p>所以，在调用updateConstraintsIfNeeded可能会立即执行updateConstraints，然后调用layoutSubviews。因为按照Autolayout布局的步骤，应该是先更新约束然后更新布局的。</p>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cldy3hes600tyunr4xqxxobcb" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-③跳转" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-③跳转/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-③跳转"><a href="#必备知识架构-视图-③跳转" class="headerlink" title="必备知识架构-视图-③跳转"></a>必备知识架构-视图-③跳转</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#视图的跳转">一、视图的跳转</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="视图的跳转"></p><p></p>
-<h2 id="一、视图的跳转"><a href="#一、视图的跳转" class="headerlink" title="一、视图的跳转"></a>一、视图的跳转</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
-<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
-<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
-<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
-<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
-</blockquote>
-<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cldy3hesj00tzunr49xar6dmo" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-④图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-④图片/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-④图片"><a href="#必备知识架构-视图-④图片" class="headerlink" title="必备知识架构-视图-④图片"></a>必备知识架构-视图-④图片</h1><ul>
-<li><a href="https://www.jianshu.com/p/7c44c3b2a056" target="_blank" rel="noopener">2019 iOS面试题—UI相关：事件传递，图像显示，性能优化，离屏渲染</a></li>
-</ul>
-<ul>
-<li><p><a href="https://www.cnblogs.com/sunyanyan/p/5417792.html" target="_blank" rel="noopener">SDWebImageDecoder</a></p>
-<blockquote>
-<p>由于UIImage的imageWithData函数是每次画图的时候才将Data解压成ARGB的图像，</p>
-<p>所以在每次画图的时候，会有一个解压操作，这样效率很低。为了提高效率，通过SDWebImageDecoder将包装在Data下的资源解压，然后画在另外一张图片上，这样这张新图片就不再需要重复解压了。</p>
-</blockquote>
-</li>
-<li><p><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cldy3hesw00u0unr4eiwmze6o" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-①本质RunLoop" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.620Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-①本质"><a href="#必备知识架构-视图-①本质" class="headerlink" title="必备知识架构-视图-①本质"></a>必备知识架构-视图-①本质</h1><p>[toc]</p>
-<p></p><p id="RunLoop"></p><p></p>
-<h2 id="四、RunLoop"><a href="#四、RunLoop" class="headerlink" title="四、RunLoop"></a>四、RunLoop</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-<h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
-<h3 id="2、RunLoop和线程的关系？"><a href="#2、RunLoop和线程的关系？" class="headerlink" title="2、RunLoop和线程的关系？"></a>2、RunLoop和线程的关系？</h3><p>run loop和线程是紧密相连的，可以这样说run loop是为了线程而生，没有线程，它就没有存在的必要。Run loops是线程相关的基础框架的一部分，Cocoa和CoreFundation都提供了run loop对象方便配置和管理线程的run loop（以下都已Cocoa为例）。</p>
-<p>每个线程，包括程序的主线程（main thread）都有与之相应的run loop对象。</p>
-<p>①、主线程的run loop默认是启动的。</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>重点是UIApplicationMain()函数，这个方法会为main thread设置一个NSRunLoop对象，这就解释了本文开始说的为什么我们的应用可以在无人操作的时候休息，需要让它干活的时候又能立马响应。</p>
-</blockquote>
-<p>②、对其它线程来说，run loop默认是没有启动的，如果你需要更多的线程交互则可以手动配置和启动，如果线程只是去执行一个长时间的已确定的任务则不需要。</p>
-<p>③、在任何一个Cocoa程序的线程中，都可以通过：<code>NSRunLoop *runloop = [NSRunLoop currentRunLoop];</code>来获取到当前线程的run loop。</p>
-<h3 id="3、RunLoop相关各类关系"><a href="#3、RunLoop相关各类关系" class="headerlink" title="3、RunLoop相关各类关系"></a>3、RunLoop相关各类关系</h3><p>在 CoreFoundation 里面关于 RunLoop 有5个类:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
-<p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系/RunLoop相关各类关系，如下图所示：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop相关各类关系.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source/Timer/Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source/Timer/Observer，让其互不影响。</p>
-<p>RunLoop的内部逻辑<br><img src="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/3视图-①本质/RunLoop的内部逻辑.png" alt="RunLoop的内部逻辑"></p>
-</blockquote>
-<h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
-<ul>
-<li>Source0 只包含了一个回调（函数指针），它并不能主动触发事件。使用时，你需要先调用 CFRunLoopSourceSignal(source)，将这个 Source 标记为待处理，然后手动调用 CFRunLoopWakeUp(runloop) 来唤醒 RunLoop，让其处理这个事件。</li>
-<li>Source1 包含了一个 mach_port 和一个回调（函数指针），被用于通过内核和其他线程相互发送消息。这种 Source 能主动唤醒 RunLoop 的线程，其原理在下面会讲到。</li>
-</ul>
-<p>苹果注册了一个 Source1 (基于 mach port 的) 用来接收系统事件，其回调函数为 __IOHIDEventSystemClientQueueCallback()。</p>
-<p>在iOS 中，除了source1可以自己唤醒run loop之外，其他的事件都需要用户手动唤醒run loop才可以。</p>
-<h5 id="3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述"><a href="#3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述" class="headerlink" title="3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)"></a>3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)</h5><blockquote>
-<p>大概为：当一个硬件事件(触摸/锁屏/摇晃等)发生后，<br>①、首先由 IOKit.framework 生成一个 IOHIDEvent 事件，Source1 接收到系统事件，<em>RunLoop被唤醒</em>。<br>②、RunLoop<em>通知Observer，处理Timer和Source 0</em>。<br>③、<em>RunLoop处理Source 1，Source1 触发回调，并调用_UIApplicationHandleEventQueue() 进行应用内部的分发</em>。<br>_UIApplicationHandleEventQueue() 会把 IOHIDEvent 处理并包装成 UIEvent 进行处理或分发，其中包括识别 UIGesture/处理屏幕旋转/发送给 UIWindow 等。通常事件比如 UIButton 点击、touchesBegin/Move/End/Cancel 事件都是在这个回调中完成的。<br>④、Springboard接受touch event，并用source1 的 之后mach port 转发给App进程。<br>⑤、<em>RunLoop处理完毕进入睡眠，此前会释放旧的autorelease pool并新建一个autorelease pool。</em></p>
-</blockquote>
-<h4 id="3-2-CFRunLoopTimerRef"><a href="#3-2-CFRunLoopTimerRef" class="headerlink" title="3.2 CFRunLoopTimerRef"></a>3.2 CFRunLoopTimerRef</h4><p>CFRunLoopTimerRef 是基于时间的触发器，它和 NSTimer 是toll-free bridged 的，可以混用。其包含一个时间长度和一个回调（函数指针）。<strong>当其加入到 RunLoop 时，RunLoop会注册对应的时间点，当时间点到时，RunLoop会被唤醒以执行那个回调</strong>（NSTimer 其实就是 CFRunLoopTimerRef）。</p>
-<h4 id="3-3-CFRunLoopObserverRef"><a href="#3-3-CFRunLoopObserverRef" class="headerlink" title="3.3 CFRunLoopObserverRef"></a>3.3 CFRunLoopObserverRef</h4><p>CFRunLoopObserverRef 是观察者，每个 Observer 都包含了一个回调（函数指针），当 RunLoop 的状态发生变化时，观察者就能通过回调接受到这个变化。</p>
-<p>上面的 Source/Timer/Observer 被统称为 mode item，一个 item 可以被同时加入多个 mode。但一个 item 被重复加入同一个 mode 时是不会有效果的。如果一个 mode 中一个 item 都没有，则 RunLoop 会直接退出，不进入循环。</p>
-<h3 id="4、RunLoop的应用"><a href="#4、RunLoop的应用" class="headerlink" title="4、RunLoop的应用"></a>4、RunLoop的应用</h3><p>最常见的为定时器 NSTimer</p>
-<blockquote>
-<p>NSTimer 其实就是 CFRunLoopTimerRef，他们之间是 toll-free bridged 的。一个 NSTimer 注册到 RunLoop 后，RunLoop 会为其重复的时间点注册好事件。例如 10:00, 10:10, 10:20 这几个时间点。RunLoop为了节省资源，并不会在非常准确的时间点回调这个Timer。Timer 有个属性叫做 Tolerance (宽容度)，标示了当时间点到后，容许有多少最大误差。</p>
-</blockquote>
-<p>如果某个时间点被错过了，例如执行了一个很长的任务，则那个时间点的回调也会跳过去，不会延后执行。就比如等公交，如果 10:10 时我忙着玩手机错过了那个点的公交，那我只能等 10:20 这一趟了。</p>
-<p>讲到RunLoop，我们需明确一点。<strong>runloop会对timer有强引用，timer会对目标对象进行强引用</strong></p>
-<p>其他详细参考以下文章：</p>
-<ul>
-<li><a href="https://blog.ibireme.com/2015/05/18/runloop/" target="_blank" rel="noopener">深入理解RunLoop</a></li>
-<li><a href="https://www.cnblogs.com/jiangzzz/p/5619512.html" target="_blank" rel="noopener">iOS面试题之runloop</a></li>
-</ul>
-<h4 id="4-1、autoreleasepool-自动释放池"><a href="#4-1、autoreleasepool-自动释放池" class="headerlink" title="4.1、autoreleasepool 自动释放池"></a>4.1、autoreleasepool 自动释放池</h4><p>既然说到runloop，简单说下autoreleasepool自动释放池。runloop会默认创建autoreleasepool，在runloop睡眠前或者退出前会执行pop操作。线程池详情查看下面的内存管理中的介绍。</p>
-<p>@autoreleasepool是自动释放池，让我们更自由的管理内存;所以我们下面说说内存管理。</p>
-<h4 id="4-2、runloop、autorelease-pool以及线程之间的关系"><a href="#4-2、runloop、autorelease-pool以及线程之间的关系" class="headerlink" title="4.2、runloop、autorelease pool以及线程之间的关系"></a>4.2、runloop、autorelease pool以及线程之间的关系</h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cldy3heqi00tuunr418bfyoke" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-②布局" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-②布局/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.620Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-②布局"><a href="#必备知识架构-视图-②布局" class="headerlink" title="必备知识架构-视图-②布局"></a>必备知识架构-视图-②布局</h1><p>[toc]</p>
-<h2 id="一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority"><a href="#一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority" class="headerlink" title="一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority"></a>一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority</h2><p>看一下下面的例子，看给出的例子约束是否完整？</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UILabel *label = [[UILabel alloc] init];</span><br><span class="line"> label.font = [UIFont systemFontOfSize:15];</span><br><span class="line"> label.text = @&quot;Hello&quot;;</span><br><span class="line"> [self.view addSubview:label];</span><br><span class="line"> [label mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">     make.left.equalTo(self.view.mas_left).offset(16);</span><br><span class="line">     make.top.equalTo(self.view.mas_top).offset(16);</span><br><span class="line"> &#125;];</span><br></pre></td></tr></table></figure>
-<p>这里只定义了两个约束，left 和 top，只够计算出frame的originX和orginY，没有width和height。那么是不是属于不完整的约束呢？其实在这里给出的约束已经是完整的了。因为对于UILabel这个控件而言 ，只要通过其font和text系统就可以计算出Label该有的长度和宽度。这里的长度和宽度就是UILabel的intrinsic content size（固有属性）。</p>
-<p>Intrinsic Content Size, 通俗来讲，就是控件(UIButton,UILabel,UIImageView)能根据它们的内容(content)计算自己的大小(Size）</p>
-<p>开发中用到的一些控件或视图，本身就自带大小，比如UIButton控件，设置完title后就能知道这个UIButton是文字的大小再加上两个固定的button margin。<br> 像这种控件或视图本身就带有的高度、宽度，就叫做intrinsic content size（固定内容尺寸）。</p>
-<h3 id="2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩"><a href="#2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩" class="headerlink" title="2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩"></a>2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</h3><ul>
-<li><a href="https://www.jianshu.com/p/8e68b82b471a" target="_blank" rel="noopener">浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</a></li>
-</ul>
-<blockquote>
-<p>在 Autolayout 优先级的范围是 1 ~ 1000，创建一个约束，默认的优先级是最高的 1000。</p>
-<p>Content Hugging Priority:<br>该优先级表示一个控件抗被拉伸的优先级。优先级越高，越不容易被拉伸(即越容易保持原状)，默认是251。</p>
-<p>Content Compression Resistance Priority:<br>该优先级表示一个控件抗压缩的优先级。优先级越高，越不容易被压缩(即越容易保持原状)，默认是750。</p>
-</blockquote>
-<p>使用场景：</p>
-<p>当一个视图上有多个 <code>intrinsic content size</code> 的子控件，并且子控件可能会超出父视图的区域时，此属性可控制哪些视图被内容被优先压缩，使其不超出父视图区域。</p>
-<p>场景举例：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>当yellowLable的宽度最多为screenWidth-200。</p>
-<p>则我们想让lable对左右两边的约束性没那么高，可以设置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100).priority(250);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100).priority(250);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>给出一个比较常见的需求：</p>
-<p>在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-②布局/intrinsic content size.png" alt="intrinsic content size"></p>
-<p>目标：我们想让绿色的时间显示全，则应该要压缩前面的titleLabel。也就是要降低titleLabel的抗压缩。</p>
-<p>即</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>UILayoutPriorityRequired：1000</p>
-<p>UILayoutPriorityDefaultHigh：750</p>
-<p>UILayoutPriorityDefaultLow：250</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">//在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</span><br><span class="line">- (UIView *)contentViewWith:(BOOL)b &#123;</span><br><span class="line">    UIView *contentView = [[UIView alloc] init];</span><br><span class="line">    contentView.backgroundColor = [UIColor lightGrayColor];</span><br><span class="line">    </span><br><span class="line">    UILabel *titleLabel = [[UILabel alloc] init];</span><br><span class="line">    titleLabel.backgroundColor = [UIColor redColor];</span><br><span class="line">    titleLabel.text = @&quot;Each of these constraints can have its own priority. By default, &quot;;</span><br><span class="line">    titleLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:titleLabel];</span><br><span class="line">    [titleLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(contentView.mas_top);</span><br><span class="line">        make.left.equalTo(contentView.mas_left).offset(16);</span><br><span class="line">    &#125;];</span><br><span class="line">        </span><br><span class="line">    UILabel *timeLabel = [[UILabel alloc] init];</span><br><span class="line">    timeLabel.backgroundColor = [UIColor greenColor];</span><br><span class="line">    timeLabel.text = @&quot;2017/03/12 18:20:22&quot;;</span><br><span class="line">    timeLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:timeLabel];</span><br><span class="line">    [timeLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(titleLabel.mas_top);</span><br><span class="line">        make.left.equalTo(titleLabel.mas_right).offset(8);</span><br><span class="line">        make.right.lessThanOrEqualTo(contentView.mas_right).offset(-8);</span><br><span class="line">    &#125;];</span><br><span class="line">    </span><br><span class="line">    if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    return contentView;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="二、iOS使用topLayoutGuide和bottomLayoutGuide"><a href="#二、iOS使用topLayoutGuide和bottomLayoutGuide" class="headerlink" title="二、iOS使用topLayoutGuide和bottomLayoutGuide"></a>二、iOS使用topLayoutGuide和bottomLayoutGuide</h2><p>参考文章：<a href="https://www.jianshu.com/p/0086d11d45b7" target="_blank" rel="noopener">iOS使用topLayoutGuide和bottomLayoutGuide</a></p>
-<p>在iOS中，可以使用topLayoutGuide和bottomLayoutGuide来适配屏幕内容，它们是属于UIViewController的属性，配合masonry和SnapKit等约束工具，效果更好。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIView *bottomPayView = [[UIView alloc] init];</span><br><span class="line">bottomPayView.backgroundColor = [UIColor grayColor];</span><br><span class="line">[self.view addSubview:bottomPayView];</span><br><span class="line">[bottomPayView mas_makeConstraints:^(MASConstraintMaker *x) &#123;</span><br><span class="line">        x.height.equalTo(@45);</span><br><span class="line">        x.left.right.equalTo(self.view);</span><br><span class="line">        x.bottom.equalTo(self.mas_bottomLayoutGuide);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"><a href="#三、UITableView自动计算cell高度并缓存，再也不用管高度啦" class="headerlink" title="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"></a>三、UITableView自动计算cell高度并缓存，再也不用管高度啦</h2><p><a href="https://www.jianshu.com/p/64f0e1557562" target="_blank" rel="noopener">UITableView自动计算cell高度并缓存，再也不用管高度啦</a></p>
-<p>用xib加约束和用masonry加代码约束都是可以的。注意约束一定要自上而下加好，让系统知道怎么去计算高度。</p>
-<p>加好约束后，然后告诉tableView自己去适应高度就可以了。有两种写法：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.tableView.rowHeight = <span class="built_in">UITableViewAutomaticDimension</span>;</span><br><span class="line"><span class="keyword">self</span>.tableView.estimatedRowHeight = <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
-<p>或者直接写这个代理方法就可以了</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个的意思就是告诉tableView，你需要自己适应高度，我不给你算啦哈哈哈。但是我们需要告诉它一个大概高度，例如上面的100，理论上这个是可以随便写的，并不影响显示结果，但是越接近真实高度越好。</p>
-<h3 id="可能遇到的问题和解决办法"><a href="#可能遇到的问题和解决办法" class="headerlink" title="可能遇到的问题和解决办法"></a>可能遇到的问题和解决办法</h3><p><strong>1.高度不对</strong><br>有时候有可能运行出来后看到cell的高度显示的不对。这个问题是因为约束没有满足自上而下，从而系统不知道怎么去计算。解决办法就是去修改约束，直到满足为止。一定要好好理解约束啊！</p>
-<p><strong>2.点击状态栏无法滚动到顶部</strong><br>我们知道，如果界面中有UIScrollView的话，点击状态栏会让其滚动到顶部，就像这样：</p>
-<p>但是如果我们用了自动计算高度的方法，又调用了tableView的reloadData方法（例如我们的数据有分页的时候，加载完下一页的数据后会去刷新tableView）。这时候就会出现问题，点击状态栏就有几率不能精确滚动到顶部了：</p>
-<p>解决这个问题的办法是去缓存cell的高度，代码如下：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSMutableDictionary</span> *heightAtIndexPath;<span class="comment">//缓存高度所用字典</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#pragma mark - UITableViewDelegate</span></span><br><span class="line">-(<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = [<span class="keyword">self</span>.heightAtIndexPath objectForKey:indexPath];</span><br><span class="line">    <span class="keyword">if</span>(height)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> height.floatValue;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)tableView:(<span class="built_in">UITableView</span> *)tableView willDisplayCell:(<span class="built_in">UITableViewCell</span> *)cell forRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = @(cell.frame.size.height);</span><br><span class="line">    [<span class="keyword">self</span>.heightAtIndexPath setObject:height forKey:indexPath];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="四、问题"><a href="#四、问题" class="headerlink" title="四、问题"></a>四、问题</h2><h4 id="问题1：使用Masonry的时候进行updateConstraints没有效果"><a href="#问题1：使用Masonry的时候进行updateConstraints没有效果" class="headerlink" title="问题1：使用Masonry的时候进行updateConstraints没有效果"></a>问题1：使用Masonry的时候进行updateConstraints没有效果</h4><p>原因：使用updateConstraints更新的时候必须是makeConstraints里面设置过的约束。但如果只是这样还不行，还需要约束对象匹配才能成功。</p>
-<p>问题详见：<a href="https://blog.csdn.net/wq5201314o/article/details/52184622" target="_blank" rel="noopener">使用Masonry的时候进行updateConstraints没有效果</a></p>
-<h1 id="iOS11适配-Safe-Area"><a href="#iOS11适配-Safe-Area" class="headerlink" title="iOS11适配-Safe Area"></a>iOS11适配-Safe Area</h1><p><a href="https://blog.csdn.net/gaoqinghuadage/article/details/79961750" target="_blank" rel="noopener">iOS11适配-Safe Area</a></p>
-<blockquote>
-<p>在iOS 11，UIViewController中的UIView的topLayoutGuide和bottomLayoutGuide被替换成了新的安全区属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaInsets: UIEdgeInsets &#123; get &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaLayoutGuide: UILayoutGuide &#123; get &#125;12345</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>safeAreaInsets属性意味着屏幕可以被任何方向遮挡，并不只是上下，当iPhone X出现时，我们就明白了为什么我们需要对左右两边也进行缩进。</p>
-</blockquote>
-<p>Masonry动画</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cldy3hers00txunr4csvz7udp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cldyf81ia00uu00r4wu5nurpd" class="article-share-link">Share</a>
       
       
     </footer>
@@ -716,7 +939,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/2/">&laquo; Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/4/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/2/">&laquo; Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><a class="extend next" rel="next" href="/page/4/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -769,23 +992,23 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_demo/">(no title)</a>
+            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/test_h5js_demo/">(no title)</a>
+            <a href="/HTML/common_js/url_util/">(no title)</a>
           </li>
         
       </ul>
