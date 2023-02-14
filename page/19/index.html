@@ -106,7 +106,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cldyf81pk00w500r4pd7nlowm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cle3ty6xd00wao6r47duiwlqx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -118,9 +118,9 @@
 
 
   
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -136,7 +136,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
     </h1>
   
 
@@ -144,355 +144,49 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cldyf81pn00wb00r4juivwm96" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins上显示二维码图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins上显示二维码图片/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins上显示二维码图片/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="Jenkins上显示二维码图片"><a href="#Jenkins上显示二维码图片" class="headerlink" title="Jenkins上显示二维码图片"></a>Jenkins上显示二维码图片</h1><h2 id="一、在Jenkins上显示二维码图片"><a href="#一、在Jenkins上显示二维码图片" class="headerlink" title="一、在Jenkins上显示二维码图片"></a>一、在Jenkins上显示二维码图片</h2><p><a href="https://testerhome.com/topics/19161#" target="_blank" rel="noopener">持续集成 从零开始在 Jenkins 上显示打包二维码</a></p>
-<h3 id="1-安装Jenkins插件"><a href="#1-安装Jenkins插件" class="headerlink" title="1. 安装Jenkins插件"></a>1. 安装Jenkins插件</h3><ul>
-<li><p>进入Jenkins工作台<code>系统管理</code>&gt;<code>插件管理</code>&gt;<code>可选插件</code>&gt;<code>过滤</code>&gt;<code>build-name-setter</code>，勾选对应插件<code>直接安装</code></p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR1.png" alt="showQR1"></p>
-</li>
-<li><p>返回<code>工作台首页</code>，选择一个<code>Build工程</code>&gt;<code>配置</code></p>
-</li>
-<li><p>可以看到<code>构建环境</code>处多了一个<code>Set Build Name</code>的选项，即插件安装成功</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR2.png" alt="showQR2"></p>
-</li>
-</ul>
-<h3 id="2-配置Set-Build-Name插件"><a href="#2-配置Set-Build-Name插件" class="headerlink" title="2. 配置Set Build Name插件"></a>2. 配置<code>Set Build Name</code>插件</h3><p>查看Jekins的环境变量参数，我们可以看到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BUILD_NUMBER</span><br><span class="line">The current build number, such as &quot;153&quot;</span><br><span class="line">BUILD_DISPLAY_NAME</span><br><span class="line">The display name of the current build, which is something like &quot;#153&quot; by default.</span><br></pre></td></tr></table></figure>
-<ul>
-<li><p><code>Set Build Name</code>就是修改这个<code>BUILD_DISPLAY_NAME</code>，默认为<code>#${BUILD_NUMBER}</code></p>
-</li>
-<li><p>Jenkins的默认安全设置，会把所有的输入都当成纯文本，为了使图片链接生效，需要更改一下<code>系统管理</code>&gt;<code>全局安全配置</code>&gt;<code>标记格式器</code>，将<code>纯文本</code>选项改为<code>Safe HTML</code>,保存设置</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR3.png" alt="showQR3"></p>
-</li>
-<li><p>点击<code>Set Build Name</code>的高级，会出现<code>Build Description</code>的设置，可以在这里写入一个图片的链接 <code>&lt;img src=&quot;http://ww1.sinaimg.cn/large/007x9vWyly1g2zgykchtmj30a7064dk4.jpg&quot; height=&quot;200&quot; width=&quot;200/&gt;</code></p>
-</li>
-<li><p>Build完成之后即可在Build历史中看到对应的图片链接</p>
-<p><img src="http://ww1.sinaimg.cn/large/007x9vWyly1g2zhbf2iizj30a206kwho.jpg" alt="img"></p>
-</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR4_update1.png" alt="showQR4_update1"></p>
-<h1 id="End"><a href="#End" class="headerlink" title="End"></a>End</h1>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cldyf7zxl00gb00r4phou4h3m" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cldyf7zxo00gr00r4e6z22a7d" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins使用问题常见" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins使用问题常见/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用问题常见/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p><img src="/实用工具/Jenkins/Jenkins使用问题常见/Jenkins icon.png" alt="Jenkins"></p>
-<p>[TOC]</p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>天啊，没遇到问题之前，你永远不知道我下面要讲的这些点是多么多么的重要。你只要稍微不注意，就会导致你所有的正确操作都变成错误。</p>
-<h2 id="Jenkins管理员密码忘记的解决办法"><a href="#Jenkins管理员密码忘记的解决办法" class="headerlink" title="Jenkins管理员密码忘记的解决办法"></a>Jenkins管理员密码忘记的解决办法</h2><p>首先明确，不管是初始密码，还是找回管理员密码都是从<code>共享--Jenkins--Home</code>中处理，目录结果如下：<br><img src="/实用工具/Jenkins/Jenkins使用问题常见/jenkins_Home.png" alt="jenkins_Home"></p>
-<blockquote>
-<p>admin密码更改忘记情况</p>
-<p>1.删除Jenkins目录下config.xml文件中下面代码，并保存文件。</p>
+        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
+<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
 </blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;useSecurity&gt;true&lt;/useSecurity&gt;</span><br><span class="line">&lt;authorizationStrategy class=&quot;hudson.security.FullControlOnceLoggedInAuthorizationStrategy&quot;&gt;</span><br><span class="line">  &lt;denyAnonymousReadAccess&gt;true&lt;/denyAnonymousReadAccess&gt;</span><br><span class="line">&lt;/authorizationStrategy&gt;</span><br><span class="line">&lt;securityRealm class=&quot;hudson.security.HudsonPrivateSecurityRealm&quot;&gt;</span><br><span class="line">  &lt;disableSignup&gt;true&lt;/disableSignup&gt;</span><br><span class="line">  &lt;enableCaptcha&gt;false&lt;/enableCaptcha&gt;</span><br><span class="line">&lt;/securityRealm&gt;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>2.重启Jenkins服务 <a href="http://localhost:8080/restart" target="_blank" rel="noopener">http://localhost:8080/restart</a></p>
+<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
+<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
+</ul>
+<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
+<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
+</ul>
+<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
+<p><strong>B.一个请求一条线程</strong></p>
+<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
+<p><strong>C.一条常驻线程</strong></p>
+<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
+<p>线程保活的代码</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
+<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
+<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
+<ol>
+<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
+<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
+</ol>
+<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
+<p>其中</p>
+<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
+<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
+<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
+<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
 </blockquote>
-<p> 附：重新加载配置信息 <a href="http://localhost:8080/reload" target="_blank" rel="noopener">http://localhost:8080/reload</a></p>
-<blockquote>
-<p>3.进入首页&gt;“系统管理”&gt;“Configure Global Security”；</p>
-<p>4.勾选“启用安全”；</p>
-<p>5.点选“Jenkins专有用户数据库”，并点击“保存”；</p>
-<p>6.重新点击首页&gt;“系统管理”,发现此时出现“管理用户”；</p>
-<p>7.点击进入展示“用户列表”；</p>
-<p>8.点击右侧进入修改密码页面，修改后即可重新登录。</p>
-</blockquote>
-<p>参考：<a href="http://blog.csdn.net/jlminghui/article/details/54952148" target="_blank" rel="noopener">忘记Jenkins管理员密码的解决办法</a></p>
-<h2 id="一、文件路径问题"><a href="#一、文件路径问题" class="headerlink" title="一、文件路径问题"></a>一、文件路径问题</h2><p>Jenkins脚本中，不能使用桌面路径：</p>
-<p>本地cd目录注意：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 错误<span class="built_in">cd</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">cd</span> /Users/lichaoqian/Desktop/TestScript		<span class="comment"># 不能使用桌面路径，执行构建时候Jenkins会提示  `cd: /Users/lichaoqian/Desktop/TestScript: Not a directory`</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 正确<span class="built_in">cd</span></span></span><br><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br></pre></td></tr></table></figure>
-<h2 id="二、权限问题"><a href="#二、权限问题" class="headerlink" title="二、权限问题"></a>二、权限问题</h2><h3 id="1、问题例子"><a href="#1、问题例子" class="headerlink" title="1、问题例子"></a>1、问题例子</h3><p>将在终端中已验证通过的如下脚本，放到Jenkins上执行。</p>
-<h5 id="问题例子1：文件修改"><a href="#问题例子1：文件修改" class="headerlink" title="问题例子1：文件修改"></a>问题例子1：文件修改</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br><span class="line">chmod -R 777 ./0000.txt</span><br></pre></td></tr></table></figure>
-<p>执行后，Jenkins的log如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_1.png" alt="Jenkins权限问题log"></p>
-<p>很显然这是个权限问题。</p>
-<h5 id="问题例子2：钥匙串Keychain解锁"><a href="#问题例子2：钥匙串Keychain解锁" class="headerlink" title="问题例子2：钥匙串Keychain解锁"></a>问题例子2：钥匙串Keychain解锁</h5><p>同理的当你执行钥匙串Keychain的时候也会有权限问题</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsScript.png" alt="unlock-keychain_1_JenkinsScript"></p>
-<p>执行后，Jenkins的log如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsErrorLog.png" alt="unlock-keychain_1_JenkinsErrorLog.png"></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[TestScript] $ /bin/sh -xe /Users/Shared/Jenkins/tmp/jenkins2455609193418764900.sh</span><br><span class="line">+ security unlock-keychain -p lichaoqian /Users/lichaoqian/Library/Keychains/login.keychain</span><br><span class="line">security: SecKeychainUnlock /Users/lichaoqian/Library/Keychains/login.keychain: Write permissions error.</span><br><span class="line">Build step '执行 shell' marked build as failure</span><br><span class="line">Finished: FAILURE</span><br></pre></td></tr></table></figure>
-<p>很显然这也是个权限问题。</p>
-<h3 id="2、权限问题分析"><a href="#2、权限问题分析" class="headerlink" title="2、权限问题分析"></a>2、权限问题分析</h3><p>参考文章：<a href="https://www.jianshu.com/p/69b544d2a9d1" target="_blank" rel="noopener">iOS开发-自动化打包Jenkins集成</a>的文章开头就有讲到。</p>
-<p>原因：<strong>Jenkins打开姿势不对！</strong></p>
-<p>如果你构建的工程，是在<strong>/Users/Shared/Jenkins</strong>工作目录下，那么就会有权限问题。</p>
-<p>如果你构建的工程，是在<strong>/Users/[user name]/.jenkins</strong>工作目录下，才不会有权限问题。</p>
-<ul>
-<li>错误的：有权限问题的Jenkins workspace目录</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_2.png" alt="有权限问题的Jenkins workspace目录"></p>
-<ul>
-<li>正确的：无权限问题的Jenkins workspace目录</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_3.png" alt="无权限问题的Jenkins workspace目录"></p>
-<ul>
-<li><p>如何验证你当前项目点击构建后的工作目录是哪里呢？</p>
-<p>答：直接构建，然后去查看你的项目显示在哪里啊。</p>
-</li>
-</ul>
-<h3 id="3、权限问题解决-正确的启动Jenkins姿势"><a href="#3、权限问题解决-正确的启动Jenkins姿势" class="headerlink" title="3、权限问题解决(正确的启动Jenkins姿势)"></a>3、权限问题解决(正确的启动Jenkins姿势)</h3><p>在使用正确的启动Jenkins之前，我们先来认识下下面的这个<code>org.jenkins-ci.plist</code>文件。它的位置 <em><code>/Library/LaunchDaemons/org.jenkins-ci.plist</code></em> 如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_4.png" alt="正确的启动Jenkins姿势"></p>
-<p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
-<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
-<h3 id="4、解决后的结果显示"><a href="#4、解决后的结果显示" class="headerlink" title="4、解决后的结果显示"></a>4、解决后的结果显示</h3><ul>
-<li>4.1、脚本内容</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_5.png" alt="脚本内容"></p>
-<ul>
-<li>4.2、脚本执行结果</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_6.png" alt="脚本执行结果"></p>
-<p>至此，你的权限问题已完美解决。</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/分割图1.jpg" alt="休息一下"></p>
-<h2 id="三、其他权限问题"><a href="#三、其他权限问题" class="headerlink" title="三、其他权限问题"></a>三、其他权限问题</h2><ul>
-<li>Jenkins问题解决方案：</li>
-</ul>
-<p>解决：进入mac 系统偏好设置 — 用户与群组 — 其他用户 — jenkins ，勾选允许用户管理这台电脑</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_Write%20permissions%20error.png" alt="unlock-keychain_Write permissions error"></p>
-<p>勾选选项。</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_3_JenkinsSolve.png" alt="unlock-keychain_3_JenkinsSolve"></p>
-<h2 id="四、Jenkins权限问题其他解决方法-未实践"><a href="#四、Jenkins权限问题其他解决方法-未实践" class="headerlink" title="四、Jenkins权限问题其他解决方法(未实践)"></a>四、Jenkins权限问题其他解决方法(未实践)</h2><ul>
-<li>未实践方式1(都未实践)：</li>
-</ul>
-<p><a href="https://www.jianshu.com/p/fa546f723724" target="_blank" rel="noopener">Jenkins执行脚本提示没有权限的解决办法</a> 未实践，因为已经通过上述正确的启动Jenkins来解决了。所以这里没去实践。不过看内容应该是可行的。后续有时间再补充。</p>
-<ul>
-<li>未实践方式2(看了应该无效)：</li>
-</ul>
-<p>提高Jenkins用户权限，详见《Terminal -&gt; 终端命令使用.md》中的用户相关操作。应该无效</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cldyf7zxo00gu00r4dse7b0s8" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/进阶/iOS进阶_推送模拟" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/进阶/iOS进阶_推送模拟/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/进阶/iOS进阶_推送模拟/">iOS进阶_推送模拟</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="APNS模拟"><a href="#APNS模拟" class="headerlink" title="APNS模拟"></a>APNS模拟</h1><h2 id="一、使用SmartPush调试"><a href="#一、使用SmartPush调试" class="headerlink" title="一、使用SmartPush调试"></a>一、使用SmartPush调试</h2><ul>
-<li>几个工具</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>工具</th>
-<th>Star</th>
-<th>有效性</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="https://github.com/shaojiankui/SmartPush" target="_blank" rel="noopener">SmartPush</a></td>
-<td>1144</td>
-<td>测了有问题</td>
-</tr>
-<tr>
-<td><a href="https://github.com/KnuffApp/Knuff" target="_blank" rel="noopener">Knuff</a></td>
-<td>4432</td>
-<td>亲测有效</td>
-</tr>
-<tr>
-<td><a href="https://github.com/immobiliare/ApnsPHP" target="_blank" rel="noopener">ApnsPHP</a></td>
-<td>1361</td>
-<td>未测</td>
-</tr>
-<tr>
-<td><a href="https://github.com/manifestinteractive/easyapns" target="_blank" rel="noopener">easyapns</a></td>
-<td>706</td>
-<td>未测</td>
-</tr>
-</tbody>
-</table>
-<h2 id="二、自己搭建"><a href="#二、自己搭建" class="headerlink" title="二、自己搭建"></a>二、自己搭建</h2><p>脚本实现参考文章：</p>
-<ul>
-<li><p><a href="https://blog.csdn.net/TuGeLe/article/details/79699926" target="_blank" rel="noopener">iOS客户端如何测试推送</a></p>
-</li>
-<li><p><a href="https://www.cnblogs.com/ablettchen/p/4162350.html" target="_blank" rel="noopener">iOS 远程推送的实现</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cldyf80az00sh00r47phb67ay" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cle3ty6xe00wco6r4oxg2o1vt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -677,10 +371,335 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cldyf80bt00so00r4kw8qlo9i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cle3ty5nn00joo6r4jo91bej2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/进阶/iOS进阶_推送模拟" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/进阶/iOS进阶_推送模拟/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/进阶/iOS进阶_推送模拟/">iOS进阶_推送模拟</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="APNS模拟"><a href="#APNS模拟" class="headerlink" title="APNS模拟"></a>APNS模拟</h1><h2 id="一、使用SmartPush调试"><a href="#一、使用SmartPush调试" class="headerlink" title="一、使用SmartPush调试"></a>一、使用SmartPush调试</h2><ul>
+<li>几个工具</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>Star</th>
+<th>有效性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/shaojiankui/SmartPush" target="_blank" rel="noopener">SmartPush</a></td>
+<td>1144</td>
+<td>测了有问题</td>
+</tr>
+<tr>
+<td><a href="https://github.com/KnuffApp/Knuff" target="_blank" rel="noopener">Knuff</a></td>
+<td>4432</td>
+<td>亲测有效</td>
+</tr>
+<tr>
+<td><a href="https://github.com/immobiliare/ApnsPHP" target="_blank" rel="noopener">ApnsPHP</a></td>
+<td>1361</td>
+<td>未测</td>
+</tr>
+<tr>
+<td><a href="https://github.com/manifestinteractive/easyapns" target="_blank" rel="noopener">easyapns</a></td>
+<td>706</td>
+<td>未测</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二、自己搭建"><a href="#二、自己搭建" class="headerlink" title="二、自己搭建"></a>二、自己搭建</h2><p>脚本实现参考文章：</p>
+<ul>
+<li><p><a href="https://blog.csdn.net/TuGeLe/article/details/79699926" target="_blank" rel="noopener">iOS客户端如何测试推送</a></p>
+</li>
+<li><p><a href="https://www.cnblogs.com/ablettchen/p/4162350.html" target="_blank" rel="noopener">iOS 远程推送的实现</a></p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cle3ty5no00jro6r47kbyc9dy" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins上显示二维码图片" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins上显示二维码图片/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins上显示二维码图片/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="Jenkins上显示二维码图片"><a href="#Jenkins上显示二维码图片" class="headerlink" title="Jenkins上显示二维码图片"></a>Jenkins上显示二维码图片</h1><h2 id="一、在Jenkins上显示二维码图片"><a href="#一、在Jenkins上显示二维码图片" class="headerlink" title="一、在Jenkins上显示二维码图片"></a>一、在Jenkins上显示二维码图片</h2><p><a href="https://testerhome.com/topics/19161#" target="_blank" rel="noopener">持续集成 从零开始在 Jenkins 上显示打包二维码</a></p>
+<h3 id="1-安装Jenkins插件"><a href="#1-安装Jenkins插件" class="headerlink" title="1. 安装Jenkins插件"></a>1. 安装Jenkins插件</h3><ul>
+<li><p>进入Jenkins工作台<code>系统管理</code>&gt;<code>插件管理</code>&gt;<code>可选插件</code>&gt;<code>过滤</code>&gt;<code>build-name-setter</code>，勾选对应插件<code>直接安装</code></p>
+<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR1.png" alt="showQR1"></p>
+</li>
+<li><p>返回<code>工作台首页</code>，选择一个<code>Build工程</code>&gt;<code>配置</code></p>
+</li>
+<li><p>可以看到<code>构建环境</code>处多了一个<code>Set Build Name</code>的选项，即插件安装成功</p>
+<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR2.png" alt="showQR2"></p>
+</li>
+</ul>
+<h3 id="2-配置Set-Build-Name插件"><a href="#2-配置Set-Build-Name插件" class="headerlink" title="2. 配置Set Build Name插件"></a>2. 配置<code>Set Build Name</code>插件</h3><p>查看Jekins的环境变量参数，我们可以看到</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BUILD_NUMBER</span><br><span class="line">The current build number, such as &quot;153&quot;</span><br><span class="line">BUILD_DISPLAY_NAME</span><br><span class="line">The display name of the current build, which is something like &quot;#153&quot; by default.</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p><code>Set Build Name</code>就是修改这个<code>BUILD_DISPLAY_NAME</code>，默认为<code>#${BUILD_NUMBER}</code></p>
+</li>
+<li><p>Jenkins的默认安全设置，会把所有的输入都当成纯文本，为了使图片链接生效，需要更改一下<code>系统管理</code>&gt;<code>全局安全配置</code>&gt;<code>标记格式器</code>，将<code>纯文本</code>选项改为<code>Safe HTML</code>,保存设置</p>
+<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR3.png" alt="showQR3"></p>
+</li>
+<li><p>点击<code>Set Build Name</code>的高级，会出现<code>Build Description</code>的设置，可以在这里写入一个图片的链接 <code>&lt;img src=&quot;http://ww1.sinaimg.cn/large/007x9vWyly1g2zgykchtmj30a7064dk4.jpg&quot; height=&quot;200&quot; width=&quot;200/&gt;</code></p>
+</li>
+<li><p>Build完成之后即可在Build历史中看到对应的图片链接</p>
+<p><img src="http://ww1.sinaimg.cn/large/007x9vWyly1g2zhbf2iizj30a206kwho.jpg" alt="img"></p>
+</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR4_update1.png" alt="showQR4_update1"></p>
+<h1 id="End"><a href="#End" class="headerlink" title="End"></a>End</h1>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cle3ty5ns00klo6r4lgr1msrr" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cle3ty5nt00koo6r4n0rtzgo7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins使用问题常见" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins使用问题常见/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用问题常见/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><img src="/实用工具/Jenkins/Jenkins使用问题常见/Jenkins icon.png" alt="Jenkins"></p>
+<p>[TOC]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>天啊，没遇到问题之前，你永远不知道我下面要讲的这些点是多么多么的重要。你只要稍微不注意，就会导致你所有的正确操作都变成错误。</p>
+<h2 id="Jenkins管理员密码忘记的解决办法"><a href="#Jenkins管理员密码忘记的解决办法" class="headerlink" title="Jenkins管理员密码忘记的解决办法"></a>Jenkins管理员密码忘记的解决办法</h2><p>首先明确，不管是初始密码，还是找回管理员密码都是从<code>共享--Jenkins--Home</code>中处理，目录结果如下：<br><img src="/实用工具/Jenkins/Jenkins使用问题常见/jenkins_Home.png" alt="jenkins_Home"></p>
+<blockquote>
+<p>admin密码更改忘记情况</p>
+<p>1.删除Jenkins目录下config.xml文件中下面代码，并保存文件。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;useSecurity&gt;true&lt;/useSecurity&gt;</span><br><span class="line">&lt;authorizationStrategy class=&quot;hudson.security.FullControlOnceLoggedInAuthorizationStrategy&quot;&gt;</span><br><span class="line">  &lt;denyAnonymousReadAccess&gt;true&lt;/denyAnonymousReadAccess&gt;</span><br><span class="line">&lt;/authorizationStrategy&gt;</span><br><span class="line">&lt;securityRealm class=&quot;hudson.security.HudsonPrivateSecurityRealm&quot;&gt;</span><br><span class="line">  &lt;disableSignup&gt;true&lt;/disableSignup&gt;</span><br><span class="line">  &lt;enableCaptcha&gt;false&lt;/enableCaptcha&gt;</span><br><span class="line">&lt;/securityRealm&gt;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>2.重启Jenkins服务 <a href="http://localhost:8080/restart" target="_blank" rel="noopener">http://localhost:8080/restart</a></p>
+</blockquote>
+<p> 附：重新加载配置信息 <a href="http://localhost:8080/reload" target="_blank" rel="noopener">http://localhost:8080/reload</a></p>
+<blockquote>
+<p>3.进入首页&gt;“系统管理”&gt;“Configure Global Security”；</p>
+<p>4.勾选“启用安全”；</p>
+<p>5.点选“Jenkins专有用户数据库”，并点击“保存”；</p>
+<p>6.重新点击首页&gt;“系统管理”,发现此时出现“管理用户”；</p>
+<p>7.点击进入展示“用户列表”；</p>
+<p>8.点击右侧进入修改密码页面，修改后即可重新登录。</p>
+</blockquote>
+<p>参考：<a href="http://blog.csdn.net/jlminghui/article/details/54952148" target="_blank" rel="noopener">忘记Jenkins管理员密码的解决办法</a></p>
+<h2 id="一、文件路径问题"><a href="#一、文件路径问题" class="headerlink" title="一、文件路径问题"></a>一、文件路径问题</h2><p>Jenkins脚本中，不能使用桌面路径：</p>
+<p>本地cd目录注意：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 错误<span class="built_in">cd</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">cd</span> /Users/lichaoqian/Desktop/TestScript		<span class="comment"># 不能使用桌面路径，执行构建时候Jenkins会提示  `cd: /Users/lichaoqian/Desktop/TestScript: Not a directory`</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 正确<span class="built_in">cd</span></span></span><br><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br></pre></td></tr></table></figure>
+<h2 id="二、权限问题"><a href="#二、权限问题" class="headerlink" title="二、权限问题"></a>二、权限问题</h2><h3 id="1、问题例子"><a href="#1、问题例子" class="headerlink" title="1、问题例子"></a>1、问题例子</h3><p>将在终端中已验证通过的如下脚本，放到Jenkins上执行。</p>
+<h5 id="问题例子1：文件修改"><a href="#问题例子1：文件修改" class="headerlink" title="问题例子1：文件修改"></a>问题例子1：文件修改</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br><span class="line">chmod -R 777 ./0000.txt</span><br></pre></td></tr></table></figure>
+<p>执行后，Jenkins的log如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_1.png" alt="Jenkins权限问题log"></p>
+<p>很显然这是个权限问题。</p>
+<h5 id="问题例子2：钥匙串Keychain解锁"><a href="#问题例子2：钥匙串Keychain解锁" class="headerlink" title="问题例子2：钥匙串Keychain解锁"></a>问题例子2：钥匙串Keychain解锁</h5><p>同理的当你执行钥匙串Keychain的时候也会有权限问题</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsScript.png" alt="unlock-keychain_1_JenkinsScript"></p>
+<p>执行后，Jenkins的log如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsErrorLog.png" alt="unlock-keychain_1_JenkinsErrorLog.png"></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[TestScript] $ /bin/sh -xe /Users/Shared/Jenkins/tmp/jenkins2455609193418764900.sh</span><br><span class="line">+ security unlock-keychain -p lichaoqian /Users/lichaoqian/Library/Keychains/login.keychain</span><br><span class="line">security: SecKeychainUnlock /Users/lichaoqian/Library/Keychains/login.keychain: Write permissions error.</span><br><span class="line">Build step '执行 shell' marked build as failure</span><br><span class="line">Finished: FAILURE</span><br></pre></td></tr></table></figure>
+<p>很显然这也是个权限问题。</p>
+<h3 id="2、权限问题分析"><a href="#2、权限问题分析" class="headerlink" title="2、权限问题分析"></a>2、权限问题分析</h3><p>参考文章：<a href="https://www.jianshu.com/p/69b544d2a9d1" target="_blank" rel="noopener">iOS开发-自动化打包Jenkins集成</a>的文章开头就有讲到。</p>
+<p>原因：<strong>Jenkins打开姿势不对！</strong></p>
+<p>如果你构建的工程，是在<strong>/Users/Shared/Jenkins</strong>工作目录下，那么就会有权限问题。</p>
+<p>如果你构建的工程，是在<strong>/Users/[user name]/.jenkins</strong>工作目录下，才不会有权限问题。</p>
+<ul>
+<li>错误的：有权限问题的Jenkins workspace目录</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_2.png" alt="有权限问题的Jenkins workspace目录"></p>
+<ul>
+<li>正确的：无权限问题的Jenkins workspace目录</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_3.png" alt="无权限问题的Jenkins workspace目录"></p>
+<ul>
+<li><p>如何验证你当前项目点击构建后的工作目录是哪里呢？</p>
+<p>答：直接构建，然后去查看你的项目显示在哪里啊。</p>
+</li>
+</ul>
+<h3 id="3、权限问题解决-正确的启动Jenkins姿势"><a href="#3、权限问题解决-正确的启动Jenkins姿势" class="headerlink" title="3、权限问题解决(正确的启动Jenkins姿势)"></a>3、权限问题解决(正确的启动Jenkins姿势)</h3><p>在使用正确的启动Jenkins之前，我们先来认识下下面的这个<code>org.jenkins-ci.plist</code>文件。它的位置 <em><code>/Library/LaunchDaemons/org.jenkins-ci.plist</code></em> 如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_4.png" alt="正确的启动Jenkins姿势"></p>
+<p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
+<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
+<h3 id="4、解决后的结果显示"><a href="#4、解决后的结果显示" class="headerlink" title="4、解决后的结果显示"></a>4、解决后的结果显示</h3><ul>
+<li>4.1、脚本内容</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_5.png" alt="脚本内容"></p>
+<ul>
+<li>4.2、脚本执行结果</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_6.png" alt="脚本执行结果"></p>
+<p>至此，你的权限问题已完美解决。</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/分割图1.jpg" alt="休息一下"></p>
+<h2 id="三、其他权限问题"><a href="#三、其他权限问题" class="headerlink" title="三、其他权限问题"></a>三、其他权限问题</h2><ul>
+<li>Jenkins问题解决方案：</li>
+</ul>
+<p>解决：进入mac 系统偏好设置 — 用户与群组 — 其他用户 — jenkins ，勾选允许用户管理这台电脑</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_Write%20permissions%20error.png" alt="unlock-keychain_Write permissions error"></p>
+<p>勾选选项。</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_3_JenkinsSolve.png" alt="unlock-keychain_3_JenkinsSolve"></p>
+<h2 id="四、Jenkins权限问题其他解决方法-未实践"><a href="#四、Jenkins权限问题其他解决方法-未实践" class="headerlink" title="四、Jenkins权限问题其他解决方法(未实践)"></a>四、Jenkins权限问题其他解决方法(未实践)</h2><ul>
+<li>未实践方式1(都未实践)：</li>
+</ul>
+<p><a href="https://www.jianshu.com/p/fa546f723724" target="_blank" rel="noopener">Jenkins执行脚本提示没有权限的解决办法</a> 未实践，因为已经通过上述正确的启动Jenkins来解决了。所以这里没去实践。不过看内容应该是可行的。后续有时间再补充。</p>
+<ul>
+<li>未实践方式2(看了应该无效)：</li>
+</ul>
+<p>提高Jenkins用户权限，详见《Terminal -&gt; 终端命令使用.md》中的用户相关操作。应该无效</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cle3ty5nz00l4o6r4hkakev5g" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -922,7 +941,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cldyf80ak00se00r4sggoglsa" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cle3ty5nn00jko6r41f38uz2c" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1099,7 +1118,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cldyf80bd00sl00r41zg1vvsu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cle3ty5no00juo6r40idevkgu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1111,9 +1130,9 @@
 
 
   
-    <article id="post-实用工具/Jenkins/Jenkins使用技巧常用" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-实用工具/Jenkins/Jenkins基本操作" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins使用技巧常用/" class="article-date">
+    <a href="/实用工具/Jenkins/Jenkins基本操作/" class="article-date">
   <time datetime="2019-04-23T01:27:20.000Z" itemprop="datePublished">2019-04-23</time>
 </a>
     
@@ -1129,7 +1148,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用技巧常用/">第3节、Jenkins使用技巧常用</a>
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins基本操作/">第2节：Jenkins基本操作</a>
     </h1>
   
 
@@ -1137,15 +1156,12 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h2 id="一、正确实现并测试一个Jenkins脚本的步骤"><a href="#一、正确实现并测试一个Jenkins脚本的步骤" class="headerlink" title="一、正确实现并测试一个Jenkins脚本的步骤"></a>一、正确实现并测试一个Jenkins脚本的步骤</h2><p><strong>原则</strong>：将脚本中的命令分布测试通过后再一起合成。</p>
-<h3 id="1、将一行行命令单独在终端中操作，验证是否通过；"><a href="#1、将一行行命令单独在终端中操作，验证是否通过；" class="headerlink" title="1、将一行行命令单独在终端中操作，验证是否通过；"></a>1、将一行行命令单独在终端中操作，验证是否通过；</h3><h3 id="2、整理到-sh-py中，通过终端验证；"><a href="#2、整理到-sh-py中，通过终端验证；" class="headerlink" title="2、整理到.sh/.py中，通过终端验证；"></a>2、整理到<em><code>.sh</code></em>/<em><code>.py</code></em>中，通过终端验证；</h3><h3 id="3、放到-Jenkins-的shell脚本中，构建验证；"><a href="#3、放到-Jenkins-的shell脚本中，构建验证；" class="headerlink" title="3、放到 Jenkins 的shell脚本中，构建验证；"></a>3、放到 <em>Jenkins</em> 的shell脚本中，构建验证；</h3><h4 id="3-1、现在本地验证后，再托管到服务器上；"><a href="#3-1、现在本地验证后，再托管到服务器上；" class="headerlink" title="3.1、现在本地验证后，再托管到服务器上；"></a>3.1、现在本地验证后，再托管到服务器上；</h4><p>在本地通过<em><code>cd 脚本绝对路径</code></em>，<em><code>sh 脚本.sh</code></em>，构建验证；</p>
-<h4 id="3-2、本地验证后，使用-git-SVN-管理源码"><a href="#3-2、本地验证后，使用-git-SVN-管理源码" class="headerlink" title="3.2、本地验证后，使用 git/SVN 管理源码"></a>3.2、本地验证后，使用 <em><code>git</code></em>/<em><code>SVN</code></em> 管理源码</h4><h2 id="二、源码托管"><a href="#二、源码托管" class="headerlink" title="二、源码托管"></a>二、源码托管</h2><p>问：Jenkins中的项目一般都是托管在 <em><code>Git</code></em>/<em><code>SVN</code></em> 上，如果你想要在本地尝试呢？如何操作？</p>
-<p>答：源码管理选择None。然后直接在Jenkins中的脚本里cd到执行路径，再操作即可。</p>
+        <p><img src="/实用工具/Jenkins/Jenkins基本操作/Jenkins_Shell1_Add.png" alt="Jenkins_Shell1_Add"></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用技巧常用/" data-id="cldyf7zxn00gm00r43cj8gt6a" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins基本操作/" data-id="cle3ty5nw00kto6r4cabyzip8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -1214,23 +1230,23 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/HTML/common_js/url_util/">(no title)</a>
+            <a href="/HTML/common_js/object_util/">(no title)</a>
           </li>
         
       </ul>
