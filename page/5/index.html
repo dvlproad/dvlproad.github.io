@@ -72,9 +72,9 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/3必备知识架构/2内存/2内存-②循环引用" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/2内存/2内存-②Block" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/" class="article-date">
+    <a href="/iOS/3必备知识架构/2内存/2内存-②Block/" class="article-date">
   <time datetime="2022-03-16T05:35:04.594Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
@@ -84,122 +84,73 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-内存-②循环引用"><a href="#必备知识架构-内存-②循环引用" class="headerlink" title="必备知识架构-内存-②循环引用"></a>必备知识架构-内存-②循环引用</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><p><a href="#循环引用原因">一、循环引用原因</a></p>
-</li>
-<li><p><a href="#NSTimer的循环引用">二、NSTimer的循环引用</a></p>
-</li>
-<li><p><a href="#委托delegate的循环引用">三、委托delegate的循环引用</a></p>
-</li>
-<li><p><a href="#block的循环引用">四、block的循环引用</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">1、Objective-C中block为何得用copy修饰，能否用其他</span><br><span class="line">2、block的循环引用</span><br><span class="line">3、block循环引用的解决</span><br><span class="line">4、判断该block是否会发生循环引用</span><br><span class="line">5、为什么masonry的block里引用self不需要weak？</span><br><span class="line">6、是否所有的Block中，使用self 都会导致循环引用？</span><br><span class="line">7、block修改外部局部变量</span><br><span class="line">(1)、在block中无法直接修改外部变量的原因</span><br><span class="line">(2)、解决如何在 block 中修改外部变量</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
+        <h1 id="必备知识架构-内存-②Block"><a href="#必备知识架构-内存-②Block" class="headerlink" title="必备知识架构-内存-②Block"></a>必备知识架构-内存-②Block</h1><p>[toc]</p>
+<h2 id="iOS-Block本质"><a href="#iOS-Block本质" class="headerlink" title="iOS-Block本质"></a>iOS-Block本质</h2><p><a href="https://www.jianshu.com/p/4e79e9a0dd82" target="_blank" rel="noopener">iOS-Block本质</a></p>
+<p>block本质上也是一个OC对象，它内部也有个isa指针，最终继承NSObject。</p>
+<p>如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NSGlobalBlock &lt;--__NSGlobalBlock &lt;--NSBlock &lt;-- NSObject</span><br></pre></td></tr></table></figure>
+<h4 id="Q：block有哪几种类型-及-各类型的block在内存中如何分配的？"><a href="#Q：block有哪几种类型-及-各类型的block在内存中如何分配的？" class="headerlink" title="Q：block有哪几种类型 及 各类型的block在内存中如何分配的？"></a>Q：block有哪几种类型 及 各类型的block在内存中如何分配的？</h4><p>block的类型，取决于isa指针，可以通过调用class方法或者isa指针查看具体类型，最终都是继承自NSBlock类型。</p>
+<p><strong>堆</strong>：动态分配内存，需要程序员自己申请，程序员自己管理</p>
+<p><strong>栈</strong>：自动分配内存，自动销毁，先入后出，栈上的内容存在自动销毁的情况</p>
 <ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+<li><p><strong>NSGlobalBlock </strong> 在数据区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">void (^block1)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block1&quot;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 </li>
-<li><p><a href="#END">END</a></p>
+<li><p><strong>NSMallocBlock </strong> 在堆区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age1 = 1;</span><br><span class="line">void (^block2)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block2:%d&quot;, age1);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 </li>
-</ul>
-<p></p><p id="循环引用原因"></p><p></p>
-<h2 id="一、循环引用原因"><a href="#一、循环引用原因" class="headerlink" title="一、循环引用原因"></a>一、循环引用原因</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>导致iOS对象无法按预期释放的一个无形杀手是——循环引用。循环引用可以简单理解为A引用了B，而B又引用了A，双方都同时保持对方的一个引用，导致任何时候引用计数都不为0，始终无法释放。若当前对象是一个ViewController，则在dismiss或者pop之后其dealloc无法被调用，在频繁的push或者present之后内存暴增，然后APP就duang地挂了。</p>
-<p><strong>循环引用会导致内存泄露，因为循环应用会导致，有些对象没办法在已经不会再使用的时候被释放掉</strong></p>
-<p>下面列举我们变成中比较容易碰到的三种循环引用的情形：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">（1）计时器NSTimer</span><br><span class="line">（2）block</span><br><span class="line">（3）委托delegate</span><br></pre></td></tr></table></figure>
-<p></p><p id="NSTimer的循环引用"></p><p></p>
-<h2 id="二、NSTimer的循环引用"><a href="#二、NSTimer的循环引用" class="headerlink" title="二、NSTimer的循环引用"></a>二、NSTimer的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>NSTimer的循环引用详情，我们放在下面讲解NSTimer(前面已经提过NSTimer 其实就是RunLoop中的CFRunLoopTimerRef，一个基于时间的触发器)的时候介绍。</p>
-<p>解决方法：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">@interface HWWeakTimerTarget : NSObject</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id target;			// 注意是 weak</span><br><span class="line">@property (nonatomic, assign) SEL selector; // assign</span><br><span class="line">@property (nonatomic, weak) NSTimer* timer;	// 注意是 weak</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">@implementation HWWeakTimerTarget</span><br><span class="line"></span><br><span class="line">- (void) fire:(NSTimer *)timer &#123;</span><br><span class="line">    if(self.target) &#123;</span><br><span class="line">#pragma clang diagnostic push</span><br><span class="line">#pragma clang diagnostic ignored &quot;-Warc-performSelector-leaks&quot;</span><br><span class="line">        [self.target performSelector:self.selector withObject:timer.userInfo afterDelay:0.0f];</span><br><span class="line">#pragma clang diagnostic pop</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        [self.timer invalidate];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation HWWeakTimer</span><br><span class="line"></span><br><span class="line">+ (NSTimer *) scheduledTimerWithTimeInterval:(NSTimeInterval)interval</span><br><span class="line">                                      target:(id)aTarget</span><br><span class="line">                                    selector:(SEL)aSelector</span><br><span class="line">                                    userInfo:(id)userInfo</span><br><span class="line">                                     repeats:(BOOL)repeats &#123;</span><br><span class="line">    HWWeakTimerTarget* timerTarget = [[HWWeakTimerTarget alloc] init];</span><br><span class="line">    timerTarget.target = aTarget;</span><br><span class="line">    timerTarget.selector = aSelector;</span><br><span class="line">    timerTarget.timer = [NSTimer scheduledTimerWithTimeInterval:interval</span><br><span class="line">                                                         target:timerTarget</span><br><span class="line">                                                       selector:@selector(fire:)</span><br><span class="line">                                                       userInfo:userInfo</span><br><span class="line">                                                        repeats:repeats];</span><br><span class="line">    return timerTarget.timer;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p></p><p id="委托delegate的循环引用"></p><p></p>
-<h2 id="三、委托delegate的循环引用"><a href="#三、委托delegate的循环引用" class="headerlink" title="三、委托delegate的循环引用"></a>三、委托delegate的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>在委托问题上出现循环引用问题已经是老生常谈了，声明delegate时请用weak(ARC)，如果是MRC则用assign。千万别手贱。</p>
-<p></p><p id="block的循环引用"></p><p></p>
-<h2 id="四、block的循环引用"><a href="#四、block的循环引用" class="headerlink" title="四、block的循环引用"></a>四、block的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h5 id="1、Objective-C中block为何得用copy修饰，能否用其他"><a href="#1、Objective-C中block为何得用copy修饰，能否用其他" class="headerlink" title="1、Objective-C中block为何得用copy修饰，能否用其他"></a>1、Objective-C中block为何得用copy修饰，能否用其他</h5><blockquote>
-<p>答：因为<strong>block在创建的时候，它的内存是分配在栈(stack)上，而不是在堆(heap)上。他本身的作于域是属于创建时候的作用域，一旦在创建时候的作用域外面调用block将导致程序崩溃。所以，为了能够在block的声明域外也能够使用block，我们需要将block拷贝到堆上，所以使用copy属性。</strong>对于堆中的block，也就是copy修饰的block。他的生命周期是随着对象的销毁而结束的。只要对象不销毁，我们就可以调用的到在堆中的block。</p>
-</blockquote>
-<h5 id="2、block的循环引用"><a href="#2、block的循环引用" class="headerlink" title="2、block的循环引用"></a>2、block的循环引用</h5><p><strong>由于block在copy时都会对block内部用到的对象进行强引用(ARC)或者retainCount增1(非ARC)。所以，不管是在ARC还是非ARC环境下对block使用不当都会引起循环引用问题</strong></p>
-<p>一般表现为，某个类将block作为自己的属性变量(则该类就对block强引用了)，然后该类在block的方法体里面又使用了该类本身。即当对象（比如self）拥有一个block属性的时候，在block属性中又引用了对象的其他成员变量或者调用了对象的其他方法。形成你中有我，我中有你，谁都无法将谁释放的困局。形如：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">self.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line"> &#125;;</span><br><span class="line"> </span><br><span class="line">又或者</span><br><span class="line"></span><br><span class="line">ClassA* objA = [[ClassA alloc] init];</span><br><span class="line">objA.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line">&#125;;</span><br><span class="line">self.objA = objA;</span><br></pre></td></tr></table></figure>
-<p>block的这种循环引用会被编译器捕捉到并及时提醒。</p>
-<p>以上参考自：<a href="http://www.jianshu.com/p/b79bac09177e" target="_blank" rel="noopener">Block的循环引用</a></p>
-<h5 id="3、block循环引用的解决"><a href="#3、block循环引用的解决" class="headerlink" title="3、block循环引用的解决"></a>3、block循环引用的解决</h5><h6 id="1-、常规简单解法"><a href="#1-、常规简单解法" class="headerlink" title="(1)、常规简单解法"></a>(1)、常规简单解法</h6><p>解决方法,就一句话的事情：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof (self) weakSelf = self; </span><br><span class="line">self.myBlock = ^&#123;</span><br><span class="line">    [weakSelf doSomething];</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  附1：如果是non-ARC环境下就将__weak替换为__block即可。non-ARC情况下，__block变量的含义是在Block中引入一个新的结构体成员变量指向这个__block变量，那么__block typeof(self) weakSelf = self;就表示Block别再对self对象retain啦，这就打破了循环引用。</span><br><span class="line">  </span><br><span class="line">  附2：__weak 是 iOS 5.0 推出的，_weak 相当于 weak，不会做强引用，如果对象被释放，执行的地址，会指向 nil</span><br></pre></td></tr></table></figure>
-<h6 id="2-、block中使用-weak–strong-dance-技术避免循环引用"><a href="#2-、block中使用-weak–strong-dance-技术避免循环引用" class="headerlink" title="(2)、block中使用 weak–strong dance 技术避免循环引用"></a>(2)、block中使用 weak–strong dance 技术避免循环引用</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof(self)weakSelf = self;</span><br><span class="line">  [header setTapHandle:^&#123;</span><br><span class="line">  		__strong __typeof(weakSelf)strongSelf = weakSelf;</span><br><span class="line">  		if (strongSelf) &#123;</span><br><span class="line">     		NSLog(@&quot;strongSelf = %@&quot;, strongSelf);</span><br><span class="line">  		&#125;</span><br><span class="line"> 	[weakSelf headerAction:header];</span><br><span class="line">	&#125;];</span><br></pre></td></tr></table></figure>
-<p><strong>精髓2：①在 block 之前定义对 self 的一个弱引用weakSelf，因为是弱引用，所以当 self 被释放时weakSelf会变为nil；② 在 block 中引用该弱应用，考虑到多线程情况，通过使用强引用 strongSelf 来引用该弱引用，这时如果 self 不为 nil 就会 retain self，以防止在后面的使用过程中 self 被释放;③在之后的 block 块中使用该强引用 bself，注意在使用前要对 bSelf 进行了 nil 检测，因为多线程环境下在用弱引用weakSelf对强引用strongSelf赋值时，弱引用weakSelf可能已经为nil了。通过这种手法，block 就不会持有 self 的引用，从而打破了循环引用。</strong></p>
-<h4 id="iOS开发中在block中为什么要weak和strong配合使用"><a href="#iOS开发中在block中为什么要weak和strong配合使用" class="headerlink" title="iOS开发中在block中为什么要weak和strong配合使用"></a><a href="https://www.jianshu.com/p/0b87b4e7da2c" target="_blank" rel="noopener">iOS开发中在block中为什么要<strong>weak和</strong>strong配合使用</a></h4><blockquote>
-<p>答：<strong>weak是为了解决循环引用。</strong>strong是为了防止block持有的对象提前释放。</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> - (void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">  [self dismissViewControllerAnimated:YES completion:nil];</span><br><span class="line"></span><br><span class="line">  __weak typeof(self) weakSelf = self;</span><br><span class="line">  self.block = ^&#123;</span><br><span class="line">      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">          NSLog(@&quot;%@&quot;, weakSelf);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;;</span><br><span class="line">  self.block();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>点击屏幕，当前控制器消失，同时被销毁掉，5秒后打印的weakSelf就是一个(null)。<br>而我们如果在block内使用__strong后就能保证再打印完strongSelf之后再释放当前控制器。</p>
-</blockquote>
-<h5 id="4、判断该block是否会发生循环引用"><a href="#4、判断该block是否会发生循环引用" class="headerlink" title="4、判断该block是否会发生循环引用"></a>4、判断该block是否会发生循环引用</h5><p><a href="http://www.cocoachina.com/ios/20170122/18601.html" target="_blank" rel="noopener">判断该block是否会发生循环引用例子</a></p>
-<h5 id="5、为什么masonry的block里引用self不需要weak？"><a href="#5、为什么masonry的block里引用self不需要weak？" class="headerlink" title="5、为什么masonry的block里引用self不需要weak？"></a>5、为什么masonry的block里引用self不需要weak？</h5><p>这个就和网络请求里面使用self道理是一样的。因为UIView未强持有block，所以这个block只是个栈block，而且构不成循环引用的条件。栈block有个特性就是它执行完毕之后就出栈，出栈了就会被释放掉。看mas_makexxx的方法实现会发现这个block很快就被调用了，完事儿就出栈销毁，构不成循环引用，所以可以直接放心的使用self。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (NSArray *)mas_makeConstraints:(void(^)(MASConstraintMaker *))block &#123;</span><br><span class="line">    self.translatesAutoresizingMaskIntoConstraints = NO;</span><br><span class="line">    MASConstraintMaker *constraintMaker = [[MASConstraintMaker alloc] initWithView:self];</span><br><span class="line">    block(constraintMaker);</span><br><span class="line">    return [constraintMaker install];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">如果要强引用，block应该是masnory的一个属性，即被masnory对象持有。且是copy修饰符</span><br></pre></td></tr></table></figure>
-<h4 id="6、是否所有的Block中，使用self-都会导致循环引用？"><a href="#6、是否所有的Block中，使用self-都会导致循环引用？" class="headerlink" title="6、是否所有的Block中，使用self 都会导致循环引用？"></a>6、是否所有的Block中，使用self 都会导致循环引用？</h4><h4 id="7、block修改外部局部变量"><a href="#7、block修改外部局部变量" class="headerlink" title="7、block修改外部局部变量"></a>7、block修改外部局部变量</h4><p>如果是全局变量呢？</p>
-<h6 id="1-、在block中无法直接修改外部变量的原因"><a href="#1-、在block中无法直接修改外部变量的原因" class="headerlink" title="(1)、在block中无法直接修改外部变量的原因"></a>(1)、在block中无法直接修改外部变量的原因</h6><p>错误示例：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//声明一个局部整型变量 </span><br><span class="line">int intValue = 3; //漏掉了__block修饰符</span><br><span class="line"></span><br><span class="line">//声明一个返回值为int,一个int参数的block变量</span><br><span class="line">int (^block)(int) = ^(int m)&#123;</span><br><span class="line">    intValue++;</span><br><span class="line">    return m * intValue;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">//调用block变量,5作为参数之后的结果</span><br><span class="line">NSLog(@&quot;block(5) = %d&quot;,block(5));</span><br></pre></td></tr></table></figure>
-<p>在上面的例子中,我们编译程序后发现编译器会有红色错误,错误提示为<br>Variable is not assignable (missing __block type specifier)</p>
-<p>为什么会出现不能被赋值的错误提示呢？</p>
-<p>block在实现时就会对它引用到的它所在方法中定义的栈变量进行一次只读拷贝，在 block 块内使用该只读拷贝。<br>那为了避免上述错误，就要<strong>精髓1：使用__block修饰符来修饰外部变量,用来通知编译器该外部变量intValue与block中的intValue指的是同一块儿内存地址，而不需要内存拷贝。</strong></p>
-<h6 id="2-、解决如何在-block-中修改外部变量"><a href="#2-、解决如何在-block-中修改外部变量" class="headerlink" title="(2)、解决如何在 block 中修改外部变量"></a>(2)、解决如何在 block 中修改外部变量</h6><ul>
-<li><p>有必要了解：<a href="http://www.jianshu.com/p/404ff9d3cd42" target="_blank" rel="noopener">iOS中__block 关键字的底层实现原理</a></p>
-</li>
-<li><p>结论：<code>block可以访问外部变量，但是无法修改外部变量的值，如果要修改外部变量的值，需要对外部变量加上__block作为该变量的修饰</code></p>
-<p>来源：<a href="http://bbs.itheima.com/thread-248328-1-1.html" target="_blank" rel="noopener">OC学习笔记之block访问外部变量【重点面试】</a></p>
+<li><p><strong>NSStackBlock </strong> 在栈区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age2 = 2;</span><br><span class="line">NSLog(@&quot;%@&quot;, [^&#123;</span><br><span class="line">        NSLog(@&quot;block3:%d&quot;, age2);</span><br><span class="line">    &#125; class]);</span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<ul>
-<li>问题： <a href="http://blog.csdn.net/huyisu/article/details/40543291" target="_blank" rel="noopener">如何在 block 中修改外部变量</a></li>
+<p>附：打印block类型<code>NSLog(@&quot;%@&quot;, [block1 class]);</code></p>
+<h2 id="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"><a href="#问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？" class="headerlink" title="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"></a>问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？</h2><p>有Person类如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;Person.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation Person</span><br><span class="line"></span><br><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;Person dealloc&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>了解解题的基础知识：</p>
+<h4 id="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block"><a href="#1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block" class="headerlink" title="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)"></a>1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)</h4><ul>
+<li>如果block在<code>栈</code>空间，不管外部变量是强引用还是弱引用，block都会弱引用访问对象</li>
+<li>如果block在<code>堆</code>空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</li>
 </ul>
-<p>有两种办法<br>① 第一种是可以修改 static 全局变量；<br>② 第二种是可以修改用新关键字 __block 修饰的变量。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__block int blockLocal  = 100;</span><br><span class="line">static int staticLocal  = 100;</span><br><span class="line"></span><br><span class="line">void (^aBlock)(void) = ^(void)&#123; </span><br><span class="line">    NSLog(@&quot; &gt;&gt; Sum: %d\n&quot;, global + staticLocal);</span><br><span class="line">    </span><br><span class="line">    global++;</span><br><span class="line">    blockLocal++;</span><br><span class="line">    staticLocal++;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">aBlock();</span><br></pre></td></tr></table></figure>
-<p><code>附：静态变量 和 全局变量   在加和不加  __block 都会直接引用变量地址。也就意味着静态变量和全局变量的修改可以直接修改，不需要作添加__block的步骤。</code></p>
-<h4 id="在ARC下获取对象的引用计数值"><a href="#在ARC下获取对象的引用计数值" class="headerlink" title="在ARC下获取对象的引用计数值"></a>在ARC下获取对象的引用计数值</h4><p>在ARC下获取对象的引用计数值，可以使用CFGetRetainCount。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">对于Core Foundation对象：</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;,  CFGetRetainCount(aCFString));</span><br><span class="line"></span><br><span class="line">对于Foundation对象</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;, CFGetRetainCount((__bridge CFTypeRef)aNNstring));</span><br><span class="line"></span><br><span class="line">NSLog(@&quot;%@ CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br></pre></td></tr></table></figure>
-<p>以下获取引用计数的方法错了，但是不知道正确的应该怎么用。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;%@ dealloc&quot;, NSStringFromClass([self class]));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewWillDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewWillDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewWillDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewDidDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewDidDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewDidDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>几篇文章：</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/bcc0bcaadd6c" target="_blank" rel="noopener">iOS杂谈：影响控制器正常释放的常见问题</a></li>
-<li><a href="https://www.cnblogs.com/songliquan/p/4970505.html" target="_blank" rel="noopener">iOS中控制器的释放问题</a></li>
-<li><a href="https://blog.csdn.net/u014222687/article/details/51767685" target="_blank" rel="noopener">Block与Self的循环引用</a></li>
-<li><p><a href="http://www.cocoachina.com/ios/20170122/18601.html" target="_blank" rel="noopener">ARC下用块（block）的循环引用问题样例探究</a></p>
+<p>2、GCD API的方法参数block，在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上。</p>
+<h4 id="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"><a href="#附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？" class="headerlink" title="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"></a>附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？</h4><ul>
+<li><p>1.block作为函数返回值时</p>
 </li>
-<li><p><a href="https://blog.csdn.net/y_csdnblog_xx/article/details/51483111" target="_blank" rel="noopener">ReactiveCocoa之RAC内存管理（十二）</a></p>
+<li><p>2.将block赋值给__strong指针时</p>
 </li>
-<li><a href="https://www.jianshu.com/p/16b78d72dc95" target="_blank" rel="noopener">ReactiveCocoa入门教程——第二部分</a></li>
-<li><a href="https://www.jianshu.com/p/16e8e2e5773c" target="_blank" rel="noopener">subscribenext 循环引用</a></li>
+<li><p>3.block作为Cocoa API中方法名含有usingBlock的方法参数时</p>
+</li>
+<li><p>4.block作为GCD API的方法参数时</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        </span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+</li>
 </ul>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h6 id="block和weak修饰符的区别是什么？"><a href="#block和weak修饰符的区别是什么？" class="headerlink" title="block和weak修饰符的区别是什么？"></a><strong>block和</strong>weak修饰符的区别是什么？</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1，在MRC时代，__block修饰，可以避免循环引用；ARC时代，__block修饰，同样会引起循环引用问题；</span><br><span class="line">2，__block不管是ARC还是MRC模式下都可以使用，可以修饰对象，还可以修饰基本数据类型；</span><br><span class="line">3，__weak只能在ARC模式下使用，也只能修饰对象，不能修饰基本数据类型；</span><br><span class="line">4，__block对象可以在block中被重新赋值，__weak不可以；</span><br></pre></td></tr></table></figure>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-
+<h3 id="1、问：-下列代码中的Person的对象什么时候才销毁？"><a href="#1、问：-下列代码中的Person的对象什么时候才销毁？" class="headerlink" title="1、问： 下列代码中的Person的对象什么时候才销毁？"></a>1、问： 下列代码中的Person的对象什么时候才销毁？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;age:%d&quot;, person.age);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：方法代码执行完就person就销毁了</p>
+<h3 id="2、问：以下gcd的block中引用-Person的对象什么时候才销毁？"><a href="#2、问：以下gcd的block中引用-Person的对象什么时候才销毁？" class="headerlink" title="2、问：以下gcd的block中引用 Person的对象什么时候才销毁？"></a>2、问：以下gcd的block中引用 Person的对象什么时候才销毁？</h3><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">-(<span class="keyword">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = <span class="number">10</span>;</span><br><span class="line">    </span><br><span class="line">  	<span class="comment">// 不使用__weak修饰</span></span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2.0</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        <span class="built_in">NSLog</span>(<span class="string">@"age:%d"</span>, person.age);	<span class="comment">// 堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。</span></span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"touchesBegan"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：</p>
+<p>1、gcd的block默认会做copy操作，即dispatch_after的block是堆block。</p>
+<p>2、我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。</p>
+<p>所以这里外部的Person没有声明为__weak，所以堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。(如果没有gcd)</p>
+<h3 id="3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？"><a href="#3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？" class="headerlink" title="3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？"></a>3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？</h3><p>续答：此时上述的代码会变为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">  	// 不使用__weak修饰</span><br><span class="line">    __weak Person *weakPerson = person;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;person:%p&quot;, weakPerson);	// 当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。所以此处person 是 nil，打印的%p地址，是0x0。</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;touchesBegan&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样，还是我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。所以当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。即上述的输出结果是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">person 是 nil，打印的%p地址，是0x0。</span><br></pre></td></tr></table></figure>
+<h3 id="4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放"><a href="#4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放" class="headerlink" title="4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放"></a>4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放</h3><h4 id="Q：block的属性修饰词为什么是copy？"><a href="#Q：block的属性修饰词为什么是copy？" class="headerlink" title="Q：block的属性修饰词为什么是copy？"></a>Q：block的属性修饰词为什么是copy？</h4><p>block一旦没有进行copy操作，就不会在堆上<br>block在堆上，程序员就可以对block做内存管理等操作，可以控制block的生命周期</p>
+<h4 id="Q：当block被copy到堆时，对-block修饰的变量做了什么？"><a href="#Q：当block被copy到堆时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block被copy到堆时，对__block修饰的变量做了什么？"></a>Q：当block被copy到堆时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的copy函数</li>
+<li>copy函数内部会调用_Block_object_assign函数</li>
+<li>_Block_object_assign函数会对__block变量形成强引用（retain）</li>
+<li>对于__block 修饰的变量 assign函数对其强引用；对于外部对象 assign函数根据外部如何引用而引用</li>
+</ul>
+<h4 id="Q：当block从堆中移除时，对-block修饰的变量做了什么？"><a href="#Q：当block从堆中移除时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block从堆中移除时，对__block修饰的变量做了什么？"></a>Q：当block从堆中移除时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的dispose函数</li>
+<li>dispose函数内部会调用_Block_object_dispose函数</li>
+<li>_Block_object_dispose函数会自动释放引用的__block变量（release）</li>
+</ul>
+<h2 id="二、-block修饰符"><a href="#二、-block修饰符" class="headerlink" title="二、__block修饰符"></a>二、__block修饰符</h2><h4 id="Q：-block-int-age-10，系统做了哪些？"><a href="#Q：-block-int-age-10，系统做了哪些？" class="headerlink" title="Q：__block int age = 10，系统做了哪些？"></a>Q：<code>__block</code> int age = 10，系统做了哪些？</h4><h4 id="Q：-block-修饰符作用？"><a href="#Q：-block-修饰符作用？" class="headerlink" title="Q：__block 修饰符作用？"></a>Q：__block 修饰符作用？</h4>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cldyf81ct00uh00r489exrkt8" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②Block/" data-id="cle6tbltu00uyngr4zfjhtpvh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -380,7 +331,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cldyf81bl00ue00r430nyml7b" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cle6tblt500uwngr4516wqw3o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -498,7 +449,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①修饰词/" data-id="cldyf81cg00ug00r4hihdyvn3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①修饰词/" data-id="cle6tblti00uxngr4gutlbg2p" class="article-share-link">Share</a>
       
       
     </footer>
@@ -607,7 +558,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①AutoRelease/" data-id="cldyf81b800ud00r487voba7a" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①AutoRelease/" data-id="cle6tblrx00utngr4wq2vvaeh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -673,7 +624,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Common/" data-id="cldyf81a400ua00r4wkgm50s0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Common/" data-id="cle6tblr600urngr46he5j9bu" class="article-share-link">Share</a>
       
       
     </footer>
@@ -711,7 +662,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Swift/" data-id="cldyf81ah00ub00r4cby0feps" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Swift/" data-id="cle6tblrk00usngr4rau6sgb2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -750,7 +701,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/Runtime/" data-id="cldyf81au00uc00r41avc2c1v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/Runtime/" data-id="cle6tblsa00uungr4apled14r" class="article-share-link">Share</a>
       
       
     </footer>
@@ -800,7 +751,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发/" data-id="cldyf818e00u600r42etx1gcj" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发/" data-id="cle6tblpc00umngr4jq9nprmv" class="article-share-link">Share</a>
       
       
     </footer>
@@ -851,7 +802,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cldyf818v00u700r4vwnrg5cm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cle6tblpp00unngr4pimx5o9v" class="article-share-link">Share</a>
       
       
     </footer>
@@ -894,7 +845,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cldyf819c00u800r4ead8y4ix" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cle6tblq200uongr44vhyu53d" class="article-share-link">Share</a>
       
       
     </footer>

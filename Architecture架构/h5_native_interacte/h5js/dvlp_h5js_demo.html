@@ -624,17 +624,23 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     var targetSectionIndex = -1;
     var targetRowIndex = -1;
 
-    for (let sectionIndex = 0; sectionIndex < array.length; sectionIndex++) {
-      const array = _demoSectionArray[sectionIndex];
-
+    console.log(`============0:查找描述是【${h5CallBridgeActionDes}】的元素`);
+    for (let sectionIndex = 0; sectionIndex < _demoSectionArray.length; sectionIndex++) {
+      var sectionElement = _demoSectionArray[sectionIndex];
+      var elementArray = sectionElement["sectionDatas"];
+      // console.log(`============1:elementArray=${JSON.stringify(elementArray)}`);
       var hasFound = false;
-      for (let rowIndex = 0; rowIndex < array.length; rowIndex++) {
-        const element = array[rowIndex];
+      for (let rowIndex = 0; rowIndex < elementArray.length; rowIndex++) {
+        const element = elementArray[rowIndex];
+        // console.log(`============2:element=${JSON.stringify(element)}`);
         if (element["h5CallBridgeActionDes"] == h5CallBridgeActionDes) {
           targetSectionIndex = sectionIndex;
           targetRowIndex = rowIndex;
           hasFound = true;
+          console.log(`============3Found:${sectionIndex}.${rowIndex}${element["h5CallBridgeActionDes"]}`);
           break;
+        } else {
+          console.log(`============3NOThis:${sectionIndex}.${rowIndex}${element["h5CallBridgeActionDes"]}`);
         }
       }
 
@@ -657,33 +663,6 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     return demoMap;
   }
 
-  /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
-  function _h5Action_updateText_byIndex(sectionIndex, rowIndex) {
-    var demoMap = _getElementByIndex(sectionIndex, rowIndex);
-    console.log(`-------当前所选择的值${sectionIndex}.${rowIndex}-------demoMap=${demoMap},demoMapString=${JSON.stringify(demoMap)}`);
-
-
-    var h5CallBridgeActionDes = demoMap["h5CallBridgeActionDes"];
-
-    var h5CallBridgeActionName = demoMap["h5CallBridgeActionName"];
-
-    var h5CallBridgeSendMessage = demoMap["h5CallBridgeSendMessage"];
-    if (typeof h5CallBridgeSendMessage == 'string') {
-      // 
-    } else {
-      h5CallBridgeSendMessage = JSON.stringify(h5CallBridgeSendMessage);
-    }
-
-    var h5CallBridgeDescription = demoMap["h5CallBridgeDescription"];
-    if (typeof h5CallBridgeDescription == 'string') {
-      // 
-    } else {
-      h5CallBridgeDescription = JSON.stringify(h5CallBridgeDescription);
-    }
-
-    _h5Action_updateText_forData(h5CallBridgeActionDes, h5CallBridgeActionName, h5CallBridgeSendMessage, h5CallBridgeDescription);
-  }
-
   /// 更新 标题
   function _h5Action_updateText_forTitle(dataFromSource) {
     console.log(`更新UI上的副标题为:${dataFromSource}`);
@@ -691,12 +670,21 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   }
 
   /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
-  function _h5Action_updateText_forData(h5CallBridgeActionDes, h5CallBridgeActionName, h5CallBridgeSendMessage, h5CallBridgeDescription) {
-    console.log(`更新UI上的各部分数据分别为:\n----${h5CallBridgeActionName}\n----${h5CallBridgeSendMessage}\n----${h5CallBridgeDescription}`);
-    document.getElementById("h5CallBridgeActionDesDataView").innerHTML = '' + h5CallBridgeActionDes;
-    document.getElementById("h5CallBridgeActionNameDataView").innerHTML = '' + h5CallBridgeActionName;
-    document.getElementById("h5CallBridgeSendMessageDataView").innerHTML = h5CallBridgeSendMessage;
-    document.getElementById("h5CallBridgeDescriptionDataView").innerHTML = h5CallBridgeDescription;
+  function _h5Action_updateText_byIndex(sectionIndex, rowIndex) {
+    var demoMap = _getElementByIndex(sectionIndex, rowIndex);
+    console.log(`-------更新UI上的各部分数据为当前所选择的值${sectionIndex}.${rowIndex}-------demoMap=${demoMap},demoMapString=${JSON.stringify(demoMap)}`);
+    
+    _h5Action_updateText_forData(demoMap);
+  }
+
+  /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
+  function _h5Action_updateText_forData(element) {
+    updateElementValueById("h5CallBridgeActionDesDataView", element["h5CallBridgeActionDes"]);
+    updateElementValueById("h5CallBridgeActionNameDataView", element["h5CallBridgeActionName"]);
+    updateElementValueById("h5CallBridgeSendMessageDataView", element["h5CallBridgeSendMessage"]);
+    updateElementValueById("h5CallBridgeDescriptionDataView", element["h5CallBridgeDescription"]);
+
+    updateElementValueById("bridgeCallH5ActionDataView", element["appCallbackDemo_ValueAndDescription"]);
   }
 
   /// 获取h5调用的app桥接方法名
@@ -733,35 +721,6 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   }
 
 
-  // h5Action_share 分享内容到指定的分享方式(微信聊天页面等)
-  /*
-  function h5Action_updateTextAreaValue_share(webPageType) {
-    var url;
-    if (webPageType == '只是分享网页链接，没其他操作') {
-      url = "https://www.baidu.com";
-    } else if (webPageType == '分享链接，且链接可打开app的_原生页面') {
-      url = 'yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720';
-    } else if (webPageType == '分享链接，且链接可打开app的_网页游戏') {
-      var appOpenUrl = "yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976";
-      // [js 对url进行编码和解码](https://blog.csdn.net/qq_42740797/article/details/111172160)
-      // appOpenUrl = encodeURIComponent(appOpenUrl); // 提示🤝：实际发现，不编码，也可打开
-      url = "http://test-h5.yuanwangwu.com/pages-h5/share/share-farm?&accountId=1475332557208702976&appurl=" + appOpenUrl;
-    } else {
-      url = "https://www.baidu.com";
-    }
-
-    var map = {
-      // "shareType": "Wechat_SESSION", // 分享方式
-      "shareWebPageUrl": url,
-      "shareTitle": "你的好友发来一条加急消息", // 分享标题
-      "shareDescription": "急急急，快来帮我转大转盘，100%中奖！", // 分享描述
-      "shareThumbnailUrl": "https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d",
-    };
-    var message = JSON.stringify(map);
-    _h5Action_updateText_forData('h5CallBridgeAction_share', message);
-  }
-  */
-
   /// 提供给原生调用的h5方法(用于测试原生调用的方法及传递回来的返回值)
   function bridgeCallH5Action_showCallbackJsonString(jsonString) {
     if (jsonString == null || jsonString == undefined || !jsonString) {
@@ -776,10 +735,16 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   /// 显示 h5调用app后， app回传给h5的 回值 demo 示例
   function _h5Action_showAppResultDemoValue() {
     var currentH5CallBridgeActionDes = getElementValueById("h5CallBridgeActionDesDataView");
+
     var element = _getElementByH5CallBridgeActionDes(currentH5CallBridgeActionDes);
-    var appCallbackDemoValue = element["appCallbackDemoValue"];
+    if (element == null || element == undefined || !element) {
+      _showAlert(`您还未提供描述是【${currentH5CallBridgeActionDes}】的json demo示例,请检查您的描述。`);
+      return;
+    }
+
+    var appCallbackDemoValue = element["appCallbackDemo_ValueAndDescription"];
     if (appCallbackDemoValue == null || appCallbackDemoValue == undefined || !appCallbackDemoValue) {
-      _showAlert("您还未给此js方法的回值demo示例");
+      _showAlert(`您还未给此js方法的回值demo示例`);
       return;
     }
 

@@ -75,7 +75,7 @@
     <article id="post-Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/" class="article-date">
-  <time datetime="2023-02-16T07:14:50.624Z" itemprop="datePublished">2023-02-16</time>
+  <time datetime="2023-02-16T07:59:36.931Z" itemprop="datePublished">2023-02-16</time>
 </a>
     
   </div>
@@ -710,17 +710,23 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     var targetSectionIndex = -1;
     var targetRowIndex = -1;
 
-    for (let sectionIndex = 0; sectionIndex < array.length; sectionIndex++) {
-      const array = _demoSectionArray[sectionIndex];
-
+    console.log(`============0:查找描述是【${h5CallBridgeActionDes}】的元素`);
+    for (let sectionIndex = 0; sectionIndex < _demoSectionArray.length; sectionIndex++) {
+      var sectionElement = _demoSectionArray[sectionIndex];
+      var elementArray = sectionElement["sectionDatas"];
+      // console.log(`============1:elementArray=${JSON.stringify(elementArray)}`);
       var hasFound = false;
-      for (let rowIndex = 0; rowIndex < array.length; rowIndex++) {
-        const element = array[rowIndex];
+      for (let rowIndex = 0; rowIndex < elementArray.length; rowIndex++) {
+        const element = elementArray[rowIndex];
+        // console.log(`============2:element=${JSON.stringify(element)}`);
         if (element["h5CallBridgeActionDes"] == h5CallBridgeActionDes) {
           targetSectionIndex = sectionIndex;
           targetRowIndex = rowIndex;
           hasFound = true;
+          console.log(`============3Found:${sectionIndex}.${rowIndex}${element["h5CallBridgeActionDes"]}`);
           break;
+        } else {
+          console.log(`============3NOThis:${sectionIndex}.${rowIndex}${element["h5CallBridgeActionDes"]}`);
         }
       }
 
@@ -743,33 +749,6 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     return demoMap;
   }
 
-  /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
-  function _h5Action_updateText_byIndex(sectionIndex, rowIndex) {
-    var demoMap = _getElementByIndex(sectionIndex, rowIndex);
-    console.log(`-------当前所选择的值${sectionIndex}.${rowIndex}-------demoMap=${demoMap},demoMapString=${JSON.stringify(demoMap)}`);
-
-
-    var h5CallBridgeActionDes = demoMap["h5CallBridgeActionDes"];
-
-    var h5CallBridgeActionName = demoMap["h5CallBridgeActionName"];
-
-    var h5CallBridgeSendMessage = demoMap["h5CallBridgeSendMessage"];
-    if (typeof h5CallBridgeSendMessage == 'string') {
-      // 
-    } else {
-      h5CallBridgeSendMessage = JSON.stringify(h5CallBridgeSendMessage);
-    }
-
-    var h5CallBridgeDescription = demoMap["h5CallBridgeDescription"];
-    if (typeof h5CallBridgeDescription == 'string') {
-      // 
-    } else {
-      h5CallBridgeDescription = JSON.stringify(h5CallBridgeDescription);
-    }
-
-    _h5Action_updateText_forData(h5CallBridgeActionDes, h5CallBridgeActionName, h5CallBridgeSendMessage, h5CallBridgeDescription);
-  }
-
   /// 更新 标题
   function _h5Action_updateText_forTitle(dataFromSource) {
     console.log(`更新UI上的副标题为:${dataFromSource}`);
@@ -777,12 +756,21 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   }
 
   /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
-  function _h5Action_updateText_forData(h5CallBridgeActionDes, h5CallBridgeActionName, h5CallBridgeSendMessage, h5CallBridgeDescription) {
-    console.log(`更新UI上的各部分数据分别为:\n----${h5CallBridgeActionName}\n----${h5CallBridgeSendMessage}\n----${h5CallBridgeDescription}`);
-    document.getElementById("h5CallBridgeActionDesDataView").innerHTML = '' + h5CallBridgeActionDes;
-    document.getElementById("h5CallBridgeActionNameDataView").innerHTML = '' + h5CallBridgeActionName;
-    document.getElementById("h5CallBridgeSendMessageDataView").innerHTML = h5CallBridgeSendMessage;
-    document.getElementById("h5CallBridgeDescriptionDataView").innerHTML = h5CallBridgeDescription;
+  function _h5Action_updateText_byIndex(sectionIndex, rowIndex) {
+    var demoMap = _getElementByIndex(sectionIndex, rowIndex);
+    console.log(`-------更新UI上的各部分数据为当前所选择的值${sectionIndex}.${rowIndex}-------demoMap=${demoMap},demoMapString=${JSON.stringify(demoMap)}`);
+    
+    _h5Action_updateText_forData(demoMap);
+  }
+
+  /// 更新 h5调用的app桥接方法名 和  h5调用app桥接方法后，发送的数据
+  function _h5Action_updateText_forData(element) {
+    updateElementValueById("h5CallBridgeActionDesDataView", element["h5CallBridgeActionDes"]);
+    updateElementValueById("h5CallBridgeActionNameDataView", element["h5CallBridgeActionName"]);
+    updateElementValueById("h5CallBridgeSendMessageDataView", element["h5CallBridgeSendMessage"]);
+    updateElementValueById("h5CallBridgeDescriptionDataView", element["h5CallBridgeDescription"]);
+
+    updateElementValueById("bridgeCallH5ActionDataView", element["appCallbackDemo_ValueAndDescription"]);
   }
 
   /// 获取h5调用的app桥接方法名
@@ -819,35 +807,6 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   }
 
 
-  // h5Action_share 分享内容到指定的分享方式(微信聊天页面等)
-  /*
-  function h5Action_updateTextAreaValue_share(webPageType) {
-    var url;
-    if (webPageType == '只是分享网页链接，没其他操作') {
-      url = "https://www.baidu.com";
-    } else if (webPageType == '分享链接，且链接可打开app的_原生页面') {
-      url = 'yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720';
-    } else if (webPageType == '分享链接，且链接可打开app的_网页游戏') {
-      var appOpenUrl = "yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976";
-      // [js 对url进行编码和解码](https://blog.csdn.net/qq_42740797/article/details/111172160)
-      // appOpenUrl = encodeURIComponent(appOpenUrl); // 提示🤝：实际发现，不编码，也可打开
-      url = "http://test-h5.yuanwangwu.com/pages-h5/share/share-farm?&accountId=1475332557208702976&appurl=" + appOpenUrl;
-    } else {
-      url = "https://www.baidu.com";
-    }
-
-    var map = {
-      // "shareType": "Wechat_SESSION", // 分享方式
-      "shareWebPageUrl": url,
-      "shareTitle": "你的好友发来一条加急消息", // 分享标题
-      "shareDescription": "急急急，快来帮我转大转盘，100%中奖！", // 分享描述
-      "shareThumbnailUrl": "https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d",
-    };
-    var message = JSON.stringify(map);
-    _h5Action_updateText_forData('h5CallBridgeAction_share', message);
-  }
-  */
-
   /// 提供给原生调用的h5方法(用于测试原生调用的方法及传递回来的返回值)
   function bridgeCallH5Action_showCallbackJsonString(jsonString) {
     if (jsonString == null || jsonString == undefined || !jsonString) {
@@ -862,10 +821,16 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   /// 显示 h5调用app后， app回传给h5的 回值 demo 示例
   function _h5Action_showAppResultDemoValue() {
     var currentH5CallBridgeActionDes = getElementValueById("h5CallBridgeActionDesDataView");
+
     var element = _getElementByH5CallBridgeActionDes(currentH5CallBridgeActionDes);
-    var appCallbackDemoValue = element["appCallbackDemoValue"];
+    if (element == null || element == undefined || !element) {
+      _showAlert(`您还未提供描述是【${currentH5CallBridgeActionDes}】的json demo示例,请检查您的描述。`);
+      return;
+    }
+
+    var appCallbackDemoValue = element["appCallbackDemo_ValueAndDescription"];
     if (appCallbackDemoValue == null || appCallbackDemoValue == undefined || !appCallbackDemoValue) {
-      _showAlert("您还未给此js方法的回值demo示例");
+      _showAlert(`您还未给此js方法的回值demo示例`);
       return;
     }
 
@@ -891,7 +856,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/" data-id="cle3u4n3h001h21r4arg5a9t1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/" data-id="cle6tblne00uhngr4erfz2nmw" class="article-share-link">Share</a>
       
       
     </footer>
@@ -2074,7 +2039,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/" data-id="cle3txq7g001921r4rekwlaoz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/" data-id="cle6tbm7300xmngr4u923zssn" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3196,7 +3161,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/" data-id="cle3txq7k001b21r4m0ovhxiv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/" data-id="cle6tbm6t00xlngr4i54clojz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3222,7 +3187,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/" data-id="cle3txq7f001721r48b0y622v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/" data-id="cle6tbln600ufngr4n9dnb1zh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3248,7 +3213,61 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/" data-id="cle3txq7g001821r4j6oan9oe" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/" data-id="cle6tblnb00ugngr462c8krqc" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-HTML/common_js/object_util" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/HTML/common_js/object_util/" class="article-date">
+  <time datetime="2023-02-13T08:04:32.533Z" itemprop="datePublished">2023-02-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        /*
+ * @Author: dvlproad dvlproad@163.com
+ * @Date: 2023-02-11 14:56:20
+ * @LastEditors: dvlproad dvlproad@163.com
+ * @LastEditTime: 2023-02-12 15:07:54
+ * @FilePath: /undefined/Users/lichaoqian/Project/CQBook/dvlproadHexo/source/_posts/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_url_create_demo.js
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+
+
+const isObject = (obj) => obj === Object(obj)
+const isNil = (val) => val === undefined || val === null
+const isEmpty = (val) => {
+  return isString(val) || isObject(val) || Array.isArray(val) ?
+    !Object.keys(val).length : isNil(val)
+}
+const isString = (val) => typeof val === 'string'
+
+// [js 删除Object中指定的key](https://blog.csdn.net/weixin_39501680/article/details/123110404)
+const deleteObjectByKey = (obj = {}, arr = []) => {
+  if (isEmpty(obj) || !isObject(obj)) return {}
+  if (isEmpty(arr) || (!Array.isArray(arr) && !isString(arr))) return obj
+
+  return Object.keys(obj)
+    .filter((k) => !arr.includes(k))
+    .reduce((acc, key) => ((acc[key] = obj[key]), acc), {})
+}
+
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/HTML/common_js/object_util/" data-id="cle6tbky300ddngr4xi49nwhn" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3350,61 +3369,7 @@ function getQueryString(key) {
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/common_js/url_util/" data-id="cle2ji630000321r406o0tcso" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-HTML/common_js/object_util" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/HTML/common_js/object_util/" class="article-date">
-  <time datetime="2023-02-13T08:04:32.533Z" itemprop="datePublished">2023-02-13</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        /*
- * @Author: dvlproad dvlproad@163.com
- * @Date: 2023-02-11 14:56:20
- * @LastEditors: dvlproad dvlproad@163.com
- * @LastEditTime: 2023-02-12 15:07:54
- * @FilePath: /undefined/Users/lichaoqian/Project/CQBook/dvlproadHexo/source/_posts/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5_open_app_url_create_demo.js
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
-
-
-const isObject = (obj) => obj === Object(obj)
-const isNil = (val) => val === undefined || val === null
-const isEmpty = (val) => {
-  return isString(val) || isObject(val) || Array.isArray(val) ?
-    !Object.keys(val).length : isNil(val)
-}
-const isString = (val) => typeof val === 'string'
-
-// [js 删除Object中指定的key](https://blog.csdn.net/weixin_39501680/article/details/123110404)
-const deleteObjectByKey = (obj = {}, arr = []) => {
-  if (isEmpty(obj) || !isObject(obj)) return {}
-  if (isEmpty(arr) || (!Array.isArray(arr) && !isString(arr))) return obj
-
-  return Object.keys(obj)
-    .filter((k) => !arr.includes(k))
-    .reduce((acc, key) => ((acc[key] = obj[key]), acc), {})
-}
-
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/common_js/object_util/" data-id="cle2ji7k7000521r4tbse5ktd" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/HTML/common_js/url_util/" data-id="cle6tbky400dgngr41c5ixgw8" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3479,7 +3444,7 @@ const deleteObjectByKey = (obj = {}, arr = []) => {
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/css/dvlp_h5_open_app_url_create_demo/" data-id="cle3txq7i001a21r4b139zehp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5_open_app/css/dvlp_h5_open_app_url_create_demo/" data-id="cle6tbmqt00xnngr4ij736lgw" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3501,11 +3466,11 @@ const deleteObjectByKey = (obj = {}, arr = []) => {
     
     <div class="article-entry" itemprop="articleBody">
       
-        [{"sectionTitle":"只是测试方法，不再实际项目中使用","sectionDatas":[{"h5CallBridgeActionDes":"测试 h5 调用 app 方法，并将返回值回调给 h5","h5CallBridgeActionName":"h5CallBridgeAction_test_h5CallAppAndCallBackToH5","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，没其他操作","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976"}}]},{"sectionTitle":"H5调用app，回调给H5(app、device monitor、user信息)","sectionDatas":[{"h5CallBridgeActionDes":"获取app的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedAppInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemoValue":{"version":"1.0.0","buildNumber":"1","platform":"iOS","appType":"Beyond","appFeatureType":"dev"},"appCallbackDemoDescription":{"version":"1.0.0","buildNumber":"1","platform":"iOS","appType":"App类型，公司产品上可能有多个app","appFeatureType":"dev(pgyer蒲公英)、inner(TestFlight)、formal(AppStore)"}},{"h5CallBridgeActionDes":"获取埋点monitor的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedMonitorInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemoValue":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","app_id":"com.dvlproad.Beyond","app_name":"愿望屋","app_version":"1.0.0","app_buildNumber":"1","platform":"iOS","lib":"iOS","systemName":"iOS","lib_version":"16.1","lib_method":"code","lib_source":1,"brand":"iPhone","model":"iPhone","os":"x86_64","screen_width":393,"screen_height":852,"screen_devicePixelRatio":3,"device_id":"8CA0BE41-DE55-41E3-ABBD-8F8EC98652E3","geo_coordinate_system":"bd09ll"}}]},{"sectionTitle":"H5调用app，回调给H5(实时变化的)","sectionDatas":[{"h5CallBridgeActionDes":"获取用户token(用于安全的告知h5用户信息)，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentUserToken","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemoValue":{"userToken":"bearer clientApp8983c8e6-5e3c-48e9-a3f7-9af53a946911"}},{"h5CallBridgeActionDes":"获取键盘变化高度，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentKeyboardHeight","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemoValue":{"keyboardHeight":123}}]},{"sectionTitle":"WebControl的方法","sectionDatas":[{"h5CallBridgeActionDes":"刷新网页(到新地址)","h5CallBridgeActionName":"h5CallBridgeAction_reloadAppWebView","h5CallBridgeSendMessage":{"url":"https://www.baidu.com"}}]},{"sectionTitle":"h5调用app的方法(①无入参和回参;②有入参给app,但无需回参;③需回参给h5)","sectionDatas":[{"h5CallBridgeActionDes":"显示app的toast样式","h5CallBridgeActionName":"h5CallBridgeAction_showAppToast","h5CallBridgeSendMessage":{"message":"恭喜您分享成功"}},{"h5CallBridgeActionDes":"更新状态栏颜色_light","h5CallBridgeActionName":"h5CallBridgeAction_updateAppStatusBarStyle","h5CallBridgeSendMessage":{"statusBarColor":"light"}},{"h5CallBridgeActionDes":"更新状态栏颜色_dark","h5CallBridgeActionName":"h5CallBridgeAction_updateAppStatusBarStyle","h5CallBridgeSendMessage":{"statusBarColor":"dark"}},{"h5CallBridgeActionDes":"更新键盘弹出时候是否自动调整页面大小_true","h5CallBridgeActionName":"h5CallBridgeAction_updateResizeToAvoidBottomInset","h5CallBridgeSendMessage":{"shouldResizeToAvoidBottomInset":"true"}},{"h5CallBridgeActionDes":"更新键盘弹出时候是否自动调整页面大小_false","h5CallBridgeActionName":"h5CallBridgeAction_updateResizeToAvoidBottomInset","h5CallBridgeSendMessage":{"shouldResizeToAvoidBottomInset":"false"}}]},{"sectionTitle":"跳转到app指定页面","sectionDatas":[{"h5CallBridgeActionDes":"跳转到app指定页面_Url_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url无参可不编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://farm-game.yuanwangwu.com/index.html&shouldHideNavBar=true"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url带参必须编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&shouldHideNavBar=true&navigatorBackgroundColor=0xffffff00&statusBarColor=light&url=https%3A%2F%2Ffarm-game.yuanwangwu.com%2Findex.html%26toUserId%3D111"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName","h5CallBridgeSendMessage":{"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"婉艺","type":1,"dialogSubjectId":"1506196208391966720"}}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName","h5CallBridgeSendMessage":{"pageName":"webNavPage","pageParams":{"shouldHideNavBar":true,"navigatorBackgroundColor":"0xffffff00","statusBarColor":"light","url":"https://farm-game.yuanwangwu.com/index.html&toUserId=111"}}}]},{"sectionTitle":"分享网页链接","sectionDatas":[{"h5CallBridgeActionDes":"只是分享网页链接，没其他操作","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"https://www.baidu.com","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}},{"h5CallBridgeActionDes":"分享链接，且链接可打开app的_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}},{"h5CallBridgeActionDes":"分享链接，且链接可打开app的_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"http://test-h5.yuanwangwu.com/pages-h5/share/share-farm?&accountId=1475332557208702976&appurl=yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}}]},{"sectionTitle":"实际业务功能","sectionDatas":[{"h5CallBridgeActionDes":"发送IM消息_私聊_文本","h5CallBridgeDescription":["发起会话聊天，发起私聊/商家聊天 商家聊天走的是群组聊天","dialogSubjectId: 跟店铺聊天的时候，传的是shopId 跟用户聊天则是 accountId"],"h5CallBridgeActionName":"h5CallBridgeAction_sendIMText","h5CallBridgeSendMessage":{"dialogType":"user","dialogSubjectId":"228013","text":"hello, 你好"}},{"h5CallBridgeActionDes":"显示打赏弹窗及动画_给愿望单","h5CallBridgeActionName":"h5CallBridgeAction_showAppReward","h5CallBridgeSendMessage":{"rewardType":"wish","rewardParams":{"wishId":"1836962","buyerId":"108031"}}}]}]
+        [{"sectionTitle":"只是测试方法，不再实际项目中使用","sectionDatas":[{"h5CallBridgeActionDes":"测试 h5 调用 app 方法，并将返回值回调给 h5","h5CallBridgeActionName":"h5CallBridgeAction_test_h5CallAppAndCallBackToH5","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，没其他操作","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976"}}]},{"sectionTitle":"H5调用app，回调给H5(app、device monitor、user信息)","sectionDatas":[{"h5CallBridgeActionDes":"获取app的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedAppInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"version":"1.0.0","buildNumber":"1","platform":"iOS","appType":"App类型，公司产品上可能有多个app","appFeatureType":"dev(pgyer蒲公英)、inner(TestFlight)、formal(AppStore)"}},{"h5CallBridgeActionDes":"获取埋点monitor的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedMonitorInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","app_id":"com.dvlproad.Beyond","app_name":"愿望屋","app_version":"1.0.0","app_buildNumber":"1","platform":"iOS","lib":"iOS","systemName":"iOS","lib_version":"16.1","lib_method":"code","lib_source":1,"brand":"iPhone","model":"iPhone","os":"x86_64","screen_width":393,"screen_height":852,"screen_devicePixelRatio":3,"device_id":"8CA0BE41-DE55-41E3-ABBD-8F8EC98652E3","geo_coordinate_system":"bd09ll"}}]},{"sectionTitle":"H5调用app，回调给H5(实时变化的)","sectionDatas":[{"h5CallBridgeActionDes":"获取用户token(用于安全的告知h5用户信息)，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentUserToken","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"userToken":"bearer clientApp8983c8e6-5e3c-48e9-a3f7-9af53a946911"}},{"h5CallBridgeActionDes":"获取键盘变化高度，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentKeyboardHeight","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"keyboardHeight":123}}]},{"sectionTitle":"WebControl的方法","sectionDatas":[{"h5CallBridgeActionDes":"刷新网页(到新地址)","h5CallBridgeActionName":"h5CallBridgeAction_reloadAppWebView","h5CallBridgeSendMessage":{"url":"https://www.baidu.com"}}]},{"sectionTitle":"h5调用app的方法(①无入参和回参;②有入参给app,但无需回参;③需回参给h5)","sectionDatas":[{"h5CallBridgeActionDes":"显示app的toast样式","h5CallBridgeActionName":"h5CallBridgeAction_showAppToast","h5CallBridgeSendMessage":{"message":"恭喜您分享成功"}},{"h5CallBridgeActionDes":"更新状态栏颜色_light","h5CallBridgeActionName":"h5CallBridgeAction_updateAppStatusBarStyle","h5CallBridgeSendMessage":{"statusBarColor":"light"}},{"h5CallBridgeActionDes":"更新状态栏颜色_dark","h5CallBridgeActionName":"h5CallBridgeAction_updateAppStatusBarStyle","h5CallBridgeSendMessage":{"statusBarColor":"dark"}},{"h5CallBridgeActionDes":"更新键盘弹出时候是否自动调整页面大小_true","h5CallBridgeActionName":"h5CallBridgeAction_updateResizeToAvoidBottomInset","h5CallBridgeSendMessage":{"shouldResizeToAvoidBottomInset":"true"}},{"h5CallBridgeActionDes":"更新键盘弹出时候是否自动调整页面大小_false","h5CallBridgeActionName":"h5CallBridgeAction_updateResizeToAvoidBottomInset","h5CallBridgeSendMessage":{"shouldResizeToAvoidBottomInset":"false"}}]},{"sectionTitle":"跳转到app指定页面","sectionDatas":[{"h5CallBridgeActionDes":"跳转到app指定页面_Url_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url无参可不编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://farm-game.yuanwangwu.com/index.html&shouldHideNavBar=true"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url带参必须编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&shouldHideNavBar=true&navigatorBackgroundColor=0xffffff00&statusBarColor=light&url=https%3A%2F%2Ffarm-game.yuanwangwu.com%2Findex.html%26toUserId%3D111"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName","h5CallBridgeSendMessage":{"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"婉艺","type":1,"dialogSubjectId":"1506196208391966720"}}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName","h5CallBridgeSendMessage":{"pageName":"webNavPage","pageParams":{"shouldHideNavBar":true,"navigatorBackgroundColor":"0xffffff00","statusBarColor":"light","url":"https://farm-game.yuanwangwu.com/index.html&toUserId=111"}}}]},{"sectionTitle":"分享网页链接","sectionDatas":[{"h5CallBridgeActionDes":"只是分享网页链接，没其他操作","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"https://www.baidu.com","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}},{"h5CallBridgeActionDes":"分享链接，且链接可打开app的_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=婉艺&type=1&dialogSubjectId=1506196208391966720","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}},{"h5CallBridgeActionDes":"分享链接，且链接可打开app的_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_share","h5CallBridgeSendMessage":{"shareType":"Wechat_SESSION","shareWebPageUrl":"http://test-h5.yuanwangwu.com/pages-h5/share/share-farm?&accountId=1475332557208702976&appurl=yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976","shareTitle":"你的好友发来一条加急消息","shareDescription":"急急急，快来帮我转大转盘，100%中奖！","shareThumbnailUrl":"https://img1.baidu.com/it/u=1605341541,1182642759&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1673370000&t=4e694f8a257f10a7f6b52bd051288e7d"}}]},{"sectionTitle":"实际业务功能","sectionDatas":[{"h5CallBridgeActionDes":"发送IM消息_私聊_文本","h5CallBridgeDescription":["发起会话聊天，发起私聊/商家聊天 商家聊天走的是群组聊天","dialogSubjectId: 跟店铺聊天的时候，传的是shopId 跟用户聊天则是 accountId"],"h5CallBridgeActionName":"h5CallBridgeAction_sendIMText","h5CallBridgeSendMessage":{"dialogType":"user","dialogSubjectId":"228013","text":"hello, 你好"}},{"h5CallBridgeActionDes":"显示打赏弹窗及动画_给愿望单","h5CallBridgeActionName":"h5CallBridgeAction_showAppReward","h5CallBridgeSendMessage":{"rewardType":"wish","rewardParams":{"wishId":"1836962","buyerId":"108031"}}}]}]
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/" data-id="cle3u4n3d001g21r4s9gq4cb2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/" data-id="cle6tblnt00uingr4vhwf9qwy" class="article-share-link">Share</a>
       
       
     </footer>
@@ -3664,7 +3629,7 @@ const deleteObjectByKey = (obj = {}, arr = []) => {
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/test_h5js_demo/" data-id="cle3u4n38001f21r485iiz9zt" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/test_h5js_demo/" data-id="cle6tblo600ujngr4dgzjle92" class="article-share-link">Share</a>
       
       
     </footer>
