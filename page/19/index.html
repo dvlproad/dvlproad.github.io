@@ -72,67 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cle5b4m4700w96vr4ulya6t64" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
@@ -201,7 +140,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cle5b4m4800wc6vr43hw2h1qt" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cle6phugx00wvdhr4qsp9pjm5" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -247,7 +186,86 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cle5b4m4900wf6vr475krkhf5" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cle6phugx00wydhr4io63wq65" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/">第三方库SDWebImage①缓存-①NSCache</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①NSCache"><a href="#必备知识架构-第三方库SDWebImage①缓存-①NSCache" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①NSCache"></a>必备知识架构-第三方库SDWebImage①缓存-①NSCache</h1><p>[toc]</p>
+<h2 id="一、NSCache的认识"><a href="#一、NSCache的认识" class="headerlink" title="一、NSCache的认识"></a>一、NSCache的认识</h2><h3 id="1、为什么内存缓存要基于-NSCache？"><a href="#1、为什么内存缓存要基于-NSCache？" class="headerlink" title="1、为什么内存缓存要基于 NSCache？"></a>1、为什么内存缓存要基于 NSCache？</h3><p>NSCache和NSMutableDictionary，它们是iOS中常用的两个缓存类，基本上相同，都是<strong>健-值形式的内存缓存方式</strong>。</p>
+<p>1、<code>NSCache</code>的使用很方便，提供了类似可变字典的使用方式，但它比可变字典更适用于实现缓存，最重要的原因为<strong><code>NSCache</code>是线程安全的，使用<code>NSMutableDictionary</code>自定义实现缓存时需要考虑加锁和释放锁</strong>，<code>NSCache</code>已经帮我们做好了这一步，即在开发者自己不编写加锁代码的前提下，多个线程便可以同时访问NSCache。</p>
+<p>2、其次，在内存不足时<code>NSCache</code>会自动释放存储的对象，不需要手动干预，如果是自定义实现需要监听内存状态然后做进一步的删除对象的操作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">@interface NSCache &lt;KeyType, ObjectType&gt; : NSObject &#123;</span><br><span class="line">@private</span><br><span class="line">    id _delegate;</span><br><span class="line">    void *_private[5];</span><br><span class="line">    void *_reserved;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@property (copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@property (nullable, assign) id&lt;NSCacheDelegate&gt; delegate;</span><br><span class="line"></span><br><span class="line">- (nullable ObjectType)objectForKey:(KeyType)key;</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key; // 0 cost</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key cost:(NSUInteger)g;</span><br><span class="line">- (void)removeObjectForKey:(KeyType)key;</span><br><span class="line"></span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">// NSCache可以指定缓存的限额，当缓存超出限额自动释放内存</span><br><span class="line">// ①对象缓存可持有最大的数量 ，默认是0 没有限制），一旦超出限额，会自动删除之前添加的缓存数据</span><br><span class="line">@property NSUInteger countLimit;	// limits are imprecise/not strict</span><br><span class="line">// ②缓存中可持有的最大空间 默认是0（没有限制）</span><br><span class="line">@property NSUInteger totalCostLimit;	// limits are imprecise/not strict</span><br><span class="line"></span><br><span class="line">// 管理丢弃内容</span><br><span class="line">// 是否可以自动缓存清除可丢弃的内容，默认是YES</span><br><span class="line">@property BOOL evictsObjectsWithDiscardedContent;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>3、还有一点就是<strong><code>NSCache</code>的<code>key</code>不需要实现<code>NSCopying</code>协议</strong>，因为<code>NSCache</code>的键<code>key</code>不会被复制/拷贝。在键key不支持拷贝操作的情况下，该类用起来比字典更方便。</p>
+<h3 id="2、NSCache什么时候会删除缓存中的对象"><a href="#2、NSCache什么时候会删除缓存中的对象" class="headerlink" title="2、NSCache什么时候会删除缓存中的对象"></a>2、NSCache什么时候会删除缓存中的对象</h3><p><code>NSCache</code>删除缓存中的对象会在以下情形中发生:</p>
+<ul>
+<li>NSCache缓存对象自身被释放</li>
+<li>手动调用<code>removeObjectForKey:</code>或<code>removeAllObjects</code>方法</li>
+<li>缓存中对象的个数大于countLimit，或缓存中对象的总cost值大于totalCostLimit</li>
+<li>程序进入后台后</li>
+<li>收到系统的内存警告</li>
+</ul>
+<h2 id="二、SDMemoryCache的认识"><a href="#二、SDMemoryCache的认识" class="headerlink" title="二、SDMemoryCache的认识"></a>二、SDMemoryCache的认识</h2><p>以上已说明内存缓存要基于 NSCache，所以SDMemoryCache要继承于NSCache，源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// SDMemoryCache.h</span><br><span class="line">  </span><br><span class="line">/**</span><br><span class="line"> A memory cache which auto purge the cache on memory warning and support weak cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt; // 请注意这里除继承 NSCache &lt;KeyType, ObjectType&gt; 外，还有一个 与 SDMemoryCache 类名同名的 &lt;SDMemoryCache&gt; 协议</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>可以看出类<code>@interface SDMemoryCache</code>还要遵守<code>&lt;SDMemoryCache&gt;</code>协议。虽然类<code>@interface SDMemoryCache</code>没提供什么方法，但与 SDMemoryCache 类名同名的<code>&lt;SDMemoryCache&gt;</code>协议提供了。</p>
+<p><code>&lt;SDMemoryCache&gt;</code>协议源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A protocol to allow custom memory cache used in SDImageCache.</span><br><span class="line"> */</span><br><span class="line">@protocol SDMemoryCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)initWithConfig:(nonnull SDImageCacheConfig *)config;</span><br><span class="line"></span><br><span class="line">- (nullable id)objectForKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key cost:(NSUInteger)cost;</span><br><span class="line"></span><br><span class="line">- (void)removeObjectForKey:(nonnull id)key;</span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？"><a href="#1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？" class="headerlink" title="1、为什么另外建了个与类名SDMemoryCache同名的&lt;SDMemoryCache&gt;协议，并把方法提到了&lt;SDMemoryCache&gt;协议中？"></a>1、为什么另外建了个与类名SDMemoryCache同名的<code>&lt;SDMemoryCache&gt;</code>协议，并把方法提到了<code>&lt;SDMemoryCache&gt;</code>协议中？</h3><p>答：为了当你想要要使用自定义的缓存类的时候，可以不用继承<code>@interface SDMemoryCache</code>，而只需遵循<code>&lt;SDMemoryCache&gt;</code>协议的方便。</p>
+<h3 id="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"><a href="#2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？" class="headerlink" title="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"></a>2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？</h3><p>答：</p>
+<blockquote>
+<p>内存：@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; <sdmemorycache></sdmemorycache></p>
+<p>磁盘：@interface SDDiskCache : NSObject <sddiskcache></sddiskcache></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> The built-in disk cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDDiskCache : NSObject &lt;SDDiskCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">- (void)moveCacheDirectoryFromPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、内存缓存的设计"><a href="#三、内存缓存的设计" class="headerlink" title="三、内存缓存的设计"></a>三、内存缓存的设计</h2><h3 id="1、SDImageCache"><a href="#1、SDImageCache" class="headerlink" title="1、SDImageCache"></a>1、SDImageCache</h3><p>含<code>id&lt;SDMemoryCache&gt; memoryCache;</code>和<code>id&lt;SDDiskCache&gt; diskCache;</code></p>
+<p>一个SDImageCache对象，由内存和磁盘共同控制缓存。控制的策略由<code>SDImageCacheConfig</code>类来定制。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">@interface SDImageCache : NSObject</span><br><span class="line"></span><br><span class="line">#pragma mark - Properties</span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDMemoryCache&gt; memoryCache;</span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDDiskCache&gt; diskCache;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) NSString *diskCachePath;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) SDImageCacheAdditionalCachePathBlock additionalCachePathBlock;</span><br><span class="line"></span><br><span class="line">#pragma mark - Singleton and initialization</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Returns global shared cache instance</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCache *sharedImageCache;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Init a new cache store with a specific namespace</span><br><span class="line"> *</span><br><span class="line"> * @param ns The namespace to use for this cache store</span><br><span class="line"> */</span><br><span class="line">- (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;</span><br></pre></td></tr></table></figure>
+<p>同时SDImageCache还有个类目</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCache.h</span><br><span class="line">@interface SDImageCache (SDImageCache) &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">// SDImageCacheDefine.h</span><br><span class="line">@protocol SDImageCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>内存和磁盘共同控制缓存策略定制类SDImageCacheConfig</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCacheConfig.h</span><br><span class="line">@interface SDImageCacheConfig : NSObject &lt;NSCopying&gt;</span><br><span class="line"></span><br><span class="line">// 是否使用内存做缓存，默认为YES</span><br><span class="line">@property (assign, nonatomic) BOOL shouldCacheImagesInMemory;</span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;</span><br><span class="line"></span><br><span class="line">// 缓存图片的最长时间，单位是秒，默认是缓存一周</span><br><span class="line">@property (assign, nonatomic) NSTimeInterval maxDiskAge;</span><br><span class="line">// 缓存占用最大的空间，单位是字节</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxDiskSize;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCost;</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCount;</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * The attribute which the clear cache will be checked against when clearing the disk cache</span><br><span class="line"> * Default is Modified Date</span><br><span class="line"> */</span><br><span class="line">@property (assign, nonatomic) SDImageCacheConfigExpireType diskCacheExpireType;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、SDImageCachesManager"><a href="#2、SDImageCachesManager" class="headerlink" title="2、SDImageCachesManager"></a>2、SDImageCachesManager</h3><p>管理NSArray&lt;id<sdimagecache>&gt; *caches;</sdimagecache></p>
+<p>一张图片就是一份SDImageCache元素对象。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A caches manager to manage multiple caches.</span><br><span class="line"> */</span><br><span class="line">@interface SDImageCachesManager : NSObject &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCachesManager *sharedManager;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy queryOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy storeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy removeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy containsOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy clearOperationPolicy;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) NSArray&lt;id&lt;SDImageCache&gt;&gt; *caches; // 一张图片就是一份SDImageCache元素对象。</span><br><span class="line"></span><br><span class="line">- (void)addCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line">- (void)removeCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>### </p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="cle6phugy00x0dhr4391cuo1e" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -432,7 +450,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cle5b4kyu00jk6vr4x1y5bcks" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cle6pht5l00k4dhr4yu4glsj5" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -516,10 +534,56 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cle5b4kyy00ju6vr40wz827x9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cle6pht5q00kkdhr4r4azy61p" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cle6pht5v00lbdhr44jf288kr" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -585,53 +649,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cle5b4kz600l86vr4o7d9780j" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cle5b4kz800ll6vr4th31k8wh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cle6pht5v00ledhr4dzyxm5tt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -757,7 +775,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cle5b4kz900lo6vr4gfxby8ic" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cle6pht5x00lmdhr4b1a7m9tv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -1002,7 +1020,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cle5b4kz000k06vr468wpruuq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cle6pht5p00kedhr42ueofh09" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1179,7 +1197,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cle5b4kz000k36vr4fzpu852c" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cle6pht5r00kndhr4embagb3f" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
