@@ -72,6 +72,227 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/架构相关/1架构模式/5编程思想-面向协议" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/架构相关/1架构模式/5编程思想-面向协议/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.878Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-编程思想-面向协议"><a href="#必备知识架构-编程思想-面向协议" class="headerlink" title="必备知识架构-编程思想-面向协议"></a>必备知识架构-编程思想-面向协议</h1><p>[toc]</p>
+<p>好文分享：</p>
+<ul>
+<li><a href="https://www.cnblogs.com/dins/p/ios-zu-jian-hua-fang-an.html" target="_blank" rel="noopener">iOS 组件化方案</a></li>
+</ul>
+<h2 id="一、产生背景"><a href="#一、产生背景" class="headerlink" title="一、产生背景"></a>一、产生背景</h2><h4 id="1-1-传统面向对象编程（OOP）的弊端-继承的痛点："><a href="#1-1-传统面向对象编程（OOP）的弊端-继承的痛点：" class="headerlink" title="1.1 传统面向对象编程（OOP）的弊端/继承的痛点："></a>1.1 传统面向对象编程（OOP）的弊端/继承的痛点：</h4><p><strong>继承的痛点</strong>：滥用继承的话，后面如果要抽离功能就会牵一发而动全身。即抽离一个功能会导致也要把继承链上涉及的功能都抽出来。显然太麻烦了。</p>
+<p><strong>痛点的解决</strong>：使用面向协议，将每个单独功能一个协议，复杂功能将协议组合起来即可。如此后续抽离时，抽单独协议和实现类即可（swift中可以将实现写在扩展中，可能不涉及实现类）。</p>
+<p>我们将网络库<a href="https://github.com/dvlproad/CJNetwork" target="_blank" rel="noopener">CJNetwork</a>使用面向协议编程后</p>
+<p>1、定义协议CQNetworkRequestCompletionClientProtocal.h</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NS_ASSUME_NONNULL_BEGIN</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">@protocol</span> <span class="title">CQNetworkRequestCompletionClientProtocal</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">@required</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> *  请求</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  @param model            请求相关的信息(包含请求方法、请求地址、请求参数等)real\simulate\local</span></span><br><span class="line"><span class="comment"> *  @param completeBlock    请求结束的回调(为方便接口的重复利用回调中的responseModel使用id类型)</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  @return 执行请求的任务</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">- (<span class="built_in">NSURLSessionDataTask</span> *)requestModel:(__kindof <span class="built_in">NSObject</span>&lt;CJRequestModelProtocol&gt; *)model</span><br><span class="line">                         completeBlock:(<span class="keyword">void</span> (^)(CJResponeFailureType failureType, CJResponseModel *responseModel))completeBlock;</span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">NS_ASSUME_NONNULL_END</span></span><br></pre></td></tr></table></figure>
+<p>2、使用CQNetworkRequestCompletionClientProtocal</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NS_ASSUME_NONNULL_BEGIN</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">CJNetworkClient</span> (<span class="title">Completion</span>) &lt;<span class="title">CQNetworkRequestCompletionClientProtocal</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">NS_ASSUME_NONNULL_END</span></span><br></pre></td></tr></table></figure>
+<h4 id="1-2-什么是面向协议编程-POP"><a href="#1-2-什么是面向协议编程-POP" class="headerlink" title="1.2 什么是面向协议编程(POP)?"></a>1.2 什么是面向协议编程(POP)?</h4><p>这个问题，我感觉比较明确的定义就是2015年Apple WWDC中说的一句话很直了的解释了：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Don't start with a <span class="class"><span class="keyword">class</span>.</span></span><br><span class="line"><span class="class"><span class="title">Start</span> <span class="title">with</span> <span class="title">a</span> <span class="title">protocol</span>.</span></span><br></pre></td></tr></table></figure>
+<p>即在程序设计中，不要以一个类开始设计，应该从一个协议开始，应抛弃之前OOP的对象设计理念，设计协议，这样不同的继承链之间也可以使用同一个协议。可以将协议看做一个组件，哪里需要哪里继承协议即可，而且协议是可以多继承的，iOS中的类只能单继承，这也是面向协议相对面向对象的一大优势。</p>
+<h4 id="1-3-Objective-C-和Swift的面向协议编程区别"><a href="#1-3-Objective-C-和Swift的面向协议编程区别" class="headerlink" title="1.3 Objective-C 和Swift的面向协议编程区别"></a>1.3 Objective-C 和Swift的面向协议编程区别</h4><p>OC和swift面向协议编程一个最大区别是OC的 <strong>Protocol</strong> 没有默认的实现，需要依赖具体的实现类实现协议定义的方法，而Swift2.0开始提供了<strong>Protocol + Extension</strong>，协议可以再 Extension中提供默认的实现，这样上层调用可以直接调用协议的默认实现。</p>
+<p>严谨来说，OC不是一门面向协议编程的语言，因为 <strong>Protocol</strong> 只提供定义，而不提供实现，所以叫他 <strong>面向接口编程</strong> 更合适一些。</p>
+<p>面向协议和依赖注入</p>
+<p>依赖注入要求我们传入的参数遵循协议，这样做的好处是：</p>
+<ul>
+<li>我们可以在外部注入一个通用类，只要它遵循协议。</li>
+<li>也可以注入一个可测试的模拟类，便于测试。</li>
+</ul>
+<p>参考文章：<a href="https://www.jianshu.com/p/1a47f5e0f1b5" target="_blank" rel="noopener">iOS-面向协议编程(POP)</a></p>
+<h2 id="二、替代继承的方式"><a href="#二、替代继承的方式" class="headerlink" title="二、替代继承的方式"></a>二、替代继承的方式</h2><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/39e6a8409476" target="_blank" rel="noopener">继承和面向接口（iOS架构思想篇）</a></li>
+</ul>
+<p>1、协议</p>
+<blockquote>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">// 在屏幕中间弹出</span></span><br><span class="line">&gt; <span class="class"><span class="keyword">@protocol</span> <span class="title">ShowInCenterProtocol</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)show;</span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">// 在屏幕底部弹出</span></span><br><span class="line">&gt; <span class="class"><span class="keyword">@protocol</span> <span class="title">ShowInBottomProtocol</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)show;</span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="class"><span class="keyword">@class</span> <span class="title">NormalVoicePlayer</span> : <span class="title">NSObject</span> &lt;<span class="title">ShowInCenterProtocol</span>&gt;</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>2、用组合替代继承</p>
+<blockquote>
+<p>eg1:想要为一个视图做一个show操作。（设想这个show方法后面可能随时会变，比如show的位置，或者动画）</p>
+<p>AlertUtil：使用由AlertView/PopupView+PopupAction来组合，而不使用继承AlertView+为其添加show方法。</p>
+<p>eg2：常见的举例还有，文本框TextField的根据历史记录填充、根据@邮箱填充。</p>
+</blockquote>
+<p>3、类别category</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">@interface NSArray (OBJExtras)</span><br><span class="line">- (void)removingFirstObject;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、使用面向协议为视图添加抖动功能"><a href="#三、使用面向协议为视图添加抖动功能" class="headerlink" title="三、使用面向协议为视图添加抖动功能"></a>三、使用面向协议为视图添加抖动功能</h2><p>举例：为UIImageView和UIButton等添加视图的抖动</p>
+<h3 id="1、方法1：添加Category方式"><a href="#1、方法1：添加Category方式" class="headerlink" title="1、方法1：添加Category方式"></a>1、方法1：添加Category方式</h3><p>如果你写过 Objective-C, 你很可能会把 <strong>shake()</strong> 写到一个 UIView 的分类（Category) 中（也就是 Swift 中的拓展 (extension)）：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  UIViewExtension.swift</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> UIKit</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UIView</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">shake</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">let</span> animation = <span class="type">CABasicAnimation</span>(keyPath: <span class="string">"position"</span>)</span><br><span class="line">        animation.duration = <span class="number">0.05</span></span><br><span class="line">        animation.repeatCount = <span class="number">5</span></span><br><span class="line">        animation.autoreverses = <span class="literal">true</span></span><br><span class="line">        animation.fromValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x - <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        animation.toValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x + <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        layer.addAnimation(animation, forKey: <span class="string">"position"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、方法2：面向协议方式"><a href="#2、方法2：面向协议方式" class="headerlink" title="2、方法2：面向协议方式"></a>2、方法2：面向协议方式</h3><p>但在swift里，我们除了对UIView添加extension外，其实还有另一种更好的方式：创建面向协议的视图</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FoodImageView</span>: <span class="title">UIImageView</span>, <span class="title">Shakeable</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 其他自定义写在这儿</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ActionButton</span>: <span class="title">UIButton</span>, <span class="title">Shakeable</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 其他自定义写在这儿</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ViewController</span>: <span class="title">UIViewController</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> foodImageView: <span class="type">FoodImageView</span>!</span><br><span class="line">    <span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> actionButton: <span class="type">ActionButton</span>!</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@IBAction</span> <span class="function"><span class="keyword">func</span> <span class="title">onShakeButtonTap</span><span class="params">(sender: AnyObject)</span></span> &#123;</span><br><span class="line">        foodImageView.shake()</span><br><span class="line">        actionButton.shake()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>附上述面向协议的视图里所对的<strong>Shakeable</strong> 协议如下：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  Shakeable.swift</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> UIKit</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Shakeable</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 你可以只为 UIView 添加 shake 方法！</span></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">Shakeable</span> <span class="title">where</span> <span class="title">Self</span>: <span class="title">UIView</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// shake 方法的默认实现</span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">shake</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">let</span> animation = <span class="type">CABasicAnimation</span>(keyPath: <span class="string">"position"</span>)</span><br><span class="line">        animation.duration = <span class="number">0.05</span></span><br><span class="line">        animation.repeatCount = <span class="number">5</span></span><br><span class="line">        animation.autoreverses = <span class="literal">true</span></span><br><span class="line">        animation.fromValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x - <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        animation.toValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x + <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        layer.addAnimation(animation, forKey: <span class="string">"position"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参考文章：</p>
+<ul>
+<li><p><a href="https://swift.gg/2016/06/01/protocol-oriented-views-in-swift/" target="_blank" rel="noopener">用 Swift 编写面向协议的视图</a> 一定要看</p>
+</li>
+<li><p><a href="https://blog.csdn.net/weixin_43194732/article/details/83380486" target="_blank" rel="noopener">Swift面向协议编程</a></p>
+</li>
+</ul>
+<h2 id="四、使用面向协议处理reuseIdentifier"><a href="#四、使用面向协议处理reuseIdentifier" class="headerlink" title="四、使用面向协议处理reuseIdentifier"></a>四、使用面向协议处理reuseIdentifier</h2><p>tableView的cell注册的基本代码如下</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: <span class="string">"FoodTableViewCell"</span>, bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier: <span class="string">"FoodTableViewCell"</span>)</span><br></pre></td></tr></table></figure>
+<p>改进1：FoodTableViewCell字符串改成由类获得</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: <span class="type">String</span>(<span class="type">FoodTableViewCell</span>), bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier: <span class="type">String</span>(<span class="type">FoodTableViewCell</span>))</span><br></pre></td></tr></table></figure>
+<p>改进2：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">ReusableView</span>: <span class="title">class</span> </span>&#123;&#125;</span><br><span class="line"><span class="comment">// 你可以只为 UIView 添加 ReusableView 方法！</span></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">ReusableView</span> <span class="title">where</span> <span class="title">Self</span>: <span class="title">UIView</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">var</span> reuseIdentifier: <span class="type">String</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="type">String</span>(<span class="keyword">self</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UITableViewCell</span>: <span class="title">ReusableView</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: “<span class="type">FoodTableViewCell</span>”, bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier:<span class="type">FoodTableViewCell</span>.reuseIdentifier)</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/架构相关/1架构模式/5编程思想-面向协议/" data-id="clep4r4u500vc6nr4hi8s881o" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/架构相关/1架构模式/架构模式-①概览" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/架构相关/1架构模式/架构模式-①概览/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.878Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-架构模式-①概览"><a href="#必备知识架构-架构模式-①概览" class="headerlink" title="必备知识架构-架构模式-①概览"></a>必备知识架构-架构模式-①概览</h1><p>[Toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<ul>
+<li><a href="https://casatwy.com/zen-yao-mian-shi-jia-gou-shi.html" target="_blank" rel="noopener">casatwy 怎么面试架构师</a></li>
+</ul>
+<p>好文分享：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/0d5f95135b5c" target="_blank" rel="noopener">iOS架构模式(MVC/MVCS/MVP/MVVM/VIPER)</a></li>
+</ul>
+<h3 id="面向对象、面向接口、面向方法编程的区别"><a href="#面向对象、面向接口、面向方法编程的区别" class="headerlink" title="面向对象、面向接口、面向方法编程的区别"></a>面向对象<em>、</em>面向接口、面向方法编程的区别</h3><h2 id="一、架构模式、框架、设计模式的概念"><a href="#一、架构模式、框架、设计模式的概念" class="headerlink" title="一、架构模式、框架、设计模式的概念"></a>一、架构模式、框架、设计模式的概念</h2><p><a href="https://blog.csdn.net/timtian008/article/details/69949031" target="_blank" rel="noopener">iOS—架构模式、框架、设计模式的理解</a></p>
+<p><strong>架构模式</strong>：架构模式的出现是为了管理复杂的应用程序，这样可以在一个时间内专门关注一个方面。例如，您可以在不依赖业务逻辑的情况下专注于视图设计。同时也让应用程序的测试更加容易。同时也简化了分组开发。不同的开发人员可同时开发视图、控制器逻辑和业务逻辑。我们经常说的<strong>MVC架构</strong>、<strong>MVVM架构</strong>属于此类。</p>
+<p><strong>框架</strong>：这个最好理解了，通常是代码重用。框架与设计模式的概念容易弄混，两者有相似之处，但却有着根本的不同。设计模式是对在某种环境中反复出现的问题以及解决该问题的方案的描述规范，它比框架更抽象；框架为已经解决问题的具体实现方法，能直接执行或复用；设计模式是比框架更小的元素，一个框架中往往含有一种或多种设计模式。Xcode自带的<strong>Foundation</strong>、<strong>UIKit</strong>，以及我们经常使用的<strong>AFNetworking</strong>，<strong>MJExtension</strong>，<strong>SVProgressHUD</strong>就属于这一类。</p>
+<p><strong>设计模式</strong>：设计模式可以通俗的理解为实现/解决某些问题，而形成的解决方案规范。增加代码的可重用性，让代码能更容易理解和可靠。我们通常说所的<strong>代理模式</strong>、<strong>迭代器模式</strong>、<strong>策略模式</strong>就属于这一类。对各种设计模式的了解可以帮助我们更快的解决编程过程中遇到的问题。</p>
+<blockquote>
+<p>三者关系：架构（动词）&gt;框架&gt;设计模式。</p>
+<p>软件通过架构，可以设计出很多不同的框架。在一个框架中，也可以使用很多的设计模式。设计模式不是哪儿哪儿都可以用的，只有当出现了某一特定的问题时，才利用设计模式去解决。设计模式不是用的越多越好，在维护的时候，过多的设计模式会极大的增添维护成本。</p>
+</blockquote>
+<p>MVC</p>
+<p>1、架构的设计其实是为了更好的维护和迭代，而不是只考虑眼前当下的开发。</p>
+<p>2、最基本的架构是MVC，试想下如果我一个应用的所有功能都是像”关于“功能的，那我还需要其他架构干嘛？显然MVC就已经很足够，而且还显得不冗余（这里指的是设计或者粒度不冗余）。</p>
+<p>3、其他的架构都是从MVC演变而来。再讲其他架构的演变之前，我们先明确最原始的MVC代码是如何的。</p>
+<p>①、首先M主要负责数据、V主要负责视图、C主要负责数据的视图显示。而这里的M是原始的<strong>瘦Model</strong>。</p>
+<p>所以，我们拿常见的”我的”页面来举例，部分原始的MVC代码一般为如下样子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">UserModel</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">View</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ViewController</span><br><span class="line">self.userInfoView.name = user.name;</span><br><span class="line">self.userInfoView.sexString = user.sex == 1? &quot;女&quot; :&quot;男&quot;;</span><br></pre></td></tr></table></figure>
+<p>4、在<strong>MVC+瘦Model</strong>的演变下，还有<strong>MVC+胖Model</strong></p>
+<p>胖Model就是瘦Model+部分<strong>弱业务逻辑</strong>（这些弱业务重复一般都是经常出现，或者说是要求可复用性的，如根据枚举获取性别字符串）。它使得Controller可以从胖Model这里拿到数据之后，不用额外做操作或者只要做非常少的操作，就能够将数据直接应用在View上.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">UserModel</span><br><span class="line">+ (NSString *)sexStringFrom:(int)sex;</span><br><span class="line"></span><br><span class="line">View</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ViewController</span><br><span class="line">self.userInfoView.name = user.name;</span><br><span class="line">self.userInfoView.sexString = [UserModel sexStringFrom:user.sex];</span><br></pre></td></tr></table></figure>
+<p>5、有时候在<strong>MVC+瘦Model</strong>的演变下，不是转成<strong>MVC+胖Model</strong>，而是<strong>MVC+瘦Model+Helper</strong></p>
+<p>MVP?</p>
+<p>其实这个思路已经很接近MVP了、但是还差提点。MVP还需要为View提供数据</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">UserModel</span><br><span class="line"></span><br><span class="line">View</span><br><span class="line"></span><br><span class="line">UserHelper</span><br><span class="line">+ (NSString *)sexStringFrom:(int)sex;</span><br><span class="line"></span><br><span class="line">ViewController</span><br><span class="line">self.userInfoView.name = user.name;</span><br><span class="line">self.userInfoView.sexString = [UserHelper sexStringFrom:user.sex];</span><br></pre></td></tr></table></figure>
+<p>6、关于<strong>MVC+瘦Model+Helper</strong>，还可以改为<strong>MVC+瘦Model+ViewModel</strong></p>
+<p>MVVM</p>
+<p>刚才的胖Model只从Controller移植走了一些简单的弱业务。</p>
+<p>而ViewModel则干脆把数据的处理全部从Controller移植了出去。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">UserModel</span><br><span class="line"></span><br><span class="line">View</span><br><span class="line"></span><br><span class="line">UserViewModel</span><br><span class="line">name</span><br><span class="line">sexString</span><br><span class="line">- (id)initWithName:(NSString *)name sex:(int)sex;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ViewController</span><br><span class="line">self.userInfoView.name = userViewModel.name;</span><br><span class="line">self.userInfoView.sexString = userViewModel.sexString;</span><br></pre></td></tr></table></figure>
+<p>拿有数据操作的”购物车“页面来说，</p>
+<p>假设其除了有网络数据请求外，还有本地数据库处理。（附：<strong>购物车是否需要本地数据库</strong>，个人认为是基于服务端的压力来考虑，不然一般是放在服务端合适点。压力设想如下，千万级用户，购物车加减商品频繁，假设放在后台，则操作和计算也就频繁，压力也就大了。如果放在前端，则后台只需要负责是否可加减商品的检验，而不用再建购物车数据表和计算价格等，压力就小了。）</p>
+<p>每个页面一般都会有网络请求，这些网络请求最原始的时候，是放在ViewController，也就是MVC的C中。</p>
+<p>为了避免MVC中的ViewController后期变得十分臃肿。我们肯定要在MVC的基础上额外增加一层来处理这个。</p>
+<p>综合考虑后，我们选用<strong>MVCS</strong>来处理。</p>
+<p>其中S代表着Store，且我们这里的S代表着是整个模块的S，而不是每个页面都有一个S。其下层又包含着Storage和Service，即 <em>数据库DB部分</em> 和 <em>网络Network部分</em> 。</p>
+<p>Store类名，个人习惯是使用Manager来命令。如UserManager。</p>
+<p><img src="/iOS/架构相关/1架构模式/架构模式-①概览/MVCS1.png" alt="MVCS1"></p>
+<p>所以，最终我们选用的是 MVCS+MVVM 或者说 MVVM+S。</p>
+<p>S层（service 层）提供一种和外界(比如远程服务 API 或文件系统)交互的独立机制。</p>
+<p>MVVM+S 纵向的数据流就不用多说，横向的数据流，我们采用自定义的类系统通知。区别在于它有着系统Notification的一对多方便，又有着delegate的接口对接方便。</p>
+<p><img src="/iOS/架构相关/1架构模式/架构模式-①概览/MVCS2.png" alt="image-20200917024611311"></p>
+<p>抛开数据共享问题（如每个请求都要带userToken），每个页面</p>
+<h2 id="二、常见的项目目录结构"><a href="#二、常见的项目目录结构" class="headerlink" title="二、常见的项目目录结构"></a>二、常见的项目目录结构</h2><p>常见的项目目录结构：</p>
+<p><img src="/iOS/架构相关/1架构模式/架构模式-①概览/框架①项目目录结构.jpg" alt="框架①项目目录结构"></p>
+<p id="常见的设计模式"></p>
+
+
+
+<p id="MVC与MVVM"></p>
+
+
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/架构相关/1架构模式/架构模式-①概览/" data-id="clep4r4us00vd6nr4ze98ffwg" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-hello-world" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/hello-world/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.835Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/hello-world/">Hello World</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/hello-world/" data-id="clep4r1s100026nr4x0euonx4" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/9框架升级/Flutter组件化框架" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/9框架升级/Flutter组件化框架/" class="article-date">
@@ -106,7 +327,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter组件化框架/" data-id="cle6trjav00a9u0r4hs4lwmme" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter组件化框架/" data-id="clep4r38k009p6nr48kffv1ls" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -154,7 +375,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/系统控制/" data-id="cle6trjc600anu0r4ebkqolx6" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/系统控制/" data-id="clep4r39k00a76nr4q7qxcuyi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -208,7 +429,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter空安全/" data-id="cle6trjb600acu0r4aqxlfoc0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter空安全/" data-id="clep4r39400a06nr421b8vzdb" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -254,7 +475,55 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/数据类的使用/" data-id="cle6trjc100aju0r45n2aboue" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/数据类的使用/" data-id="clep4r39a00a36nr4ruo75ueo" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/9框架升级/组件的使用-Picker" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/9框架升级/组件的使用-Picker/" class="article-date">
+  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Picker/">组件的使用</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="组件的使用-Picker"><a href="#组件的使用-Picker" class="headerlink" title="组件的使用-Picker"></a>组件的使用-Picker</h1><p>为了统一，各视图分别使用如下组件</p>
+<h2 id="二、选择器Picker"><a href="#二、选择器Picker" class="headerlink" title="二、选择器Picker"></a>二、选择器Picker</h2><h3 id="1、事项选择器：ItemPickerUtil"><a href="#1、事项选择器：ItemPickerUtil" class="headerlink" title="1、事项选择器：ItemPickerUtil"></a>1、事项选择器：ItemPickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-ItemPicker.png" alt="事项选择器" style="zoom:33%;"></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		ItemPickerUtil.chooseItem(</span><br><span class="line">      context,</span><br><span class="line">      title: <span class="string">'更换头像'</span>,</span><br><span class="line">      itemTitles: [<span class="string">'拍照上传'</span>, <span class="string">'从相册选择'</span>],</span><br><span class="line">      onConfirm: (<span class="built_in">int</span> selectedIndex) &#123;</span><br><span class="line">        dealAvatar(selectedIndex);</span><br><span class="line">      &#125;,</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+<h3 id="2、日期选择器DatePickerUtil"><a href="#2、日期选择器DatePickerUtil" class="headerlink" title="2、日期选择器DatePickerUtil"></a>2、日期选择器DatePickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-DatePicker.png" alt="日期选择器" style="zoom: 33%;"></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		<span class="built_in">String</span> currentBirthday = <span class="string">'2000-01-01'</span>;</span><br><span class="line">		</span><br><span class="line">		DatePickerUtil.chooseBirthday(context,</span><br><span class="line">        title: <span class="string">'选择你的生日'</span>, selectedyyyyMMddDateString: currentBirthday,</span><br><span class="line">        onConfirm: (<span class="built_in">String</span> yyyyMMddDateStirng) &#123;</span><br><span class="line">      setState(() &#123;</span><br><span class="line">        currentBirthday = yyyyMMddDateStirng;</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Picker/" data-id="clep4r39x00ae6nr42c3vp13g" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -304,55 +573,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Overlay/" data-id="cle6trjcd00aqu0r463u14e9t" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件的使用-Picker" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Picker/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Picker/">组件的使用</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件的使用-Picker"><a href="#组件的使用-Picker" class="headerlink" title="组件的使用-Picker"></a>组件的使用-Picker</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="二、选择器Picker"><a href="#二、选择器Picker" class="headerlink" title="二、选择器Picker"></a>二、选择器Picker</h2><h3 id="1、事项选择器：ItemPickerUtil"><a href="#1、事项选择器：ItemPickerUtil" class="headerlink" title="1、事项选择器：ItemPickerUtil"></a>1、事项选择器：ItemPickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-ItemPicker.png" alt="事项选择器" style="zoom:33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		ItemPickerUtil.chooseItem(</span><br><span class="line">      context,</span><br><span class="line">      title: <span class="string">'更换头像'</span>,</span><br><span class="line">      itemTitles: [<span class="string">'拍照上传'</span>, <span class="string">'从相册选择'</span>],</span><br><span class="line">      onConfirm: (<span class="built_in">int</span> selectedIndex) &#123;</span><br><span class="line">        dealAvatar(selectedIndex);</span><br><span class="line">      &#125;,</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
-<h3 id="2、日期选择器DatePickerUtil"><a href="#2、日期选择器DatePickerUtil" class="headerlink" title="2、日期选择器DatePickerUtil"></a>2、日期选择器DatePickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-DatePicker.png" alt="日期选择器" style="zoom: 33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		<span class="built_in">String</span> currentBirthday = <span class="string">'2000-01-01'</span>;</span><br><span class="line">		</span><br><span class="line">		DatePickerUtil.chooseBirthday(context,</span><br><span class="line">        title: <span class="string">'选择你的生日'</span>, selectedyyyyMMddDateString: currentBirthday,</span><br><span class="line">        onConfirm: (<span class="built_in">String</span> yyyyMMddDateStirng) &#123;</span><br><span class="line">      setState(() &#123;</span><br><span class="line">        currentBirthday = yyyyMMddDateStirng;</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Picker/" data-id="cle6trjcj00auu0r4frdczwz1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Overlay/" data-id="clep4r3a500ah6nr4sr17rab1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -403,191 +624,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Cache/" data-id="cle6trjcz00b1u0r46qmgw44n" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件设计规范" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件设计规范/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件设计规范/">组件设计规范</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件设计规范"><a href="#组件设计规范" class="headerlink" title="组件设计规范"></a>组件设计规范</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="一、样式设计规范"><a href="#一、样式设计规范" class="headerlink" title="一、样式设计规范"></a>一、样式设计规范</h2><p>在第六章进阶<a href="../6进阶/Flutter控件的封装">Flutter控件的封装</a>一文中，我们已经知道<strong>使用<code>继承父类式封装</code>这种方式，不管在封装时候，还是在使用时候，写的代码都是最简洁的。而且后期如果要直接使用系统样式，也只需要改回类名，其他结构和属性都不用动即可</strong>。</p>
-<p>所以，<strong>即使是你所定义的类只有一个入参，也一定要遵守使用<code>继承父类式封装</code>的设计规范。</strong></p>
-<p>以下以按钮中 textStyle 的传值为例：</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          bgColorType: ThemeBGType.pink,</span><br><span class="line">          title: <span class="string">'红底白字的按钮'</span>,</span><br><span class="line">          <span class="comment">//titleStyle: ButtonThemeUtil.PingFang_FontSize_Bold(18.0),	// bad</span></span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>), <span class="comment">// good</span></span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认true</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        ),</span><br></pre></td></tr></table></figure>
-<p>good:</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// medium 的文本样式</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ButtonMediumTextStyle</span> <span class="keyword">extends</span> <span class="title">TextStyle</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">double</span> fontSize;</span><br><span class="line">  <span class="comment">// final Color color;</span></span><br><span class="line"></span><br><span class="line">  ButtonMediumTextStyle(&#123;</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.fontSize,</span><br><span class="line">    <span class="comment">// this.color,</span></span><br><span class="line">  &#125;)  : <span class="keyword">assert</span>(fontSize != <span class="keyword">null</span>),</span><br><span class="line">        <span class="comment">// assert(color != null),</span></span><br><span class="line">        <span class="keyword">super</span>(</span><br><span class="line">          fontFamily: <span class="string">'PingFang SC'</span>,</span><br><span class="line">          fontSize: fontSize,</span><br><span class="line">          fontWeight: FontWeight.w500,</span><br><span class="line">          <span class="comment">// color: color,</span></span><br><span class="line">        );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件设计规范/" data-id="cle6trjd800b4u0r42ogem0pv" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/页面多入口优化" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/页面多入口优化/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/页面多入口优化/">页面多入口优化</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="页面多入口优化"><a href="#页面多入口优化" class="headerlink" title="页面多入口优化"></a>页面多入口优化</h1><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WishPublishPage</span> <span class="keyword">extends</span> <span class="title">BJHBasePage</span> </span>&#123;</span><br><span class="line">  <span class="built_in">bool</span> isUpdateBusiness;</span><br><span class="line">  Wish_detail_model wishDetailModel;</span><br><span class="line"></span><br><span class="line">  WishPublishPage(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="keyword">this</span>.isUpdateBusiness = <span class="keyword">false</span>,</span><br><span class="line">    <span class="keyword">this</span>.wishDetailModel,</span><br><span class="line">  &#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  WishPublishPage.fromTemplatePage(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="keyword">this</span>.isUpdateBusiness = <span class="keyword">false</span>,</span><br><span class="line">    WishTemplateModel templateModel,</span><br><span class="line">  &#125;) : <span class="keyword">super</span>(key: key) &#123;</span><br><span class="line">    wishDetailModel =</span><br><span class="line">        Wish_detail_model.fromTemplateJson(templateModel.toJson());</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  WishPublishPage.fromOtherUser(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="built_in">List</span>&lt;Items&gt; selectGoodsList,</span><br><span class="line">  &#125;) : <span class="keyword">super</span>(key: key) &#123;</span><br><span class="line">    isUpdateBusiness = <span class="keyword">false</span>;</span><br><span class="line">    wishDetailModel.items = selectGoodsList;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  _WishPublishPageState createState() =&gt; _WishPublishPageState();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/页面多入口优化/" data-id="cle6trjdf00b8u0r4oss759l9" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件的使用-Button" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Button/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Button/">组件的使用-Button</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件的使用-Button"><a href="#组件的使用-Button" class="headerlink" title="组件的使用-Button"></a>组件的使用-Button</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="一、按钮Button"><a href="#一、按钮Button" class="headerlink" title="一、按钮Button"></a>一、按钮Button</h2><p>不用再写一堆嵌套地狱代码。（支持高亮效果，目前app按钮点击效果不佳，后续可能需要加，提前避免）</p>
-<p>按钮的分类：</p>
-<table>
-<thead>
-<tr>
-<th>编号</th>
-<th>类名</th>
-<th>样式举例</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>纯背景的按钮：<br>ThemeBGButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButton.png" alt="纯背景的按钮" style="zoom: 33%;"></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>有边框的按钮：<br>ThemeBorderButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBorderButton.png" alt="有边框的按钮" style="zoom:33%;"></td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>切状态的按钮：<br>ThemeStateButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonNormal.png" alt="状态按钮之未选中状态">未选中状态(selected=false)<br><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonSelected.png" alt="状态按钮之已选中状态" style="zoom: 80%;">已选中状态(selected=true)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1、纯背景的按钮：ThemeBGButton"><a href="#1、纯背景的按钮：ThemeBGButton" class="headerlink" title="1、纯背景的按钮：ThemeBGButton"></a>1、纯背景的按钮：ThemeBGButton</h3><p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButton.png" alt="纯背景的按钮" style="zoom: 33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          bgColorType: ThemeBGType.pink,</span><br><span class="line">          needHighlight: <span class="keyword">true</span>,	<span class="comment">// 默认false,不需要高亮</span></span><br><span class="line">          title: <span class="string">'红底白字的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认true</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        ),</span><br></pre></td></tr></table></figure>
-<p>如果你还需要在文字前添加图片，</p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButtonWithImage.png" alt="纯背景并带有图片的按钮" style="zoom:33%;"></p>
-<p>可以通过 imageWidget 添加</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          ...</span><br><span class="line">          title: <span class="string">'以主题色(红色)为背景的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          imageWidget: ImageAsset(<span class="string">'images/xx.jpg'</span>, width: <span class="number">22</span>, height: <span class="number">22</span>,),</span><br><span class="line">          <span class="comment">//imageTitleGap: 5, // 默认5</span></span><br><span class="line">          ...</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<h3 id="2、有边框的按钮：ThemeBorderButton"><a href="#2、有边框的按钮：ThemeBorderButton" class="headerlink" title="2、有边框的按钮：ThemeBorderButton"></a>2、有边框的按钮：ThemeBorderButton</h3><p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBorderButton.png" alt="有边框的按钮" style="zoom:33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBorderButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          borderColorType: ThemeBGType.pink,</span><br><span class="line">          title: <span class="string">'白底红字红框的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认ture</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<h3 id="3、状态切换按钮：ThemeStateButton"><a href="#3、状态切换按钮：ThemeStateButton" class="headerlink" title="3、状态切换按钮：ThemeStateButton"></a>3、状态切换按钮：ThemeStateButton</h3><p>未选中状态(selected=false)：<img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonNormal.png" alt="状态按钮之未选中状态"><br>已选中状态(selected=true)：<img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonSelected.png" alt="状态按钮之已选中状态" style="zoom:90%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeStateButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          normalBGColorType: ThemeBGType.pink,</span><br><span class="line">          normalTitle: <span class="string">'修改'</span>,</span><br><span class="line">          selectedTitle: <span class="string">'提交'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          selected: <span class="keyword">false</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认ture</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<p>其他按钮样式：</p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211217121410240.png" alt="image-20211217121410240" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024015942.png" alt="image-20211218024015942" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024157575.png" alt="image-20211218024157575" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024244344.png" alt="image-20211218024244344" style="zoom:33%;"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Button/" data-id="cle6trjdl00bbu0r4vu33gcw5" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Cache/" data-id="clep4r3ag00al6nr4g50evwt6" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -614,7 +651,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
     </div>
   </div>
 
@@ -624,7 +661,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
     </div>
   </div>
 
@@ -634,7 +671,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 15.45px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.09px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.73px;">Git</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.91px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 14.55px;">Script</a> <a href="/tags/Shell/" style="font-size: 10.91px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.18px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 11.82px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.82px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 15.83px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.67px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 10.83px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -643,7 +680,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -656,23 +693,23 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
       </ul>

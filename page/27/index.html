@@ -72,6 +72,479 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Flutter/5详解/详解Animation-2动画组" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解Animation-2动画组/" class="article-date">
+  <time datetime="2019-02-18T04:00:00.000Z" itemprop="datePublished">2019-02-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解Animation-2动画组/">第7节：详解Animation-2动画组</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="详解Animation-2动画组"><a href="#详解Animation-2动画组" class="headerlink" title="详解Animation-2动画组"></a>详解Animation-2动画组</h1><p>参考文章：</p>
+<ul>
+<li><a href="https://flutterchina.club/tutorials/animation/" target="_blank" rel="noopener">Flutter中文网–教程：Flutter中的动画</a></li>
+</ul>
+<h3 id="一、Animation动画组-串行"><a href="#一、Animation动画组-串行" class="headerlink" title="一、Animation动画组-串行"></a>一、Animation动画组-串行</h3><p>参考文档：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/c9fe6424f6c0" target="_blank" rel="noopener">Flutter动画 3 - Animation动画组</a></li>
+</ul>
+<p>串行动画的实现方案总共有三种,分别是 监听状态法, Interval时间间隔法, TweenSequence动画序列法.</p>
+<h3 id="1、监听状态法"><a href="#1、监听状态法" class="headerlink" title="1、监听状态法"></a>1、监听状态法</h3><p>状态监听法主要通过AnimationController监听动画的<strong>completed</strong>状态,然后再去执行下一个动画,如此往复,直到所有动画完成.</p>
+<p>例如现在我们需要实现先执行组件在0.3秒钟往下偏移50个单位,然后再执行在0.6s中组件的颜色由 橘色 变为 红色.</p>
+<p>整体Demo代码如下所示：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FlutterAnimationWidget</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  TurnTableLotteryPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line">  </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  _FlutterAnimationWidgetState createState() =&gt; _FlutterAnimationWidgetState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_FlutterAnimationWidgetState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">FlutterAnimationWidget</span>&gt; <span class="title">with</span> <span class="title">TickerProviderStateMixin</span> </span>&#123;</span><br><span class="line">  <span class="comment">// ①声明位移动画控制器和颜色动画控制器以及位移动画和颜色动画</span></span><br><span class="line">  AnimationController _animationController;</span><br><span class="line">  Animation&lt;<span class="built_in">double</span>&gt; _animation;</span><br><span class="line">  AnimationController _colorAnimationController;</span><br><span class="line">  Animation&lt;Color&gt; _colorAnimation;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> initState() &#123;</span><br><span class="line">    <span class="keyword">super</span>.initState();</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// ②分别创建位移、颜色的动画控制器和动画</span></span><br><span class="line">    _animationController = AnimationController(duration: <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>), vsync: <span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">// Tween对象调用`animate()`函数直接传入上面的AnimationController</span></span><br><span class="line">    _animation = Tween&lt;<span class="built_in">double</span>&gt;(begin: <span class="number">0</span>, end: <span class="number">50</span>).animate(_animationController)</span><br><span class="line">      ..addListener(() &#123;</span><br><span class="line">        setState(() &#123;&#125;);</span><br><span class="line">      &#125;);</span><br><span class="line">    _colorAnimationController = AnimationController(duration: <span class="built_in">Duration</span>(milliseconds: <span class="number">600</span>), vsync: <span class="keyword">this</span>);</span><br><span class="line">    _colorAnimation = ColorTween(begin: Colors.orangeAccent, end: Colors.redAccent).animate(_colorAnimationController)</span><br><span class="line">      ..addListener(() &#123;</span><br><span class="line">        setState(() &#123;&#125;);</span><br><span class="line">      &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// ③最后,我们只需要监听位移动画完成状态之后执行颜色动画即可,</span></span><br><span class="line">    _animationController.addStatusListener((status) &#123;</span><br><span class="line">      <span class="keyword">if</span> (status == AnimationStatus.completed) &#123;</span><br><span class="line">        _colorAnimationController.forward();</span><br><span class="line">      &#125;;</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> startEasyAnimation() &#123;</span><br><span class="line">    _animationController.forward();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> dispose() &#123;</span><br><span class="line">    _animationController.dispose();</span><br><span class="line">    <span class="keyword">super</span>.dispose();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Column(</span><br><span class="line">          mainAxisAlignment: MainAxisAlignment.center,</span><br><span class="line">          children: &lt;Widget&gt;[</span><br><span class="line">            Container(</span><br><span class="line">              width: <span class="number">200</span>,</span><br><span class="line">              height: <span class="number">50</span>,</span><br><span class="line">              color: _colorAnimation.value,</span><br><span class="line">              margin: EdgeInsets.only(top: _animation.value),</span><br><span class="line">            ),</span><br><span class="line">            FlatButton(</span><br><span class="line">              onPressed: startEasyAnimation,</span><br><span class="line">              child: Text(</span><br><span class="line">                <span class="string">"点击执行最简单动画"</span>,</span><br><span class="line">                style: TextStyle(color: Colors.black38),</span><br><span class="line">              ),</span><br><span class="line">            ),</span><br><span class="line">          ],</span><br><span class="line">        ),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、Interval时间间隔法"><a href="#2、Interval时间间隔法" class="headerlink" title="2、Interval时间间隔法"></a>2、Interval时间间隔法</h3><p>上面的状态监听需要一个动画过程就写一个Controller,而且基本上还要每一个Controller都监听执行完成然后再去启动下一个Controller.如果一个动画过程有十几个,自己想想都是脑瓜子嗡嗡的.所以接下来我们就来介绍第二种方案 - <strong>Interval时间间隔法</strong> .</p>
+<p><strong>Interval时间间隔法</strong> 的整体思路是一个动画Controller控制所有动画的执行.然后每一个动画只需要确认自己在整个动画的时间比重即可.</p>
+<p>整体Demo代码如下所示：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FlutterAnimationWidget</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  TurnTableLotteryPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line">  </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  _FlutterAnimationWidgetState createState() =&gt; _FlutterAnimationWidgetState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_FlutterAnimationWidgetState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">FlutterAnimationWidget</span>&gt; <span class="title">with</span> <span class="title">TickerProviderStateMixin</span> </span>&#123;</span><br><span class="line">  <span class="comment">// ①声明一个动画Controller和多个动画.</span></span><br><span class="line">  AnimationController _animationController;</span><br><span class="line">  Animation&lt;<span class="built_in">double</span>&gt; _animation;</span><br><span class="line">  Animation&lt;Color&gt; _colorAnimation;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> initState() &#123;</span><br><span class="line">    <span class="keyword">super</span>.initState();</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 然初始化AnimationController,AnimationController的动画时间(**duration**)要设置成所有动画的总时长,例如这里我设定为600毫秒(_animation时长:300毫秒,_colorAnimation时长:300毫秒).</span></span><br><span class="line">    _animationController = AnimationController(duration: <span class="built_in">Duration</span>(milliseconds: <span class="number">600</span>), vsync: <span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">// Tween对象调用`animate()`函数不再是直接传入上面的AnimationController,而是传入一个 CurvedAnimation 对象。</span></span><br><span class="line">    <span class="comment">// 其中CurvedAnimation构建过程中需要传入两个参数一个是 parent ,用于指定AnimationController. 另外一个是 curve,用于指定动画曲线函数.我们可以使用常用的动画曲线函数,也可以自己生成,这里我们就自己生成.指定动画执行的时间区间.</span></span><br><span class="line">    _animation = Tween&lt;<span class="built_in">double</span>&gt;(begin: <span class="number">0</span>, end: <span class="number">50</span>).animate(</span><br><span class="line">      CurvedAnimation(</span><br><span class="line">        parent: _animationController,</span><br><span class="line">        curve: Interval(<span class="number">0.0</span>, <span class="number">0.5</span>), <span class="comment">// 由于两个动画时间长度是对分的,每一个都是300毫秒,所以 curve 参数中的值就分别是 **Interval(0.0, 0.5)**、**Interval(0.5, 1.0)**</span></span><br><span class="line">      ),</span><br><span class="line">    )..addListener(() &#123;</span><br><span class="line">        setState(() &#123;&#125;);</span><br><span class="line">      &#125;);</span><br><span class="line">    _colorAnimation = ColorTween(begin: Colors.orangeAccent, end: Colors.redAccent).animate(</span><br><span class="line">      CurvedAnimation(</span><br><span class="line">        parent: _animationController,</span><br><span class="line">        curve: Interval(<span class="number">0.5</span>, <span class="number">1.0</span>),<span class="comment">// 由于两个动画时间长度是对分的,每一个都是300毫秒,所以 curve 参数中的值就分别是 **Interval(0.0, 0.5)**、**Interval(0.5, 1.0)**</span></span><br><span class="line">      ),</span><br><span class="line">    )..addListener(() &#123;</span><br><span class="line">        setState(() &#123;&#125;);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> startEasyAnimation() &#123;</span><br><span class="line">    _animationController.forward();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> dispose() &#123;</span><br><span class="line">    _animationController.dispose();</span><br><span class="line">    <span class="keyword">super</span>.dispose();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Column(</span><br><span class="line">          mainAxisAlignment: MainAxisAlignment.center,</span><br><span class="line">          children: &lt;Widget&gt;[</span><br><span class="line">            Container(</span><br><span class="line">              width: <span class="number">200</span>,</span><br><span class="line">              height: <span class="number">50</span>,</span><br><span class="line">              color: _colorAnimation.value,</span><br><span class="line">              margin: EdgeInsets.only(top: _animation.value),</span><br><span class="line">            ),</span><br><span class="line">            FlatButton(</span><br><span class="line">              onPressed: startEasyAnimation,</span><br><span class="line">              child: Text(</span><br><span class="line">                <span class="string">"点击执行最简单动画"</span>,</span><br><span class="line">                style: TextStyle(color: Colors.black38),</span><br><span class="line">              ),</span><br><span class="line">            ),</span><br><span class="line">          ],</span><br><span class="line">        ),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、TweenSequence动画序列法"><a href="#3、TweenSequence动画序列法" class="headerlink" title="3、TweenSequence动画序列法"></a>3、TweenSequence动画序列法</h3><p>上面的两种方案虽然能解决动画组的问题,但是都太过于繁琐,那么有没有一种比较优雅的方案呢?这就需要使用到 <strong>TweenSequence</strong> 和 <strong>TweenSequenceItem</strong> 这两个类了. 其中 <strong>TweenSequence</strong> 是动画组类,<strong>TweenSequenceItem</strong> 则是用来定义每一个动画的具体实现的类.但是<strong>TweenSequence</strong> 和 <strong>TweenSequenceItem</strong>也不是尽善尽美的,它最大的问题就是前后变化的属性值类型必须是一致的.</p>
+<p>下面,我们仍然以改变Margin为例, 先让视图组件往上移动50,再让视图 来看看如何使用 <strong>TweenSequence</strong> 和 <strong>TweenSequenceItem</strong> 来实现这个动画.</p>
+<p>整体代码如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FlutterAnimationWidget</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  TurnTableLotteryPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line">  </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="function">_FlutterAnimationWidgetState <span class="title">createState</span><span class="params">()</span> </span>=&gt; _FlutterAnimationWidgetState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_FlutterAnimationWidgetState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">FlutterAnimationWidget</span>&gt; <span class="title">with</span> <span class="title">TickerProviderStateMixin</span> </span>&#123;</span><br><span class="line">  <span class="comment">// ①声明一个 动画控制器AnimationController 和 动画Animation.</span></span><br><span class="line">  AnimationController _animationController;</span><br><span class="line">  Animation&lt;<span class="keyword">double</span>&gt; _animation;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">initState</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.initState();</span><br><span class="line">    <span class="comment">// 仍然以两者的动画总时长为600毫秒为例</span></span><br><span class="line">    _animationController = AnimationController(duration: Duration(milliseconds: <span class="number">600</span>), vsync: <span class="keyword">this</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 然后,我们通过 **TweenSequence** 和 **TweenSequenceItem** 这两个类对 动画Animation 进行实现.</span></span><br><span class="line">    <span class="comment">// 实现两个 **TweenSequenceItem**, **TweenSequenceItem**中的 &lt;font color=red&gt;weight&lt;/font&gt; 属性是来设定动画执行的时间权重.也就是在整个动画过程,当前动画执行时长占总时长的比例.例如下面 第一个动画插值占的时间比例为 `50/(50 + 100)`. 第二个动画插值占的时间比例为 `100/(50 + 100)` .</span></span><br><span class="line">    TweenSequenceItem downMarginItem = TweenSequenceItem&lt;<span class="keyword">double</span>&gt;(</span><br><span class="line">      tween: Tween(begin: <span class="number">1.0</span>, end: <span class="number">50.0</span>),</span><br><span class="line">      weight: <span class="number">50</span>,</span><br><span class="line">    );</span><br><span class="line">    TweenSequenceItem upMarginItem = TweenSequenceItem&lt;<span class="keyword">double</span>&gt;(</span><br><span class="line">      tween: Tween(begin: <span class="number">50.0</span>, end: <span class="number">100.0</span>),</span><br><span class="line">      weight: <span class="number">100</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// 然后创建一个动画插值组,把上面两个动画插值放入组中.</span></span><br><span class="line">    TweenSequence tweenSequence = TweenSequence&lt;<span class="keyword">double</span>&gt;([</span><br><span class="line">      downMarginItem,</span><br><span class="line">      upMarginItem,</span><br><span class="line">    ]);</span><br><span class="line">    <span class="comment">// 最后,生成动画就OK了.</span></span><br><span class="line">    _animation = tweenSequence.animate(_animationController);</span><br><span class="line">    _animation.addListener(() &#123;</span><br><span class="line">      setState(() &#123;&#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">startEasyAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    _animationController.forward();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">dispose</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    _animationController.dispose();</span><br><span class="line">    <span class="keyword">super</span>.dispose();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="function">Widget <span class="title">build</span><span class="params">(BuildContext context)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: Center(</span><br><span class="line">        child: Column(</span><br><span class="line">          mainAxisAlignment: MainAxisAlignment.center,</span><br><span class="line">          children: &lt;Widget&gt;[</span><br><span class="line">            Container(</span><br><span class="line">              width: <span class="number">200</span>,</span><br><span class="line">              height: <span class="number">50</span>,</span><br><span class="line">              color: Colors.orangeAccent,</span><br><span class="line">              margin: EdgeInsets.only(top: _animation.value),</span><br><span class="line">            ),</span><br><span class="line">            FlatButton(</span><br><span class="line">              onPressed: startEasyAnimation,</span><br><span class="line">              child: Text(</span><br><span class="line">                <span class="string">"点击执行最简单动画"</span>,</span><br><span class="line">                style: TextStyle(color: Colors.black38),</span><br><span class="line">              ),</span><br><span class="line">            ),</span><br><span class="line">          ],</span><br><span class="line">        ),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="动画组实现总结"><a href="#动画组实现总结" class="headerlink" title="动画组实现总结"></a>动画组实现总结</h5><p>上面三种实现动画组基本上已经说完了,接下来我们就来对比其不同点.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">特性</th>
+<th style="text-align:center">监听状态法</th>
+<th style="text-align:center">Interval时间间隔法</th>
+<th style="text-align:center">TweenSequence动画序列法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">代码简洁度</td>
+<td style="text-align:center">🔅🔅</td>
+<td style="text-align:center">🔅🔅🔅</td>
+<td style="text-align:center">🔅🔅🔅🔅🔅</td>
+</tr>
+<tr>
+<td style="text-align:left">动画是否可交织</td>
+<td style="text-align:center">❌</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">❌</td>
+</tr>
+<tr>
+<td style="text-align:left">动画属性是否可以多变</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">❌</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>动画是否可交织</strong> : 动画可否交织主要是说两个动画之间是否需要上一个动画完全执行完成之后,下一个动画才能执行.</p>
+</blockquote>
+<blockquote>
+<p><strong>动画属性是否可以多变</strong> : 动画属性多变是指当前动画过程中可变化的属性是否可以有多个,例如同时变化尺寸和颜色等等.</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解Animation-2动画组/" data-id="clep4r34t007z6nr423b5vql7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/5详解/详解Animation-3转场" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解Animation-3转场/" class="article-date">
+  <time datetime="2019-02-18T04:00:00.000Z" itemprop="datePublished">2019-02-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解Animation-3转场/">第7节：详解Animation-3转场</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="详解Animation-3转场"><a href="#详解Animation-3转场" class="headerlink" title="详解Animation-3转场"></a>详解Animation-3转场</h1><p>参考文章：</p>
+<ul>
+<li><a href="https://flutterchina.club/tutorials/animation/" target="_blank" rel="noopener">Flutter中文网–教程：Flutter中的动画</a></li>
+</ul>
+<h2 id="一、动画入门"><a href="#一、动画入门" class="headerlink" title="一、动画入门"></a>一、动画入门</h2><ul>
+<li><a href="https://www.jianshu.com/p/323e8ef6ba07" target="_blank" rel="noopener">Flutter动画 4 -转场动画比较常见的飞入飞出动画 - Hero动画</a></li>
+<li><a href="https://www.jianshu.com/p/4827b8dcf7ea" target="_blank" rel="noopener">Flutter动画 5 - Flutter内置动画组件</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解Animation-3转场/" data-id="clep4r35l008d6nr4grxivw53" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/5详解/详解Image" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解Image/" class="article-date">
+  <time datetime="2019-02-18T04:00:00.000Z" itemprop="datePublished">2019-02-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解Image/">第2节：详解Image</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/a9d91a55d48c" target="_blank" rel="noopener">Image</a></li>
+<li><a href="https://flutter.cn/docs/reference/widgets" target="_blank" rel="noopener">Flutter Widget 目录</a></li>
+</ul>
+<h2 id="7、gaplessPlayback"><a href="#7、gaplessPlayback" class="headerlink" title="7、gaplessPlayback"></a>7、gaplessPlayback</h2><p>当ImageProvider发生变化后，重新加载图片的过程中，原图片的展示是否保留。若值为true，保留，若为false，不保留，直接空白等待下一张图片加载。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解Image/" data-id="clep4r364008k6nr49zeyo94b" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/5详解/详解TextField" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解TextField/" class="article-date">
+  <time datetime="2019-02-18T04:00:00.000Z" itemprop="datePublished">2019-02-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解TextField/">第2节：详解TextField</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://docs.flutter.io/flutter/material/TextField-class.html" target="_blank" rel="noopener">Flutter官方文档：TextField class</a></li>
+</ul>
+<h2 id="一、TextField-class"><a href="#一、TextField-class" class="headerlink" title="一、TextField class"></a>一、TextField class</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> TextField(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="keyword">this</span>.controller,<span class="comment">// 文本控制器，详见下文</span></span><br><span class="line">    <span class="keyword">this</span>.focusNode,	<span class="comment">// 焦点，详见下文</span></span><br><span class="line">    <span class="keyword">this</span>.decoration = <span class="keyword">const</span> InputDecoration(),	<span class="comment">// 输入框装饰器，详见下文</span></span><br><span class="line">    TextInputType keyboardType,</span><br><span class="line">    <span class="keyword">this</span>.textInputAction,		<span class="comment">//更改键盘本身的操作按钮，详见下文</span></span><br><span class="line">    <span class="keyword">this</span>.textCapitalization = TextCapitalization.none, <span class="comment">//提供了一些有关如何使用户输入中的字母大写的选项</span></span><br><span class="line">    <span class="keyword">this</span>.style,</span><br><span class="line">    <span class="keyword">this</span>.textAlign = TextAlign.start,</span><br><span class="line">    <span class="keyword">this</span>.textDirection,</span><br><span class="line">    <span class="keyword">this</span>.autofocus = <span class="keyword">false</span>,		<span class="comment">// 是否自动获取焦点</span></span><br><span class="line">    <span class="keyword">this</span>.obscureText = <span class="keyword">false</span>,	<span class="comment">// 是否隐藏正在编辑的文本，如用于输入密码的场景等，文本内容会用“•”替换。</span></span><br><span class="line">    <span class="keyword">this</span>.autocorrect = <span class="keyword">true</span>,	</span><br><span class="line">    <span class="keyword">this</span>.maxLines = <span class="number">1</span>,	<span class="comment">// 能写入的最大行数</span></span><br><span class="line">    <span class="keyword">this</span>.maxLength,		<span class="comment">// 能写入的最大字符数</span></span><br><span class="line">    <span class="keyword">this</span>.maxLengthEnforced = <span class="keyword">true</span>,</span><br><span class="line">    <span class="keyword">this</span>.onChanged,				<span class="comment">// 文本框事件：文字改变触发</span></span><br><span class="line">    <span class="keyword">this</span>.onEditingComplete,		<span class="comment">// 文本框事件：当用户提交可编辑内容时调用(常用于“焦点(FocusNode)”变更)</span></span><br><span class="line">    <span class="keyword">this</span>.onSubmitted,			<span class="comment">// 文本框事件：文字提交触发（键盘按键）</span></span><br><span class="line">    <span class="keyword">this</span>.inputFormatters,</span><br><span class="line">    <span class="keyword">this</span>.enabled,</span><br><span class="line">    <span class="keyword">this</span>.cursorWidth = <span class="number">2.0</span>,	<span class="comment">// 光标宽度 Colors.red</span></span><br><span class="line">    <span class="keyword">this</span>.cursorRadius,		<span class="comment">// 光标半径 Radius.circular(16.0)</span></span><br><span class="line">    <span class="keyword">this</span>.cursorColor,		<span class="comment">// 光标颜色 16.0</span></span><br><span class="line">    <span class="keyword">this</span>.keyboardAppearance,</span><br><span class="line">    <span class="keyword">this</span>.scrollPadding = <span class="keyword">const</span> EdgeInsets.all(<span class="number">20.0</span>),</span><br><span class="line">    <span class="keyword">this</span>.enableInteractiveSelection = <span class="keyword">true</span>,</span><br><span class="line">    <span class="keyword">this</span>.onTap,					<span class="comment">// 文本框事件：</span></span><br><span class="line">  &#125;) : <span class="keyword">assert</span>(textAlign != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(autofocus != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(obscureText != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(autocorrect != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(maxLengthEnforced != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(scrollPadding != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(maxLines == <span class="keyword">null</span> || maxLines &gt; <span class="number">0</span>),</span><br><span class="line">       <span class="keyword">assert</span>(maxLength == <span class="keyword">null</span> || maxLength &gt; <span class="number">0</span>),</span><br><span class="line">       keyboardType = keyboardType ?? (maxLines == <span class="number">1</span> ? TextInputType.text : TextInputType.multiline),</span><br><span class="line">       <span class="keyword">assert</span>(enableInteractiveSelection != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">super</span>(key: key);</span><br></pre></td></tr></table></figure>
+<h2 id="二、文本框的输入器装饰-InputDecoration-decoration"><a href="#二、文本框的输入器装饰-InputDecoration-decoration" class="headerlink" title="二、文本框的输入器装饰 InputDecoration decoration"></a>二、文本框的输入器装饰 InputDecoration decoration</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> InputDecoration(&#123;</span><br><span class="line">    <span class="keyword">this</span>.icon,</span><br><span class="line">    <span class="keyword">this</span>.labelText,</span><br><span class="line">    <span class="keyword">this</span>.labelStyle,</span><br><span class="line">    <span class="keyword">this</span>.helperText,</span><br><span class="line">    <span class="keyword">this</span>.helperStyle,</span><br><span class="line">    <span class="keyword">this</span>.hintText,</span><br><span class="line">    <span class="keyword">this</span>.hintStyle,</span><br><span class="line">    <span class="keyword">this</span>.errorText,</span><br><span class="line">    <span class="keyword">this</span>.errorStyle,</span><br><span class="line">    <span class="keyword">this</span>.errorMaxLines,</span><br><span class="line">    <span class="keyword">this</span>.hasFloatingPlaceholder = <span class="keyword">true</span>,</span><br><span class="line">    <span class="keyword">this</span>.isDense,</span><br><span class="line">    <span class="keyword">this</span>.contentPadding,</span><br><span class="line">    <span class="keyword">this</span>.prefixIcon,</span><br><span class="line">    <span class="keyword">this</span>.prefix,</span><br><span class="line">    <span class="keyword">this</span>.prefixText,</span><br><span class="line">    <span class="keyword">this</span>.prefixStyle,</span><br><span class="line">    <span class="keyword">this</span>.suffixIcon,</span><br><span class="line">    <span class="keyword">this</span>.suffix,</span><br><span class="line">    <span class="keyword">this</span>.suffixText,</span><br><span class="line">    <span class="keyword">this</span>.suffixStyle,</span><br><span class="line">    <span class="keyword">this</span>.counterText,</span><br><span class="line">    <span class="keyword">this</span>.counterStyle,</span><br><span class="line">    <span class="keyword">this</span>.filled,</span><br><span class="line">    <span class="keyword">this</span>.fillColor,</span><br><span class="line">    <span class="keyword">this</span>.errorBorder,</span><br><span class="line">    <span class="keyword">this</span>.focusedBorder,</span><br><span class="line">    <span class="keyword">this</span>.focusedErrorBorder,</span><br><span class="line">    <span class="keyword">this</span>.disabledBorder,</span><br><span class="line">    <span class="keyword">this</span>.enabledBorder,</span><br><span class="line">    <span class="keyword">this</span>.border,</span><br><span class="line">    <span class="keyword">this</span>.enabled = <span class="keyword">true</span>,</span><br><span class="line">    <span class="keyword">this</span>.semanticCounterText,</span><br><span class="line">  &#125;) : <span class="keyword">assert</span>(enabled != <span class="keyword">null</span>),</span><br><span class="line">       <span class="keyword">assert</span>(!(prefix != <span class="keyword">null</span> &amp;&amp; prefixText != <span class="keyword">null</span>), <span class="string">'Declaring both prefix and prefixText is not allowed'</span>),</span><br><span class="line">       <span class="keyword">assert</span>(!(suffix != <span class="keyword">null</span> &amp;&amp; suffixText != <span class="keyword">null</span>), <span class="string">'Declaring both suffix and suffixText is not allowed'</span>),</span><br><span class="line">       isCollapsed = <span class="keyword">false</span>;</span><br></pre></td></tr></table></figure>
+<p>图解如下：</p>
+<p><img src="/Flutter/5详解/详解TextField/Screenshots/Flutter TextField.png" alt="Flutter TextField"></p>
+<p>输入器装饰 <strong>InputDecoration decoration</strong>的其他参数</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>contentPadding</td>
+<td>内容的边距，默认是有一个边距的</td>
+<td>contentPadding: new EdgeInsets.all(0.0)</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、文本控制器-TextEditingController-controller"><a href="#2、文本控制器-TextEditingController-controller" class="headerlink" title="2、文本控制器 TextEditingController controller"></a>2、文本控制器 TextEditingController controller</h3><p><code>controller.clear()</code> 清空了用户名输入框中的内容</p>
+<h3 id="3、键盘输入类型-TextInputType-keyboardType"><a href="#3、键盘输入类型-TextInputType-keyboardType" class="headerlink" title="3、键盘输入类型 TextInputType keyboardType"></a>3、键盘输入类型 TextInputType keyboardType</h3><p>键盘输入类型（数字，文本等各种类型）：设置TextField获得焦点的时候弹出的键盘</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TextInputType.number</td>
+<td>数字键盘</td>
+</tr>
+<tr>
+<td>TextInputType.text</td>
+<td>普通完整键盘</td>
+</tr>
+<tr>
+<td>TextInputType.emailAddress</td>
+<td>带有“@”的普通键盘</td>
+</tr>
+<tr>
+<td>TextInputType.datetime</td>
+<td>带有“/”和“：”的数字键盘</td>
+</tr>
+<tr>
+<td>TextInputType.multiline</td>
+<td>带有选项以启用有符号和十进制模式的数字键盘</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4、键盘本身的操作按钮-TextInputAction"><a href="#4、键盘本身的操作按钮-TextInputAction" class="headerlink" title="4、键盘本身的操作按钮 TextInputAction"></a>4、键盘本身的操作按钮 TextInputAction</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TextField(</span><br><span class="line">  textInputAction: TextInputAction.search,</span><br><span class="line">),</span><br></pre></td></tr></table></figure>
+<h3 id="5、TextCapitalization"><a href="#5、TextCapitalization" class="headerlink" title="5、TextCapitalization"></a>5、TextCapitalization</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TextCapitalization.characters</td>
+<td>大写句子中的所有字符</td>
+</tr>
+<tr>
+<td>TextCapitalization.words</td>
+<td>将每个单词的首字母大写</td>
+</tr>
+<tr>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="6、文本框的其他参数"><a href="#6、文本框的其他参数" class="headerlink" title="6、文本框的其他参数"></a>6、文本框的其他参数</h3><p>见类结构</p>
+<h2 id="二、键盘"><a href="#二、键盘" class="headerlink" title="二、键盘"></a>二、键盘</h2><p>Flutter | 滚动 PageView 自动关闭键盘</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">PageView(</span><br><span class="line">	onPageChanged: (index) &#123;</span><br><span class="line">		WidgetsBinding.instance?.focusManager.primaryFocus?.unfocus();</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解TextField/" data-id="clep4r376008z6nr4fidym7kq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/5详解/详解Button" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解Button/" class="article-date">
+  <time datetime="2019-02-17T04:00:00.000Z" itemprop="datePublished">2019-02-17</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解Button/">第1节：详解Button</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>参考文章：</p>
+<ul>
+<li><a href="https://docs.flutter.io/flutter/material/FlatButton-class.html" target="_blank" rel="noopener">Flutter官方文档：FlatButton class</a></li>
+</ul>
+<h2 id="一、基础知识"><a href="#一、基础知识" class="headerlink" title="一、基础知识"></a>一、基础知识</h2><h3 id="1、继承关系"><a href="#1、继承关系" class="headerlink" title="1、继承关系"></a>1、继承关系</h3><p>Object &gt; Diagnosticable &gt; DiagnosticableTree &gt; Widget &gt; StatelessWidget &gt; MaterialButton &gt; RaisedButton、FlatButton、OutlineButton</p>
+<ul>
+<li>2021-12-18</li>
+</ul>
+<p>TextButton 是 1.20.0 推出的一个新的按钮</p>
+<p><a href="https://zhuanlan.zhihu.com/p/278330232" target="_blank" rel="noopener">Flutter TextButton 详细使用配置、Flutter ButtonStyle概述实践</a></p>
+<p>flutter 2.0版本新增了三个按钮</p>
+<blockquote>
+<p>TextButton、OutlinedButton、ElevatedButton</p>
+</blockquote>
+<h3 id="2、类"><a href="#2、类" class="headerlink" title="2、类"></a>2、类</h3><table>
+<thead>
+<tr>
+<th>类</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RaisedButton</td>
+<td>Material Design中的button， 一个凸起的材质矩形按钮。</td>
+</tr>
+<tr>
+<td>FlatButton</td>
+<td>Material Design中的button，一个没有阴影的材质设计按钮。</td>
+</tr>
+<tr>
+<td>OutlineButton</td>
+<td>Material Design中的button，RaisedButton和FlatButton之间的交叉：一个带边框的背景透明的按钮，当按下按钮时，其高度增加，背景变得不透明。</td>
+</tr>
+<tr>
+<td><a href="https://docs.flutter.io/flutter/material/IconButton-class.html" target="_blank" rel="noopener">IconButton</a></td>
+<td>用于创建仅包含图标的按钮，参数就不再讲解</td>
+</tr>
+<tr>
+<td>DropdownButton</td>
+<td>一个显示可供选择的选项的按钮</td>
+</tr>
+<tr>
+<td>FloatingActionButton</td>
+<td>材质应用程序中的圆形按钮</td>
+</tr>
+<tr>
+<td>InkWell</td>
+<td>实现平面按钮的墨水飞溅部分</td>
+</tr>
+</tbody>
+</table>
+<p>RaisedButton、FlatButton、OutlineButton三个控件都继承于MaterialButton，查看源码会发现MaterialButton由RawMaterialButton（无主题Button）构建的。而RawMaterialButton与CupertinoButton是一对button组合，都继承于StatefulWidget，前者是google风格，后者iOS风格！</p>
+<p>附：使用CupertionBUtton要注意导入库：import ‘package:flutter/cupertino.dart’;</p>
+<h2 id="二、-MaterialButton参数详解"><a href="#二、-MaterialButton参数详解" class="headerlink" title="二、 MaterialButton参数详解"></a>二、 MaterialButton参数详解</h2><p>这里我们仅对个别不好理解的做解释。</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>作用</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VoidCallback onPressed</td>
+<td>点击激活按钮时调用的方法</td>
+<td></td>
+</tr>
+<tr>
+<td>ValueChanged<bool> onHighlightChanged</bool></td>
+<td>按下和抬起时都会调用的方法，详看后面示例</td>
+<td></td>
+</tr>
+<tr>
+<td>ButtonTextTheme textTheme</td>
+<td>定义按钮的基色，以及按钮的最小尺寸，内部填充和形状的默认值。</td>
+<td></td>
+</tr>
+<tr>
+<td>Color disabledTextColor</td>
+<td>未设置按钮点击回调时使用的文本颜色</td>
+<td></td>
+</tr>
+<tr>
+<td>Color splashColor</td>
+<td>按钮被按下的水波纹颜色，默认是有值的，<strong>不要要水波纹效果设置透明颜色即可！</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>colorBrightness</td>
+<td>按钮的主题亮度，当设置了textColor、color颜色，此值无效!</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>更多内容参考：<a href="https://blog.csdn.net/chenlove1/article/details/84828049" target="_blank" rel="noopener">Flutter RaisedButton、FlatButton、OutlineButton 参数详解</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解Button/" data-id="clep4r34z00836nr442z0tc33" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/5详解/README" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/5详解/README/" class="article-date">
@@ -111,7 +584,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/5详解/README/" data-id="cle6trj6o007lu0r4deuma1wu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/README/" data-id="clep4r34c007p6nr43nws7b0k" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -284,7 +757,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/Swift/1入门/1.Swift基础知识/" data-id="cle6trkqr00vhu0r42lb78gtb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/Swift/1入门/1.Swift基础知识/" data-id="clep4r4dy00tz6nr4ykya7qm8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Swift/">Swift</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -442,7 +915,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/Swift/1入门/3.Swift基础知识3/" data-id="cle6trkrv00vlu0r4x52tdavb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/Swift/1入门/3.Swift基础知识3/" data-id="clep4r4ec00u16nr4peeqwlzs" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Swift/">Swift</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -485,7 +958,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/目前痛点/README/" data-id="cle6trig9004ou0r4pn7fpku1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/目前痛点/README/" data-id="clep4r23a004e6nr4iexxdei3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/痛点/">痛点</a></li></ul>
@@ -528,247 +1001,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/Swift/README/" data-id="cle6trjie00h5u0r459v9ytg4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/Swift/README/" data-id="clep4r3g200gi6nr4nvn3aj3o" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Swift/">Swift</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/移动分析/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/移动分析/README/" class="article-date">
-  <time datetime="2019-01-10T03:33:16.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/移动分析/">移动分析</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/移动分析/README/">移动分析</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/移动分析/README/" data-id="cle6trjiv00j5u0r46c7nobrj" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/移动分析/">移动分析</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/app安全/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/app安全/README/" class="article-date">
-  <time datetime="2019-01-10T03:32:16.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/app安全/">app安全</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/app安全/README/">app安全</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/app安全/README/" data-id="cle6trjie00h9u0r4rfqlmgrg" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/app安全/">app安全</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/自动化/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/自动化/README/" class="article-date">
-  <time datetime="2019-01-10T03:31:16.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/自动化/">自动化</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/自动化/README/">自动化</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/README/" data-id="cle6trjiw00j8u0r4kypsmvpb" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/自动化/">自动化</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/README" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/README/" class="article-date">
-  <time datetime="2019-01-10T03:30:12.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/README/">iOS</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/README/" data-id="cle6trice002ju0r4e02y1mtq" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/开发随笔/Swift相关随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/开发随笔/Swift相关随笔/" class="article-date">
-  <time datetime="2019-01-10T03:30:12.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/开发随笔/Swift相关随笔/">iOS</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="开发随笔"><a href="#开发随笔" class="headerlink" title="开发随笔"></a>开发随笔</h1><h1 id="Swift-变量对外只读，对内可读写"><a href="#Swift-变量对外只读，对内可读写" class="headerlink" title="Swift 变量对外只读，对内可读写"></a>Swift 变量对外只读，对内可读写</h1><p>项目中经常需要创建这样一种变量：对内可读写，但对外是只读的。在 OC 中，只需在 <code>.h</code> 文件中将属性定义为 <code>readonly</code>，而在 <code>.m</code> 文件中将该属性重新定义为 <code>readwrite</code> 即可。</p>
-<p>可是在 Swift 中却没有这样让我们重新定义权限的机会，那么我们该如何去创建这样的变量呢？</p>
-<p>Swift中的实现方式：</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Person</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span>(<span class="keyword">set</span>) <span class="keyword">var</span> name : <span class="type">String</span>!</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>别看有 <code>private</code> 就以为其他类不能访问 <code>name</code> 属性了，其实只是 <code>setter</code> 方法是私有的，所以在其他类中是可以访问 <code>name</code> 属性的，只是不能修改而已，而在 <code>Person</code> 类中是读写都可以。</p>
-<h1 id="怎样优雅的禁用掉Swift中的方法"><a href="#怎样优雅的禁用掉Swift中的方法" class="headerlink" title="怎样优雅的禁用掉Swift中的方法"></a>怎样优雅的禁用掉Swift中的方法</h1><p><a href="https://www.jianshu.com/p/ab366b58b7a2?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation" target="_blank" rel="noopener">https://www.jianshu.com/p/ab366b58b7a2?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation</a></p>
-<h1 id="尝试理解Swift中的-escaping"><a href="#尝试理解Swift中的-escaping" class="headerlink" title="尝试理解Swift中的@escaping"></a>尝试理解Swift中的@escaping</h1><p><a href="https://www.jianshu.com/p/dd0537a40fc6/" target="_blank" rel="noopener">https://www.jianshu.com/p/dd0537a40fc6/</a></p>
-<h1 id="ios-–-Swift-–-UIButton重写setSelected"><a href="#ios-–-Swift-–-UIButton重写setSelected" class="headerlink" title="ios – Swift – UIButton重写setSelected"></a>ios – Swift – UIButton重写setSelected</h1><p><a href="http://www.voidcn.com/article/p-cdthfhqm-bte.html" target="_blank" rel="noopener">http://www.voidcn.com/article/p-cdthfhqm-bte.html</a></p>
-<h1 id="swift函数参数指针传递inout和-escaping冲突的解决方法"><a href="#swift函数参数指针传递inout和-escaping冲突的解决方法" class="headerlink" title="swift函数参数指针传递inout和@escaping冲突的解决方法"></a>swift函数参数指针传递inout和@escaping冲突的解决方法</h1><p><a href="https://blog.csdn.net/boildoctor/article/details/111559223" target="_blank" rel="noopener">https://blog.csdn.net/boildoctor/article/details/111559223</a></p>
-<h1 id="swift3-0-让方法参数可修改方法"><a href="#swift3-0-让方法参数可修改方法" class="headerlink" title="swift3.0 让方法参数可修改方法"></a>swift3.0 让方法参数可修改方法</h1><p><a href="https://blog.csdn.net/a1018875550/article/details/75174640" target="_blank" rel="noopener">https://blog.csdn.net/a1018875550/article/details/75174640</a></p>
-<p><a href="http://cache.baiducontent.com/c?m=m-k2_l-4CMYfEg95YMMh3aMWxKOtc-cVq1Lq_EW6L9ND9ZVpKHWhid_jv2PzArzld_Ken3Rpbsi6Vq0C4j0mlD0T63lrtFzAqErGBjLPrPWxLoJPMvGcDO9IDiaLoRIFgKi0qnIw9jds8KCdPvoVqKaq9zxuJ0mTEj3E8veGxA-srcec28YT0zWiuMzfJgjc&amp;p=cb6ac54ad5c042b90be29628165dcb&amp;newp=8b2a970c82934eac5beee6261547c4231610db2151d7d5106b82c825d7331b001c3bbfb423291403d5c7796d04a44258e8f63271370923a3dda5c91d9fb4c57479c173&amp;s=1679091c5a880faf&amp;user=baidu&amp;fm=sc&amp;query=swift+%D0%DE%B8%C4%B7%BD%B7%A8%D0%CE%B2%CE&amp;qid=ac21cc5c00048b26&amp;p1=9" target="_blank" rel="noopener">http://cache.baiducontent.com/c?m=m-k2_l-4CMYfEg95YMMh3aMWxKOtc-cVq1Lq_EW6L9ND9ZVpKHWhid_jv2PzArzld_Ken3Rpbsi6Vq0C4j0mlD0T63lrtFzAqErGBjLPrPWxLoJPMvGcDO9IDiaLoRIFgKi0qnIw9jds8KCdPvoVqKaq9zxuJ0mTEj3E8veGxA-srcec28YT0zWiuMzfJgjc&amp;p=cb6ac54ad5c042b90be29628165dcb&amp;newp=8b2a970c82934eac5beee6261547c4231610db2151d7d5106b82c825d7331b001c3bbfb423291403d5c7796d04a44258e8f63271370923a3dda5c91d9fb4c57479c173&amp;s=1679091c5a880faf&amp;user=baidu&amp;fm=sc&amp;query=swift+%D0%DE%B8%C4%B7%BD%B7%A8%D0%CE%B2%CE&amp;qid=ac21cc5c00048b26&amp;p1=9</a></p>
-<h1 id="Swift学习笔记-In-out形参"><a href="#Swift学习笔记-In-out形参" class="headerlink" title="Swift学习笔记 In-out形参"></a><a href="https://www.cnblogs.com/imhere/p/4252397.html" target="_blank" rel="noopener"><strong>Swift</strong>学习笔记 In-out<strong>形参</strong></a></h1><h1 id="swift-map-reduce-获取下标-index-的方法"><a href="#swift-map-reduce-获取下标-index-的方法" class="headerlink" title="swift map reduce 获取下标(index)的方法"></a>swift map reduce 获取下标(index)的方法</h1><p><a href="http://www.voidcn.com/article/p-cstjyafn-bmd.html" target="_blank" rel="noopener">http://www.voidcn.com/article/p-cstjyafn-bmd.html</a></p>
-<p><strong>Swift 数组删除元素</strong>(删除多个)</p>
-<p><a href="https://www.meiwen.com.cn/subject/jwpmbctx.html" target="_blank" rel="noopener">https://www.meiwen.com.cn/subject/jwpmbctx.html</a></p>
-<h3 id="Swift中编写单例的正确方式"><a href="#Swift中编写单例的正确方式" class="headerlink" title="Swift中编写单例的正确方式"></a>Swift中编写单例的正确方式</h3><p><a href="http://www.cocoachina.com/articles/14584" target="_blank" rel="noopener">http://www.cocoachina.com/articles/14584</a></p>
-<h1 id="Swift中的nil"><a href="#Swift中的nil" class="headerlink" title="Swift中的nil"></a>Swift中的nil</h1><p>Swift中的nil和OC中的nil不一样。OC中的nil表示不存在的对象，你无法给NSInteger类型的变量赋值nil，但是Swift中的nil表示不存在，可以给任何Optional的变量或者常量赋nil，即使是普通类型：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">var a: Int? = nil</span><br><span class="line">let b: Double? = nil</span><br></pre></td></tr></table></figure>
-<p>但是，需要注意的是，无法给非Optional类型的变量或者常量赋nil：</p>
-<h1 id="swift-数组的添加和删除"><a href="#swift-数组的添加和删除" class="headerlink" title="swift 数组的添加和删除"></a>swift 数组的添加和删除</h1><p>insert(_:at:) 在指定位置插入一个元素</p>
-<p>insert(contentsOF:at)在指定位置插入多个元素</p>
-<p><strong>swift 条件编译 自定义环境变量</strong></p>
-<p><a href="https://www.jianshu.com/p/9a93e614a98e" target="_blank" rel="noopener"><strong>https://www.jianshu.com/p/9a93e614a98e</strong></a></p>
-<p><strong>Swift initializer</strong></p>
-<p><a href="https://www.jianshu.com/p/bdb07143d368" target="_blank" rel="noopener"><strong>https://www.jianshu.com/p/bdb07143d368</strong></a></p>
-<p><strong>Swift - 实现动画</strong></p>
-<p><a href="https://blog.csdn.net/weixin_43704791/article/details/86529516" target="_blank" rel="noopener">https://blog.csdn.net/weixin_43704791/article/details/86529516</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/开发随笔/Swift相关随笔/" data-id="cle6trjik00hxu0r4doz41pkx" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
 
     </footer>
   </div>
@@ -792,7 +1028,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
     </div>
   </div>
 
@@ -802,7 +1038,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/app安全/">app安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/痛点/">痛点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
     </div>
   </div>
 
@@ -812,7 +1048,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 15.45px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.09px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.73px;">Git</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.91px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 14.55px;">Script</a> <a href="/tags/Shell/" style="font-size: 10.91px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.18px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 11.82px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.82px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 15.83px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.67px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 10.83px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -821,7 +1057,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -834,23 +1070,23 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
       </ul>

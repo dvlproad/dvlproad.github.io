@@ -2,33 +2,41 @@
  * @Author: dvlproad
  * @Date: 2022-12-27 11:59:38
  * @LastEditors: dvlproad
- * @LastEditTime: 2023-02-16 14:50:46
+ * @LastEditTime: 2023-03-02 16:02:51
  * @Description: 调试h5与app交互的网页demo
 -->
+
 <!--
 一、使用fileUrl参数
 1、本地服务器测试
-url1:  http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?参数如下eg中的值
+url1:  http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?参数如下eg中的值
 eg1.1: fileUrl=dvlp_h5js_demo.json
-eg1.2: fileUrl=http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.json
+eg1.2: fileUrl=http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.json
 
 2、远程服务器测试
-url2:  https://dvlproad.github.io/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?参数如下eg中的值
+url2:  https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?参数如下eg中的值
 eg2.1: fileUrl=dvlp_h5js_demo.json
-eg2.2: fileUrl=https://dvlproad.github.io/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.json
-eg2.3(测试跨域): fileUrl=https://raw.githubusercontent.com/dvlproad/dvlproad.github.io/master/Architecture%E6%9E%B6%E6%9E%84/h5js/dvlp_h5js_demo/dvlp_h5js_demo.json
+eg2.2: fileUrl=https://dvlproad.github.io/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.json
+eg2.3(测试跨域): fileUrl=https://raw.githubusercontent.com/dvlproad/dvlproad.github.io/master/Architecture%E6%9E%B6%E6%9E%84/h5_native_interacte/h5js/dvlp_h5js_demo.json
 eg2.4(测试跨域): 
 eg2.5(测试跨域): 
 
 二、使用各种dataJson参数
 1、本地服务器测试
-url1:  http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?参数如下eg中的值
+url1:  http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?参数如下eg中的值
 eg1.1(未编码h5CallBridgeSendMessage，在浏览器中验证可以。但在app中不行，必须对每个参数编码后再赋值，以避免参数中含中文或者对象): 
 h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage={"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"婉艺","type":1,"dialogSubjectId":"1506196208391966720"}}
 eg1.2(有编码h5CallBridgeSendMessage，验证可以): 
 h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage=%7B%22pageName%22%3A%22imChatPage%22%2C%22pageParams%22%3A%7B%22conversationID%22%3A%22126191%22%2C%22imUserId%22%3A%221602856363702501376%22%2C%22showName%22%3A%22%E5%A9%89%E8%89%BA%22%2C%22type%22%3A1%2C%22dialogSubjectId%22%3A%221506196208391966720%22%7D%7D
-
+/h5_native_interacte/h5js/dvlp_h5js_demo.html
 -->
+
+<!--
+注入js方法66
+eg:
+injectedH5MethodFileUrl=dvlp_h5js_h5Action_demo.json
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -222,55 +230,81 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
 
 </script>
 
+
 <script>
-  // 初始化
-  // localStorage.setItem('vConsole_switch_x', 50)
-  // var vConsole = new VConsole();
-  // console.log('Hello world');
-  var _demoSectionArray;
-  var h5CallBridgeActionDesArray = [];
+  /// 获取指定地址的主地址
+  function getRequestUrlMain(browserUrl) {
+    if (browserUrl == null || browserUrl == "" || typeof browserUrl == "undefined") {
+      var url = decodeURI(location.search);  //获取url中"?"符后的字串
+    } else {
+      var url = browserUrl;
+    }
 
-  // function readJson(url) {
-  //   var request = new XMLHttpRequest();
-  //   request.open("get", url);/*设置请求方法与路径*/
-  //   request.send(null);/*不发送数据到服务器*/
-  //   request.onload = function () {/*XHR对象获取到返回信息后执行*/
-  //     if (request.status == 200) {/*返回状态为200，即为数据获取成功*/
-  //       var json = JSON.parse(request.responseText);
-  //       for (var i = 0; i < json.length; i++) {
-  //         console.log(json[i].name);
-  //       }
-  //       console.log(json);
-  //       debugger
-  //     }
-  //   }
-  // }
-
-  function handleCloseDialog() {
-    document.querySelector(".dialog").classList.add("hide");
-    // copy(".msg")
-  }
-  function handleShowDialog() {
-    document.querySelector(".dialog").classList.remove("hide");
+    var url_main;
+    var paramStartIndex = url.indexOf("?");
+    if (paramStartIndex != -1) {
+      // [js中截取字符串的三个方法 substring()、substr()、slice()](https://segmentfault.com/a/1190000016387899)
+      url_main = url.substring(0, paramStartIndex);
+    } else {
+      url_main = url;
+    }
+    return url_main;
   }
 
-  // function copy(id) {
-  //   var clipboard = new Clipboard(id);
-  //   clipboard.on('success', function (e) {
-  //     _showAlert("复制成功");
-  //     //可执行其他代码操作
-  //   });
-  //   clipboard.on('error', function () {
-  //     _showAlert("复制失败")
-  //   });
-  // }
+  /// 获取指定地址的所有参数
+  function getRequestUrlParams(browserUrl) {
+    if (browserUrl == null || browserUrl == "" || typeof browserUrl == "undefined") {
+      var url = decodeURI(location.search);  //获取url中"?"符后的字串
+    } else {
+      var url = browserUrl;
+    }
 
-  function _showAlert(msg) {
-    handleShowDialog();
-    let t = document.querySelector(".msg");
-    t.innerHTML = msg;
+    var theRequest = new Map();
+    var paramStartIndex = url.indexOf("?");
+    if (paramStartIndex != -1) {
+      var str = url.substr(paramStartIndex + 1);
+      strs = str.split("&");
+
+      for (var i = 0; i < strs.length; i++) {
+        var keyValueComponent = strs[i].split("=");
+        var key = keyValueComponent[0];
+        var value = keyValueComponent[1];
+        theRequest[key] = unescape(value);
+      }
+    }
+    return theRequest;
   }
 
+  // [js获取url中的中文参数出现乱码解决](https://www.codeleading.com/article/87533774933/)
+  // "http://localhost:4000/Architecture%E6%9E%B6%E6%9E%84/h5_native_interacte/h5js/dvlp_h5js_demo.json"; // url含中文示例
+  // "http://localhost/test/test.html?p=广东&c=珠海"
+  function getValueByQueryKey(browserUrl, key) {
+    // 获取参数
+    if (browserUrl == null || browserUrl == "" || typeof browserUrl == "undefined") {
+      var url = decodeURI(location.search);  //获取url中"?"符后的字串
+      // var url = window.location.search; // 在本地用file打开，而不是http打开的话，此值会为空
+    } else {
+      var url = browserUrl;
+    }
+    console.log(`✅打勾要获取的url=${url}`)
+    // 正则筛选地址栏
+    var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)");
+    // 匹配目标参数
+    var result = url.substr(1).match(reg);
+    //返回参数值
+    // return result ? unescape(result[2]) : null; // url中含中文时候，取值会出错
+    return result ? decodeURIComponent(result[2]) : null;
+  }
+
+  /// 获取本页面指定参数key的值
+  function getQueryString(key) {
+    var url = window.location.search; // 在本地用file打开，而不是http打开的话，此值会为空
+    return getValueByQueryKey(url, key);
+  }
+</script>
+
+
+<script>
   function readJson(url) {
     return new Promise((resolve, reject) => {
       $.ajax({
@@ -333,6 +367,146 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     //   console.log('你的浏览器不支持读取文件');
     // }
   }
+</script>
+
+
+<!-- 动态注入js方法 -->
+<script>
+  var injectedJSMethods = [
+    {
+      "sectionTitle": "测试的",
+      "sectionDatas": [
+        {
+          "name": "test",
+          "arg": {
+            "callback": "h5CallBridgeAction_showAppToast",
+            "callback_arg": {
+              "message": `恭喜您分享成功3459`
+            },
+          },
+        }
+      ],
+    }
+  ];
+
+  /// 初始化数据
+  async function initInjectedJSData() { // 注意必须加 async ,否则函数内使用 await 会报错
+    console.log("查看是否有使用url_param_injectedH5MethodFileUrl参数,若无，则将使用本html的默认数据");
+    let url_param_injectedH5MethodFileUrl = getQueryString("injectedH5MethodFileUrl"); // 从浏览器的网页地址中读取 fileUrl 参数
+    console.log(`========url_param_injectedH5MethodFileUrl:${url_param_injectedH5MethodFileUrl}`);
+
+    if (url_param_injectedH5MethodFileUrl != null) {
+      injectedJSMethods = await readJson(url_param_injectedH5MethodFileUrl);
+    }
+  }
+  initInjectedJSData();
+
+
+  var sectionCount = injectedJSMethods.length;
+  for (let sectionIndex = 0; sectionIndex < sectionCount; sectionIndex++) {
+    const sectionElement = injectedJSMethods[sectionIndex];
+
+    var sectionDataArray = sectionElement["sectionDatas"];
+    var rowCount = sectionDataArray.length;
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      const element = sectionDataArray[rowIndex];
+
+      var h5ActionName = element["name"];
+      window[h5ActionName] = (param) => {
+        var funName = element["arg"]["callback"];
+        var callbackArg = element["arg"]["callback_arg"];
+        var sendMessage = "";
+        if (callbackArg != null) {
+          sendMessage = JSON.stringify(callbackArg);
+        }
+        try {
+          eval(funName).postMessage(sendMessage);
+        } catch (err) {
+          // console.log(`---------------err:${err}`);
+          _showAlert(err);
+        }
+      }
+    }
+
+
+  }
+
+  window["aaa"] = (param) => {
+    console.log(`✅吃啥11156775${param}`);
+    _showAlert(`✅吃啥11156775${param}`);
+
+    var tmp = arguments.callee.toString();
+    var re = /function\s*(\w*)/i;
+    var matches = re.exec(tmp);//方法名
+    var id = matches[1];
+    console.log(`✅示范方法2${id}`);
+  }
+
+
+
+
+
+  // if (typeof __on_did_change_app_lifecycle_state=="function"){
+  //   console.log(`✅示范方法`);
+  // } else {
+  //   console.log(`❌示范方法`);
+  // }
+
+
+</script>
+
+
+
+<script>
+  // 初始化
+  // localStorage.setItem('vConsole_switch_x', 50)
+  // var vConsole = new VConsole();
+  // console.log('Hello world');
+  var _demoSectionArray;
+  var h5CallBridgeActionDesArray = [];
+
+  // function readJson(url) {
+  //   var request = new XMLHttpRequest();
+  //   request.open("get", url);/*设置请求方法与路径*/
+  //   request.send(null);/*不发送数据到服务器*/
+  //   request.onload = function () {/*XHR对象获取到返回信息后执行*/
+  //     if (request.status == 200) {/*返回状态为200，即为数据获取成功*/
+  //       var json = JSON.parse(request.responseText);
+  //       for (var i = 0; i < json.length; i++) {
+  //         console.log(json[i].name);
+  //       }
+  //       console.log(json);
+  //       debugger
+  //     }
+  //   }
+  // }
+
+  function handleCloseDialog() {
+    document.querySelector(".dialog").classList.add("hide");
+    // copy(".msg")
+  }
+  function handleShowDialog() {
+    document.querySelector(".dialog").classList.remove("hide");
+  }
+
+  // function copy(id) {
+  //   var clipboard = new Clipboard(id);
+  //   clipboard.on('success', function (e) {
+  //     _showAlert("复制成功");
+  //     //可执行其他代码操作
+  //   });
+  //   clipboard.on('error', function () {
+  //     _showAlert("复制失败")
+  //   });
+  // }
+
+  function _showAlert(msg) {
+    handleShowDialog();
+    let t = document.querySelector(".msg");
+    t.innerHTML = msg;
+  }
+
+
 
   function getLocalDemoMapArray() {
     let localDemoMapArray = [
@@ -427,8 +601,8 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     var remoteArrayResultMessage = `${promptMessage}:获取浏览器地址指定的dataJson各参数的值来作为 demoMapArray 成功✅`;
     console.log(`${remoteArrayResultMessage}`);
 
-    // http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage={"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"婉艺","type":1,"dialogSubjectId":"1506196208391966720"}}
-    // http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage=%7B%22pageName%22%3A%22imChatPage%22%2C%22pageParams%22%3A%7B%22conversationID%22%3A%22126191%22%2C%22imUserId%22%3A%221602856363702501376%22%2C%22showName%22%3A%22%E5%A9%89%E8%89%BA%22%2C%22type%22%3A1%2C%22dialogSubjectId%22%3A%221506196208391966720%22%7D%7D
+    // http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage={"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"婉艺","type":1,"dialogSubjectId":"1506196208391966720"}}
+    // http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5CallBridgeAction_jumpAppPage&h5CallBridgeSendMessage=%7B%22pageName%22%3A%22imChatPage%22%2C%22pageParams%22%3A%7B%22conversationID%22%3A%22126191%22%2C%22imUserId%22%3A%221602856363702501376%22%2C%22showName%22%3A%22%E5%A9%89%E8%89%BA%22%2C%22type%22%3A1%2C%22dialogSubjectId%22%3A%221506196208391966720%22%7D%7D
     // {
     //     "h5CallBridgeActionDes": "跳转到app指定页面_Name",
     //     "h5CallBridgeActionName": "h5CallBridgeAction_jumpAppPage",
@@ -489,7 +663,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   }
 
   async function _checkFileUrlUI(fileUrl) { // 注意必须加 async ,否则函数内使用 await 会报错
-    // http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.html?fileUrl=http://localhost:4000/Architecture架构/h5js/dvlp_h5js_demo/dvlp_h5js_demo.json
+    // http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.html?fileUrl=http://localhost:4000/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo.json
     var promptMessage = "已设置本html的json文件路径，则将获取该路径下的json值作为 _demoSectionArray 值";
     _demoSectionArray = await readJson(fileUrl);
     if (_demoSectionArray == null) { // 本html未将json文件的值赋值给 demoMapArray
@@ -608,20 +782,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
     return sectionHtmlString;
   }
 
-  // [js获取url中的中文参数出现乱码解决](https://www.codeleading.com/article/87533774933/)
-  // "http://localhost:4000/Architecture%E6%9E%B6%E6%9E%84/h5js/dvlp_h5js_demo/dvlp_h5js_demo.json"; // url含中文示例
-  // "http://localhost/test/test.html?p=广东&c=珠海"
-  function getQueryString(key) {
-    // 获取参数
-    var url = window.location.search;
-    // 正则筛选地址栏
-    var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)");
-    // 匹配目标参数
-    var result = url.substr(1).match(reg);
-    //返回参数值
-    // return result ? unescape(result[2]) : null; // url中含中文时候，取值会出错
-    return result ? decodeURIComponent(result[2]) : null;
-  }
+
 
   /// 根据标题，获取其整个数据模型
   function _getElementByH5CallBridgeActionDes(h5CallBridgeActionDes) {
@@ -679,7 +840,7 @@ h5CallBridgeActionDes=跳转到app指定页面_Name&h5CallBridgeActionName=h5Cal
   function _h5Action_updateText_byIndex(sectionIndex, rowIndex) {
     var demoMap = _getElementByIndex(sectionIndex, rowIndex);
     console.log(`-------更新UI上的各部分数据为当前所选择的值${sectionIndex}.${rowIndex}-------demoMap=${demoMap},demoMapString=${JSON.stringify(demoMap)}`);
-    
+
     _h5Action_updateText_forData(demoMap);
   }
 
