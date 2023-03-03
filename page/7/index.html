@@ -72,10 +72,10 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" class="article-date">
-  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+    <a href="/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
   </div>
@@ -84,70 +84,28 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>[toc]</p>
-<h1 id="Flutter-iOS-点击状态栏回到顶部"><a href="#Flutter-iOS-点击状态栏回到顶部" class="headerlink" title="Flutter iOS 点击状态栏回到顶部"></a>Flutter iOS 点击状态栏回到顶部</h1><h2 id="一、会回到顶部的原理"><a href="#一、会回到顶部的原理" class="headerlink" title="一、会回到顶部的原理"></a>一、会回到顶部的原理</h2><p>ios中一个常见的交互是：点击顶部栏时，自动将当前的滚动区滚到顶部。在flutter中，大部分时候这件事是“自然完成”的，但是也有时候会遇到这个行为失效的情况。要解决这个问题首先自然是要看这个feature是如何实现的。<br> 其实大部分都是Scaffold里面干的事：<br> Scaffold里有这样一段代码:</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (themeData.platform) &#123;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.iOS:</span><br><span class="line">    _addIfNonNull(</span><br><span class="line">      children,</span><br><span class="line">      GestureDetector(</span><br><span class="line">        behavior: HitTestBehavior.opaque,</span><br><span class="line">        onTap: _handleStatusBarTap,</span><br><span class="line">        <span class="comment">// iOS accessibility automatically adds scroll-to-top to the clock in the status bar</span></span><br><span class="line">        excludeFromSemantics: <span class="literal">true</span>,</span><br><span class="line">      ),</span><br><span class="line">      _ScaffoldSlot.statusBar,</span><br><span class="line">      removeLeftPadding: <span class="literal">false</span>,</span><br><span class="line">      removeTopPadding: <span class="literal">true</span>,</span><br><span class="line">      removeRightPadding: <span class="literal">false</span>,</span><br><span class="line">      removeBottomPadding: <span class="literal">true</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.android:</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.fuchsia:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这里命名很舒服，可以直接看出来在干什么：如果是ios的话，那就给Scaffold加一个在状态栏上的点击区，点击的话就会触发一个函数，这个函数干的事情如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">_handleStatusBarTap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (_primaryScrollController.hasClients) &#123;</span><br><span class="line">    _primaryScrollController.animateTo(</span><br><span class="line">      <span class="number">0.0</span>,</span><br><span class="line">      duration: <span class="function"><span class="keyword">const</span> <span class="title">Duration</span><span class="params">(milliseconds: <span class="number">300</span>)</span>,</span></span><br><span class="line"><span class="function">      curve: Curves.linear, <span class="comment">// TODO(ianh): Use a more appropriate curve.</span></span></span><br><span class="line"><span class="function">    )</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>也就是，Scaffold会提供一个默认的ScrollController，而点击顶部栏会使得这个controller滚到顶部，在ScrollView的build函数中则会取这个controller:</p>
-<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line">Widget build(BuildContext context) &#123;</span><br><span class="line">  <span class="keyword">final</span> List&lt;Widget&gt; slivers = buildSlivers(context);</span><br><span class="line">  <span class="keyword">final</span> AxisDirection axisDirection = getDirection(context);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 注意，此处的primary不是传入的primary，</span></span><br><span class="line">  <span class="comment">// primary = primary ?? controller == null &amp;&amp; identical(scrollDirection, Axis.vertical)</span></span><br><span class="line">  <span class="keyword">final</span> ScrollController scrollController = primary</span><br><span class="line">    ? PrimaryScrollController.of(context)</span><br><span class="line">    : controller;</span><br><span class="line">  <span class="keyword">final</span> Scrollable scrollable = Scrollable(</span><br><span class="line">    dragStartBehavior: dragStartBehavior,</span><br><span class="line">    axisDirection: axisDirection,</span><br><span class="line">    controller: scrollController,</span><br><span class="line">    physics: physics,</span><br><span class="line">    semanticChildCount: semanticChildCount,</span><br><span class="line">    viewportBuilder: (BuildContext context, ViewportOffset offset) &#123;</span><br><span class="line">      <span class="keyword">return</span> buildViewport(context, offset, axisDirection, slivers);</span><br><span class="line">    &#125;,</span><br><span class="line">  );</span><br><span class="line">  <span class="keyword">return</span> primary &amp;&amp; scrollController != <span class="literal">null</span></span><br><span class="line">    ? PrimaryScrollController.none(child: scrollable)</span><br><span class="line">    : scrollable;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如果指定controller的话，就不会使用PrimaryScrollview，如果不指定的话，则在primary为true时使用PrimaryController，而默认情况下controller为null，primary为true，因此一个裸体的ListView是会相应屏幕点击的。<br> 知道了原理，就很容易分析自己代码里出的问题是什么，常见的可能就是：<br> 1、没加Scaffold，这个其实并不常见（自相矛盾草），不过可以检查一下，一般总是会有Scaffold的<br> 2、真正常见的：指定了controller，如果自己创建了一个Controller丢给ScrollView，那必然是会失效的。但是使用controller又是一个很常见且重要的需求，怎么办呢？也很简单，就是不要自己创建新的ScrollController，而是直接取PrimaryScrollController.of(context)这个controller，对其进行自己要做的操作。<br> 3、相对不太常见且需要分析具体代码的：多个Scaffold导致的冲突。<br> 注意到其实flutter里的这个点击状态栏并不是真的点击了状态栏，而是点击了“Scaffold提供的位于状态栏的可点击区域”，也就是说，如果有多个Scaffold就会有多个这样的区域。实际情况是，只有最内部的Scaffold的状态栏会有响应，而如果ScrollView所处位置取到的和点击的Scaffold不一致，自然也就不会有滚动到顶部的feature</p>
-<h2 id="二、错误示例"><a href="#二、错误示例" class="headerlink" title="二、错误示例"></a>二、错误示例</h2><p>今天遇到ios点击状态栏无法回到顶部（原理在文章后）的问题。研究后发现，Scaffold组件虽然会自带这个功能。但使用时候，必须遵循指定规则才行。</p>
-<p>我们以点击 TapStatusNormalPage 上的状态栏返回顶部来举例。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// tap_status_normal_page.dart</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TapStatusNormalPage</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> TapStatusNormalPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;TapStatusNormalPage&gt; createState() =&gt; _TapStatusNormalPageState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_TapStatusNormalPageState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">TapStatusNormalPage</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold( <span class="comment">// 注意这个页面已经包了 Scaffold 了</span></span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: <span class="keyword">const</span> Text(<span class="string">'状态栏点击-Normal5'</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: ListView.builder(</span><br><span class="line">        itemCount: <span class="number">200</span>,</span><br><span class="line">        itemBuilder: (context, index) &#123;</span><br><span class="line">          <span class="keyword">return</span> Text(<span class="string">'<span class="subst">$index<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">        &#125;,</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">      ),</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    );</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
-<h3 id="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"><a href="#错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。" class="headerlink" title="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"></a>错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。</h3><p>失效示例1：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">HomePage</span> <span class="title">extends</span> <span class="title">StatelessWidget</span> &#123;</span><br><span class="line">  @<span class="keyword">override</span></span><br><span class="line">  <span class="function">Widget <span class="title">build</span>(<span class="params">BuildContext context</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: TapStatusNormalPage(), <span class="comment">// 失效原因：TapStatusNormalPage里已经有 Scaffold 了</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这种情况，点击状态栏便不会回到顶部，我们需要保证的就是每个页面仅有一个Scaffold。</p>
-<h3 id="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"><a href="#错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部" class="headerlink" title="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"></a>错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</h3><p>失效示例2：</p>
-<p>虽然home里只有一个 Scaffold ，但app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ScreenUtilInit(</span><br><span class="line">    designSize: <span class="keyword">const</span> Size(<span class="number">375</span>, <span class="number">812</span>),</span><br><span class="line">    builder: () =&gt; MaterialApp(</span><br><span class="line">      navigatorKey: navigatorKey,</span><br><span class="line">      title: <span class="string">'wish'</span>,</span><br><span class="line">      home: TapStatusNormalPage(),</span><br><span class="line">      builder: EasyLoading.init(builder: (context, widget) &#123;</span><br><span class="line">        <span class="keyword">return</span> MediaQuery(</span><br><span class="line">          <span class="comment"><span class="markdown">///设置文字大小不随系统设置改变</span></span></span><br><span class="line">          data: MediaQuery.of(context).copyWith(textScaleFactor: <span class="number">1.0</span>),</span><br><span class="line">          <span class="comment">// child: Scaffold( // 注意：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</span></span><br><span class="line">          <span class="comment">//   resizeToAvoidBottomInset: false,</span></span><br><span class="line">          <span class="comment">//   body: widget,</span></span><br><span class="line">          <span class="comment">// ),</span></span><br><span class="line">          child: widget, <span class="comment">// OK</span></span><br><span class="line">        );</span><br><span class="line">      &#125;),</span><br><span class="line">    ),</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
-<h3 id="错误三：一说要滚动就自定义controller"><a href="#错误三：一说要滚动就自定义controller" class="headerlink" title="错误三：一说要滚动就自定义controller"></a>错误三：一说要滚动就自定义controller</h3><p>点击页面上的某个按钮，让页面上的列表滚动到顶部（不需要自定义controller）。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">PrimaryScrollController.of(context).jumpTo(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PrimaryScrollController.of(context).animateTo(</span><br><span class="line">            <span class="number">0</span>,</span><br><span class="line">            duration: <span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>),</span><br><span class="line">            curve: Curves.linear,</span><br><span class="line">          );</span><br></pre></td></tr></table></figure>
-<p>如果还要监听滚动</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> didChangeDependencies() &#123;</span><br><span class="line">   <span class="keyword">super</span>.didChangeDependencies();</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">if</span> (!_hasEverInitListener) &#123;</span><br><span class="line">     PrimaryScrollController.of(context).addListener(_handleScrollViewEvent);</span><br><span class="line">     _hasEverInitListener = <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> deactivate() &#123;</span><br><span class="line">   <span class="keyword">super</span>.deactivate();</span><br><span class="line">   PrimaryScrollController.of(context).removeListener(_handleScrollViewEvent);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">_handleScrollViewEvent() &#123;</span><br><span class="line">   <span class="comment">// 滚动距离</span></span><br><span class="line">   <span class="built_in">double</span> offsetY = PrimaryScrollController.of(context).offset;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<h3 id="错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views"><a href="#错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views" class="headerlink" title="错误四：Another exception was thrown: ScrollController attached to multiple scroll views."></a>错误四：Another exception was thrown: ScrollController attached to multiple scroll views.</h3><p>问题：</p>
-<p>flutter_swiper：Another exception was thrown: ScrollController attached to multiple scroll views</p>
-<p>翻译一下：引发了另一个异常：ScrollController连接到多个滚动视图。</p>
-<p>原因：</p>
-<p>Flutter Swiper是一个轮播图组件，内部包含一个Widget List，当这个Widget List数量大于1，就可能会有这种情况</p>
-<p>解决方案：给Swiper加一个Key即可解决</p>
-<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">return</span> <span class="selector-tag">Container</span>(</span><br><span class="line">     <span class="attribute">child</span>: AspectRatio(</span><br><span class="line">       <span class="attribute">aspectRatio</span>: <span class="number">1.5</span> / <span class="number">1</span>, <span class="comment">// 宽高比450/300</span></span><br><span class="line">       <span class="attribute">child</span>: Swiper(</span><br><span class="line">         <span class="attribute">key</span>: UniqueKey(), <span class="comment">// 这个必须添加，代表唯一</span></span><br><span class="line">         <span class="attribute">itemBuilder</span>: (BuildContext context, int index) &#123;</span><br><span class="line">           return new Image.network(</span><br><span class="line">             imgList[index][<span class="string">'url'</span>],</span><br><span class="line">             <span class="attribute">fit</span>: BoxFit.fill,</span><br><span class="line">           );</span><br><span class="line">         &#125;,</span><br><span class="line">         <span class="attribute">itemCount</span>: imgList.length,</span><br><span class="line">         <span class="attribute">pagination</span>: new SwiperPagination(),</span><br><span class="line">         <span class="attribute">control</span>: new SwiperControl(),</span><br><span class="line">         <span class="attribute">autoplay</span>: true,</span><br><span class="line">       ),</span><br><span class="line">     ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="clep4r3ey00ck6nr4ovok2960" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/开发随笔/Flutter 拖曳排序" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/开发随笔/Flutter 拖曳排序/" class="article-date">
-  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="Flutter-拖曳排序"><a href="#Flutter-拖曳排序" class="headerlink" title="Flutter 拖曳排序"></a>Flutter 拖曳排序</h1><p>参考文章：</p>
+        <h1 id="必备知识架构-①语言-请求拦截NSURLProtocol"><a href="#必备知识架构-①语言-请求拦截NSURLProtocol" class="headerlink" title="必备知识架构-①语言-请求拦截NSURLProtocol"></a>必备知识架构-①语言-请求拦截NSURLProtocol</h1><p>[toc]</p>
+<h2 id="一、NSURLProtocol"><a href="#一、NSURLProtocol" class="headerlink" title="一、NSURLProtocol"></a>一、NSURLProtocol</h2><p>如果开发者自定义的一个 NSURLProtocol 并且注册到 app 中，那么在这个自定义的 NSURLProtocol 中我们可以拦截所有的请求(（注意，不只是webView内的请求，而是整个app内的所有请求）)，进行修改，或者修改 response。即NSURLProtocol这个东西的作用可以让我们在app的内部拦截一切url请求。</p>
+<p><strong>「或者这么说吧： NSURLProtocol 就是一个苹果允许的中间人攻击。」</strong></p>
+<p>注意事项：</p>
+<p>如果我们顺序注册 A B C 三个 Protocol，那么一个 connection 在发送的时候，处理的顺序是 C B A，而且最多只有一个 Protocol 会触发处理。</p>
+<p>拦截 UIWebview 的请求，会有被拒的风险。</p>
+<p>附：</p>
+<blockquote>
+<p>iOS的Foundation框架提供了 URL Loading System 这个库(后面简写为ULS)，所有基于URL（例如http://，https:// ,ftp://这些应用层的传输协议)的协议都可以通过ULS提供的基础类和协议来实现。而ULS库里提供了一个强有力的武器 NSURLProtocol。</p>
+</blockquote>
+<h2 id="NSURLProtocol能做什么？"><a href="#NSURLProtocol能做什么？" class="headerlink" title="NSURLProtocol能做什么？"></a>NSURLProtocol能做什么？</h2><p>举几个例子：</p>
 <ul>
-<li><a href="https://www.jianshu.com/p/924428a31b6b" target="_blank" rel="noopener">Flutter使用Draggable实现可拖拽GridView</a></li>
+<li>全局网络请求设置：我们的APP内的所有请求都需要增加公共的头，像这种我们就可以直接通过NSURLProtocol来实现，当然实现的方式有很多种</li>
+<li>自定义 Response （过滤敏感信息）</li>
+<li>再比如我们需要将APP某个API进行一些访问的统计</li>
+<li>再比如我们需要统计APP内的网络请求失败率</li>
 </ul>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 拖曳排序/" data-id="clep4r3ez00cn6nr4ai49gczp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cler0mr2100urupr4fyd20df6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -157,10 +115,10 @@
 
 
   
-    <article id="post-Flutter/开发随笔/Flutter 最常出现的错误" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/1语言/1语言" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/开发随笔/Flutter 最常出现的错误/" class="article-date">
-  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+    <a href="/iOS/3必备知识架构/1语言/1语言/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
   </div>
@@ -169,90 +127,629 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>[toc]</p>
-<h1 id="Flutter-最常出现的错误"><a href="#Flutter-最常出现的错误" class="headerlink" title="Flutter 最常出现的错误"></a>Flutter 最常出现的错误</h1><h2 id="典型错误一：无法掌握的Future"><a href="#典型错误一：无法掌握的Future" class="headerlink" title="典型错误一：无法掌握的Future"></a>典型错误一：无法掌握的Future</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;markNeedsBuild&#39; was called on null.</code></p>
-<p>这个错误常出现在异步任务（Future）处理，比如某个页面请求一个网络API数据，根据数据刷新 Widget State。</p>
-<p>异步任务结束在页面被pop之后，但没有检查State 是否还是 <code>mounted</code>，继续调用 <code>setState</code> 就会出现这个错误。</p>
-<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>一段很常见的获取网络数据的代码，调用 <code>requestApi()</code>，等待Future从中获取<code>response</code>，进而<code>setState</code>刷新 Widget：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State&lt;AWidget&gt; &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    setState(()&#123;</span><br><span class="line">      this.data = response.data;</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>response</code> 的获取为<code>async-await</code>异步任务，完全有可能在<code>AWidgetState</code>被 <code>dispose</code>之后才等到返回，那时候和该<code>State</code> 绑定的 <code>Element</code> 已经不在了。故而在<code>setState</code>时需要容错。</p>
-<h3 id="解决办法：-setState之前检查是否-mounted"><a href="#解决办法：-setState之前检查是否-mounted" class="headerlink" title="解决办法： setState之前检查是否 mounted"></a>解决办法： <code>setState</code>之前检查是否 <code>mounted</code></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">      setState(()&#123;</span><br><span class="line">        this.data = response.data;</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个<code>mounted</code>检查很重要，其实只要涉及到异步还有各种回调(callback)，都不要忘了检查该值。</p>
-<p>比如，在 <code>FrameCallback</code>里执行一个动画(AnimationController)：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  WidgetsBinding.instance.addPostFrameCallback((_) &#123;</span><br><span class="line">    <span class="keyword">if</span> (mounted) _animationController.forward();</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>AnimationController</code>有可能随着 State 一起 <code>dispose</code>了，但是<code>FrameCallback</code>仍然会被执行，进而导致异常。</p>
-<p>又比如，在动画监听的回调里搞点事：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  _animationController.animation.addListener(_handleAnimationTick);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">void _handleAnimationTick() &#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) updateWidget(...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>同样的在<code>_handleAnimationTick</code>被回调前，State 也有可能已经被<code>dispose</code>了。</p>
-<p>如果你还不理解为什么，请仔细回味一下<code>Event loop</code> 还有复习一下 Dart 的线程模型。</p>
-<h2 id="典型错误二：Navigator-of-context-是个-null"><a href="#典型错误二：Navigator-of-context-是个-null" class="headerlink" title="典型错误二：Navigator.of(context) 是个 null"></a>典型错误二：Navigator.of(context) 是个 null</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;pop&#39; was called on null.</code></p>
-<p>常在 <code>showDialog</code> 后处理 dialog 的 pop() 出现。</p>
-<h3 id="示例代码-1"><a href="#示例代码-1" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个方法里获取网络数据，为了更好的提示用户，会先弹一个 loading 窗，之后再根据数据执行别的操作…</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// show loading dialog on request data</span></span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> Center(</span><br><span class="line">      child: CircularIndicator(),</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"><span class="comment">// got it, pop dialog</span></span><br><span class="line">Navigator.of(context).pop();</span><br></pre></td></tr></table></figure>
-<h3 id="原因分析："><a href="#原因分析：" class="headerlink" title="原因分析："></a>原因分析：</h3><p>出错的原因在于—— Android 原生的返回键：虽然代码指定了<code>barrierDismissible: false</code>，用户不可以点半透明区域关闭弹窗，但当用户点击返回键时，Flutter 引擎代码会调用 <code>NavigationChannel.popRoute()</code>，最终这个 loading dialog 甚至包括页面也被关掉，进而导致<code>Navigator.of(context)</code>返回的是<code>null</code>，因为该<code>context</code>已经被<code>unmount</code>，从一个已经凋零的树叶上是找不到它的根的，于是错误出现。</p>
-<p>另外，代码里的<code>Navigator.of(context)</code> 所用的<code>context</code>也不是很正确，它其实是属于<code>showDialog</code>调用者的而非 dialog 所有，理论上应该用<code>builder</code>里传过来的<code>context</code>，沿着错误的树干虽然也能找到根，但实际上不是那么回事，特别是当你的APP里有<code>Navigator</code>嵌套时更应该注意。</p>
-<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>首先，确保 <code>Navigator.of(context)</code> 的 <code>context</code> 是 dialog 的<code>context</code>；其次，检查 <code>null</code>，以应对被手动关闭的情况。</p>
-<p><code>showDialog</code> 时传入 <code>GlobalKey</code>，通过 <code>GlobalKey</code>去获取正确的<code>context</code>。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">GlobalKey key = GlobalKey();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> KeyedSubtree(</span><br><span class="line">      key: key,</span><br><span class="line">      child: Center(</span><br><span class="line">        child: CircularIndicator(),</span><br><span class="line">      )</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> (key.currentContext != null) &#123;</span><br><span class="line">  Navigator.of(key.currentContext)?.pop();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>key.currentContext</code> 为<code>null</code>意为着该 dialog 已经被<code>dispose</code>，亦即已经从 WidgetTree 中<code>unmount</code>。</p>
-<p>其实，类似的<code>XXX.of(context)</code>方法在 Flutter 代码里很常见，比如 <code>MediaQuery.of(context)</code>、<code>Theme.of(context)</code>、<code>DefaultTextStyle.of(context)</code>，<code>DefaultAssetBundle.of(context)</code>等等，都要注意传入的<code>context</code>是来自正确节点的，否则会有惊喜在等你。</p>
-<p>写 Flutter 代码时，脑海里一定要对<code>context</code>的树干脉络有清晰的认知，如果你还不是很理解<code>context</code>，可以看看 《深入理解BuildContext》 - Vadaski。</p>
-<h2 id="典型错误三：ScrollController-里薛定谔的-position"><a href="#典型错误三：ScrollController-里薛定谔的-position" class="headerlink" title="典型错误三：ScrollController 里薛定谔的 position"></a>典型错误三：ScrollController 里薛定谔的 position</h2><p>在获取<code>ScrollController</code>的<code>position</code>、<code>offset</code>，或者调用<code>jumpTo()</code>等方法时，常出现<code>StateError</code>错误。</p>
-<p>错误信息：<code>StateError Bad state: Too many elements</code>，<code>StateError Bad state: No element</code></p>
-<h3 id="示例代码-2"><a href="#示例代码-2" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个按钮点击后，通过<code>ScrollController</code> 控制<code>ListView</code>滚动到开头：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="原因分析-1"><a href="#原因分析-1" class="headerlink" title="原因分析"></a>原因分析</h3><p>先看<code>ScrollController</code>的源码：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  @protected</span><br><span class="line">  Iterable&lt;ScrollPosition&gt; get positions =&gt; _positions;</span><br><span class="line">  final List&lt;ScrollPosition&gt; _positions = &lt;ScrollPosition&gt;[];</span><br><span class="line"> </span><br><span class="line">  double get offset =&gt; position.pixels;</span><br><span class="line"> </span><br><span class="line">  ScrollPosition get position &#123;</span><br><span class="line">    assert(_positions.isNotEmpty, <span class="string">'ScrollController not attached to any scroll views.'</span>);</span><br><span class="line">    assert(_positions.length == <span class="number">1</span>, <span class="string">'ScrollController attached to multiple scroll views.'</span>);</span><br><span class="line">    <span class="keyword">return</span> _positions.single;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>很明显，<code>ScrollController</code> 的 <code>offest</code> 是从 <code>position</code> 中获得，而<code>position</code> 则是来自变量 <code>_positions</code>。</p>
-<p><code>StateError</code>错误，就是<code>_positions.single</code> 这一行抛出：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">abstract class Iterable&lt;E&gt; &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  E get single &#123;</span><br><span class="line">    Iterator&lt;E&gt; it = iterator;</span><br><span class="line">    <span class="keyword">if</span> (!it.moveNext()) throw IterableElementError.noElement();</span><br><span class="line">    E result = it.current;</span><br><span class="line">    <span class="keyword">if</span> (it.moveNext()) throw IterableElementError.tooMany();</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>那么问题来了，这个<code>_positions</code> 为什么忽而一滴不剩，忽而却嫌它给的太多了呢？ˊ_&gt;ˋ</p>
-<p>还是要回到 <code>ScrollController</code> 的源码里找找。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  void attach(ScrollPosition position) &#123;</span><br><span class="line">    assert(!_positions.contains(position));</span><br><span class="line">    _positions.add(position);</span><br><span class="line">    position.addListener(notifyListeners);</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  void detach(ScrollPosition position) &#123;</span><br><span class="line">    assert(_positions.contains(position));</span><br><span class="line">    position.removeListener(notifyListeners);</span><br><span class="line">    _positions.remove(position);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+        <h1 id="必备知识架构-①语言"><a href="#必备知识架构-①语言" class="headerlink" title="必备知识架构-①语言"></a>必备知识架构-①语言</h1><p>[Toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><a href="#Objective-C">一、为什么说Objective-C是一门动态的语言？</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">1、为什么说Objective-C是一门动态的语言</span><br><span class="line">①、概念介绍</span><br><span class="line">②、Objective-c的动态性</span><br><span class="line">Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言。</span><br><span class="line">ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">Objective-C的动态性，主要体现在3个方面：动态类型、动态绑定、动态载入。</span><br><span class="line">&gt;</span><br><span class="line">2、消息转发</span><br><span class="line">3、为什么说 Objective-C 没有真正的私有方法和私有变量</span><br><span class="line">4、消息结构</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#Runtime">二、Runtime</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、浅谈runtime运行时机制</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="KVC与KVO">三、KVC与KVO</a></p>
+</li>
+<li><p><a href="Objective-C与C++">四、Objective-C与C++</a></p>
+</li>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、#import、#include、@class](#import、#include、@class</span><br><span class="line">2、const 与define使用的区别</span><br><span class="line">3、==、 isEqualToString、isEqual区别</span><br><span class="line">4、字符串的比较</span><br><span class="line">5、isMemberOfClass 和 isKindOfClass 的联系和区别</span><br><span class="line">6、nil, Nil,NULL 与 NSNull 的区别</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p></p><p id="Objective-C"></p><p></p>
+<h2 id="一、为什么说Objective-C是一门动态的语言？"><a href="#一、为什么说Objective-C是一门动态的语言？" class="headerlink" title="一、为什么说Objective-C是一门动态的语言？"></a>一、为什么说Objective-C是一门动态的语言？</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="问：我们说的OC是动态运行时语言是什么意思？"><a href="#问：我们说的OC是动态运行时语言是什么意思？" class="headerlink" title="问：我们说的OC是动态运行时语言是什么意思？"></a>问：我们说的OC是动态运行时语言是什么意思？</h4><blockquote>
+<p>1、之所以叫做动态，是因为必须到运行时(run time)才会做一些事情。主要是将数据类型的确定由编译时，【推迟到了运行时】。简单来说, 运行时机制使我们直到运行时才去决定一个对象的类别,以及调用该类别对象指定方法。</p>
+<p><code>所以说NSString *obj = [[NSData alloc] init] 在编译时是NSString类型，在运行时是NSData类型。</code></p>
+<p>2、另外，OC还可以通过Runtime 这个运行时机制，在运行时【动态的添加】变量、方法、类等。</p>
+</blockquote>
+<h4 id="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"><a href="#1、Objective-C是一门”动态”的语言，动态语言是什么意思？" class="headerlink" title="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"></a>1、Objective-C是一门”动态”的语言，动态语言是什么意思？</h4><p>OC中的对象，都是用指针表示<br>OC中方法的调用，是基于消息机制实现</p>
+<h6 id="①、”动态”概念介绍"><a href="#①、”动态”概念介绍" class="headerlink" title="①、”动态”概念介绍"></a>①、”动态”概念介绍</h6><blockquote>
+<p>（1）动态类型语言：动态类型语言是指<strong>在运行期间才去做数据类型检查</strong>的语言，Python和Ruby就是一种典型的动态类型语言，其他的各种脚本语言如VBScript也多少属于动态类型语言。（自己概括为动态语言指的是不需要在编译时确定所有的东西，在运行时还可以动态的添加变量、方法和类，而<strong>Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言</strong>）</p>
+<p>（2）静态类型语言：静态类型语言与动态类型语言刚好相反，它的数据类型是在编译其间检查的，也就是说在写程序时要声明所有变量的数据类型，C/C++是静态类型语言的典型代表，其他的静态类型语言还有C#、JAVA等。</p>
+<figure class="highlight plain"><figcaption><span>*obj </span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">###### ②、Objective-c的动态性</span><br><span class="line">Objective-C的动态性，让程序在运行时判断其该有的行为，而不是像c等静态语言在编译构建时就确定下来。**Objective-C的动态性主要体现在3个方面：动态类型、动态绑定、动态载入**。</span><br><span class="line"></span><br><span class="line">&gt; 以下内容来自：[OC是动态运行时语言是什么意思？什么是动态识别，动态绑定？](https://www.cnblogs.com/dxb123456/p/5525343.html)</span><br><span class="line">&gt; </span><br><span class="line">* 1.动态类型：如id类型。</span><br><span class="line">  &gt;</span><br><span class="line">  简单点的如id类型在编译器编译的时候是不能被识别的，要等到运行时(run time)，即程序运行的时候才会根据语境来识别。</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>  id obj = someInstance;<br>  if ([obj isKindOfClass:someClass]) {<br>    someClass <em>classSpecifiedInstance = (someClass </em>)obj;<br>  }<br>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">* 2.动态绑定：</span><br><span class="line">  &gt;在OC中，其实是没有函数的概念的，我们叫“消息机制”，所谓的函数调用就是给对象发送一条消息。</span><br><span class="line">  **OC可以先跳过编译，在运行时才决定要调用什么方法，需要传什么参数进去，这就是动态绑定**。要实现他就必须用SEL变量绑定一个方法。最终形成的这个SEL变量就代表一个方法的引用。(这里要注意一点：SEL并不是C里面的函数指针，虽然很像，但真心不是函数指针。SEL变量只是一个整数，他是该方法的ID，@selector()就是取类方法的编号。以前的函数调用，是根据函数名，也就是 字符串去查找函数体。但现在，我们是根据一个ID整数来查找方法，整数的查找字自然要比字符串的查找快得多！所以，动态绑定的特定不仅方便，而且效率更高。)</span><br><span class="line"></span><br><span class="line">* 3.动态载入。</span><br><span class="line">  </span><br><span class="line">  &gt;根据需求加载所需要的资源，这点很容易理解，对于iOS开发来说，基本就是根据不同的机型做适配。最经典的例子就是在Retina设备上加载@2x的图片，而在老一些的普通屏设备上加载原图。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">笔试题：对于语句`NSString *obj = [[NSData alloc] init];` obj在编译时和运行时分别是什么类型的对象?</span><br><span class="line"></span><br><span class="line">  &gt; 答:编译时是NSString的类型；运行时是NSData类型的对象。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#### 2、怎么理解Objective-C&quot;运行时&quot;</span><br><span class="line"></span><br><span class="line">基于Runtime的消息传递机制</span><br><span class="line"></span><br><span class="line">**ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">什么是消息传递？消息传递不就和C语言的函数调用一个意思么?**</span><br><span class="line"></span><br><span class="line">&gt;在C语言中，我们调用函数时，必须先声明函数（或者自上而下），而实际上，声明函数就是获取函数地址，调用函数就是直接跳到地址执行，代码在被编译器解析、优化后，便是成为一堆汇编代码，然后连接各种库，完了生成可执行的代码（即是静态的）。</span><br><span class="line">&gt;</span><br><span class="line">&gt;在ObjC中，首先要搞清楚为什么不用Function Call 而用 Messaging 呢？一般调用函数（方法），讲的就是object对象，</span><br><span class="line">&gt;</span><br><span class="line">&gt;事情证明，在编译阶段，oc可以调用任何函数，即使这个函数并未实现，只要申明过就不会报错，而c语言在编译阶段或报错</span><br><span class="line"></span><br><span class="line">###### </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 1，给分类添加属性</span><br><span class="line"></span><br><span class="line">OC分类不能添加属性，如果你在分类中添加了属性，编译器就会报警告。（记得导入 #import &lt;objc/runtime.h&gt;）</span><br><span class="line"></span><br><span class="line">// UIButton+CJMoreProperty.h</span><br><span class="line"></span><br><span class="line">![runtime添加属性](1语言/runtime_add1.png)</span><br><span class="line"></span><br><span class="line">//  UIButton+CJMoreProperty.m</span><br><span class="line">![runtime添加属性](1语言/runtime_add2.png)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">为分类添加属性，就用运用到OC的运行时来解决。</span><br><span class="line"></span><br><span class="line">```csharp</span><br><span class="line">// 设置关联</span><br><span class="line">objc_setAssociatedObject(id _Nonnull object, const void * _Nonnull key,</span><br><span class="line">                         id _Nullable value, objc_AssociationPolicy policy)</span><br><span class="line">// 通过关联获取属性</span><br><span class="line">objc_getAssociatedObject(id _Nonnull object, const void * _Nonnull key)</span><br><span class="line">    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);</span><br></pre></td></tr></table></figure></p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/runtime_add3.png" alt="runtime添加属性"></p>
+<h4 id="2、消息转发"><a href="#2、消息转发" class="headerlink" title="2、消息转发"></a>2、消息转发</h4><p><strong>ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Runtime的特性主要是消息(方法)传递，如果消息(方法)在对象中找不到，就进行转发。</span><br><span class="line">1.1系统首先找到消息的接收对象，然后通过对象的isa找到它的类。</span><br><span class="line">1.2在它的类中查找method_list，是否有selector方法。</span><br><span class="line">1.3没有则查找父类的method_list。</span><br><span class="line">1.4找到对应的method，执行它的IMP。</span><br><span class="line">1.5转发IMP的return值。</span><br><span class="line"></span><br><span class="line">如果找遍了父类，仍没找到方法，则报错。当然我们也可以通过消息转发，去其他类中寻找。</span><br></pre></td></tr></table></figure>
+<p>延展：消息转发机制</p>
+<blockquote>
+<p><strong>因为在运行期还可以继续向类中添加方法，所以编译器在编译时还无法确定类中是否有某个方法的实现。对于类无法处理一个消息就会触发消息转发机制。</strong></p>
+</blockquote>
+<p>消息转发步骤(如果前一套方案实现后一套方法就不会执行)</p>
+<blockquote>
+<p>内容来自：<a href="http://www.cocoachina.com/ios/20150604/12013.html" target="_blank" rel="noopener">轻松学习之 Objective-C消息转发</a></p>
+<p>方案一：首先，系统会调用resolveInstanceMethod(当然，如果这个方法是一个类方法，就会调用resolveClassMethod)让你自己为这个方法增加实现</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (BOOL)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">	if (sel == @selector(run)) &#123;</span><br><span class="line">		class_addMethod(self, sel, (IMP)run, @&quot;v@:&quot;);</span><br><span class="line">		return YES;</span><br><span class="line">	&#125;</span><br><span class="line">	return [super resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (BOOL)resolveClassMethod:(SEL)sel</span><br></pre></td></tr></table></figure>
+<blockquote>
+</blockquote>
+<p>方案二：如果不去对方案一的resolveInstanceMethod做任何处理，直接调用父类方法。可以看到，系统已经来到了forwardingTargetForSelector方法，这个方法返回你需要转发消息的对象。</p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//返回你需要转发消息的对象</span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector &#123;</span><br><span class="line">	return [[Car alloc] init];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+</blockquote>
+<p>方案三：如果如果我们也不实现forwardingTargetForSelector，系统就会调用方案三的两个方法methodSignatureForSelector和forwardInvocation。其中methodSignatureForSelector用来生成方法签名，这个签名就是给forwardInvocation中的参数NSInvocation调用的。</p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">//生成方法签名</span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">	NSString *sel = NSStringFromSelector(selector);</span><br><span class="line">	//判断你要转发的SEL</span><br><span class="line">	if ([sel isEqualToString:@&quot;run&quot;]) &#123;</span><br><span class="line">		//为你的转发方法手动生成签名</span><br><span class="line">		return [NSMethodSignature signatureWithObjCType:@&quot;v@:&quot;];</span><br><span class="line">	&#125;</span><br><span class="line">	return [super methodSignatureForSelector:selector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 附：关于生成签名的类型&quot;v@:&quot;解释一下。每一个方法会默认隐藏两个参数，self、_cmd，self代表方法调用者，_cmd代表这个方法的SEL，签名类型就是用来描述这个方法的返回值、参数的，v代表返回值为void，@表示self，:表示_cmd。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation &#123;</span><br><span class="line">	SEL selector = [anInvocation selector];</span><br><span class="line">	//新建需要转发消息的对象</span><br><span class="line">	Car *car = [[Car alloc] init];</span><br><span class="line">	if ([car respondsToSelector:selector]) &#123;</span><br><span class="line">		//唤醒这个方法</span><br><span class="line">		[invocation invokeWithTarget:car];</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>消息转发分为两大阶段：</p>
+<blockquote>
+<p>“动态方法解析”：先征询接收者，所属的类，能否动态添加方法，来处理这个消息，若可以则结束，如不能则继续往下走 </p>
+<p>“完整的消息转发机制”：<br>请接收者看看有没其他对象能处理这条消息，若有，就把这个消息转发给那个对象然后结束<br>运行时系统会把与消息有关细节全部封装到NSInvocation 对象中，再给对象最后一次机会，令其设法解决当前还未处理的这条消息</p>
+</blockquote>
+<p>其他文章：<a href="https://blog.csdn.net/onlyou930/article/details/7449102" target="_blank" rel="noopener">NSInvocation简单使用</a></p>
+<blockquote>
+<p>在 iOS中可以直接调用 某个对象的消息 方式有2中<br>一种是performSelector:withObject:<br>再一种就是NSInvocation<br>第一种方式比较简单，能完成简单的调用。但是对于&gt;2个的参数或者有返回值的处理，那就需要做些额外工作才能搞定。那么在这种情况下，我们就可以使用NSInvocation来进行这些相对复杂的操作。<br>NSInvocation可以处理参数、返回值。会java的人都知道凡是操作，其实NSInvocation就相当于反射操作。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//如果此消息有参数需要传入，那么就需要按照如下方法进行参数设置，需要注意的是，atIndex的下标必须从2开始。原因为：0 1 两个参数已经被target 和selector占用</span><br><span class="line">if (strcmp(retType, @encode(BOOL)) == 0) &#123;</span><br><span class="line">        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSig];</span><br><span class="line">        [invocation setArgument:&amp;params atIndex:2];</span><br><span class="line">        [invocation setSelector:action];</span><br><span class="line">        [invocation setTarget:target];</span><br><span class="line">        [invocation invoke];</span><br><span class="line">        BOOL result = 0;</span><br><span class="line">        [invocation getReturnValue:&amp;result];</span><br><span class="line">        return @(result);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="3、为什么说-Objective-C-没有真正的私有方法和私有变量"><a href="#3、为什么说-Objective-C-没有真正的私有方法和私有变量" class="headerlink" title="3、为什么说 Objective-C 没有真正的私有方法和私有变量"></a>3、为什么说 Objective-C 没有真正的私有方法和私有变量</h4><blockquote>
+<p>以下内容摘自：<a href="https://www.jianshu.com/p/ef25a31e3112" target="_blank" rel="noopener">为什么说 Objective-C 没有真正的私有方法和私有变量</a></p>
+<p>私有的定义：私有是指只能够在本类内部使用或访问，但是不能在类的外部被访问。</p>
+<p><strong>在 Objective-C 中，对象调用方法是以发送消息的形式实现的</strong>。所有方法的调用最终都会转化为发送消息的形式，原型如下：</p>
+<p>id objc_msgSend(id self, SEL op, …)</p>
+<p>Objective-C 为什么能够实现访问「私有方法」呢？其实这跟 Objective-C 语言的动态特性有密切的关系，对象在运行的时候才会去查找方法。Objective-C 对象有一个 isa 指针指向其父类，在向该实例发送消息的时候，若它自己不能识别回到父类中去查找该消息。</p>
+<p>综上，OC中其实并无真正意义上的的私有方法和私有属性。但是在实际使用中，我们应遵守规则，不能调用的方法，不调用。</p>
+</blockquote>
+<h4 id="4、消息结构"><a href="#4、消息结构" class="headerlink" title="4、消息结构"></a>4、消息结构</h4><p>Objective-C 使用的是 “消息结构” 并非 “函数调用”。（使用消息结构的的语言，其运行时所应执行的代码由运行期决定；而使用函数调用的语言，则由编译器决定）</p>
+<blockquote>
+<p>以下内容摘自：<a href="https://blog.csdn.net/dan_163/article/details/38268957" target="_blank" rel="noopener">OC消息机制和动态运行时</a></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">struct objc_class</span><br><span class="line">&#123;</span><br><span class="line">    Class isa;</span><br><span class="line">    Class super_class;     //父类</span><br><span class="line">    const char* name;    //类名</span><br><span class="line">    long version;            //版本信息</span><br><span class="line">    long info;                 //类信息</span><br><span class="line">    long instance_size;                                    //实例大小</span><br><span class="line">    struct objc_ivar_list *ivars;                        //实例参数链表</span><br><span class="line">    struct objc_method_list *methodLists;     //方法链表</span><br><span class="line">    struct objc_cache *cache;                         //方法缓存</span><br><span class="line">    struct objc_protocol_list *protocols;        //协议链表</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p></p><p id="Runtime"></p><p></p>
+<h2 id="二、Runtime"><a href="#二、Runtime" class="headerlink" title="二、Runtime"></a>二、Runtime</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>Runtime 4种用法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1)替换系统方法,[数组越界苹果就会直接crash](http://blog.csdn.net/u012103785/article/details/50817876)</span><br><span class="line">2)字典转model,</span><br><span class="line">3)归档, </span><br><span class="line">4)万能控制器跳转</span><br></pre></td></tr></table></figure>
+<p><a href="https://blog.csdn.net/zzzzzdddddxxxxx/article/details/53542441" target="_blank" rel="noopener">你会遇到的runtime面试题（详）</a></p>
+<h6 id="OBJC-ASSOCIATION-ASSIGN造成的崩溃"><a href="#OBJC-ASSOCIATION-ASSIGN造成的崩溃" class="headerlink" title="OBJC_ASSOCIATION_ASSIGN造成的崩溃"></a>OBJC_ASSOCIATION_ASSIGN造成的崩溃</h6><p>objc_setAssociatedObject 关联对象的学习<br>为<code>CJKeyboardAvoidingTableView</code>增加<code>cjKeyboardAvoidingOffset</code>属性的时候，使用OBJC_ASSOCIATION_ASSIGN而造成崩溃，参考FDTemplateLayoutCell源码，改成使用OBJC_ASSOCIATION_RETAIN，问题解决。原因是</p>
+<p>详情查询：<a href="https://www.cnblogs.com/someonelikeyou/p/7162613.html" target="_blank" rel="noopener">objc_setAssociatedObject 关联对象的学习</a></p>
+<h4 id="1、浅谈runtime运行时机制"><a href="#1、浅谈runtime运行时机制" class="headerlink" title="1、浅谈runtime运行时机制"></a>1、浅谈runtime运行时机制</h4><p><a href="http://www.cnblogs.com/guoxiao/p/3583432.html" target="_blank" rel="noopener">浅谈runtime运行时机制02-runtime简单使用</a></p>
+<p>OC是运行时语言，只有在程序运行时，才会去确定对象的类型，并调用类与对象相应的方法。利用runtime机制让我们可以在程序运行时动态修改类、对象中的所有属性、方法。</p>
+<p><a href="http://blog.csdn.net/liujinlongxa/article/details/46293705" target="_blank" rel="noopener">iOS运行时初探-使用运行时机制向Category中添加属性</a></p>
+<p>在一般情况下，我们是不能向Category中添加属性的，只能添加方法，但有些情况向，我们确实需要向Category中添加属性。而且很多系统的API也有一些在Category添加属性的情况，例如我们属性的UITableView的section和row属性，就是定义在一个名为NSIndexPath的分类里的，如下：<br><img src="http://img.blog.csdn.net/20150531230308155" alt="使用运行时机制向Category中添加属性"><br>那这到底是怎么实现的呢？</p>
+<h1 id="load-initialize的区别"><a href="#load-initialize的区别" class="headerlink" title="+load +initialize的区别"></a>+load +initialize的区别</h1><p> \1. load方法只会调用一次</p>
+<p> \2. +(void)load方法:程序一运行就会把所有的类加载进内存,调用这个方法</p>
+<p>   (表叙:只要程序一运行,就会调用类的load方法,目的:把这个类加载进内存)</p>
+<p> \3. <strong>load是只要类所在文件被引用就会被调用,而initialize是在类或者其子类的第一个方法被调用前调用,所以没有被引用进项目,就不会调用load方法,但即使类文件只被引用进来,而没有使用,那么initialize也不会被调用</strong></p>
+<ul>
+<li><p>+load方法的调用是在main() 函数之前。load 方法内部一般用来实现 Method Swizzle（面向切面AOP变成）</p>
+<blockquote>
+<p>调用main() 函数之前的什么时候？答：+load方法会再这个类或者其分类被添加到运行时的时候调用。</p>
+<p>附：所有类的 load 方法都会被调用，先调用父类、再调用子类，多个分类会按照Compile Sources 顺序加载。</p>
+</blockquote>
+</li>
+<li><p>initialize一般在main()函数之后。Initialize方法一般用来初始化全局变量或者静态变量。</p>
+<blockquote>
+<p>问是在main() 函数之后的什么时候？答：在第一次主动使用当前类的时候。</p>
+<p>附：initialize一般在main()函数之后的情况是什么？A类的 load 方法中调用 B 类的类方法，导致在调用A的Load 方法之前，会先调用一下B类的initialize 方法，但是B类的load 方法还是按照 Compile Source 顺序进行加载</p>
+<p>附2：Initialize 方法会被覆盖，子类父类分类中只会执行一个</p>
+</blockquote>
+</li>
+<li><p>load和initialize都不能主动调用。</p>
+</li>
+<li><p>initialize不是init，initialize在程序运行过程中，它会在你程序中每个类调用仅一次initialize。这个调用的时间发生在你的类接收到消息之前，但是在它的父类接收到initialize之后。<br>init则是你手动初始化几次就调用几次，和普通方法一样</p>
+</li>
+</ul>
+<p></p><p id="KVC与KVO"></p><p></p>
+<h2 id="三、KVC与KVO"><a href="#三、KVC与KVO" class="headerlink" title="三、KVC与KVO"></a>三、KVC与KVO</h2><h3 id="1、KVO"><a href="#1、KVO" class="headerlink" title="1、KVO"></a>1、KVO</h3><p><a href="http://blog.csdn.net/yuquan0821/article/details/6646400/" target="_blank" rel="noopener">KVO的概述与使用</a>内容如下</p>
+<p>一、概述</p>
+<p>KVO,即键值观察者（key-value-observing），它提供一种观察者的机制，当指定的对象的属性被修改后，则对象就会接受到通知。简单的说就是每次指定的被观察的对象的属性被修改后，KVO就会自动通知相应的观察者了。</p>
+<p>二、KVO原理</p>
+<p>　　当某个类的对象第一次被观察时，系统在运行时会创建该类的派生类，该派生类中重写了该对象的setter方法，并且在setter方法中实现了通知的机制。派生类重写了class方法，以“欺骗”外部调用者他就是原先那个类。系统将这个类的isa指针指向新的派生类，因此改对象也就是新的派生类的对象了。因而该对象调用setter就会调用重写的setter，从而激活键值通知机制。此外派生类还重写了delloc方法来释放资源。</p>
+<p>三、使用方法</p>
+<p>系统框架已经支持KVO，所以程序员在使用的时候非常简单。</p>
 <ol>
-<li><p>为什么没有数据(No element)： <code>ScrollController</code>还没有 <code>attach</code> 一个 <code>position</code>。原因有两个：一个可能是还没被 mount 到树上(没有被<code>Scrollable</code>使用到)；另外一个就是已经被 <code>detach</code>了。</p>
+<li>注册，指定被观察者的属性，</li>
+<li>实现回调方法</li>
+<li>移除观察</li>
+</ol>
+<p>四，实例:</p>
+<p>假设一个场景,股票的价格显示在当前屏幕上，当股票价格更改的时候，实时显示更新其价格。</p>
+<h3 id="2、KVC"><a href="#2、KVC" class="headerlink" title="2、KVC"></a>2、KVC</h3><p> KVC 就是键值编码（key-value-coding)</p>
+<p>KVC 的主要作用：</p>
+<p>（1）通过键值路径为对象的属性赋值。主要是可以为私有的属性赋值。</p>
+<p>（2）通过键值路径获取属性的值。主要是可以通过key获得私有属性的值。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// valueForKeyPath:（多级访问，不仅可以对当前对象属性进行赋值，也可以对“深层”对象的属性进行取值）</span><br><span class="line">	Person *person1 = [[Person alloc] init];</span><br><span class="line">	person1.name = @&quot;李四&quot;;</span><br><span class="line">	person1.car.name = @&quot;BMW&quot;;</span><br><span class="line">	NSString *carName = [person valueForKeyPath:@&quot;car.name&quot;];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 当集合中元素类型一致，可以通过KVC的getter方法valueForKeyPath：来获取所有集合元素中的属性，生成一个新的元素属性集合。（这里的集合一般为NSArray，NSSet，不包括NSDictionary）</span><br><span class="line">  NSArray *personArray = [NSArray arrayWithObjects:person1, nil];</span><br><span class="line"></span><br><span class="line">	NSArray *personNameArray = [personArray valueForKeyPath:@&quot;name&quot;];</span><br><span class="line">	NSArray *carNameArray = [personArray valueForKeyPath:@&quot;car.name&quot;];</span><br></pre></td></tr></table></figure>
+<p>其他参考资料：</p>
+<ul>
+<li><a href="https://www.cnblogs.com/huadeng/p/7064382.html" target="_blank" rel="noopener">KVC与KVO</a></li>
+<li><a href="https://www.jianshu.com/p/45cbd324ea65" target="_blank" rel="noopener">KVC是怎么寻找Key的</a></li>
+</ul>
+<p></p><p id="Objective-C与C++"></p><p></p>
+<h2 id="四、Objective-C和C"><a href="#四、Objective-C和C" class="headerlink" title="四、Objective-C和C++"></a>四、Objective-C和C++</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、Objective-C与C-之间的差异"><a href="#1、Objective-C与C-之间的差异" class="headerlink" title="1、Objective-C与C++之间的差异"></a>1、Objective-C与C++之间的差异</h4><blockquote>
+<p>最大的区别就是Objective C的成员函数调用是基于动态绑定的，类本身并没有限制对象可以有什么函数。相对于C++类会规定好成员有什么函数。这使得Objective C的灵活性很大，但是执行效率也很低。</p>
+</blockquote>
+<h4 id="2、Object-c的类可以多重继承么"><a href="#2、Object-c的类可以多重继承么" class="headerlink" title="2、Object-c的类可以多重继承么?"></a>2、Object-c的类可以多重继承么?</h4><p>答: Object-c的类不可以多重继承；</p>
+<p>面向对象(OOP)</p>
+<p>面向对象的三个特性：封装、继承和多态(没有继承就没有多态)。</p>
+<blockquote>
+<p>所谓封装，也就是把客观事物封装成抽象的类；</p>
+<p>所谓多态就是指一个类实例的相同方法在不同情形有不同表现形式。多态机制使具有不同内部结构的对象可以共享相同的外部接口。</p>
+</blockquote>
+<p>没有继承就没有多态。代码的体现：父类类型的指针指向子类对象。</p>
+<p>没使用多态前：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)printWithBlack:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line">- (<span class="keyword">void</span>)printWithColor:(Printer *)printer &#123;</span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[person printWithBlack:blackPrint]; <span class="comment">//调用黑白打印机  </span></span><br><span class="line">[person printWithColor:colorPrint]; <span class="comment">//调用彩色打印机</span></span><br></pre></td></tr></table></figure>
+<p>使用多态后：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)print:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用时候：</span></span><br><span class="line">Printer *p1 = [[ColorPrinter alloc] init];  </span><br><span class="line">Printer *p2 = [[BlackPrinter alloc] init];  </span><br><span class="line"></span><br><span class="line">[person doPrint:p1];  </span><br><span class="line">[person doPrint:p2];</span><br></pre></td></tr></table></figure>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="1、-import、-include、-class"><a href="#1、-import、-include、-class" class="headerlink" title="1、#import、#include、@class"></a>1、#import、#include、@class</h4><p>可参考：<a href="http://www.jianshu.com/p/7e0dee7f84b2" target="_blank" rel="noopener">#import、#include、@class、#import&lt;&gt;和#import””的区别</a></p>
+<p>1、<code>#import</code>介绍：<br>In the C language, the #include pre-compile directive always causes a file’s contents to be inserted into the source. at that point, Objective-C has the equivalent #import directive except each file is included only once per compilation unit, obviating（去除） the need for include guards.</p>
+<p>即在C语言中，<code>#include</code>预编译指令经常引起一个文件的被重复引用。基于这一点，OC有一个等价的预编译指令<code>#import</code>来防止文件重复导入。所以OC给出来的新的预处理指令import是防止重复导入，避免程序员去书写头文件卫士，降低程序员的负担。</p>
+<p>2、#import和#include的异同点：</p>
+<p>①#include是C语言中的，需要条件编译语句控制重复包含问题。</p>
+<p>②在Objective-C中，#import是OC中对#include的改进版本，#import使得我们不需要写条件编译语句就可以确保引用的文件只会被包含一次，不会陷入递归版包含的问题。即<strong>import与#include比较的优点：会自动防止重复导入，使得不会引起交叉编译</strong></p>
+<pre><code>#import不会引起交叉编译的问题。因为在Objective-C中会存在C/C++和Object-C混编的问题，如果用#include引入头文件，会导致交叉编译。
+</code></pre><p>举例：三个文件①文件A.h、②文件B.h、③文件C.h。其中文件C.h需要引入A.h、B.h,而文件B.h也需要引入文件A.h,这样在C.h中就重复引用了A.h两次，使用#import可以进行优化</p>
+<p>3、#import和#include的相同点：</p>
+<p>①都可以用在OC程序中起到导入文件的作用</p>
+<p>②同样的 包含系统文件都是&lt;&gt;，是包本地文件都用””<br>例如：系统文件#import&lt;Foundation/Foundation.h&gt;, #include&lt;stdio.h&gt;<br>​     本地文件#import”test.h”, #include”test.h”</p>
+<p>到底该如何选择使用呢<br>一般来说，你包含的是C语言中的文件就用#include，你用的是OC中的文件就用#import</p>
+<p>4、<strong>#import与@class二者的区别</strong></p>
+<blockquote>
+<p>#import会链入该头文件的全部信息，包括实体变量和方法等；而@class只是告诉编译器，其后面声明的名称是类的名称，至于这些类是如何定义的，暂时不用考虑。在头文件中， 一般只需要知道被引用的类的名称就可以了。不需要知道其内部的实体变量和方法，所以在头文件中一般使用@class来声明这个名称是类的名称。 而在实现类里面，因为会用到这个引用类的内部的实体变量和方法，所以需要使用#import来包含这个被引用类的头文件。</p>
+</blockquote>
+<p>附：@class能解决循环包含的问题：当两个类文件有循环依赖关系 (A引用B,B引用A)时，需要用@class</p>
+<p>5、<strong>import&lt;&gt; 和 import””</strong><br>①&lt;&gt; : 引用系统文件，它用于对系统自带的头文件的引用，编译器会在系统文件目录下去查找该文件.</p>
+<p>②””: 用户自定义的文件用双引号引用，编译器首先会在用户目录下查找，然后到安装目录中查</p>
+<h4 id="4、字符串的比较"><a href="#4、字符串的比较" class="headerlink" title="4、字符串的比较"></a>4、字符串的比较</h4><blockquote>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/字符串compare.png" alt="字符串compare">;<br>字符串compare的比较是一个字符串一个字符串比较的，所以才会出现1814比860小的错误情况。</p>
+</blockquote>
+<h4 id="5、isMemberOfClass-和-isKindOfClass-的联系和区别"><a href="#5、isMemberOfClass-和-isKindOfClass-的联系和区别" class="headerlink" title="5、isMemberOfClass 和 isKindOfClass 的联系和区别"></a>5、isMemberOfClass 和 isKindOfClass 的联系和区别</h4><ul>
+<li><p>联系:两者都能检测一个对象是不是某个类的成员</p>
 </li>
-<li><p>为什么多了(Too many elements)： <code>ScrollController</code>还没来得及 <code>detach</code>旧的 <code>position</code>，就又<code>attach</code>了一个新的。原因多半是因为<code>ScrollController</code>的用法不对，同一时间被多个 <code>Scrollable</code>关注到了。</p>
+<li><p>区别:isKindOfClass不仅能确定一个对象是不是某个类(即不算父类)的成员,也能确定一个对象是否是派生自该类的类的成员,而isMemberOfClass只能做到前者.</p>
+</li>
+</ul>
+<p>a.为什么基本类型和C数据类型的修饰用assign？</p>
+<p>因为基本数据类型不是对象，不需要引用计数，所以使用assign（附：在内存中创建和使用后，在一个方法体结束后就被删除。）。</p>
+<h2 id="iOS-NS-CG-CF前缀代表什么意思"><a href="#iOS-NS-CG-CF前缀代表什么意思" class="headerlink" title="iOS NS/CG/CF前缀代表什么意思"></a>iOS NS/CG/CF前缀代表什么意思</h2><p>NS/CG/CF前缀代表什么意思。</p>
+<p>回答：NS是前缀，代表它是来自Cocoa Foundation框架，这个框架是OC的基础库</p>
+<blockquote>
+<p>UI—UIKit框架，UI库<br>CF—Core Foundation框架<br>NS—Cocoa Foundation框架，OC的基础库。<br>CG—CoreGraphics.frameworks框架，用于渲染的库。<br>CA—CoreAnimation.frameworks框架</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言/" data-id="cler0mr2e00usupr4jvstij72" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言-消息转发NSProxy" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-消息转发2"><a href="#必备知识架构-①语言-消息转发2" class="headerlink" title="必备知识架构-①语言-消息转发2"></a>必备知识架构-①语言-消息转发2</h1><p>[toc]</p>
+<h2 id="一、NSProxy"><a href="#一、NSProxy" class="headerlink" title="一、NSProxy"></a>一、NSProxy</h2><p>NSProxy，你可以通过继承它，并重写它的以下两个方法以实现消息转发到另一个实例。说白了，NSProxy专为代理而生（<strong>负责将消息转发到真正的target的代理类</strong>）。从类名来看是代理类，专门负责代理对象转发消息的。相比NSObject类来说NSProxy更轻量级，<strong>通过NSProxy可以帮助Objective-C间接的实现多重继承的功能</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation;</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)sel;</span><br></pre></td></tr></table></figure>
+<h3 id="1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子"><a href="#1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子" class="headerlink" title="1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子"></a>1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子</h3><p>现在比较流行的说法是用它来模拟多重继承，大致过程就是让它Hold住/包含你要实现多继承的类的对象，然后被hold住的对象的行为定义在接口中，并让Proxy去实现这些接口。然后再转发的时候把消息转发到实现了该接口的对象去执行，这样就好像实现了多重继承一样。<strong>注意</strong>：这个真不是多重继承，只是包含，然后把消息路由到指定的对象而已，其实完全可以用NSObject类来实现。</p>
+<p>天使=人+鸟</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Person *person = [Person new];</span><br><span class="line">Bird *bird = [Bird new];</span><br><span class="line"></span><br><span class="line">id angelProxy = [AngelProxy proxyForObject1:person object2:bird];</span><br><span class="line">[proxy speak];	// 人可以说话</span><br><span class="line">[proxy fly];		// 鸟可以飞</span><br></pre></td></tr></table></figure>
+<p>另一个例子：<a href="https://www.cnblogs.com/vokie/p/9289958.html" target="_blank" rel="noopener">NSProxy的学习使用</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">// AngelProxy.h</span><br><span class="line">#import &lt;Foundation/Foundation.h&gt;</span><br><span class="line"></span><br><span class="line">@interface AngelProxy : NSProxy</span><br><span class="line"></span><br><span class="line">+ (id)proxyForObject1:(id)obj1 object2:(id)obj2;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// AngelProxy.m</span><br><span class="line">#import &quot;AngelProxy.h&quot;</span><br><span class="line"></span><br><span class="line">@interface AngelProxy()</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id target1;</span><br><span class="line">@property (nonatomic, weak) id target2;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation AngelProxy</span><br><span class="line"></span><br><span class="line">- (instancetype)initWithTarget1:(id)obj1 target2:(id)obj2 &#123;</span><br><span class="line">    _target1 = obj1;</span><br><span class="line">    _target2 = obj2;</span><br><span class="line">    </span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (id)proxyForObject1:(id)obj1 object2:(id)obj2 &#123; </span><br><span class="line">    return [[AngelProxy alloc] initWithTarget1:obj1 target2:obj2];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 重写NSProxy如下两个方法，在处理消息转发时，将消息转发给真正的Target处理</span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)invocation &#123;</span><br><span class="line">    id target;</span><br><span class="line">    if ([_target1 methodSignatureForSelector:invocation.selector]) &#123;</span><br><span class="line">        target = _target1;</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">        target = _target2;</span><br><span class="line">    &#125;</span><br><span class="line">    [invocation invokeWithTarget:target];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)selector &#123;</span><br><span class="line">    NSMethodSignature *sig;</span><br><span class="line">    </span><br><span class="line">    sig = [_target1 methodSignatureForSelector:selector];</span><br><span class="line">    if (sig) &#123;</span><br><span class="line">        return sig;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    sig = [_target2 methodSignatureForSelector:selector];</span><br><span class="line">    return sig;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、NSProxy-和-NSObject-的比较"><a href="#2、NSProxy-和-NSObject-的比较" class="headerlink" title="2、NSProxy 和 NSObject 的比较"></a>2、NSProxy 和 NSObject 的比较</h3><p>相比NSObject，NSProxy更轻量级，做消息转发效率更高。</p>
+<p>NSObject寻找方法顺序：本类-&gt;(父类-)&gt;(动态方法解析)-&gt; 消息转发；<br>NSproxy顺序：本类-&gt;消息转发</p>
+<h3 id="3、NSProxy的用途"><a href="#3、NSProxy的用途" class="headerlink" title="3、NSProxy的用途"></a>3、NSProxy的用途</h3><ol>
+<li><p>AOP面向切片编程</p>
+<p>iOS中面向切片编程一般有两种方式 ，一个是直接基于runtime 的method-Swizzling.还有一种就是基于NSProxy</p>
+</li>
+<li><p>解决NSTimer, CADisplayLink等强引用target引起的无法释放问题。如NSTimer:利用消息转发来断开NSTimer对象与视图之间的强引用关系。初始化NSTimer时把触发事件的target替换成一个单独的对象，然后这个对象中NSTimer的SEL方法触发时让这个方法在当前的视图self中实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">self.timer = [NSTimer timerWithTimeInterval:1 target:self.proxy </span><br><span class="line">              								selector:@selector(timerEvent) userInfo:nil repeats:YES];</span><br><span class="line">[[NSRunLoop currentRunLoop] addTimer:self.timer forMode:NSRunLoopCommonModes];</span><br><span class="line">// 这里我们timer的target使用AYProxy对象，它会实现你这个timer想要实现的timerEvent消息转发给self。从而避免了循环引用</span><br></pre></td></tr></table></figure>
+<p>协议类代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">#import</span><br><span class="line"></span><br><span class="line">@interface AYProxy : NSProxy</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id obj;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">#import &quot;AYProxy.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation AYProxy</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector&#123;</span><br><span class="line">   NSMethodSignature *sig = nil;</span><br><span class="line">   sig = [self.obj methodSignatureForSelector:aSelector];</span><br><span class="line">   return sig;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation&#123;</span><br><span class="line">   [anInvocation invokeWithTarget:self.obj];</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
 </li>
 </ol>
-<h3 id="解决办法-1"><a href="#解决办法-1" class="headerlink" title="解决办法"></a>解决办法</h3><p>针对 No element 错误，只需判断一下 <code>_positions</code>是不是空的就行了，即<code>hasClients</code>。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.hasClients &amp;&amp; _primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>针对 Too many elements 错误，确保<code>ScrollController</code>只会被一个 <code>Scrollable</code>绑定，别让它劈腿了，且被正确 <code>dispose()</code>：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">class WidgetState extends State &#123;</span><br><span class="line">  final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> ListView.builder(</span><br><span class="line">      controller: _primaryScrollController,</span><br><span class="line">      itemCount: _itemCount,</span><br><span class="line">      itemBuilder: _buildItem,</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  <span class="keyword">int</span> get _itemCount =&gt; ...;</span><br><span class="line">  Widget _buildItem(context, index) =&gt; ...;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  void dispose() &#123;</span><br><span class="line">    super.dispose();</span><br><span class="line">    _primaryScrollController.dispose();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="典型错误四：四处碰壁-null"><a href="#典型错误四：四处碰壁-null" class="headerlink" title="典型错误四：四处碰壁 null"></a>典型错误四：四处碰壁 null</h2><p>Dart 这个语言可静可动，类型系统也独树一帜。万物都可以赋值<code>null</code>，就导致写惯了 Java 代码的同志们常常因为<code>bool</code> <code>int</code> <code>double</code>这种看起来是”primitive”的类型被<code>null</code>附体而头晕。</p>
-<p>典型错误信息：</p>
-<ul>
-<li><code>Failed assertion: boolean expression must not be null</code></li>
-<li><code>NoSuchMethodError: The method &#39;&gt;&#39; was called on null.</code></li>
-<li><code>NoSuchMethodError: The method &#39;+&#39; was called on null.</code></li>
-<li><code>NoSuchMethodError: The method &#39;*&#39; was called on null.</code></li>
+<ol start="3">
+<li><p>多重继承</p>
+<p>实现类似CAAnimation类族.</p>
+</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cler0mr2s00utupr4xfkl7adc" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/10其他/知识架构--即时通信" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/知识架构--即时通信/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.561Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="知识架构–即时通信"><a href="#知识架构–即时通信" class="headerlink" title="知识架构–即时通信"></a>知识架构–即时通信</h1><p>以下内容摘自：<a href="https://blog.csdn.net/lybeen2007/article/details/49486439" target="_blank" rel="noopener">开发即时通信是选择UDP还是TCP协议</a></p>
+<blockquote>
+<p>大规模即时通讯软件的总体架构：</p>
+<p>1。以UDP协议作为主要数据传输协议</p>
+<p>2。服务端使用一个数据库保存信息（分布式数据库）</p>
+<p>3。服务端是是分布式的，通过异步多线程技术，集群服务等 通过服务器集群共同运行服务端，对外进行海量信息处理（转发，暂存，广播消息）</p>
+<p>4。客户端也属于分布式应用程序，具有一些服务端的功能 在进行语言，视频，文件传输的时候，可由服务端协调 在两个客户端直接进行点对点通信</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/知识架构--即时通信/" data-id="cler0mr0r00uoupr4ub1p0iq5" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/0目录" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/0目录/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h1 id="2020年iOS面试反思总结–不断更新当中ing"><a href="#2020年iOS面试反思总结–不断更新当中ing" class="headerlink" title="2020年iOS面试反思总结–不断更新当中ing"></a>2020年iOS面试反思总结–不断更新当中ing</h1><p><a href="https://www.jianshu.com/p/c9b1c45f7c2a" target="_blank" rel="noopener">2020年iOS面试反思总结–不断更新当中ing</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><a href="#Objective-C">一、为什么说Objective-C是一门动态的语言？</a></li>
 </ul>
-<h3 id="示例代码-3"><a href="#示例代码-3" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，较常发生在使用服务端返回的数据model时。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>],</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">StyleItem item = StyleItem.fromJson(jsonDecode(...));</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Widget build(StyleItem item) &#123;</span><br><span class="line">  <span class="keyword">if</span> (item.hasNew &amp;&amp; item.id &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> Text(item.name);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> SizedBox.shrink();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="原因分析-2"><a href="#原因分析-2" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>StyleItem.fromJson()</code> 对数据没有容错处理，应当认为 map 里的value都有可能是 <code>null</code>。</p>
-<h3 id="解决办法：容错"><a href="#解决办法：容错" class="headerlink" title="解决办法：容错"></a>解决办法：容错</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>] ?? <span class="number">0</span>,</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>] ?? <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一定要习惯 Dart 的类型系统，什么都有可能是<code>null</code>，比如下面一段代码，你细品有几处可能报错：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Test &#123;</span><br><span class="line">  double fraction(Rect boundsA, Rect boundsB) &#123;</span><br><span class="line">    double areaA = boundsA.width * boundsA.height;</span><br><span class="line">    double areaB = boundsB.width * boundsB.height;</span><br><span class="line">    <span class="keyword">return</span> areaA / areaB;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  void requestData(params, void onDone(data)) &#123;</span><br><span class="line">    _requestApi(params).then((response) =&gt; onDone(response.data));</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  Future&lt;dynamic&gt; _requestApi(params) =&gt; ...;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>小提示，<code>onDone()</code>也可以是<code>null</code> ＞﹏＜。</p>
-<p>在和原生用 <code>MethodChannel</code>传数据时更要特别注意，小心驶得万年船。</p>
-<h2 id="典型错误五：泛型里的-dynamic-一点也不-dynamic"><a href="#典型错误五：泛型里的-dynamic-一点也不-dynamic" class="headerlink" title="典型错误五：泛型里的 dynamic 一点也不 dynamic"></a>典型错误五：泛型里的 dynamic 一点也不 dynamic</h2><p>典型错误信息：</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
 <ul>
-<li><code>type &#39;List&lt;dynamic&gt;&#39; is not a subtype of type &#39;List&lt;int&gt;&#39;</code></li>
-<li><code>type &#39;_InternalLinkedHashMap&lt;dynamic, dynamic&gt;&#39; is not a subtype of type &#39;Map&lt;String, String&gt;&#39;</code></li>
+<li><p><a href="#Runtime">二、Runtime</a></p>
+</li>
+<li><p><a href="#线程间的通信">一、谈谈你对线程间的通信的了解</a></p>
+</li>
 </ul>
-<p>常发生在给某个List、Map 变量赋值时。</p>
-<h3 id="示例代码-4"><a href="#示例代码-4" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，也较常发生在使用服务端返回的数据model时。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = json[<span class="string">'ids'</span>],</span><br><span class="line">    this.ext= json[<span class="string">'ext'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">var</span> json = jsonDecode(<span class="string">""</span><span class="string">"&#123;"</span>ids<span class="string">": [1,2,3], "</span>ext<span class="string">": &#123;"</span>key<span class="string">": "</span>value<span class="string">"&#125;&#125;"</span><span class="string">""</span>);</span><br><span class="line">Model m = Model.fromJson(json);</span><br></pre></td></tr></table></figure>
-<h3 id="原因分析-3"><a href="#原因分析-3" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>jsonDecode()</code>这个方法转换出来的map的泛型是<code>Map&lt;String, dynamic&gt;</code>，意为 value 可能是任何类型(dynamic)，当 value 是容器类型时，它其实是<code>List&lt;dynamic&gt;</code>或者<code>Map&lt;dynamic, dynamic&gt;</code>等等。</p>
-<p>而 Dart 的类型系统中，虽然<code>dynamic</code>可以代表所有类型，在赋值时，如果数据类型事实上匹配（运行时类型相等）是可以被自动转换，但泛型里 <code>dynamic</code> 是不可以自动转换的。可以认为 <code>List&lt;dynamic&gt;</code> 和 <code>List&lt;int&gt;</code>是两种运行时类型。</p>
-<h3 id="解决办法：使用-List-from-Map-from"><a href="#解决办法：使用-List-from-Map-from" class="headerlink" title="解决办法：使用 List.from, Map.from"></a>解决办法：使用 List.from, Map.from</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = List.from(json[<span class="string">'ids'</span>] ?? <span class="keyword">const</span> []),</span><br><span class="line">    this.ext= Map.from(json[<span class="string">'ext'</span>] ?? <span class="keyword">const</span> &#123;&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt;线程间通信的体现:</span><br><span class="line">&gt;1. 一个线程传递数据给另一个线程</span><br><span class="line">&gt;2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br><span class="line">&gt;</span><br><span class="line">&gt;附：其他传值方法总结</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#二">二、线程等待(线程同步)、线程依赖问题</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、通常的做法/不合理的做法</span><br><span class="line">2、合理的做法（使用多线程异步执行）</span><br><span class="line">1)、先说说简单的多线程同步问题(异步线程里没有再开启异步线程)</span><br><span class="line">2)、真正的线程同步问题(异步线程里再开启异步线程)</span><br><span class="line">3)、其他补充</span><br><span class="line">附1：多个请求依次执行</span><br><span class="line">附2：并发数控制</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#三">三、线程安全问题</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#SDWebImage">四、多线程–第三方库SDWebImage</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1、SDWebImage在图片下载及缓存的处理方法</span><br><span class="line">2、SDWebImageDownloader 异步的图片下载器</span><br><span class="line">3、SDWebImageDownloaderOperation 下载操作</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#HTTP请求">五、在一个https连接的网站里，输入账号密码点击登录后，到服务器返回这个请求前，中间经历了什么</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1、一次完整的HTTP请求过程</span><br><span class="line">2、TCP三次握手</span><br><span class="line">3、TCP四次挥手</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#响应链及事件链">六、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：整个响应链及事件链</span><br><span class="line">1、完善响应链查找知识点</span><br><span class="line">2、基础概念等详解</span><br><span class="line">2.1 响应者对象(UIResponder)</span><br><span class="line">2.2、UITouch(点击对象)</span><br><span class="line">2.2.1、UITouch的几个主要属性和方法</span><br><span class="line">2.2.2、UITouch的生成场景</span><br><span class="line">2.3、UIEvent(事件对象)</span><br><span class="line">3、响应链的应用</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#RunLoop">七、RunLoop</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">1、RunLoop概念</span><br><span class="line">&gt;</span><br><span class="line">2、RunLoop和线程的关系？</span><br><span class="line">&gt;</span><br><span class="line">3、RunLoop相关各类关系</span><br><span class="line">3.1 CFRunLoopSourceRef</span><br><span class="line">3.1.附 上题中button点击后，关于RunLoop的过程</span><br><span class="line">3.2 CFRunLoopTimerRef</span><br><span class="line">3.3 CFRunLoopObserverRef</span><br><span class="line">&gt;</span><br><span class="line">4、RunLoop的应用</span><br><span class="line">附：autoreleasepool 自动释放池</span><br><span class="line">runloop、autorelease pool以及线程之间的关系</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#内存">八、谈谈内存管理、内存泄露、循环引用</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">1、内存管理</span><br><span class="line">(1)、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？</span><br><span class="line">(2)、那怎么知道对象已经没有被引用了呢？</span><br><span class="line">(3)、autorelease、autoreleasepool(自动释放池)</span><br><span class="line">(4)、autoreleasepool(自动释放池)　</span><br><span class="line">(5)、autoreleasepool里面对象的内存什么时候释放? </span><br><span class="line">(6)、runloop、autorelease pool以及线程之间的关系</span><br><span class="line">(7)、自动释放池怎样创建</span><br><span class="line">(8)、自动释放池使用注意</span><br><span class="line">(9)、自动释放池的应用/什么时候要用@autoreleasepool</span><br><span class="line">&gt;</span><br><span class="line">2、如何监测内存泄漏</span><br><span class="line">&gt;</span><br><span class="line">3、循环引用</span><br><span class="line">(1)、NSTimer的循环引用</span><br><span class="line">(2)、block的循环引用</span><br><span class="line">(2.1)、Objective-C中block为何得用copy修饰，能否用其他</span><br><span class="line">(2.2)、block的循环引用</span><br><span class="line">(2.3)、判断该block是否会发生循环引用</span><br><span class="line">(2.4)、为什么masonry的block里引用self不需要weak？</span><br><span class="line">(3)、委托delegate的循环引用</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#NSTimer">九、NSTimer</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、NSTimer和NSRunLoop的关系？</span><br><span class="line">2、NSTimer使用细节</span><br><span class="line">3、NSTimer的创建</span><br><span class="line">4、NSTimer的循环引用</span><br><span class="line">5、NSTimer使用的优化</span><br><span class="line">6、NSTimer的销毁问题</span><br><span class="line">6.1子线程中NSTimer的创建和销毁问题</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li>十一、谈谈设计模式</li>
+<li>十二、如何优化过于臃肿的Controller</li>
+<li>十三、谈谈性能优化(功耗)</li>
+<li>十四、UITableView的优化、重用</li>
+<li>十五、布局 layoutsubview、drawrect等</li>
+<li>十六、有逼格的代码</li>
+<li>十七、单元测试</li>
+<li>十八、APP审核</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/0目录/" data-id="cler0mq5300gqupr46qoui7n4" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/10其他/10其他2" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/10其他2/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><ol>
+<li><strong>CertificateSigningRequest</strong>：本地公钥。</li>
+<li><strong>p12</strong>：本地私钥，可以导入到其他电脑。</li>
+<li><strong>证书</strong>：内容是公钥或私钥，由其他机构对其签名组成的数据包。</li>
+<li><strong>Entitlements</strong>：包含了 App 权限开关列表。</li>
+<li><strong>Provisioning Profile</strong>：包含了 证书 / Entitlements 等数据，并由苹果后台私钥签名的数据包。</li>
+</ol>
+<h1 id="iOS-App-签名的原理"><a href="#iOS-App-签名的原理" class="headerlink" title="iOS App 签名的原理"></a>iOS App 签名的原理</h1><ul>
+<li><a href="http://blog.cnbang.net/tech/3386/" target="_blank" rel="noopener">iOS App 签名的原理</a> （非常好，非常详细的文章）</li>
+</ul>
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>四种方式安装一个APP的方式</p>
+<ol>
+<li>从 AppStore 下载</li>
+<li>开发 App 时可以直接把开发中的应用安装进手机进行调试。</li>
+<li>In-House 企业内部分发，可以直接安装企业证书签名后的 APP。</li>
+<li>AD-Hoc 相当于企业分发的限制版，限制安装设备数量，较少用。</li>
+</ol>
+<p>区别：</p>
+<p>App Store 下载的是Apple后台用私钥A对其进行重签名，</p>
+<p>而其他的是用Xcode配置的对应该证书的本地私钥L对app进行签名。</p>
+<h2 id="一、App-Store-下载的签名机制（最简单的签名）"><a href="#一、App-Store-下载的签名机制（最简单的签名）" class="headerlink" title="一、App Store 下载的签名机制（最简单的签名）"></a>一、App Store 下载的签名机制（最简单的签名）</h2><p>当App 提交审核通过后，Apple会对App重签名，所以从App Store下载的app都是苹果的官方签名。</p>
+<p>流程如下：</p>
+<p><img src="/iOS/3必备知识架构/10其他/10其他2/APP签名机制/APP签名机制1.png" alt="APP签名机制1" style="zoom:50%;"></p>
+<p>1、Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A存在iOS设备</p>
+<p>2、app审核通过后，<strong>Apple后台用私钥A对其进行重签名</strong></p>
+<p>3、app下载到iOS设备后，iOS设备内置的公钥A会对app的签名进行验证</p>
+<p>4、如果验证通过，则可运行，否则不能</p>
+<p>当然除了这个方式，还有一下三种方式安装一个app：</p>
+<ol>
+<li>开发时，直接通过USB将应用安装到手机进行调试；</li>
+<li>In-House 企业内部分发，可直接安装企业证书签名的App；</li>
+<li>Ad-Hoc 相当于企业分发的限制版，限制安装设备数量。</li>
+</ol>
+<p>①、KeyChain 里的“从证书颁发机构请求证书”，<strong>本地生成一对公私钥</strong>。（其中：公钥L是保存的CertificateSigningRequest(CSR)，而私钥L保存在电脑本地，可以导出为p12）</p>
+<p>附：Apple 官方也有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+<blockquote>
+<p>（因为这里的这个私钥是本地Mac持有，所以团队开发时，可在KeyChain导出私钥，存为.p12文件，其他Mac即可导入这个私钥）</p>
+</blockquote>
+<p>2、在Member Center把CertificateSigningRequest上传到<strong>苹果后台生成证书</strong>（即上传之后Apple后台用Apple 官方自己固定的私钥A对我们上传的公钥L进行签名，将得到的<strong>签名+公钥L打包起来，称为证书</strong>），下载到本地。</p>
+<blockquote>
+<p>Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+</blockquote>
+<p>3、在Member Center配置AppID、添加设备UUID／Entitlements, <strong>生成app对应的 Provisioning Profile 文件</strong>，并下载到本地<br>4、在XCode中配置好证书，打包编译时，<strong>用Xcode配置的对应该证书的本地私钥L对app进行签名，并把 Provisioning Profile 文件一起打包进App去(文件名为 embedded.mobileprovision)</strong>。这里对App的签名数据分两部分，Mach-O 可执行文件把签名直接写进这个文件，其他资源文件则保存在_CodeSignature目录下</p>
+<p>5、安装APP到手机上时，iOS设备内置的公钥A(指Apple官方自己固定的公钥)对embedded.mobileprovision的数字签名进行验证，同时对里面的证书的签名也会验证<br>如果验证通过，确保了embedded.mobileprovision的数据是苹果授权后，再取出里面数据做各种验证，包括公钥L对app签名进行验证，验证设备ID，AppID，权限开关。</p>
+<h1 id="iOS-常见三种加密（MD5、非对称加密，对称加密）"><a href="#iOS-常见三种加密（MD5、非对称加密，对称加密）" class="headerlink" title="iOS-常见三种加密（MD5、非对称加密，对称加密）"></a>iOS-常见三种加密（MD5、非对称加密，对称加密）</h1><ul>
+<li><a href="https://blog.csdn.net/ssy_1992/article/details/79094556" target="_blank" rel="noopener">iOS-常见三种加密（MD5、非对称加密，对称加密）</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/10其他2/" data-id="cler0mr0e00unupr4ytduiabh" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/10其他/7其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/7其他/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li>十一、谈谈设计模式</li>
+<li>十二、如何优化过于臃肿的Controller</li>
+<li>十三、谈谈性能优化(功耗)</li>
+<li>十四、UITableView的优化、重用</li>
+<li>十五、布局 layoutsubview、drawrect等</li>
+<li>十六、有逼格的代码</li>
+<li>十七、单元测试</li>
+<li><p>十八、APP审核</p>
+</li>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p></p><p id="十一"></p><p></p>
+<h2 id="十一、谈谈设计模式"><a href="#十一、谈谈设计模式" class="headerlink" title="十一、谈谈设计模式"></a>十一、谈谈设计模式</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<p></p><p id="十二"></p><p></p>
+<h2 id="十二、如何优化过于臃肿的Controller"><a href="#十二、如何优化过于臃肿的Controller" class="headerlink" title="十二、如何优化过于臃肿的Controller"></a>十二、如何优化过于臃肿的Controller</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a><br><a href="http://t.cn/REFMQaU" target="_blank" rel="noopener">如何优化过于臃肿的Controller</a></p>
+</blockquote>
+<p></p><p id="十三"></p><p></p>
+<h2 id="十三、谈谈性能优化-功耗"><a href="#十三、谈谈性能优化-功耗" class="headerlink" title="十三、谈谈性能优化(功耗)"></a>十三、谈谈性能优化(功耗)</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<ul>
+<li><a href="http://www.cocoachina.com/ios/20171204/21413.html" target="_blank" rel="noopener">iOS进阶–App功耗优化看这篇就够了</a></li>
+<li><a href="https://www.jianshu.com/p/4555704f9696" target="_blank" rel="noopener">iOS耗电量检测与优化</a></li>
+</ul>
+<h2 id="UITableView的优化、重用"><a href="#UITableView的优化、重用" class="headerlink" title="UITableView的优化、重用"></a>UITableView的优化、重用</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="布局-layoutsubview、drawrect等"><a href="#布局-layoutsubview、drawrect等" class="headerlink" title="布局 layoutsubview、drawrect等"></a>布局 layoutsubview、drawrect等</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="有逼格的代码"><a href="#有逼格的代码" class="headerlink" title="有逼格的代码"></a>有逼格的代码</h2><p><code>typedef NSString * NSRunLoopMode NS_EXTENSIBLE_STRING_ENUM;</code><br><a href="http://www.bubuko.com/infodetail-1899020.html" target="_blank" rel="noopener">提升自己逼格的编程之美之代码规范</a><br><a href="http://www.cocoachina.com/ios/20171123/21298.html" target="_blank" rel="noopener">iOS开发细节 | 通知怎么写？</a><br><a href="https://www.jianshu.com/p/6c44419eb059" target="_blank" rel="noopener">实现NS_ENUM的自定义反射</a></p>
+<h2 id="单元测试"><a href="#单元测试" class="headerlink" title="单元测试"></a>单元测试</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="APP审核"><a href="#APP审核" class="headerlink" title="APP审核"></a>APP审核</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<p>如果一个页面被苹果拒回。那怎么通过审核。(参考<a href="http://www.cocoachina.com/bbs/read.php?tid=1731860" target="_blank" rel="noopener">金融类APP提交苹果审核，怎么避开5.2.1</a>)</p>
+<p>答：</p>
+<p>1.第一种是有后台控制壳什么时候出现。移动端传一个版本号给后台，后台根据版本号判断App否在审核，在审核就显示壳，不在审核就显示原生界面。</p>
+<p>2.直接由移动端来切换界面。此时App需要登录才能看到主界面，对给苹果审核人员的测试账号做一个判断，如果是测试账号，就显示壳，非测试账号显示原生界面。 </p>
+<p>其中：</p>
+<p>第一种方式用户进来就可以看到主界面，更有利于吸引自然流量，但是如果苹果后期复查，发现了用户使用的App跟审核的不一样，会被下架。</p>
+<p>第二种方式不利于吸引自然流量，但是被下架的风险很小，因为苹果的审核团队在美国，不可能自己去注册账号，复查也没关系，除非有人举报你的App。</p>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="1、如何使用一个for循环输出九九乘法表"><a href="#1、如何使用一个for循环输出九九乘法表" class="headerlink" title="1、如何使用一个for循环输出九九乘法表"></a>1、<a href="http://blog.csdn.net/mbuger/article/details/60877188" target="_blank" rel="noopener">如何使用一个for循环输出九九乘法表</a></h4><h6 id="NSJSONSerialization"><a href="#NSJSONSerialization" class="headerlink" title="NSJSONSerialization"></a>NSJSONSerialization</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSData *data = [operation.responseString dataUsingEncoding:NSUTF8StringEncoding];</span><br><span class="line">    NSMutableDictionary *responseObject_dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers | NSJSONReadingMutableLeaves error:nil];</span><br></pre></td></tr></table></figure>
+<p>//NSJSONReadingMutableContainers的作用: <a href="http://blog.csdn.net/chenyong05314/article/details/45691041" target="_blank" rel="noopener">http://blog.csdn.net/chenyong05314/article/details/45691041</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NSJSONReadingMutableContainers：返回可变容器，NSMutableDictionary或NSMutableArray。</span><br><span class="line">NSJSONReadingMutableLeaves：返回的JSON对象中字符串的值为NSMutableString</span><br><span class="line">NSJSONReadingAllowFragments：允许JSON字符串最外层既不是NSArray也不是NSDictionary，但必须是有效的JSON Fragment。例如使用这个选项可以解析 @“123” 这样的字符串。</span><br></pre></td></tr></table></figure>
+<h3 id="iOS中常见Crash总结"><a href="#iOS中常见Crash总结" class="headerlink" title="iOS中常见Crash总结"></a>iOS中常见Crash总结</h3><ul>
+<li><a href="http://www.cocoachina.com/articles/27227" target="_blank" rel="noopener">iOS中常见Crash总结</a></li>
+<li><a href="https://blog.csdn.net/zhonggaorong/article/details/52022220" target="_blank" rel="noopener">iOS开发之调试技巧Xcode7中你一定要知道的炸裂调试神技、Address Sanitizer EXC_BAD_ACCESS</a></li>
+</ul>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/7其他/" data-id="cler0mr1500upupr4byh10mju" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/类微信体验" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/类微信体验/" class="article-date">
+  <time datetime="2022-02-16T02:15:41.000Z" itemprop="datePublished">2022-02-16</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/类微信体验/">类微信体验</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="类微信体验"><a href="#类微信体验" class="headerlink" title="类微信体验"></a>类微信体验</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>微信：</p>
+<p>1、IM部分</p>
+<p>2、发现（如”看一看”功能）</p>
+<p>IM部分：</p>
+<p>数据库：从数据库中取+新记录保存到数据库中</p>
+<p>问题：</p>
+<p>1、给人同步的感觉</p>
+<p>2、不是每个调用失败，都要提示给用户</p>
+<p>错误的请求，不弹toast</p>
 <h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 最常出现的错误/" data-id="clep4r3ez00cq6nr46bokjae7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/类微信体验/" data-id="cler0movm000pupr4mi7ey73a" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
     </footer>
   </div>
   
@@ -260,9 +757,9 @@
 
 
   
-    <article id="post-Flutter/开发随笔/开发随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Flutter/10与原生相关/Flutter 与原生相关" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/开发随笔/开发随笔/" class="article-date">
+    <a href="/Flutter/10与原生相关/Flutter 与原生相关/" class="article-date">
   <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
 </a>
     
@@ -273,118 +770,28 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="开发随笔"><a href="#开发随笔" class="headerlink" title="开发随笔"></a>开发随笔</h1><p>带皇冠的头像优化：</p>
-<p><a href="https://blog.csdn.net/lqw200931116/article/details/123372095" target="_blank" rel="noopener">https://blog.csdn.net/lqw200931116/article/details/123372095</a></p>
+<h1 id="Flutter-与原生相关"><a href="#Flutter-与原生相关" class="headerlink" title="Flutter 与原生相关"></a>Flutter 与原生相关</h1><h2 id="一、使用与原生有关的三方库的注意点"><a href="#一、使用与原生有关的三方库的注意点" class="headerlink" title="一、使用与原生有关的三方库的注意点"></a>一、使用与原生有关的三方库的注意点</h2><h3 id="1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type"><a href="#1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type" class="headerlink" title="1、trying to create a view with an unregistered type, unregistered view type"></a>1、trying to create a view with an unregistered type, unregistered view type</h3><p>使用三方库的时候，如果该库与原生有关。如webview插件、百度地图插件等。如果直接使用，不对工程设置的话，则会报<code>trying to create a view with an unregistered type, unregistered view type:</code></p>
+<p>解决方案：在info.plist加入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;key&gt;io.flutter.embedded_views_preview&lt;/key&gt;</span><br></pre></td></tr></table></figure>
+<p>原因：</p>
 <ul>
-<li><strong>clipBehavior：此属性决定如何显示超出Stack的子组件是否被剪切；值为Clip.hardEdge时，超出部分会被剪裁（隐藏），值为Clip.none 时则不会，超出部分会显示</strong></li>
+<li><a href="https://zhuanlan.zhihu.com/p/169370922" target="_blank" rel="noopener">浅析 Flutter 与 iOS 的视图桥梁 PlatformView</a></li>
 </ul>
-<ul>
-<li><a href="https://www.kancloud.cn/alex_wsc/flutter_demo/1559549" target="_blank" rel="noopener">Flutter核心技术与实战</a></li>
-</ul>
-<ul>
-<li><p><a href="https://www.jianshu.com/p/e0321ccb6e1c" target="_blank" rel="noopener">Flutter Package 涉及关键字的探究</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/1a7cca6230a5" target="_blank" rel="noopener">flutter 文件与库的引用导出（import、import as、import show、part、part of、library）</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/af78b5f359f4" target="_blank" rel="noopener">Flutter 中extends、implements、with</a></p>
-<blockquote>
-<p>implements：类似面向协议</p>
-</blockquote>
-</li>
-<li><p><a href="https://www.jianshu.com/p/d45cf49f2245" target="_blank" rel="noopener">Futter 屏幕适配框架flutter_ScreenUtil 用法</a></p>
-</li>
-<li><p><a href="https://juejin.cn/post/6904604605028990983" target="_blank" rel="noopener">为什么<code>Overlay</code>插入的<code>OverlayEntry</code>会在页面上面悬浮呢</a></p>
-</li>
-<li><p><a href="https://blog.csdn.net/ma1756295644/article/details/103011896" target="_blank" rel="noopener">Flutter - Stream基础知识</a></p>
-</li>
-<li><p><a href="https://blog.csdn.net/weixin_44492423/article/details/104388056" target="_blank" rel="noopener">Flutter EasyLoading的实现原理</a></p>
-</li>
-</ul>
-<h2 id="图片"><a href="#图片" class="headerlink" title="图片"></a>图片</h2><ul>
-<li><a href="https://bbs.huaweicloud.com/blogs/317278" target="_blank" rel="noopener">如何在 Flutter 中使用MemoryImage【Flutter专题】</a></li>
-</ul>
-<p>为什么 Button 里 不要再设置颜色。猜测是由于<a href="https://blog.csdn.net/jungle_pig/article/details/94383759" target="_blank" rel="noopener">DefaultTextStyle</a></p>
-<p>[flutter 解决：setState() called after dispose()]</p>
-<h4 id="防止页面关闭执行setState-方法"><a href="#防止页面关闭执行setState-方法" class="headerlink" title="防止页面关闭执行setState()方法"></a>防止页面关闭执行setState()方法</h4><p>解决方法</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> updateState(fn)&#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">    setState(fn);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><a href="https://www.jianshu.com/p/63621f29eced" target="_blank" rel="noopener">Flutter：获取状态state的几种方式</a></p>
-<p>baseui_kit中的 data_util.dart</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"><span class="comment">// import 'dart:ui';</span></span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">///枚举类型转string</span></span></span><br><span class="line"><span class="built_in">String</span> enumToString(o) =&gt; o.toString().split(<span class="string">'.'</span>).last;</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">///string转枚举类型</span></span></span><br><span class="line">T enumFromString&lt;T&gt;(<span class="built_in">Iterable</span>&lt;T&gt; values, <span class="built_in">String</span> value) &#123;</span><br><span class="line">  <span class="keyword">return</span> values.firstWhere((type) =&gt; type.toString().split(<span class="string">'.'</span>).last == value,</span><br><span class="line">      orElse: () =&gt; <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>字符串与日期相互转换</p>
-<p>String–&gt;DateTime</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">DateTime</span>.parse(<span class="built_in">String</span>)；</span><br></pre></td></tr></table></figure>
-<p>DateTime –&gt;formatString</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:date_format/date_format.dart'</span>;</span><br><span class="line"></span><br><span class="line">formatDate(<span class="built_in">DateTime</span>(<span class="number">2020</span>, <span class="number">12</span>, <span class="number">23</span>) ,[<span class="string">'yyyy'</span>, <span class="string">'-'</span>, <span class="string">'mm'</span>, <span class="string">'-'</span>, <span class="string">'dd'</span>]);</span><br><span class="line">formatDate(<span class="built_in">DateTime</span>(<span class="number">2020</span>, <span class="number">12</span>, <span class="number">23</span>, <span class="number">20</span>, <span class="number">40</span>, <span class="number">10</span>), [‘HH’, <span class="string">':'</span>, ‘nn’, <span class="string">':'</span>, ‘ss’])</span><br><span class="line"></span><br><span class="line">这里使用了日期格式化库：date_format。</span><br></pre></td></tr></table></figure>
-<p><a href="https://blog.csdn.net/u011578734/article/details/111816323" target="_blank" rel="noopener">Flutter 日期格式化库 date_format</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">flutter sdk 版本升级到2.0或者更高的版本后就发现运行时会报错：</span><br><span class="line">Error: Cannot run with sound null safety, because the following dependencies</span><br><span class="line">don&apos;t support null safety:</span><br><span class="line"></span><br><span class="line"> - package:loading_indicator_view</span><br><span class="line"> - package:flutter_swiper</span><br><span class="line"> - package:flutter_page_indicator</span><br><span class="line"> - package:transformer_page_view</span><br><span class="line"></span><br><span class="line">For solutions, see https://dart.dev/go/unsound-null-safety</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">FAILURE: Build failed with an exception.</span><br><span class="line"></span><br><span class="line">也就是说以上有些包不支持 safety模式。</span><br><span class="line"></span><br><span class="line">解决方案：--no-sound-null-safety</span><br><span class="line">run</span><br><span class="line">flutter run --no-sound-null-safety</span><br><span class="line">build</span><br><span class="line">flutter build apk --no-sound-null-safety</span><br></pre></td></tr></table></figure>
-<p><a href="https://blog.csdn.net/mixin716/article/details/119762233" target="_blank" rel="noopener">Flutter Error: Cannot run with sound null safety, because the following dependencies don‘t support</a></p>
-<p><a href="https://www.jianshu.com/p/7ad5dddf0549" target="_blank" rel="noopener">Flutter2 的 Sound null safety 是个什么鬼？！</a></p>
-<p><a href="http://findsrc.com/flutter/detail/8713" target="_blank" rel="noopener">flutter_webview_plugin和webview_flutter</a></p>
-<p><a href="https://www.jianshu.com/p/6cce42245c58?from=timeline@" target="_blank" rel="noopener">iOS中WKWebView加载网页失败或者无网络状态判断</a></p>
-<p><a href="https://blog.csdn.net/weixin_42134878/article/details/117781623" target="_blank" rel="noopener">flutter嵌入HTML5页面,Flutter加载Html并实现与JS 的双向调用</a></p>
-<p><a href="https://songshizhao.com/blog/blogpage/1367.html" target="_blank" rel="noopener">几种常见视频格式ContentType和FileType对照表</a></p>
-<p>Content-Type的格式</p>
-<p>Content-Type：type/subtype ;parameter</p>
-<p>type：主类型，任意的字符串，如text，如果是<em>号代表所有；<br>subtype：子类型，任意的字符串，如html，如果是</em>号代表所有，用“/”与主类型隔开；<br>parameter：可选参数，如charset，boundary等。<br>例如：</p>
-<p>Content-Type: text/html;<br>Content-Type: application/json;charset:utf-8;<br>Content-Type: application/x-www-form-urlencoded;charset:utf-8;</p>
-<h2 id="Flutter-Fix"><a href="#Flutter-Fix" class="headerlink" title="Flutter Fix"></a>Flutter Fix</h2><ul>
-<li><p><a href="https://flutter.cn/docs/development/tools/flutter-fix" target="_blank" rel="noopener">Flutter Fix</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/bcf1afc61a3e" target="_blank" rel="noopener">Flutter 升级空安全攻略</a></p>
-</li>
-</ul>
-<h2 id="共享数据"><a href="#共享数据" class="headerlink" title="共享数据"></a>共享数据</h2><ul>
-<li><a href="https://book.flutterchina.club/chapter7/inherited_widget.html#_7-2-1-inheritedwidget" target="_blank" rel="noopener">7.2 数据共享（InheritedWidget）</a></li>
-</ul>
-<h2 id="三方库"><a href="#三方库" class="headerlink" title="三方库"></a>三方库</h2><ul>
-<li><p><a href="https://github.com/justsoft/video_thumbnail" target="_blank" rel="noopener">Flutter使用第三方库video_thumbnail获取视频缩略图</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/c079347c9486" target="_blank" rel="noopener">常用的Flutter第三方库 2022-05-17 周二</a></p>
-<blockquote>
-<p>从字符串提取链接：linkify</p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><a href="https://blog.csdn.net/weixin_38912070/article/details/112690614" target="_blank" rel="noopener">Flutter 高性能、多功能的全场景滚动容器，一定要看！</a></li>
-</ul>
-<h1 id="flutter-SliverAppBar"><a href="#flutter-SliverAppBar" class="headerlink" title="flutter SliverAppBar"></a>flutter SliverAppBar</h1><ul>
-<li><p><a href="http://www.javashuo.com/article/p-wavghldk-ws.html" target="_blank" rel="noopener">Flutter 滑动体系</a></p>
-</li>
-<li><p><a href="https://blog.csdn.net/u011272795/article/details/82740389?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-82740389-blog-104031790.pc_relevant_antiscanv2&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">flutter SliverAppBar</a></p>
-</li>
-<li><p><a href="https://blog.csdn.net/mengks1987/article/details/104031790?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-104031790-blog-122330541.pc_relevant_default&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">Flutter之SliverAppBar</a></p>
-</li>
-<li><a href="https://blog.csdn.net/nicepainkiller/article/details/122330541" target="_blank" rel="noopener">SliverAppBar</a></li>
-<li><a href="https://wenku.baidu.com/view/0d0e891480c4bb4cf7ec4afe04a1b0717fd5b399.html" target="_blank" rel="noopener">FlutterSliverAppBar全解析，你要的效果都在这了！</a></li>
-<li><a href="http://www.javashuo.com/article/p-quluupvq-kp.html" target="_blank" rel="noopener">Flutter 实现相似美团外卖店铺页面滑动效果</a></li>
-<li><a href="https://github.com/CyJaySong/flutter_meituan_shop" target="_blank" rel="noopener">flutter_meituan_shop</a></li>
-<li><a href="https://blog.csdn.net/weixin_34379433/article/details/91460115" target="_blank" rel="noopener">Flutter的滚动以及sliver约束</a></li>
-</ul>
-<h2 id="埋点"><a href="#埋点" class="headerlink" title="埋点"></a>埋点</h2><ul>
-<li><p><a href="https://manual.sensorsdata.cn/sa/latest/ios-1573995.html" target="_blank" rel="noopener">神策全埋点 (iOS)</a></p>
-</li>
-<li><p><a href="https://github.com/sensorsdata" target="_blank" rel="noopener">神策数据github官网 Sensors Data</a></p>
-</li>
-<li><p><a href="https://juejin.cn/post/6892371163859976199" target="_blank" rel="noopener">Flutter之全埋点思考与实现</a></p>
-</li>
-</ul>
-<p>曝光</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/31f362fb9113" target="_blank" rel="noopener">Flutter 如何优雅的实现滑动元素曝光</a></li>
-</ul>
-<p><a href="https://www.jianshu.com/p/721672352d4a" target="_blank" rel="noopener">Flutter 解决TextOverflow.ellipsis截断字符</a></p>
-<h2 id="布局"><a href="#布局" class="headerlink" title="布局"></a>布局</h2><ul>
-<li><a href="https://blog.csdn.net/computerclass/article/details/118142471" target="_blank" rel="noopener">flutter 之AspectRatio 按比例显示</a></li>
-</ul>
-<h2 id="布局的性能优化"><a href="#布局的性能优化" class="headerlink" title="布局的性能优化"></a>布局的性能优化</h2><ul>
-<li><a href="https://blog.csdn.net/sinat_37255207/article/details/107233657" target="_blank" rel="noopener">flutter 页面频繁刷新节省页面性能的组件RepaintBoundary</a></li>
-</ul>
-
+<h3 id="2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value"><a href="#2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value" class="headerlink" title="2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value"></a>2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value</h3><p>启动的时候使用rootBundle.loadString 加载本地配置json，但是直接加载会报错：<br>[ERROR:flutter/lib/ui/ui_dart_state.cc(199)] Unhandled Exception: Null check operator used on a null value </p>
+<p>解决办法：加载本地资源以前增加一行代码：</p>
+<p><code>WidgetsFlutterBinding.ensureInitialized();</code> //解决加载json错误</p>
+<p>例子:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">void main() async &#123;</span><br><span class="line">	WidgetsFlutterBinding.ensureInitialized(); //解决加载json错误</span><br><span class="line">	globals.config = jsonDecode(await rootBundle.loadString(‘assets/config.json’));</span><br><span class="line">	runApp(MyApp());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView"><a href="#二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView" class="headerlink" title="二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView"></a>二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView</h2><h2 id="三、百度地图"><a href="#三、百度地图" class="headerlink" title="三、百度地图"></a>三、百度地图</h2><h3 id="百度地图-Flutter插件"><a href="#百度地图-Flutter插件" class="headerlink" title="百度地图-Flutter插件"></a><a href="https://lbsyun.baidu.com/index.php?title=flutter/loc" target="_blank" rel="noopener">百度地图-Flutter插件</a></h3><p> 1)iOS权限问题可参照<a href="https://lbsyun.baidu.com/index.php?title=ios-locsdk/guide/create-project/manual-create" target="_blank" rel="noopener">iOS定位SDK手动部署说明</a>。<br>  2)iOS头文件错误：</p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios1.png" alt="ios1.png"></p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios2.png" alt="ios2.png"></p>
+<p>解决办法：Xcode-TARGETS-build settings-Allow Non-modular Includes In Famework Modules设置为YES。</p>
+<p>Allow Non-modular Includes In Famework Modules</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="clep4r3f000d26nr4syj6rakt" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/10与原生相关/Flutter 与原生相关/" data-id="cler0mpqs0064upr43akewi3h" class="article-share-link">Share</a>
       
       
     </footer>
@@ -394,9 +801,9 @@
 
 
   
-    <article id="post-Flutter/开发随笔/UI+App demo" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Flutter/开发随笔/Flutter MaterialApp" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/开发随笔/UI+App demo/" class="article-date">
+    <a href="/Flutter/开发随笔/Flutter MaterialApp/" class="article-date">
   <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
 </a>
     
@@ -407,471 +814,12 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="UI-App-demo"><a href="#UI-App-demo" class="headerlink" title="UI+App demo"></a>UI+App demo</h1><ul>
-<li><p><a href="https://blog.csdn.net/xhmj12/article/details/107273449/" target="_blank" rel="noopener">推荐四个Flutter重磅开源APP项目！</a></p>
-<blockquote>
-<ul>
-<li><a href="https://github.com/mjl0602/flutter_tiktok" target="_blank" rel="noopener">精仿抖音</a></li>
-<li><a href="https://github.com/yukilzw/dy_flutter" target="_blank" rel="noopener">斗鱼APP</a></li>
-<li><a href="https://github.com/kaina404/FlutterDouBan" target="_blank" rel="noopener">豆瓣客户端</a></li>
-<li></li>
-</ul>
-</blockquote>
-</li>
-</ul>
-
+<h1 id="Flutter-MaterialApp"><a href="#Flutter-MaterialApp" class="headerlink" title="Flutter MaterialApp"></a>Flutter MaterialApp</h1><h2 id="Flutter-MaterialApp的initialRoute属性和home属性的区别"><a href="#Flutter-MaterialApp的initialRoute属性和home属性的区别" class="headerlink" title="Flutter MaterialApp的initialRoute属性和home属性的区别"></a>Flutter MaterialApp的initialRoute属性和home属性的区别</h2><p>1、home 是应用程序默认的路由小部件，如果指定了 home，那么 route 中就不能包含 /，home 会取代 /。<br>2、除非指定了 initialRoute（会先执行home，再执行initialRoute，在initialRoute页返回会回到home页），否则应用程序会首先显示 home 对应的小部件，如果 initialRoute 不能正常显示，也会显示 home。<br>使用场景：<br>若APP启动时需要根据是否登录来决定首先显示的页面，可在路由监听中判断 token，若未登录，则 initialRoute 设置登录页对应的别名，则会打开登录页。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="clep4r3f300dh6nr4b8849b7s" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/Git-Flow" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/Git-Flow/" class="article-date">
-  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="Git-Flow"><a href="#Git-Flow" class="headerlink" title="Git Flow"></a>Git Flow</h1><h2 id="分支类型"><a href="#分支类型" class="headerlink" title="分支类型"></a>分支类型</h2><ul>
-<li>master</li>
-<li>dev</li>
-<li>feature</li>
-<li>hotfix</li>
-<li>preproduct</li>
-</ul>
-<h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>线上代码分支。</p>
-<p>【创建】在创建 repo 的时候创建 <code>master</code> 分支。</p>
-<p>【命名】master</p>
-<p>【描述】所有 release 的 tag 都打在 <code>master</code>，并且 <code>master</code> 不能直接 commit，只能通过 merge 来完成代码提交。</p>
-<p>【输入】合并自 <code>preproduct</code> <code>hotfix</code></p>
-<p>【输出】<code>hotfix</code></p>
-<p>【销毁】master 分支是恒定存在的</p>
-<h3 id="dev"><a href="#dev" class="headerlink" title="dev"></a>dev</h3><p>稳定开发分支</p>
-<p>【创建】在创建 <code>master</code> 分支时，立即创建 <code>dev</code> 分支</p>
-<p>【命名】dev</p>
-<p>【描述】新版本需求来的时候管理员会从 <code>dev</code> 中拉出一条版本分支。<code>dev</code> 分支里保存完整的版本迭代和测试环境下已经修复的 bug。</p>
-<p>【输入】合并自 <code>feature</code> <code>hotfix</code> <code>preproduct</code></p>
-<p>【输出】版本 release 时并入 <code>master</code></p>
-<p>【销毁】dev 分支是恒定存在的</p>
-<h3 id="feature-version"><a href="#feature-version" class="headerlink" title="feature / version"></a>feature / version</h3><p>功能分支、新版本分支</p>
-<p>【创建】当有新版本计划时，从 <code>dev</code> 中拉取</p>
-<p>【命名】dev_1.0.0</p>
-<p>【描述】存放某个版本的集成代码，包括这个版本在内测环境下的 bug 修复代码</p>
-<p>【输入】开发人员 commit</p>
-<p>【输出】版本结束后并入 <code>dev</code></p>
-<p>【销毁】并入后销毁</p>
-<h3 id="preproduct"><a href="#preproduct" class="headerlink" title="preproduct"></a>preproduct</h3><p>某版本预生产分支</p>
-<p>【创建】当某个版本的测试环境通过后，从 feature 分支并入 dev 分支时，从 dev 分支拉取出的分支</p>
-<p>【命名】pre_1.0.0</p>
-<p>【描述】存放某个版本的预生产代码，修复预生产时候的 bug</p>
-<p>【输入】从 <code>dev</code> 中拉取，开发人员 commit</p>
-<p>【输出】版本结束后同时并入 <code>master</code> 和 <code>dev</code>（不是并入 <code>dev</code> 再从 <code>dev</code> 并入 <code>master</code>）</p>
-<p>【销毁】并入后销毁</p>
-<h3 id="hotfix"><a href="#hotfix" class="headerlink" title="hotfix"></a>hotfix</h3><p>热补丁分支</p>
-<p>【创建】从 <code>master</code> 拉取。</p>
-<p>【命名】hotfix/新版本号</p>
-<p>【描述】需要紧急上线一个补丁版本，且已有新版本的 <code>feature</code> 分支时，需要创建该分支。如果当前没有新版本的 <code>feature</code> 分支，则按正常开发逻辑走流程。</p>
-<p>【输入】开发人员 commit</p>
-<p>【输出】先并入 <code>master</code>；判断 <code>preproduct</code> 是否存在 ？ 并入 <code>preproduct</code> : 并入 <code>dev</code></p>
-<p>【销毁】并入后销毁</p>
-<h2 id="提交格式"><a href="#提交格式" class="headerlink" title="提交格式"></a>提交格式</h2><p>使用 SourceTree 完成 commit，message 可以换行。</p>
-<p>大致格式如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【信息分类】简略描述</span><br><span class="line">详细描述</span><br><span class="line">【URL】bugly 地址，或者 JIRA 地址</span><br></pre></td></tr></table></figure>
-<h3 id="信息分类"><a href="#信息分类" class="headerlink" title="信息分类"></a>信息分类</h3><h4 id="Bugfix"><a href="#Bugfix" class="headerlink" title="Bugfix"></a>Bugfix</h4><p>【修复】修复自己开发过程中自测出来的问题</p>
-<p>【修复-jira-{id}】修复 jira 上的问题，附带 bug id</p>
-<p>【修复-bugly-{id}】修复 bugly 上的问题，附带 bug id</p>
-<h3 id="Feature"><a href="#Feature" class="headerlink" title="Feature"></a>Feature</h3><p>【新增】增加新的功能</p>
-<h3 id="Optmize"><a href="#Optmize" class="headerlink" title="Optmize"></a>Optmize</h3><p>【优化】优化某些代码</p>
-<h3 id="Resource"><a href="#Resource" class="headerlink" title="Resource"></a>Resource</h3><p>【资源】资源文件的修改，不涉及代码</p>
-<h3 id="Configuration"><a href="#Configuration" class="headerlink" title="Configuration"></a>Configuration</h3><p>【配置】修改版本号，修改打包脚本，修改工程配置，不涉及代码</p>
-<h3 id="PS"><a href="#PS" class="headerlink" title="PS"></a>PS</h3><p>增加文件会更改到工程文件，此部分更改属于 Feature 的内容。</p>
-<h3 id="举例"><a href="#举例" class="headerlink" title="举例"></a>举例</h3><p>增加某个功能：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【新增】购物车一键清空功能</span><br><span class="line">批量删除购物车内的商品。</span><br></pre></td></tr></table></figure>
-<p>修复了某个自测 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【修复】清空购物车的时跳出支付页面</span><br><span class="line">清空购物车的时候并没有删除商品，而是全选并支付。</span><br></pre></td></tr></table></figure>
-<p>修复了某个内测 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-jira-10019】清空购物车按钮点击无效果</span><br><span class="line">selector 编辑错误，导致 controller 没有响应事件。</span><br><span class="line">【URL】http://jira.luckincoffee.com/products/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
-<p>修复了某个线上 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-bugly-1191】WebView 闪退</span><br><span class="line">对 WebView 中的编辑框操作（复制、全选、粘贴）时会闪退。</span><br><span class="line">【URL】http://bugly.qq.com/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
-<h2 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h2><p><img src="/Architecture架构/Git-Flow/gitflow-feature.png" alt="feature"></p>
-<p><img src="/Architecture架构/Git-Flow/gitflow-hotfix.png" alt="feature"></p>
-<h2 id="GitFlow-alfredsnippets-使用"><a href="#GitFlow-alfredsnippets-使用" class="headerlink" title="GitFlow.alfredsnippets 使用"></a>GitFlow.alfredsnippets 使用</h2><p>电脑安装 Alfred 3</p>
-<p>双击 <em>GitFlow.alfredsnippets</em> 文件，导入到 Alfred 中</p>
-<blockquote>
-<p>GitFlow.alfredsnippets 文件在此 repo 的 /page/iOS-Git-Flow 文件夹下可以找到</p>
-</blockquote>
-<p>光标选中 SourceTree 的 commit 信息编辑框</p>
-<p><img src="/Architecture架构/Git-Flow/sourcetree.png" style="zoom: 50%;"></p>
-<p>激活 Alfred 窗口（ 默认快捷键是 <code>Option</code> + <code>Space</code> ），输入 <code>snip git</code> 即可出现 commit 模板。</p>
-<p><img src="/Architecture架构/Git-Flow/alfred.png" alt=""></p>
-<p>选中想要提交的内容，按 <code>cmd + 数字</code> 即可。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/Git-Flow/" data-id="clep4r1zz000b6nr4k5e7n91e" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/苹果设备注册管理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/苹果设备注册管理/" class="article-date">
-  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>各位需要安装app的苹果手机用户们，晚上好。如您在通过如下地址：<br><a href="https://www.pgyer.com/kKTt" target="_blank" rel="noopener">https://www.pgyer.com/kKTt</a><br>下载愿望屋app的时候，发现无法安装，则可能是您的设备未进行证书注册(如果您可以安装则证明已注册，请忽略本消息)。<br>如您对安装有需求，则可通过如下地址<br><a href="https://www.pgyer.com/tools/udid" target="_blank" rel="noopener">https://www.pgyer.com/tools/udid</a><br>将您的苹果手机udid告知我们，我们为您添加后。当我们打新包的时候，就可以安装上app啦。<br>因证书注册设备只能添加100台，即使添加上去之后，再删除也算是一台。所以如果您非必要安装，请忽略本消息。<br>最后，提前祝大家节日快乐！</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/苹果设备注册管理/" data-id="clep4r20p001b6nr45lj23z1s" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/旧电脑数据清理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/旧电脑数据清理/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.098Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="旧电脑-Mac-数据清理"><a href="#旧电脑-Mac-数据清理" class="headerlink" title="旧电脑(Mac)数据清理"></a>旧电脑(Mac)数据清理</h1><p>[TOC]</p>
-<h2 id="清理项"><a href="#清理项" class="headerlink" title="清理项"></a>清理项</h2><p>系统偏好设置-用户与群组，左下角解锁点击加号添加一个新的管理员账号 点击左上角苹果图标，注销登陆新账号 同一个位置选择之前的账号点击减号删除 删除的时候选择删除文件就可以了</p>
-<ul>
-<li><p>AppleID(涉及appstore)</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 系统设置里退出</li>
-<li style="list-style: none"><input type="checkbox"> appStore –&gt; 商店 –&gt; 退出登录</li>
-</ul>
-</li>
-<li><p>iCloud账号(涉及备忘录、提醒事项、Safari等)</p>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 设置 –&gt; iCloud</li>
-</ul>
-<ul>
-<li><p>邮件、备忘录、提醒事项 清理</p>
-<ul>
-<li><p>[ ] 清理系统邮箱内容</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">进入 ~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads</span><br><span class="line">请不要在终端用open命令，因为Mail Downloads这个有空格。</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 备忘录、提醒事项</li>
-</ul>
-<ul>
-<li>钥匙串</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 清除系统钥匙串中的密码等相关</li>
-</ul>
-<ul>
-<li><p>浏览器</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome账号&amp;密码</li>
-</ul>
-<blockquote>
-<p>附：<a href="https://jingyan.baidu.com/article/e3c78d649cfbdd3c4c85f5af.html" target="_blank" rel="noopener">Mac如何查看Safari保存的密码</a></p>
-</blockquote>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome浏览记录</li>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome个人收藏</li>
-</ul>
-</li>
-<li><p>微信记录<br>在输入框中输入 <code>~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/</code>，然后找到<code>com.tencent.xinWeChat</code>删除整个文件夹即可。</p>
-</li>
-<li><p>QQ记录<br>在输入框输入<code>~/Library/Containers/com.tencent.qq</code>，删除整个文件即可。</p>
-</li>
-<li><p>Keynote、Page等清除打开的文件记录</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 打开软件 –&gt; 文件 –&gt; 打开最近使用 –&gt; 清除菜单</li>
-</ul>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>其他</p>
-<ul>
-<li><p>iPhone模拟器重置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">顶部 -&gt; Erase All Content And Setting</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-<li><p>应用软件删除</p>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>文件夹删除(文稿、图片、下载内容等)</p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="clep4r22n00456nr4zlpckjun" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/新电脑初始安装" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/新电脑初始安装/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="新电脑-Mac-初始安装"><a href="#新电脑-Mac-初始安装" class="headerlink" title="新电脑(Mac)初始安装"></a>新电脑(Mac)初始安装</h1><p>[TOC]</p>
-<h2 id="一、系统设置"><a href="#一、系统设置" class="headerlink" title="一、系统设置"></a>一、系统设置</h2><ul>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/0bc808fc5bceb21bd485b98e.html" target="_blank" rel="noopener">mac三指拖动设置</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">系统设置 --&gt; 辅助功能 --&gt; 鼠标与触控板 --&gt; 触控板选项 --&gt; 三指拖移</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/e8cdb32beec90337052bad89.html" target="_blank" rel="noopener">mac显示隐藏文件</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">defaults write com.apple.finder AppleShowAllFiles -boolean true;killall Finder</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h2 id="二、搜狗输入法、QQ、微信、Wps"><a href="#二、搜狗输入法、QQ、微信、Wps" class="headerlink" title="二、搜狗输入法、QQ、微信、Wps"></a>二、搜狗输入法、QQ、微信、Wps</h2><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://pinyin.sogou.com/mac/" target="_blank" rel="noopener">搜狗输入法</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://im.qq.com" target="_blank" rel="noopener">QQ</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://weixin.qq.com" target="_blank" rel="noopener">微信</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.google.cn/chrome/" target="_blank" rel="noopener">chrome</a>、<a href="http://www.firefox.com.cn/" target="_blank" rel="noopener">Firefox</a> 显示书签栏</li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.macbl.com/app/system/the-unarchiver" target="_blank" rel="noopener">解压工具 unarchiver</a></li>
-<li style="list-style: none"><input type="checkbox" checked> Wps(AppStore)</li>
-<li style="list-style: none"><input type="checkbox"> <a href="https://www.zoom.cn/download/" target="_blank" rel="noopener">zoom</a></li>
-<li style="list-style: none"><input type="checkbox"> <a href="https://sslvpn.zjweu.edu.cn/com/installClient.html" target="_blank" rel="noopener">Easy Connect</a></li>
-</ul>
-<h2 id="三、琐事记录-amp-计划"><a href="#三、琐事记录-amp-计划" class="headerlink" title="三、琐事记录&amp;计划"></a>三、琐事记录&amp;计划</h2><h3 id="1、开始记录各种琐事：个人博客Git"><a href="#1、开始记录各种琐事：个人博客Git" class="headerlink" title="1、开始记录各种琐事：个人博客Git"></a>1、开始记录各种琐事：个人博客Git</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://github.com/dvlproad/dvlproadHexo" target="_blank" rel="noopener">个人博客Git</a></li>
-</ul>
-<h3 id="2、找到对应的文件：Alfred"><a href="#2、找到对应的文件：Alfred" class="headerlink" title="2、找到对应的文件：Alfred"></a>2、找到对应的文件：Alfred</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.alfredapp.com" target="_blank" rel="noopener">Alfred</a></li>
-</ul>
-<h3 id="3、编辑：Typora、SublimeText、截图xnip、翻译Bob"><a href="#3、编辑：Typora、SublimeText、截图xnip、翻译Bob" class="headerlink" title="3、编辑：Typora、SublimeText、截图xnip、翻译Bob"></a>3、编辑：Typora、SublimeText、截图xnip、翻译Bob</h3><ul>
-<li><p>[x] <a href="http://www.sublimetext.com" target="_blank" rel="noopener">sublimetext</a></p>
-</li>
-<li><p>[x] <a href="https://www.typora.io" target="_blank" rel="noopener">Typora</a>  顶部 显示-&gt; 文件树</p>
-<p><img src="/电脑使用/新电脑初始安装/typora1.png" alt="image-20201103140501382"></p>
-</li>
-<li><p>[x] <a href="https://zh.xnipapp.com" target="_blank" rel="noopener">xnip</a></p>
-</li>
-<li><p>[x] <a href="https://github.com/ripperhe/Bob" target="_blank" rel="noopener">Bob</a></p>
-<p>Bob需要的权限设置</p>
-<p><img src="/电脑使用/新电脑初始安装/Bob_setting1.png" alt="Bob需要的权限设置"></p>
-</li>
-</ul>
-<h3 id="4、列计划：omniplan、Xmind"><a href="#4、列计划：omniplan、Xmind" class="headerlink" title="4、列计划：omniplan、Xmind"></a>4、列计划：omniplan、Xmind</h3><ul>
-<li><p>[ ] <a href="https://www.macbl.com/app/utilities/omniplan-pro" target="_blank" rel="noopener">omniplan-pro</a></p>
-</li>
-<li><p>[x] Xmind Zen(AppStore)</p>
-</li>
-</ul>
-<h2 id="四、代码相关"><a href="#四、代码相关" class="headerlink" title="四、代码相关"></a>四、代码相关</h2><h3 id="1、Sourcetree、gitlab、github项目、ssh"><a href="#1、Sourcetree、gitlab、github项目、ssh" class="headerlink" title="1、Sourcetree、gitlab、github项目、ssh"></a>1、Sourcetree、gitlab、github项目、ssh</h3><ul>
-<li><p>[x] <a href="https://www.sourcetreeapp.com" target="_blank" rel="noopener">Sourcetree</a></p>
-</li>
-<li><p>[x] <a href="https://git-scm.com/book/zh/v2/服务器上的-Git-生成-SSH-公钥" target="_blank" rel="noopener">生成ssh</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 查看是已有</span></span><br><span class="line">cd ~/.ssh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 没有则执行生成</span></span><br><span class="line">ssh-keygen</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 生成后，拷贝id_rsa.pub中的秘钥到git的ssh配置中</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] gitlab</p>
-</li>
-<li><p>[x] <a href="https://github.com" target="_blank" rel="noopener">github</a></p>
-<p>mac中用sourcetree下载clone代码，结果出错：<code>warning: templates not found in /usr/local/git/share/git-core/templates</code></p>
-<p><img src="/电脑使用/新电脑初始安装/sourcetree_github1.png" alt="image-20201103134013411"></p>
-<p>解决办法：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /usr/local/git/share/git-core/templates</span><br><span class="line">sudo chmod -R 755 /usr/local/git/share/git-core/templates</span><br></pre></td></tr></table></figure>
-<p><img src="/电脑使用/新电脑初始安装/sourcetree_github2.png" alt="image-20201103135013020"></p>
-</li>
-</ul>
-<h3 id="2、Cocoapods、Spec"><a href="#2、Cocoapods、Spec" class="headerlink" title="2、Cocoapods、Spec"></a>2、Cocoapods、Spec</h3><ul>
-<li><p>[x] <a href="https://cocoapods.org" target="_blank" rel="noopener">Cocoapods官网</a></p>
-<p>1、安装Cocoapods</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo gem install cocoapods</span><br></pre></td></tr></table></figure>
-<p>2、拷贝cocoapods的Spec</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pod repo # 找到pod库的路径</span><br><span class="line">cd 到上述路径</span><br><span class="line">拷贝cocoapods的Spec，并重命名该仓库名字</span><br><span class="line">pod repo update master # 将指定的仓库更新</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h3 id="3、go2sheell"><a href="#3、go2sheell" class="headerlink" title="3、go2sheell"></a>3、go2sheell</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://zipzapmac.com/go2shell" target="_blank" rel="noopener">go2sheell</a></li>
-</ul>
-<h2 id="五、iOS编码工具"><a href="#五、iOS编码工具" class="headerlink" title="五、iOS编码工具"></a>五、iOS编码工具</h2><h3 id="1、Xcode"><a href="#1、Xcode" class="headerlink" title="1、Xcode"></a>1、Xcode</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> Xcode</li>
-</ul>
-<h3 id="2、CodeSnippets"><a href="#2、CodeSnippets" class="headerlink" title="2、CodeSnippets"></a>2、CodeSnippets</h3><p>  1、进入 <a href="https://gitee.com/dvlproad/BlackMagic" target="_blank" rel="noopener">BlackMagic</a> Git工程中的 <a href="https://gitee.com/dvlproad/BlackMagic/tree/master/1.①快速编码/CodeSnippets" target="_blank" rel="noopener">CodeSnippets</a> 并下载</p>
-<p>  2、CodeSnippets所在位置</p>
-<p>  ①自己定义的代码块是在以下目录下：<br>  ~/Library/Developer/Xcode/UserData/CodeSnippets/</p>
-<h3 id="3、iSwift破解版"><a href="#3、iSwift破解版" class="headerlink" title="3、iSwift破解版"></a>3、<a href="https://www.macbl.com/app/development/iswift" target="_blank" rel="noopener">iSwift破解版</a></h3><h3 id="4、其他-cocoapods-APP"><a href="#4、其他-cocoapods-APP" class="headerlink" title="4、其他 cocoapods APP"></a>4、其他 cocoapods APP</h3><ul>
-<li><a href="https://cocoapods.org/app" target="_blank" rel="noopener">cocoapods APP</a></li>
-</ul>
-<h2 id="六、Android"><a href="#六、Android" class="headerlink" title="六、Android"></a>六、Android</h2><h3 id="1、Android-Studio"><a href="#1、Android-Studio" class="headerlink" title="1、Android Studio"></a>1、Android Studio</h3><ul>
-<li><p>[x] <a href="https://developer.android.google.cn/studio" target="_blank" rel="noopener">Android Studio</a>、<a href="http://mumu.163.com" target="_blank" rel="noopener">MuMu模拟器</a>、gradle</p>
-<p><img src="/电脑使用/新电脑初始安装/AndroidStudio_Gradle.png" alt="AndroidStudio_Gradle"></p>
-</li>
-</ul>
-<h2 id="七、WebStrom"><a href="#七、WebStrom" class="headerlink" title="七、WebStrom"></a>七、WebStrom</h2><h3 id="1、WebStrom-APP"><a href="#1、WebStrom-APP" class="headerlink" title="1、WebStrom APP"></a>1、WebStrom APP</h3><ul>
-<li><p>[x] WebStrom</p>
-<p>激活码：<a href="http://idea.medeming.com/jet/" target="_blank" rel="noopener">http://idea.medeming.com/jet/</a></p>
-</li>
-</ul>
-<h3 id="2、WebStorm细节配置"><a href="#2、WebStorm细节配置" class="headerlink" title="2、WebStorm细节配置"></a>2、WebStorm细节配置</h3><h4 id="2-1、WebStorm-gt-Editor-gt-Live-Templates-gt-Copyright"><a href="#2-1、WebStorm-gt-Editor-gt-Live-Templates-gt-Copyright" class="headerlink" title="2.1、WebStorm -&gt; Editor -&gt; Live Templates -&gt; Copyright"></a>2.1、WebStorm -&gt; Editor -&gt; Live Templates -&gt; Copyright</h4><ul>
-<li><p>[x] Copyright</p>
-</li>
-<li><p>[x] demoCopyright</p>
-</li>
-<li><p>[x] companyCopyright</p>
-<p>具体操作请查看：<a href="../../编程工具/WebStorm/WebStorm的使用技巧.md">WebStorm的使用技巧</a></p>
-</li>
-</ul>
-<h4 id="2-2、WebStorm配置直接运行RN项目"><a href="#2-2、WebStorm配置直接运行RN项目" class="headerlink" title="2.2、WebStorm配置直接运行RN项目"></a>2.2、WebStorm配置直接运行RN项目</h4><p>​        具体操作请查看：<a href="../../ReactNative/1入门/ReactNative开发环境搭建与运行.md">ReactNative开发环境搭建与运行</a></p>
-<h2 id="八、抓包-Charles"><a href="#八、抓包-Charles" class="headerlink" title="八、抓包 Charles"></a>八、抓包 Charles</h2><ul>
-<li><p>Charles 下载</p>
-<blockquote>
-<p>进入百度网盘，搜索Charles，目前实用4.5.5版本</p>
-<p><img src="/电脑使用/新电脑初始安装/Charles.png" alt="Charles"></p>
-</blockquote>
-</li>
-<li><p><a href="../实用工具/Charles/Charles.md">Charles.md</a></p>
-</li>
-</ul>
-<h2 id="九、brew、yarn、npm"><a href="#九、brew、yarn、npm" class="headerlink" title="九、brew、yarn、npm"></a>九、brew、yarn、npm</h2><ul>
-<li><p>[ ] <a href="https://brew.sh/index_zh-cn" target="_blank" rel="noopener">brew</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[ ] <a href="https://yarnpkg.com/zh-Hans/docs/install#mac-stable" target="_blank" rel="noopener">yarn</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install yarn</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[ ] npm</p>
-</li>
-</ul>
-<h2 id="十、个人娱乐类"><a href="#十、个人娱乐类" class="headerlink" title="十、个人娱乐类"></a>十、个人娱乐类</h2><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://v.qq.com" target="_blank" rel="noopener">腾讯视频</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://y.qq.com" target="_blank" rel="noopener">QQ音乐</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.cr173.com/soft/54136.html" target="_blank" rel="noopener">爱奇艺V5.4.10无广告版</a></li>
-</ul>
-<h2 id="十一、其他"><a href="#十一、其他" class="headerlink" title="十一、其他"></a>十一、其他</h2><h3 id="1、APP网站macbl"><a href="#1、APP网站macbl" class="headerlink" title="1、APP网站macbl"></a>1、APP网站macbl</h3><ul>
-<li style="list-style: none"><input type="checkbox"> <a href="https://www.macbl.com/" target="_blank" rel="noopener">下载mac应用的好网址 https://www.macbl.com/</a></li>
-</ul>
-<h3 id="2、APP安装问题"><a href="#2、APP安装问题" class="headerlink" title="2、APP安装问题"></a>2、APP安装问题</h3><ul>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/9f63fb9162e3e6c8400f0e30.html" target="_blank" rel="noopener">mac安全与隐私开启任何来源</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo spctl --master-disable</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] <a href="https://www.macbl.com/article/how-to/1387" target="_blank" rel="noopener"> <em>XXX.app 已损坏，打不开。您应该将它移到废纸篓</em></a></p>
-<blockquote>
-<p>1、在系统的“安全与隐私”中允许“任何来源”，再打开终端。<br>2、输入以下命令；</p>
-<p><code>sudo xattr -d com.apple.quarantine /Applications/xxxx.app</code></p>
-<p>注意：/Applications/xxxx.app 换成你的App路径或在sudo xattr -d com.apple.quarantine 后将软件拖进去即可。<br>3、最后，重启App即可。</p>
-</blockquote>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/新电脑初始安装/" data-id="clep4r22r00476nr4vz4y9muq" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/远程共享文件夹" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/远程共享文件夹/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
-<h2 id="一、MacBook-Pro-怎么设置smb共享文件夹"><a href="#一、MacBook-Pro-怎么设置smb共享文件夹" class="headerlink" title="一、MacBook Pro 怎么设置smb共享文件夹"></a>一、MacBook Pro 怎么设置smb共享文件夹</h2><p>在Mac要设置smb的共享文件夹，那么如何设置的好的呢？如何去设置一共享文件夹？</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/30601b6104a355e9acb59562d22ae3efe17868b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<h2 id="方法-步骤"><a href="#方法-步骤" class="headerlink" title="方法/步骤"></a>方法/步骤</h2><ol>
-<li><p>右键一个桌面新建文件夹，然后点击新建文件夹。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e1390a31dfb6326c607de47a89532f63228560b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/22c4fe36e29147e80cfb44c7b603bbea3f8658b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>把要共享文件，拖入新建文件夹，然后点击logo。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/6002c9d4483104ebbfbc22ba092b74ee1d324eb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/8db0c6a72633488499f83699ddee7b7f870e45b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>点击设置，点击共享。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e4b5e2f5ee0d3acef4cc0fde87e265e7350fbbb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/1562a0b9763e21c2d3cd9c65e6e89a618725b1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>文件共享勾上，点击加。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/87645f93cee8b0042400acba79260d9a300ea9b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/304f0999e92abab83a5b174b4814f1c594eea1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>然后点击桌面选择新建文件夹添加，右边默认的读权限，如果要写的，那么该为读写。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/f0848bee41c1b727d3487b3d1a2ca5cadde898b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/a48bc2e8904800fcf1ece5bbd42043715edb93b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>之后点击用户，点击锁。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/5e615d715fdb36203521b03cabc5260f89358db0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/2184380f8835dd8acbc538b203013870d44187b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>输入密码解锁，然后把两个允许勾上。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/444696013870d541ad97dbbd2e0f94fc518c80b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/d400248ca608a50f0ee72d3910cec7f88b77ffb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-</ol>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="clep4r23h004g6nr4bev6fgib" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter MaterialApp/" data-id="cler0mq0i00bjupr4mjarg7re" class="article-share-link">Share</a>
       
       
     </footer>
@@ -885,7 +833,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -916,7 +864,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 15.83px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.67px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 10.83px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 15.83px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.67px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -938,15 +886,15 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+            <a href="/Flutter/开发随笔/Flutter面试/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_h5Action_demo/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
