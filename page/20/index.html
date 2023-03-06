@@ -293,206 +293,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="clew8djv800vqwlr4ktkmnhzb" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="SDWebImage"></p><p></p>
-<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
-<ul>
-<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
-<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
-</ul>
-<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
-<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
-<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
-<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
-<p>2 GCD 异步下载 </p>
-<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
-<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
-<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
-<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
-<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
-<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
-<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
-<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
-<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
-<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
-<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
-<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clew8djz500wrwlr4mjbklwuh" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/">第三方库SDWebImage①缓存-①NSCache</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①NSCache"><a href="#必备知识架构-第三方库SDWebImage①缓存-①NSCache" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①NSCache"></a>必备知识架构-第三方库SDWebImage①缓存-①NSCache</h1><p>[toc]</p>
-<h2 id="一、NSCache的认识"><a href="#一、NSCache的认识" class="headerlink" title="一、NSCache的认识"></a>一、NSCache的认识</h2><h3 id="1、为什么内存缓存要基于-NSCache？"><a href="#1、为什么内存缓存要基于-NSCache？" class="headerlink" title="1、为什么内存缓存要基于 NSCache？"></a>1、为什么内存缓存要基于 NSCache？</h3><p>NSCache和NSMutableDictionary，它们是iOS中常用的两个缓存类，基本上相同，都是<strong>健-值形式的内存缓存方式</strong>。</p>
-<p>1、<code>NSCache</code>的使用很方便，提供了类似可变字典的使用方式，但它比可变字典更适用于实现缓存，最重要的原因为<strong><code>NSCache</code>是线程安全的，使用<code>NSMutableDictionary</code>自定义实现缓存时需要考虑加锁和释放锁</strong>，<code>NSCache</code>已经帮我们做好了这一步，即在开发者自己不编写加锁代码的前提下，多个线程便可以同时访问NSCache。</p>
-<p>2、其次，在内存不足时<code>NSCache</code>会自动释放存储的对象，不需要手动干预，如果是自定义实现需要监听内存状态然后做进一步的删除对象的操作。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">@interface NSCache &lt;KeyType, ObjectType&gt; : NSObject &#123;</span><br><span class="line">@private</span><br><span class="line">    id _delegate;</span><br><span class="line">    void *_private[5];</span><br><span class="line">    void *_reserved;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@property (copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@property (nullable, assign) id&lt;NSCacheDelegate&gt; delegate;</span><br><span class="line"></span><br><span class="line">- (nullable ObjectType)objectForKey:(KeyType)key;</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key; // 0 cost</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key cost:(NSUInteger)g;</span><br><span class="line">- (void)removeObjectForKey:(KeyType)key;</span><br><span class="line"></span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">// NSCache可以指定缓存的限额，当缓存超出限额自动释放内存</span><br><span class="line">// ①对象缓存可持有最大的数量 ，默认是0 没有限制），一旦超出限额，会自动删除之前添加的缓存数据</span><br><span class="line">@property NSUInteger countLimit;	// limits are imprecise/not strict</span><br><span class="line">// ②缓存中可持有的最大空间 默认是0（没有限制）</span><br><span class="line">@property NSUInteger totalCostLimit;	// limits are imprecise/not strict</span><br><span class="line"></span><br><span class="line">// 管理丢弃内容</span><br><span class="line">// 是否可以自动缓存清除可丢弃的内容，默认是YES</span><br><span class="line">@property BOOL evictsObjectsWithDiscardedContent;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p>3、还有一点就是<strong><code>NSCache</code>的<code>key</code>不需要实现<code>NSCopying</code>协议</strong>，因为<code>NSCache</code>的键<code>key</code>不会被复制/拷贝。在键key不支持拷贝操作的情况下，该类用起来比字典更方便。</p>
-<h3 id="2、NSCache什么时候会删除缓存中的对象"><a href="#2、NSCache什么时候会删除缓存中的对象" class="headerlink" title="2、NSCache什么时候会删除缓存中的对象"></a>2、NSCache什么时候会删除缓存中的对象</h3><p><code>NSCache</code>删除缓存中的对象会在以下情形中发生:</p>
-<ul>
-<li>NSCache缓存对象自身被释放</li>
-<li>手动调用<code>removeObjectForKey:</code>或<code>removeAllObjects</code>方法</li>
-<li>缓存中对象的个数大于countLimit，或缓存中对象的总cost值大于totalCostLimit</li>
-<li>程序进入后台后</li>
-<li>收到系统的内存警告</li>
-</ul>
-<h2 id="二、SDMemoryCache的认识"><a href="#二、SDMemoryCache的认识" class="headerlink" title="二、SDMemoryCache的认识"></a>二、SDMemoryCache的认识</h2><p>以上已说明内存缓存要基于 NSCache，所以SDMemoryCache要继承于NSCache，源码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// SDMemoryCache.h</span><br><span class="line">  </span><br><span class="line">/**</span><br><span class="line"> A memory cache which auto purge the cache on memory warning and support weak cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt; // 请注意这里除继承 NSCache &lt;KeyType, ObjectType&gt; 外，还有一个 与 SDMemoryCache 类名同名的 &lt;SDMemoryCache&gt; 协议</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p>可以看出类<code>@interface SDMemoryCache</code>还要遵守<code>&lt;SDMemoryCache&gt;</code>协议。虽然类<code>@interface SDMemoryCache</code>没提供什么方法，但与 SDMemoryCache 类名同名的<code>&lt;SDMemoryCache&gt;</code>协议提供了。</p>
-<p><code>&lt;SDMemoryCache&gt;</code>协议源码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A protocol to allow custom memory cache used in SDImageCache.</span><br><span class="line"> */</span><br><span class="line">@protocol SDMemoryCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)initWithConfig:(nonnull SDImageCacheConfig *)config;</span><br><span class="line"></span><br><span class="line">- (nullable id)objectForKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key cost:(NSUInteger)cost;</span><br><span class="line"></span><br><span class="line">- (void)removeObjectForKey:(nonnull id)key;</span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<h3 id="1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？"><a href="#1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？" class="headerlink" title="1、为什么另外建了个与类名SDMemoryCache同名的&lt;SDMemoryCache&gt;协议，并把方法提到了&lt;SDMemoryCache&gt;协议中？"></a>1、为什么另外建了个与类名SDMemoryCache同名的<code>&lt;SDMemoryCache&gt;</code>协议，并把方法提到了<code>&lt;SDMemoryCache&gt;</code>协议中？</h3><p>答：为了当你想要要使用自定义的缓存类的时候，可以不用继承<code>@interface SDMemoryCache</code>，而只需遵循<code>&lt;SDMemoryCache&gt;</code>协议的方便。</p>
-<h3 id="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"><a href="#2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？" class="headerlink" title="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"></a>2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？</h3><p>答：</p>
-<blockquote>
-<p>内存：@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; <sdmemorycache></sdmemorycache></p>
-<p>磁盘：@interface SDDiskCache : NSObject <sddiskcache></sddiskcache></p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> The built-in disk cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDDiskCache : NSObject &lt;SDDiskCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">- (void)moveCacheDirectoryFromPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<h2 id="三、内存缓存的设计"><a href="#三、内存缓存的设计" class="headerlink" title="三、内存缓存的设计"></a>三、内存缓存的设计</h2><h3 id="1、SDImageCache"><a href="#1、SDImageCache" class="headerlink" title="1、SDImageCache"></a>1、SDImageCache</h3><p>含<code>id&lt;SDMemoryCache&gt; memoryCache;</code>和<code>id&lt;SDDiskCache&gt; diskCache;</code></p>
-<p>一个SDImageCache对象，由内存和磁盘共同控制缓存。控制的策略由<code>SDImageCacheConfig</code>类来定制。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">@interface SDImageCache : NSObject</span><br><span class="line"></span><br><span class="line">#pragma mark - Properties</span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDMemoryCache&gt; memoryCache;</span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDDiskCache&gt; diskCache;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) NSString *diskCachePath;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) SDImageCacheAdditionalCachePathBlock additionalCachePathBlock;</span><br><span class="line"></span><br><span class="line">#pragma mark - Singleton and initialization</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Returns global shared cache instance</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCache *sharedImageCache;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Init a new cache store with a specific namespace</span><br><span class="line"> *</span><br><span class="line"> * @param ns The namespace to use for this cache store</span><br><span class="line"> */</span><br><span class="line">- (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;</span><br></pre></td></tr></table></figure>
-<p>同时SDImageCache还有个类目</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCache.h</span><br><span class="line">@interface SDImageCache (SDImageCache) &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">// SDImageCacheDefine.h</span><br><span class="line">@protocol SDImageCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p>内存和磁盘共同控制缓存策略定制类SDImageCacheConfig</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCacheConfig.h</span><br><span class="line">@interface SDImageCacheConfig : NSObject &lt;NSCopying&gt;</span><br><span class="line"></span><br><span class="line">// 是否使用内存做缓存，默认为YES</span><br><span class="line">@property (assign, nonatomic) BOOL shouldCacheImagesInMemory;</span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;</span><br><span class="line"></span><br><span class="line">// 缓存图片的最长时间，单位是秒，默认是缓存一周</span><br><span class="line">@property (assign, nonatomic) NSTimeInterval maxDiskAge;</span><br><span class="line">// 缓存占用最大的空间，单位是字节</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxDiskSize;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCost;</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCount;</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * The attribute which the clear cache will be checked against when clearing the disk cache</span><br><span class="line"> * Default is Modified Date</span><br><span class="line"> */</span><br><span class="line">@property (assign, nonatomic) SDImageCacheConfigExpireType diskCacheExpireType;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<h3 id="2、SDImageCachesManager"><a href="#2、SDImageCachesManager" class="headerlink" title="2、SDImageCachesManager"></a>2、SDImageCachesManager</h3><p>管理NSArray&lt;id<sdimagecache>&gt; *caches;</sdimagecache></p>
-<p>一张图片就是一份SDImageCache元素对象。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A caches manager to manage multiple caches.</span><br><span class="line"> */</span><br><span class="line">@interface SDImageCachesManager : NSObject &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCachesManager *sharedManager;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy queryOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy storeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy removeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy containsOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy clearOperationPolicy;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) NSArray&lt;id&lt;SDImageCache&gt;&gt; *caches; // 一张图片就是一份SDImageCache元素对象。</span><br><span class="line"></span><br><span class="line">- (void)addCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line">- (void)removeCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p>### </p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clew8djz500wswlr4ys32uzpt" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
-<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
-<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
-<p>①、SDWebImageDownloaderOperation的下载请求</p>
-<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
-<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clew8djz600wuwlr4syh23vnx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="clew9cp8900whxlr41k8a58k1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -577,7 +378,206 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clew8djz600wwwlr4b1ikgb08" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clew9cpfa00xixlr4v0hcbjx6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/">第三方库SDWebImage①缓存-①NSCache</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①NSCache"><a href="#必备知识架构-第三方库SDWebImage①缓存-①NSCache" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①NSCache"></a>必备知识架构-第三方库SDWebImage①缓存-①NSCache</h1><p>[toc]</p>
+<h2 id="一、NSCache的认识"><a href="#一、NSCache的认识" class="headerlink" title="一、NSCache的认识"></a>一、NSCache的认识</h2><h3 id="1、为什么内存缓存要基于-NSCache？"><a href="#1、为什么内存缓存要基于-NSCache？" class="headerlink" title="1、为什么内存缓存要基于 NSCache？"></a>1、为什么内存缓存要基于 NSCache？</h3><p>NSCache和NSMutableDictionary，它们是iOS中常用的两个缓存类，基本上相同，都是<strong>健-值形式的内存缓存方式</strong>。</p>
+<p>1、<code>NSCache</code>的使用很方便，提供了类似可变字典的使用方式，但它比可变字典更适用于实现缓存，最重要的原因为<strong><code>NSCache</code>是线程安全的，使用<code>NSMutableDictionary</code>自定义实现缓存时需要考虑加锁和释放锁</strong>，<code>NSCache</code>已经帮我们做好了这一步，即在开发者自己不编写加锁代码的前提下，多个线程便可以同时访问NSCache。</p>
+<p>2、其次，在内存不足时<code>NSCache</code>会自动释放存储的对象，不需要手动干预，如果是自定义实现需要监听内存状态然后做进一步的删除对象的操作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">@interface NSCache &lt;KeyType, ObjectType&gt; : NSObject &#123;</span><br><span class="line">@private</span><br><span class="line">    id _delegate;</span><br><span class="line">    void *_private[5];</span><br><span class="line">    void *_reserved;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@property (copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@property (nullable, assign) id&lt;NSCacheDelegate&gt; delegate;</span><br><span class="line"></span><br><span class="line">- (nullable ObjectType)objectForKey:(KeyType)key;</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key; // 0 cost</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key cost:(NSUInteger)g;</span><br><span class="line">- (void)removeObjectForKey:(KeyType)key;</span><br><span class="line"></span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">// NSCache可以指定缓存的限额，当缓存超出限额自动释放内存</span><br><span class="line">// ①对象缓存可持有最大的数量 ，默认是0 没有限制），一旦超出限额，会自动删除之前添加的缓存数据</span><br><span class="line">@property NSUInteger countLimit;	// limits are imprecise/not strict</span><br><span class="line">// ②缓存中可持有的最大空间 默认是0（没有限制）</span><br><span class="line">@property NSUInteger totalCostLimit;	// limits are imprecise/not strict</span><br><span class="line"></span><br><span class="line">// 管理丢弃内容</span><br><span class="line">// 是否可以自动缓存清除可丢弃的内容，默认是YES</span><br><span class="line">@property BOOL evictsObjectsWithDiscardedContent;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>3、还有一点就是<strong><code>NSCache</code>的<code>key</code>不需要实现<code>NSCopying</code>协议</strong>，因为<code>NSCache</code>的键<code>key</code>不会被复制/拷贝。在键key不支持拷贝操作的情况下，该类用起来比字典更方便。</p>
+<h3 id="2、NSCache什么时候会删除缓存中的对象"><a href="#2、NSCache什么时候会删除缓存中的对象" class="headerlink" title="2、NSCache什么时候会删除缓存中的对象"></a>2、NSCache什么时候会删除缓存中的对象</h3><p><code>NSCache</code>删除缓存中的对象会在以下情形中发生:</p>
+<ul>
+<li>NSCache缓存对象自身被释放</li>
+<li>手动调用<code>removeObjectForKey:</code>或<code>removeAllObjects</code>方法</li>
+<li>缓存中对象的个数大于countLimit，或缓存中对象的总cost值大于totalCostLimit</li>
+<li>程序进入后台后</li>
+<li>收到系统的内存警告</li>
+</ul>
+<h2 id="二、SDMemoryCache的认识"><a href="#二、SDMemoryCache的认识" class="headerlink" title="二、SDMemoryCache的认识"></a>二、SDMemoryCache的认识</h2><p>以上已说明内存缓存要基于 NSCache，所以SDMemoryCache要继承于NSCache，源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// SDMemoryCache.h</span><br><span class="line">  </span><br><span class="line">/**</span><br><span class="line"> A memory cache which auto purge the cache on memory warning and support weak cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt; // 请注意这里除继承 NSCache &lt;KeyType, ObjectType&gt; 外，还有一个 与 SDMemoryCache 类名同名的 &lt;SDMemoryCache&gt; 协议</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>可以看出类<code>@interface SDMemoryCache</code>还要遵守<code>&lt;SDMemoryCache&gt;</code>协议。虽然类<code>@interface SDMemoryCache</code>没提供什么方法，但与 SDMemoryCache 类名同名的<code>&lt;SDMemoryCache&gt;</code>协议提供了。</p>
+<p><code>&lt;SDMemoryCache&gt;</code>协议源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A protocol to allow custom memory cache used in SDImageCache.</span><br><span class="line"> */</span><br><span class="line">@protocol SDMemoryCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)initWithConfig:(nonnull SDImageCacheConfig *)config;</span><br><span class="line"></span><br><span class="line">- (nullable id)objectForKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key cost:(NSUInteger)cost;</span><br><span class="line"></span><br><span class="line">- (void)removeObjectForKey:(nonnull id)key;</span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？"><a href="#1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？" class="headerlink" title="1、为什么另外建了个与类名SDMemoryCache同名的&lt;SDMemoryCache&gt;协议，并把方法提到了&lt;SDMemoryCache&gt;协议中？"></a>1、为什么另外建了个与类名SDMemoryCache同名的<code>&lt;SDMemoryCache&gt;</code>协议，并把方法提到了<code>&lt;SDMemoryCache&gt;</code>协议中？</h3><p>答：为了当你想要要使用自定义的缓存类的时候，可以不用继承<code>@interface SDMemoryCache</code>，而只需遵循<code>&lt;SDMemoryCache&gt;</code>协议的方便。</p>
+<h3 id="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"><a href="#2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？" class="headerlink" title="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"></a>2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？</h3><p>答：</p>
+<blockquote>
+<p>内存：@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; <sdmemorycache></sdmemorycache></p>
+<p>磁盘：@interface SDDiskCache : NSObject <sddiskcache></sddiskcache></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> The built-in disk cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDDiskCache : NSObject &lt;SDDiskCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">- (void)moveCacheDirectoryFromPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、内存缓存的设计"><a href="#三、内存缓存的设计" class="headerlink" title="三、内存缓存的设计"></a>三、内存缓存的设计</h2><h3 id="1、SDImageCache"><a href="#1、SDImageCache" class="headerlink" title="1、SDImageCache"></a>1、SDImageCache</h3><p>含<code>id&lt;SDMemoryCache&gt; memoryCache;</code>和<code>id&lt;SDDiskCache&gt; diskCache;</code></p>
+<p>一个SDImageCache对象，由内存和磁盘共同控制缓存。控制的策略由<code>SDImageCacheConfig</code>类来定制。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">@interface SDImageCache : NSObject</span><br><span class="line"></span><br><span class="line">#pragma mark - Properties</span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDMemoryCache&gt; memoryCache;</span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDDiskCache&gt; diskCache;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) NSString *diskCachePath;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) SDImageCacheAdditionalCachePathBlock additionalCachePathBlock;</span><br><span class="line"></span><br><span class="line">#pragma mark - Singleton and initialization</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Returns global shared cache instance</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCache *sharedImageCache;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Init a new cache store with a specific namespace</span><br><span class="line"> *</span><br><span class="line"> * @param ns The namespace to use for this cache store</span><br><span class="line"> */</span><br><span class="line">- (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;</span><br></pre></td></tr></table></figure>
+<p>同时SDImageCache还有个类目</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCache.h</span><br><span class="line">@interface SDImageCache (SDImageCache) &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">// SDImageCacheDefine.h</span><br><span class="line">@protocol SDImageCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>内存和磁盘共同控制缓存策略定制类SDImageCacheConfig</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCacheConfig.h</span><br><span class="line">@interface SDImageCacheConfig : NSObject &lt;NSCopying&gt;</span><br><span class="line"></span><br><span class="line">// 是否使用内存做缓存，默认为YES</span><br><span class="line">@property (assign, nonatomic) BOOL shouldCacheImagesInMemory;</span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;</span><br><span class="line"></span><br><span class="line">// 缓存图片的最长时间，单位是秒，默认是缓存一周</span><br><span class="line">@property (assign, nonatomic) NSTimeInterval maxDiskAge;</span><br><span class="line">// 缓存占用最大的空间，单位是字节</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxDiskSize;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCost;</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCount;</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * The attribute which the clear cache will be checked against when clearing the disk cache</span><br><span class="line"> * Default is Modified Date</span><br><span class="line"> */</span><br><span class="line">@property (assign, nonatomic) SDImageCacheConfigExpireType diskCacheExpireType;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、SDImageCachesManager"><a href="#2、SDImageCachesManager" class="headerlink" title="2、SDImageCachesManager"></a>2、SDImageCachesManager</h3><p>管理NSArray&lt;id<sdimagecache>&gt; *caches;</sdimagecache></p>
+<p>一张图片就是一份SDImageCache元素对象。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A caches manager to manage multiple caches.</span><br><span class="line"> */</span><br><span class="line">@interface SDImageCachesManager : NSObject &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCachesManager *sharedManager;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy queryOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy storeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy removeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy containsOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy clearOperationPolicy;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) NSArray&lt;id&lt;SDImageCache&gt;&gt; *caches; // 一张图片就是一份SDImageCache元素对象。</span><br><span class="line"></span><br><span class="line">- (void)addCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line">- (void)removeCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>### </p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clew9cpfb00xjxlr40dvq67sw" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="SDWebImage"></p><p></p>
+<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
+<ul>
+<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
+<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
+</ul>
+<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
+<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
+<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
+<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
+<p>2 GCD 异步下载 </p>
+<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
+<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
+<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
+<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
+<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
+<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
+<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
+<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
+<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
+<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
+<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
+<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clew9cpfc00xlxlr403pi8gkz" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
+<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
+<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
+<p>①、SDWebImageDownloaderOperation的下载请求</p>
+<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
+<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clew9cpfc00xnxlr49muqm5wj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -682,7 +682,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clew8djz700x2wlr4u7eh7cub" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clew9cpfd00xqxlr4u9qeleqc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -728,7 +728,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clew8djz800x4wlr44itwv13u" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clew9cpfg00xtxlr4bj377nt5" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -808,7 +808,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clew8djz800x7wlr4hpic4k12" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clew9cpfi00y2xlr4knfsq29j" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -869,7 +869,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clew8djza00xcwlr49f0gn4js" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clew9cpfj00y4xlr4gzt5i22f" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -881,9 +881,9 @@
 
 
   
-    <article id="post-iOS/自动化/iOS进阶_打包" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/进阶/iOS证书" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/自动化/iOS进阶_打包/" class="article-date">
+    <a href="/iOS/进阶/iOS证书/" class="article-date">
   <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
 </a>
     
@@ -899,7 +899,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/自动化/iOS进阶_打包/">iOS进阶_打包脚本</a>
+      <a class="article-title" href="/iOS/进阶/iOS证书/">iOS证书</a>
     </h1>
   
 
@@ -908,153 +908,25 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[TOC]</p>
-<h2 id="一、认识Mac的keychain机制"><a href="#一、认识Mac的keychain机制" class="headerlink" title="一、认识Mac的keychain机制"></a>一、认识Mac的keychain机制</h2><p>要使用Keychain中的证书，请先<code>unlock-keychain</code>。</p>
-<p>完整的命令如下：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
-<p><strong>如果你是在Jenkins中执行的，请确保你的权限问题。具体的解决可进入《使用工具-&gt;Jenkins-&gt;Jenkins使用问题常见》中的”二、权限问题”</strong>中查看解决。</p>
-<p>其他参考文章：</p>
-<ul>
-<li><a href="https://www.coder4.com/archives/5131" target="_blank" rel="noopener">Jenkins上后台持续集成时如何绕过Mac的keychain机制</a></li>
-<li><a href="https://blog.csdn.net/jintemp/article/details/79894263" target="_blank" rel="noopener">远程连接 Mac 设置使用密钥 security -v unlock-keychain</a></li>
-<li><a href="https://blog.csdn.net/zhaodanfeng1025/article/details/41486993" target="_blank" rel="noopener">security用法</a></li>
-<li><a href="https://stackoverflow.com/questions/35517496/unable-to-unlock-the-keychain" target="_blank" rel="noopener">Unable to unlock the keychain</a></li>
+<h1 id="iOS证书"><a href="#iOS证书" class="headerlink" title="iOS证书"></a>iOS证书</h1><h2 id="二、推送证书"><a href="#二、推送证书" class="headerlink" title="二、推送证书"></a>二、推送证书</h2><ul>
+<li><a href="https://help.aliyun.com/document_detail/100097.html" target="_blank" rel="noopener">制作 iOS 推送证书</a></li>
 </ul>
-<h2 id="二、认识几个命令"><a href="#二、认识几个命令" class="headerlink" title="二、认识几个命令"></a>二、认识几个命令</h2><ul>
-<li>查看SDK版本</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xcodebuild -showsdks</span><br></pre></td></tr></table></figure>
-<p>查询结果如下：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_showsdks.png" alt="xcodebuild -showsdks的执行结果"></p>
-<h2 id="三、认识执行命令"><a href="#三、认识执行命令" class="headerlink" title="三、认识执行命令"></a>三、认识执行命令</h2><p>在终端执行<code>xcodebuild --help</code>。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br></pre></td><td class="code"><pre><span class="line">Beyond-MacBook-Pro:~ lichaoqian$ xcodebuild --help</span><br><span class="line">Usage: xcodebuild [-project &lt;projectname&gt;] [[-target &lt;targetname&gt;]...|-alltargets] [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings [-json]] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild [-project &lt;projectname&gt;] -scheme &lt;schemeName&gt; [-destination &lt;destinationspecifier&gt;]... [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings [-json]] [-showdestinations] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild -workspace &lt;workspacename&gt; -scheme &lt;schemeName&gt; [-destination &lt;destinationspecifier&gt;]... [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings] [-showdestinations] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild -version [-sdk [&lt;sdkfullpath&gt;|&lt;sdkname&gt;] [-json] [&lt;infoitem&gt;] ]</span><br><span class="line">       xcodebuild -list [[-project &lt;projectname&gt;]|[-workspace &lt;workspacename&gt;]] [-json]</span><br><span class="line">       xcodebuild -showsdks [-json]</span><br><span class="line">       xcodebuild -exportArchive -archivePath &lt;xcarchivepath&gt; [-exportPath &lt;destinationpath&gt;] -exportOptionsPlist &lt;plistpath&gt;</span><br><span class="line">       xcodebuild -exportNotarizedApp -archivePath &lt;xcarchivepath&gt; -exportPath &lt;destinationpath&gt;</span><br><span class="line">       xcodebuild -exportLocalizations -localizationPath &lt;path&gt; -project &lt;projectname&gt; [-exportLanguage &lt;targetlanguage&gt;...[-includeScreenshots]]</span><br><span class="line">       xcodebuild -importLocalizations -localizationPath &lt;path&gt; -project &lt;projectname&gt;</span><br><span class="line">       xcodebuild -resolvePackageDependencies [-project &lt;projectname&gt;|-workspace &lt;workspacename&gt;] -clonedSourcePackagesDirPath &lt;path&gt;</span><br><span class="line">       xcodebuild -create-xcframework [-help] [-framework &lt;path&gt;] [-library &lt;path&gt; [-headers &lt;path&gt;]] -output &lt;path&gt;</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">    -usage                                                   print brief usage</span><br><span class="line">    -help                                                    print complete usage</span><br><span class="line">    -verbose                                                 provide additional status output</span><br><span class="line">    -license                                                 show the Xcode and SDK license agreements</span><br><span class="line">    -checkFirstLaunchStatus                                  Check if any First Launch tasks need to be performed</span><br><span class="line">    -runFirstLaunch                                          install packages and agree to the license</span><br><span class="line">    -project NAME                                            build the project NAME</span><br><span class="line">    -target NAME                                             build the target NAME</span><br><span class="line">    -alltargets                                              build all targets</span><br><span class="line">    -workspace NAME                                          build the workspace NAME</span><br><span class="line">    -scheme NAME                                             build the scheme NAME</span><br><span class="line">    -configuration NAME                                      use the build configuration NAME for building each target</span><br><span class="line">    -xcconfig PATH                                           apply the build settings defined in the file at PATH as overrides</span><br><span class="line">    -arch ARCH                                               build each target for the architecture ARCH; this will override architectures defined in the project</span><br><span class="line">    -sdk SDK                                                 use SDK as the name or path of the base SDK when building the project</span><br><span class="line">    -toolchain NAME                                          use the toolchain with identifier or name NAME</span><br><span class="line">    -destination DESTINATIONSPECIFIER                        use the destination described by DESTINATIONSPECIFIER (a comma-separated set of key=value pairs describing the destination to use)</span><br><span class="line">    -destination-timeout TIMEOUT                             wait for TIMEOUT seconds while searching for the destination device</span><br><span class="line">    -parallelizeTargets                                      build independent targets in parallel</span><br><span class="line">    -jobs NUMBER                                             specify the maximum number of concurrent build operations</span><br><span class="line">    -maximum-concurrent-test-device-destinations NUMBER      the maximum number of device destinations to test on concurrently</span><br><span class="line">    -maximum-concurrent-test-simulator-destinations NUMBER   the maximum number of simulator destinations to test on concurrently</span><br><span class="line">    -parallel-testing-enabled YES|NO                         overrides the per-target setting in the scheme</span><br><span class="line">    -parallel-testing-worker-count NUMBER                    the exact number of test runners that will be spawned during parallel testing</span><br><span class="line">    -maximum-parallel-testing-workers NUMBER                 the maximum number of test runners that will be spawned during parallel testing</span><br><span class="line">    -dry-run                                                 do everything except actually running the commands</span><br><span class="line">    -quiet                                                   do not print any output except for warnings and errors</span><br><span class="line">    -hideShellScriptEnvironment                              don't show shell script environment variables in build log</span><br><span class="line">    -showsdks                                                display a compact list of the installed SDKs</span><br><span class="line">    -showdestinations                                        display a list of destinations</span><br><span class="line">    -showTestPlans                                           display a list of test plans</span><br><span class="line">    -showBuildSettings                                       display a list of build settings and values</span><br><span class="line">    -list                                                    lists the targets and configurations in a project, or the schemes in a workspace</span><br><span class="line">    -find-executable NAME                                    display the full path to executable NAME in the provided SDK and toolchain</span><br><span class="line">    -find-library NAME                                       display the full path to library NAME in the provided SDK and toolchain</span><br><span class="line">    -version                                                 display the version of Xcode; with -sdk will display info about one or all installed SDKs</span><br><span class="line">    -enableAddressSanitizer YES|NO                           turn the address sanitizer on or off</span><br><span class="line">    -enableThreadSanitizer YES|NO                            turn the thread sanitizer on or off</span><br><span class="line">    -enableUndefinedBehaviorSanitizer YES|NO                 turn the undefined behavior sanitizer on or off</span><br><span class="line">    -resultBundlePath PATH                                   specifies the directory where a result bundle describing what occurred will be placed</span><br><span class="line">    -resultStreamPath PATH                                   specifies the file where a result stream will be written to (the file must already exist)</span><br><span class="line">    -resultBundleVersion 3 [default]                         specifies which result bundle version should be used</span><br><span class="line">    -clonedSourcePackagesDirPath PATH                        specifies the directory to which remote source packages are fetch or expected to be found</span><br><span class="line">    -derivedDataPath PATH                                    specifies the directory where build products and other derived data will go</span><br><span class="line">    -archivePath PATH                                        specifies the directory where any created archives will be placed, or the archive that should be exported</span><br><span class="line">    -exportArchive                                           specifies that an archive should be exported</span><br><span class="line">    -exportNotarizedApp                                      export an archive that has been notarized by Apple</span><br><span class="line">    -exportOptionsPlist PATH                                 specifies a path to a plist file that configures archive exporting</span><br><span class="line">    -enableCodeCoverage YES|NO                               turn code coverage on or off when testing</span><br><span class="line">    -exportPath PATH                                         specifies the destination for the product exported from an archive</span><br><span class="line">    -skipUnavailableActions                                  specifies that scheme actions that cannot be performed should be skipped instead of causing a failure</span><br><span class="line">    -exportLocalizations                                     exports completed and outstanding project localizations</span><br><span class="line">    -importLocalizations                                     imports localizations for a project, assuming any necessary localized resources have been created in Xcode</span><br><span class="line">    -localizationPath                                        specifies a path to XLIFF localization files</span><br><span class="line">    -exportLanguage                                          specifies multiple optional ISO 639-1 languages included in a localization export</span><br><span class="line">    -xctestrun                                               specifies a path to a test run specification</span><br><span class="line">    -testPlan                                                specifies the name of the test plan associated with the scheme to use for testing</span><br><span class="line">    -only-testing                                            constrains testing by specifying tests to include, and excluding other tests</span><br><span class="line">    -only-testing:TEST-IDENTIFIER                            constrains testing by specifying tests to include, and excluding other tests</span><br><span class="line">    -skip-testing                                            constrains testing by specifying tests to exclude, but including other tests</span><br><span class="line">    -skip-testing:TEST-IDENTIFIER                            constrains testing by specifying tests to exclude, but including other tests</span><br><span class="line">    -only-test-configuration                                 constrains testing by specifying test configurations to include, and excluding other test configurations</span><br><span class="line">    -skip-test-configuration                                 constrains testing by specifying test configurations to exclude, but including other test configurations</span><br><span class="line">    -testLanguage                                            constrains testing by specifying ISO 639-1 language in which to run the tests</span><br><span class="line">    -testRegion                                              constrains testing by specifying ISO 3166-1 region in which to run the tests</span><br><span class="line">    -resolvePackageDependencies                              resolves any Swift package dependencies referenced by the project or workspace</span><br><span class="line">    -disableAutomaticPackageResolution                       prevents packages from automatically being resolved to versions other than those recorded in the `Package.resolved` file</span><br><span class="line">    -json                                                    output as JSON (note: -json implies -quiet)</span><br><span class="line">    -allowProvisioningUpdates                                Allow xcodebuild to communicate with the Apple Developer website. For automatically signed targets, xcodebuild will create and update profiles, app IDs, and certificates. For manually signed targets, xcodebuild will download missing or updated provisioning profiles. Requires a developer account to have been added in Xcode's Accounts preference pane.</span><br><span class="line">    -allowProvisioningDeviceRegistration                     Allow xcodebuild to register your destination device on the developer portal if necessary. This flag only takes effect if -allowProvisioningUpdates is also passed.</span><br><span class="line">    -showBuildTimingSummary                                  display a report of the timings of all the commands invoked during the build</span><br><span class="line">    -create-xcframework                                      create an xcframework from prebuilt libraries; -help for more information.</span><br><span class="line"></span><br><span class="line">Available keys for -exportOptionsPlist:</span><br><span class="line"></span><br><span class="line">	compileBitcode : Bool</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, should Xcode re-compile the app from bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	destination : String</span><br><span class="line"></span><br><span class="line">		Determines whether the app is exported locally or uploaded to Apple. Options are export or upload. The available options vary based on the selected distribution method. Defaults to export.</span><br><span class="line"></span><br><span class="line">	embedOnDemandResourcesAssetPacksInBundle : Bool</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, if the app uses On Demand Resources and this is YES, asset packs are embedded in the app bundle so that the app can be tested without a server to host asset packs. Defaults to YES unless onDemandResourcesAssetPacksBaseURL is specified.</span><br><span class="line"></span><br><span class="line">	generateAppStoreInformation : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should Xcode generate App Store Information for uploading with iTMSTransporter? Defaults to NO.</span><br><span class="line"></span><br><span class="line">	iCloudContainerEnvironment : String</span><br><span class="line"></span><br><span class="line">		If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement. Available options vary depending on the type of provisioning profile used, but may include: Development and Production.</span><br><span class="line"></span><br><span class="line">	installerSigningCertificate : String</span><br><span class="line"></span><br><span class="line">		For manual signing only. Provide a certificate name, SHA-1 hash, or automatic selector to use for signing. Automatic selectors allow Xcode to pick the newest installed certificate of a particular type. The available automatic selectors are "Mac Installer Distribution" and "Developer ID Installer". Defaults to an automatic certificate selector matching the current distribution method.</span><br><span class="line"></span><br><span class="line">	manifest : Dictionary</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, users can download your app over the web by opening your distribution manifest file in a web browser. To generate a distribution manifest, the value of this key should be a dictionary with three sub-keys: appURL, displayImageURL, fullSizeImageURL. The additional sub-key assetPackManifestURL is required when using on-demand resources.</span><br><span class="line"></span><br><span class="line">	method : String</span><br><span class="line"></span><br><span class="line">		Describes how Xcode should export the archive. Available options: app-store, validation, ad-hoc, package, enterprise, development, developer-id, and mac-application. The list of options varies based on the type of archive. Defaults to development.</span><br><span class="line"></span><br><span class="line">	onDemandResourcesAssetPacksBaseURL : String</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, if the app uses On Demand Resources and embedOnDemandResourcesAssetPacksInBundle isn't YES, this should be a base URL specifying where asset packs are going to be hosted. This configures the app to download asset packs from the specified URL.</span><br><span class="line"></span><br><span class="line">	provisioningProfiles : Dictionary</span><br><span class="line"></span><br><span class="line">		For manual signing only. Specify the provisioning profile to use for each executable in your app. Keys in this dictionary are the bundle identifiers of executables; values are the provisioning profile name or UUID to use.</span><br><span class="line"></span><br><span class="line">	signingCertificate : String</span><br><span class="line"></span><br><span class="line">		For manual signing only. Provide a certificate name, SHA-1 hash, or automatic selector to use for signing. Automatic selectors allow Xcode to pick the newest installed certificate of a particular type. The available automatic selectors are "Mac App Distribution", "iOS Distribution", "iOS Developer", "Developer ID Application", "Apple Distribution", "Mac Developer", and "Apple Development". Defaults to an automatic certificate selector matching the current distribution method.</span><br><span class="line"></span><br><span class="line">	signingStyle : String</span><br><span class="line"></span><br><span class="line">		The signing style to use when re-signing the app for distribution. Options are manual or automatic. Apps that were automatically signed when archived can be signed manually or automatically during distribution, and default to automatic. Apps that were manually signed when archived must be manually signed during distribtion, so the value of signingStyle is ignored.</span><br><span class="line"></span><br><span class="line">	stripSwiftSymbols : Bool</span><br><span class="line"></span><br><span class="line">		Should symbols be stripped from Swift libraries in your IPA? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	teamID : String</span><br><span class="line"></span><br><span class="line">		The Developer Portal team to use for this export. Defaults to the team used to build the archive.</span><br><span class="line"></span><br><span class="line">	thinning : String</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, should Xcode thin the package for one or more device variants? Available options: &lt;none&gt; (Xcode produces a non-thinned universal app), &lt;thin-for-all-variants&gt; (Xcode produces a universal app and all available thinned variants), or a model identifier for a specific device (e.g. "iPhone7,1"). Defaults to &lt;none&gt;.</span><br><span class="line"></span><br><span class="line">	uploadBitcode : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should the package include bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	uploadSymbols : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should the package include symbols? Defaults to YES.</span><br></pre></td></tr></table></figure>
-<h3 id="1、cd到代码目录"><a href="#1、cd到代码目录" class="headerlink" title="1、cd到代码目录"></a>1、cd到代码目录</h3><p>略</p>
-<h3 id="2、开始打包"><a href="#2、开始打包" class="headerlink" title="2、开始打包"></a>2、开始打包</h3><ul>
-<li>执行命令</li>
-</ul>
-<p>写在终端进行测试的命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xcodebuild -workspace CJAutoPackageDemo.xcworkspace -scheme App1Enterprise -configuration Debug -sdk iphoneos12.2 ARCHS='arm64 armv7' IOS_DEVELOPMENT_TARGET=8.0 -derivedDataPath ../output/build/Debug-iphoneos archive -archivePath ../output/Debug-iphoneos/App1Enterprise.xcarchive</span><br></pre></td></tr></table></figure>
-<p>写在脚本中的命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">echo ""</span><br><span class="line">echo ""</span><br><span class="line">echo "&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; step5：begin compile project &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;"</span><br><span class="line">xcodebuild -workspace $&#123;PROJECT_DIR&#125;/$&#123;APPPROJECT_NAME&#125;.xcworkspace -scheme $&#123;APPTARGET_NAME&#125; -configuration $&#123;BUILD_CONFIGURATION_NAME&#125; -sdk $&#123;SIMULATOR_OR_IOS_SDK&#125;$&#123;SDK_VERSION&#125; ARCHS='arm64 armv7' IOS_DEVELOPMENT_TARGET=$&#123;DEVELOPMENT_TARGET&#125; -derivedDataPath $&#123;BUILD_OUTPUT_PATH&#125; archive -archivePath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive"</span><br><span class="line">echo "&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; step5：end compile project &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"</span><br></pre></td></tr></table></figure>
-<p>参数介绍：</p>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>-workspace</td>
-<td>工程文件名（用cocopods集成的项目，没有的话 整个改为-xcodeproj xxx.xcodeproj）</td>
-<td></td>
-</tr>
-<tr>
-<td>-scheme</td>
-<td>通过scheme指定不同的target</td>
-<td></td>
-</tr>
-<tr>
-<td>-configuration</td>
-<td>对应的环境配置，就是编译的时候执行的模式<br>(测试Debug、预生产PreRelease、生产Release)</td>
-<td></td>
-</tr>
-<tr>
-<td>-archivePath</td>
-<td>导出的.xcarchive的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-sdk</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>-derivedDataPath</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>-archivePath</td>
-<td>导出的.xcarchive的路径</td>
-</tr>
-</tbody>
-</table>
-<h3 id="3、导出ipa"><a href="#3、导出ipa" class="headerlink" title="3、导出ipa"></a>3、导出ipa</h3><ul>
-<li>执行命令</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">echo ""</span><br><span class="line">echo ""</span><br><span class="line">echo "&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; step6：begin archiving app to ipa &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;"</span><br><span class="line">echo "PWD=$PWD"</span><br><span class="line">cd $&#123;ROOT_DIR&#125;</span><br><span class="line">echo "PWD=$PWD"</span><br><span class="line">echo "archivePath ==&gt;&gt;&gt; $&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive"</span><br><span class="line">echo "exportPath ==&gt;&gt;&gt; $&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;"</span><br><span class="line">echo "exportOptionsPlist ==&gt;&gt;&gt; $&#123;ExportOptionsPlist_PATH&#125;"</span><br><span class="line">xcodebuild -exportArchive -archivePath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive" -exportPath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;" -exportOptionsPlist "$&#123;ExportOptionsPlist_PATH&#125;" -allowProvisioningUpdates</span><br><span class="line">echo "&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; step6：end archiving app to ipa &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"</span><br></pre></td></tr></table></figure>
-<ul>
-<li>参数解读：</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>-archivePath</td>
-<td>.xcarchive文件的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-exportPath</td>
-<td>导出的ipa的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-exportOptionsPlist</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h2 id="三、完整脚本内容-含使用Jenkins打包"><a href="#三、完整脚本内容-含使用Jenkins打包" class="headerlink" title="三、完整脚本内容(含使用Jenkins打包)"></a>三、完整脚本内容(含使用Jenkins打包)</h2><ul>
-<li><p>测试项目工程详见：gitee中的<a href="https://gitee.com/dvlpCI/AutoPackage-iOS" target="_blank" rel="noopener">AutoPackage-iOS</a>工程</p>
-</li>
-<li><p>测试Jenkins工程详见：本地Jenkins中的<a href="http://localhost:8080/job/CJAutoPackage/" target="_blank" rel="noopener">CJAutoPackage</a>工程</p>
-</li>
-<li><p>最终Jenkins脚本如下图：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_Jenkins脚本.png" alt="iOS打包_Jenkins脚本"></p>
-</li>
-</ul>
-<p>附：没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
-<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
-<p>更多Jenkins知识请查看：<a href="../../实用工具/Jenkins">实用工具-&gt;Jenkins-&gt;Jenkins的安装与启动</a></p>
-<h2 id="四、注意点"><a href="#四、注意点" class="headerlink" title="四、注意点"></a>四、注意点</h2><h3 id="1、多环境的打包"><a href="#1、多环境的打包" class="headerlink" title="1、多环境的打包"></a>1、多环境的打包</h3><p>主要注意为<code>xcodebuild -workspace</code>中的<code>-configuration</code>参数即可。</p>
-<h3 id="2、多Target的打包注意"><a href="#2、多Target的打包注意" class="headerlink" title="2、多Target的打包注意"></a>2、多Target的打包注意</h3><p>多Target的Podfile文件ruby脚本内容，大概如下：</p>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">source <span class="string">'https://github.com/CocoaPods/Specs.git'</span></span><br><span class="line">source <span class="string">'https://gitee.com/dvlproad/dvlproadSpecs'</span></span><br><span class="line"></span><br><span class="line">platform <span class="symbol">:ios</span>, <span class="string">'8.0'</span></span><br><span class="line"><span class="comment">#use_frameworks!</span></span><br><span class="line">inhibit_all_warnings!</span><br><span class="line"></span><br><span class="line">post_install <span class="keyword">do</span> <span class="params">|installer|</span></span><br><span class="line">    </span><br><span class="line">    puts <span class="string">'Determining pod project minimal deployment target'</span></span><br><span class="line">    </span><br><span class="line">    pods_project = installer.pods_project</span><br><span class="line">    deployment_target_key = <span class="string">'IPHONEOS_DEPLOYMENT_TARGET'</span></span><br><span class="line">    deployment_targets = pods_project.build_configurations.map&#123; <span class="params">|config|</span> config.build_settings[deployment_target_key] &#125;</span><br><span class="line">    minimal_deployment_target = deployment_targets.min_by&#123; <span class="params">|version|</span> Gem::Version.new(version) &#125;</span><br><span class="line">    </span><br><span class="line">    puts <span class="string">'Minimal deployment target is '</span> + minimal_deployment_target</span><br><span class="line">    puts <span class="string">'Setting each pod deployment target to '</span> + minimal_deployment_target</span><br><span class="line">    </span><br><span class="line">    installer.pods_project.targets.each <span class="keyword">do</span> <span class="params">|target|</span></span><br><span class="line">        target.build_configurations.each <span class="keyword">do</span> <span class="params">|config|</span></span><br><span class="line">            config.build_settings[deployment_target_key] = minimal_deployment_target</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># There are no targets called "App1Common" in any Xcode projects</span></span><br><span class="line">abstract_target <span class="string">'App1Common'</span> <span class="keyword">do</span></span><br><span class="line">    <span class="comment"># Has its own copy of App1Common + App1Enterprise</span></span><br><span class="line">    target <span class="string">'App1Enterprise'</span> <span class="keyword">do</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Has its own copy of App1Common + App1AppStore</span></span><br><span class="line">    target <span class="string">'App1AppStore'</span> <span class="keyword">do</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">target <span class="string">'CJAutoPackageDemoTests'</span> <span class="keyword">do</span></span><br><span class="line">   </span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p>通过脚本自动化打包的时候的注意点如下：</p>
-<ol>
-<li><p>主要注意为<code>xcodebuild -workspace</code>中的<code>-scheme</code>参数即可。</p>
-</li>
-<li><p>多Target后，记得在<strong>Linked Frameworks and Libraries</strong>中删除已经不存在的原本旧的<code>libPods-xxx.a</code>文件。否则，Jenkins脚本打包Build的时候会报错。</p>
-<ul>
-<li>Jenkins脚本打包Build的时候报错的信息如下：</li>
-</ul>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_多Target打包1.png" alt="Jenkins脚本打包Build的时候报错的信息"></p>
-<ul>
-<li><p>多Target工程打包时候要删除的旧引用文件如下：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_多Target打包2.png" alt="多Target工程打包时候要删除的旧引用文件"></p>
-</li>
-</ul>
-</li>
-</ol>
-<ul>
-<li><p>其他参考</p>
-<p><a href="https://www.jianshu.com/p/8767f986fb30?from=jiantop.com" target="_blank" rel="noopener">iOS命令行自动化集成打包全记录（多个target，多种环境）</a>不过觉得没必要看，因为没本文精简</p>
-</li>
-</ul>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302172748572.png" alt="image-20230302172748572" style="zoom: 50%;"></p>
+<h3 id="2、问题"><a href="#2、问题" class="headerlink" title="2、问题"></a>2、问题</h3><h4 id="1、iOS证书不受信任解决办法"><a href="#1、iOS证书不受信任解决办法" class="headerlink" title="1、iOS证书不受信任解决办法"></a>1、iOS证书不受信任解决办法</h4><p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173013788.png" alt="image-20230302173013788"></p>
+<p>重新下载<a href="https://developer.apple.com/cn/support/code-signing/" target="_blank" rel="noopener">AppleWWDRCA</a>并安装。即下载最新的AppleWWDR</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173155682.png" alt="image-20230302173155682" style="zoom: 33%;"></p>
+<p>进入后</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173236106.png" alt="image-20230302173236106" style="zoom:33%;"></p>
+<p>进入后</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173318271.png" alt="image-20230302173318271" style="zoom: 25%;"></p>
+<p>这里我们下载个G4就够了</p>
+<h4 id="2、iOS-推送证书无法导出p12文件"><a href="#2、iOS-推送证书无法导出p12文件" class="headerlink" title="2、iOS 推送证书无法导出p12文件"></a>2、iOS 推送证书无法导出p12文件</h4><p>请一定要切换到”我的证书目录下”</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173554802.png" alt="image-20230302173554802" style="zoom:50%;"></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clew8dilj00jwwlr4itqymly3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clew9co6u00k2xlr4hfvx9ewi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
