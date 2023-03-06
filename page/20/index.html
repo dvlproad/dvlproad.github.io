@@ -293,7 +293,74 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="cler0mrcb00vgupr4plabpkeg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4②网络/4线程与网络-③网络/" data-id="clew8djv800vqwlr4ktkmnhzb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="SDWebImage"></p><p></p>
+<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
+<ul>
+<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
+<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
+</ul>
+<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
+<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
+<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
+<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
+<p>2 GCD 异步下载 </p>
+<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
+<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
+<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
+<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
+<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
+<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
+<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
+<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
+<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
+<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
+<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
+<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clew8djz500wrwlr4mjbklwuh" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -372,7 +439,60 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="cler0mrel00weupr4bfm2xd09" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clew8djz500wswlr4ys32uzpt" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
+<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
+<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
+<p>①、SDWebImageDownloaderOperation的下载请求</p>
+<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
+<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clew8djz600wuwlr4syh23vnx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -457,173 +577,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="cler0mrem00wfupr48luvyrp9" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
-<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
-<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
-<p>①、SDWebImageDownloaderOperation的下载请求</p>
-<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
-<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cler0mrem00whupr4z6v05ci2" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="SDWebImage"></p><p></p>
-<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
-<ul>
-<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
-<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
-</ul>
-<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
-<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
-<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
-<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
-<p>2 GCD 异步下载 </p>
-<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
-<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
-<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
-<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
-<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
-<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
-<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
-<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
-<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
-<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
-<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
-<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cler0mren00wjupr4fz5r3hm4" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cler0mreo00wpupr4kgs0rj1y" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clew8djz600wwwlr4b1ikgb08" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -728,7 +682,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cler0mrep00wsupr49npgkhfv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clew8djz700x2wlr4u7eh7cub" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -740,9 +694,9 @@
 
 
   
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -758,7 +712,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
     </h1>
   
 
@@ -766,30 +720,15 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
+        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
+<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cler0mreq00wvupr4hwm7mbmc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clew8djz800x4wlr44itwv13u" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -869,7 +808,68 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cler0mreq00wyupr4dhfyvqwi" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clew8djz800x7wlr4hpic4k12" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
+<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
+<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
+<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
+<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
+<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>queue inDatabase:的本质如下：</p>
+<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
+<p>_queue的初始化为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
+<p>FMDB是怎么处理线程安全的？</p>
+<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
+<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
+<p>FMDB是支持数据库事务的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
+<p>表结构</p>
+<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clew8djza00xcwlr49f0gn4js" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1054,7 +1054,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cler0mq5t00jmupr4a75hdnz0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clew8dilj00jwwlr4itqymly3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1081,7 +1081,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
     </div>
   </div>
 
