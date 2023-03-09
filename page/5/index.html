@@ -206,7 +206,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" data-id="clf0yb79j00x80sr4zheb8zh4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" data-id="clf0zchpk00x9a2r4dvmpn7n4" class="article-share-link">Share</a>
       
       
     </footer>
@@ -216,9 +216,9 @@
 
 
   
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-⑤面试" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/4①线程/多线程、锁、队列" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-⑤面试/" class="article-date">
+    <a href="/iOS/3必备知识架构/4①线程/多线程、锁、队列/" class="article-date">
   <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
@@ -228,34 +228,33 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-线程-⑤面试"><a href="#必备知识架构-线程-⑤面试" class="headerlink" title="必备知识架构-线程-⑤面试"></a>必备知识架构-线程-⑤面试</h1><p>[toc]</p>
-<h2 id="六、队列-gt-任务-gt-线程-gt-数据安全"><a href="#六、队列-gt-任务-gt-线程-gt-数据安全" class="headerlink" title="六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全"></a>六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全</h2><p>有队列，就有需要处理的任务，有任务就有线程相关的要考虑(附队列本身也处在线程中)，有多线程的考虑，就要考虑数据安全。</p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p>3、队列和数据安全</p>
-<p>那我们先来知道一个非常重要的事情：</p>
-<p>——- 队列只是负责任务的调度，而不负责任务的执行  ———</p>
-<p>——- 任务是在线程中执行的 ———</p>
-<p>所以，这个问题其实问得就不大对。让人不知怎么答。</p>
-<p>我们这里说下，分情况。</p>
-<p>如果是串行队列，数据是安全的。</p>
-<p>如果是并发队列，在读写的时候，数据是不安全的。我们可以通过以下几种方式将其处理成安全的。</p>
-<p>①、并发队列，改成串行执行。</p>
+        <h1 id="多线程、锁、队列"><a href="#多线程、锁、队列" class="headerlink" title="多线程、锁、队列"></a>多线程、锁、队列</h1><ul>
+<li><a href="https://www.jianshu.com/p/1f9f6814e3a2" target="_blank" rel="noopener">ios多线程中使用信号量形成死锁，阻塞主线程</a></li>
+<li><a href="https://www.jianshu.com/p/17afd8db5b79" target="_blank" rel="noopener">iOS锁系列-信号量dispatch_semaphore</a></li>
+</ul>
+<p>信号量</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_semaphore_t sem = dispatch_semaphore_create(0);</span><br><span class="line">②dispatch_semaphore_signal(sem);</span><br><span class="line">③dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);</span><br></pre></td></tr></table></figure>
+<p>GCD</p>
 <blockquote>
-<p>可以通过</p>
-<p>任务是同步任务；</p>
-<p>异步任务用依赖；</p>
-<p>异步任务用信号量控制并发量为1</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_group_t group = dispatch_group_create();</span><br><span class="line">②dispatch_group_enter(group);</span><br><span class="line">③dispatch_group_leave(group);</span><br><span class="line">④dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        这里跑去干自己的事情。。。。</span><br><span class="line">    &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
 </blockquote>
-<p>②、加锁</p>
-<blockquote>
-<p>@synchronized</p>
-<p>NSLock</p>
-<p>dispatch_semaphore</p>
-</blockquote>
-
+<p>用信号量时候，</p>
+<p>某个线程锁住后，就处于等待状态，即该线程也就无法再继续操作，所以试图尝试在该线程锁住的时候去发送信号，增加信号量，会造成死锁。</p>
+<p>举例：</p>
+<p>信号量使用场景</p>
+<ul>
+<li><a href="https://www.cnblogs.com/mnstar/articles/6050296.html" target="_blank" rel="noopener">iOS 使用信号量等待block完成</a></li>
+</ul>
+<h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p><a href="https://www.jianshu.com/p/042c135552b8" target="_blank" rel="noopener">iOS 实现并发和串行任务</a><br>串行队列如何知道任务已经完成<br><a href="https://blog.csdn.net/u010105969/article/details/69914369" target="_blank" rel="noopener">iOS开发中的并发、串行队列，同步、异步任务</a></p>
+<p><a href="https://www.jianshu.com/p/c6ab011f449f" target="_blank" rel="noopener">iOS代码同步到主线程的三种方法</a></p>
+<p>autoreleasepool 使用场景、什么时候释放</p>
+<p>临时变量什么时候释放</p>
+<h4 id="RunLoop和线程间的关系"><a href="#RunLoop和线程间的关系" class="headerlink" title="RunLoop和线程间的关系"></a>RunLoop和线程间的关系</h4><p>每条线程都有唯一的一个与之对应的RunLoop对象，RunLoop保存在一个全局的Dictionary里，线程作为key,RunLoop作为value，主线程的RunLoop已经自动创建好了，子线程的RunLoop需要主动创建，RunLoop在第一次获取时创建，在线程结束时销毁。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-⑤面试/" data-id="clf0yb79y00x90sr4zuitpv3o" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/多线程、锁、队列/" data-id="clf0zchpy00xaa2r4ps73lpxc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -289,7 +288,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="clf0yb7ac00xa0sr45agti722" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="clf0zchqd00xba2r4pp8rxfxs" class="article-share-link">Share</a>
       
       
     </footer>
@@ -349,7 +348,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="clf0yb77i00x30sr4u051h97l" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="clf0zchn600x4a2r41t0pypn8" class="article-share-link">Share</a>
       
       
     </footer>
@@ -404,7 +403,64 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="clf0yb77x00x40sr4fb93hwr0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="clf0zchnu00x5a2r4s9cn64og" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
+<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
+<p>一个程序至少一个进程，一个进程至少一个线程。</p>
+<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
+</blockquote>
+<p>进程线程的区别：</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
+<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
+<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
+<blockquote>
+<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
+</blockquote>
+<blockquote>
+<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
+</blockquote>
+<blockquote>
+<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
+</blockquote>
+<blockquote>
+<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
+</blockquote>
+<blockquote>
+<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="clf0zchob00x6a2r47pfshjwf" class="article-share-link">Share</a>
       
       
     </footer>
@@ -520,64 +576,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="clf0yb78b00x50sr4gwakgt8p" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
-<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
-<p>一个程序至少一个进程，一个进程至少一个线程。</p>
-<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
-</blockquote>
-<p>进程线程的区别：</p>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
-<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
-<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
-<blockquote>
-<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
-</blockquote>
-<blockquote>
-<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
-</blockquote>
-<blockquote>
-<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
-</blockquote>
-<blockquote>
-<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
-</blockquote>
-<blockquote>
-<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="clf0yb78q00x60sr412a67glx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="clf0zchoq00x7a2r4mirzrlgt" class="article-share-link">Share</a>
       
       
     </footer>
@@ -643,7 +642,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="clf0yb76600x00sr4ngxo34ov" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="clf0zchll00x0a2r4bh7m1mi6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -696,7 +695,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="clf0yb76k00x10sr4d05mw7by" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="clf0zchly00x1a2r4uwd970ht" class="article-share-link">Share</a>
       
       
     </footer>
@@ -735,7 +734,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="clf0yb77300x20sr41fl2o7ds" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="clf0zchmc00x2a2r4v4lz1cqq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -802,11 +801,11 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
