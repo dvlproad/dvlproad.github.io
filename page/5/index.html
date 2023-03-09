@@ -72,9 +72,9 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-⑤面试" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-⑤面试/" class="article-date">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" class="article-date">
   <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
@@ -84,34 +84,163 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-线程-⑤面试"><a href="#必备知识架构-线程-⑤面试" class="headerlink" title="必备知识架构-线程-⑤面试"></a>必备知识架构-线程-⑤面试</h1><p>[toc]</p>
-<h2 id="六、队列-gt-任务-gt-线程-gt-数据安全"><a href="#六、队列-gt-任务-gt-线程-gt-数据安全" class="headerlink" title="六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全"></a>六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全</h2><p>有队列，就有需要处理的任务，有任务就有线程相关的要考虑(附队列本身也处在线程中)，有多线程的考虑，就要考虑数据安全。</p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p>3、队列和数据安全</p>
-<p>那我们先来知道一个非常重要的事情：</p>
-<p>——- 队列只是负责任务的调度，而不负责任务的执行  ———</p>
-<p>——- 任务是在线程中执行的 ———</p>
-<p>所以，这个问题其实问得就不大对。让人不知怎么答。</p>
-<p>我们这里说下，分情况。</p>
-<p>如果是串行队列，数据是安全的。</p>
-<p>如果是并发队列，在读写的时候，数据是不安全的。我们可以通过以下几种方式将其处理成安全的。</p>
-<p>①、并发队列，改成串行执行。</p>
-<blockquote>
-<p>可以通过</p>
-<p>任务是同步任务；</p>
-<p>异步任务用依赖；</p>
-<p>异步任务用信号量控制并发量为1</p>
+        <h1 id="必备知识架构-线程与网络-①锁"><a href="#必备知识架构-线程与网络-①锁" class="headerlink" title="必备知识架构-线程与网络-①锁"></a>必备知识架构-线程与网络-①锁</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h2 id="四、线程安全问题"><a href="#四、线程安全问题" class="headerlink" title="四、线程安全问题"></a>四、线程安全问题</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
 </blockquote>
-<p>②、加锁</p>
+<h4 id="1、线程安全"><a href="#1、线程安全" class="headerlink" title="1、线程安全"></a>1、线程安全</h4><p>当多个线程访问同一块资源时，很容易引发数据错乱和数据安全问题。就好比几个人在同一时修改同一个表格，造成数据的错乱。</p>
+<p>参考：<a href="https://www.jianshu.com/p/938d68ed832c" target="_blank" rel="noopener">iOS中保证线程安全的几种方式与性能对比</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">性能对比</span><br><span class="line">对以上各个锁进行1000000此的加锁解锁的空操作时间如下：</span><br><span class="line">OSSpinLock: 46.15 ms</span><br><span class="line">dispatch_semaphore: 56.50 ms</span><br><span class="line">pthread_mutex: 178.28 ms</span><br><span class="line">NSCondition: 193.38 ms</span><br><span class="line">NSLock: 175.02 ms</span><br><span class="line">pthread_mutex(recursive): 172.56 ms</span><br><span class="line">NSRecursiveLock: 157.44 ms</span><br><span class="line">NSConditionLock: 490.04 ms</span><br><span class="line">@synchronized: 371.17 ms</span><br><span class="line"></span><br><span class="line">总的来说：</span><br><span class="line"></span><br><span class="line">OSSpinLock 自旋锁(性能最高的锁)和 dispatch_semaphore 信号量的效率远远高于其他。</span><br><span class="line">@synchronized和NSConditionLock效率较差。</span><br><span class="line"></span><br><span class="line">dispatch_semaphore 是信号量，但当信号总量设为 1 时也可以当作锁来。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。</span><br><span class="line">OSSpinLock 自旋锁，性能最高的锁。原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。 不过最近YY大神在自己的博客不再安全的 OSSpinLock中说明了OSSpinLock已经不再安全，请大家谨慎使用。 </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">鉴于OSSpinLock的不安全，所以我们在开发中如果考虑性能的话，建议使用dispatch_semaphore。</span><br><span class="line">如果不考虑性能，只是图个方便的话，那就使用@synchronized。</span><br></pre></td></tr></table></figure>
+<h4 id="NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的"><a href="#NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的" class="headerlink" title="NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的"></a>NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的</h4><ul>
+<li>参考文章：<a href="https://blog.csdn.net/zskm001/article/details/51883076" target="_blank" rel="noopener">关于NSDateFormatter的线程安全问题</a></li>
+</ul>
+<h3 id="2、死锁"><a href="#2、死锁" class="headerlink" title="2、死锁"></a>2、死锁</h3><p><strong>死锁是指两个或两个以上的进程（线程）在运行过程中因争夺资源而造成的一种僵局（Deadly-Embrace) ) ，若无外力作用，这些进程（线程）都将无法向前推进。</strong></p>
+<p>死锁的4个必要条件</p>
+<h2 id="一、-synchronized"><a href="#一、-synchronized" class="headerlink" title="一、@synchronized"></a>一、@synchronized</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">NSObject *obj = [[NSObject alloc] init];</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">          sleep(3);</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      sleep(1);</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作2&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+<p>@synchronized(obj)指令使用的obj为该锁的唯一标识，<strong>只有当标识相同时，才为满足互斥</strong>，如果线程2中的@synchronized(obj)改为@synchronized(self),刚线程2就不会被阻塞，</p>
+<h2 id="二、NSLock"><a href="#二、NSLock" class="headerlink" title="二、NSLock"></a>二、NSLock</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      [lock lock];	// 加锁</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">    	sleep(2);</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      [lock unlock]; // 解锁</span><br><span class="line">      </span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+<h2 id="三、NSRecursiveLock递归锁的使用"><a href="#三、NSRecursiveLock递归锁的使用" class="headerlink" title="三、NSRecursiveLock递归锁的使用"></a>三、NSRecursiveLock递归锁的使用</h2><p>我们先写一个典型的死锁情况。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];	// 此锁在本代码中会造成死锁</span><br><span class="line">//NSRecursiveLock *lock = [[NSRecursiveLock alloc] init]; //要想下面的递归调用不会造成死锁，只要这里将锁改成递归锁NSRecursiveLock就可以了。NSRecursiveLock递归锁，这个锁可以被同一线程多次请求，而不会引起死锁。这主要是用在循环或递归操作中。</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        [lock lock];</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);	// 此时lock还没解锁，就有执行这个block，而block里又给加了次锁，从而造成了死锁</span><br><span class="line">        &#125;</span><br><span class="line">        [lock unlock];</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>在是跟你面的代码中，在我们的线程中，RecursiveMethod是递归调用的。所以每次进入这个block时，都会去加一次锁，而从第二次开始，由于锁已经被使用了且没有解锁，所以它需要等待锁被解除，这样就导致了死锁，线程被阻塞住了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">		[lock lock];</span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">    [lock unlock];</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h2 id="四、NSCondition-amp-NSConditionLock-条件锁"><a href="#四、NSCondition-amp-NSConditionLock-条件锁" class="headerlink" title="四、NSCondition &amp; NSConditionLock 条件锁"></a>四、NSCondition &amp; NSConditionLock 条件锁</h2><p><code>wait</code>方法是傻等；</p>
+<p><code>waitUntilDate</code>:方法是等一会；</p>
+<p><code>signal</code>是唤起一个在等待的线程。</p>
+<p>通过<code>wait()</code>和<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>这两个方法都可以实现线程阻塞即线程睡眠。</p>
+<p>不同之处在于</p>
+<p><code>wait()</code>会使线程一直处于休眠状态，直到收到<code>signal()</code>为止；</p>
+<p>而<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>在使线程睡眠的同时会设置睡眠的终止时间。</p>
 <blockquote>
-<p>@synchronized</p>
-<p>NSLock</p>
-<p>dispatch_semaphore</p>
+<p>如果在终止时间前收到了<code>signal()</code>就会唤醒线程；<br>当到达终止时间的时候，即使没有收到<code>signal()</code>，也会直接唤醒线程，而不会像<code>wait()</code>方法那样一直睡眠下去。</p>
 </blockquote>
+<h3 id="1、NSCondition"><a href="#1、NSCondition" class="headerlink" title="1、NSCondition"></a>1、NSCondition</h3><p>基本的条件锁，手动的控制。wait</p>
+<h3 id="2、NSConditionLock-条件锁"><a href="#2、NSConditionLock-条件锁" class="headerlink" title="2、NSConditionLock 条件锁"></a>2、NSConditionLock 条件锁</h3><p>条件锁，这里的条件并不是bool表达式中的条件，而是一个特定的int值。</p>
+<p>条件锁，不是简单的加锁/解锁， 而是需要根据一定条件满足后进行 加锁/解锁.</p>
+<p>以一个生产中与消费者的例子，介绍条件锁的用法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">static NSInteger CONDITION_NO_DATA        //条件一： 没有数据</span><br><span class="line">static NSInteger CONDITION_HAS_DATA       //条件二： 有数据</span><br><span class="line"></span><br><span class="line">// 初始化锁时，指定一个默认的条件</span><br><span class="line">NSConditionLock *lock = [[NSConditionLock alloc] initWithCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">//生产者，加锁与解锁的过程</span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【没有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 生产者生成数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，已经有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_HAS_DATA];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">//消费者，加锁与解锁的过程 </span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_HAS_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 消费者消费数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，没有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_NO_DATA];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="五、OSSpinLock自旋锁-amp-os-unfair-lock"><a href="#五、OSSpinLock自旋锁-amp-os-unfair-lock" class="headerlink" title="五、OSSpinLock自旋锁 &amp; os_unfair_lock"></a>五、OSSpinLock自旋锁 &amp; os_unfair_lock</h1><p>由于OSSpinLock不再安全，所以这里我们就直接说一下os_unfair_lock，这个是苹果用于代替OSSpinLock的。效率很高用法很简单如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">os_unfair_lock_t</span> lock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line">os_unfair_lock_lock(&amp;lock);</span><br><span class="line">NSLog(@<span class="string">"os_unfair_lock_t"</span>);</span><br><span class="line">os_unfair_lock_unlock(&amp;lock);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;ViewController.h&quot;</span><br><span class="line">#import &lt;libkern/OSAtomic.h&gt;</span><br><span class="line">@interface ViewController ()</span><br><span class="line">@property (nonatomic,assign)  int ticket;</span><br><span class="line">//@property (nonatomic,assign)  OSSpinLock lock;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation ViewController</span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">//    self.lock = OS_SPINLOCK_INIT;</span><br><span class="line">    self.ticket=50;</span><br><span class="line">    [self ticketsTest];</span><br><span class="line">    // Do any additional setup after loading the view.</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)ticketsTest&#123;</span><br><span class="line">  	// 这里我们开两个线程处理同一件事</span><br><span class="line">    dispatch_queue_t queue = dispatch_get_global_queue(0, 0);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)saleTicket&#123;</span><br><span class="line">    //静态创建、则不需要新建属性</span><br><span class="line">    static OSSpinLock lock = OS_SPINLOCK_INIT;</span><br><span class="line">    //若后面是个函数、则需</span><br><span class="line">    /*</span><br><span class="line">    static OSSpinLock lock = nil;</span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        lock = OS_SPINLOCK_INIT;</span><br><span class="line">    &#125;);</span><br><span class="line">     */</span><br><span class="line">    //其他线程执行到这里时，发现锁被加锁了 就会再这排队等待、直到这个锁被打开</span><br><span class="line">    //加锁</span><br><span class="line">    OSSpinLockLock(&amp;lock);</span><br><span class="line">    int ticket = self.ticket;</span><br><span class="line">    sleep(.2);</span><br><span class="line">    ticket--;</span><br><span class="line">    self.ticket=ticket;</span><br><span class="line">    NSLog(@&quot;%d&quot;,self.ticket);</span><br><span class="line">    //解锁</span><br><span class="line">    OSSpinLockUnlock(&amp;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="iOS-互斥锁-amp-amp-自旋锁-多线程安全隐患"><a href="#iOS-互斥锁-amp-amp-自旋锁-多线程安全隐患" class="headerlink" title="iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患"></a>iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</h1><p><a href="https://www.bbsmax.com/A/QV5ZQk92Jy/" target="_blank" rel="noopener">iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</a></p>
+<p><strong>一、多线程安全隐患</strong></p>
+<p><strong>资源共享</strong><br> 一块资源可能会被多个线程共享，也就是多个线程可能会访问到一块资源<br> 比如多个线程访问同一个对象，同一个变量，同一个文件。<br> 当多线程访问同一块资源的时候，很容易引发数据错乱和数据安全问题<br>二、原子和非原子属性<br> 1&gt;OC 在定义属性的时候有nonatomic和atomic两种选择<br>   * <strong>atomic</strong>：原子属性，为 setter 方法加锁<br>   * <strong>nonatomic</strong>：非原子属性，不会为 setter 方法加锁<br>    普通情况下都是在主线程做操作，所以一般都不会加锁。<br> 对比：<br>   <strong>* atomic</strong>：线程安全，需要消耗大量的资源<br>   <strong>* nonatomic</strong>：非线程安全，适合内存小的移动设备<br> 2&gt;synchronized 与 atomic<br>   * <strong>synchronized</strong>：互斥锁<br>   * <strong>atomic</strong>：自旋锁<br> <strong>共同点</strong>：都能保证同一时刻只能有一个线程操作锁住的代码<br>  <strong>区别</strong>：<br>   <strong>互斥锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会进入睡眠状态等待任务执行完毕，当上一个线程的任务执行完毕，下一个线程会.  自动唤醒然后执行任务。<br>   <strong>自旋锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会一直等待（不会睡眠），当上一个线程的任务执行完毕，下一个线程会立即执行。<br> <strong>自旋锁应用场景</strong>：比较适合做一些不耗时的操作<br>三、互斥锁<br>· 注意点：<br>   - 如果多线程访问同一个资源，那么必须使用同一把锁才能锁住<br>   - 在开发中，尽量不要加锁，能在服务端做尽量在服务端做，如果必须要加锁，一定要记住，锁的范围不能太大，哪里有安全隐患就加在哪里。<br> 技巧：因为必须使用同一把锁，开发中如果需要加锁，直接使用 self 即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">@synchronized(self) &#123;</span><br><span class="line">  //线程1进来之后，锁住，2和3都再外面等待</span><br><span class="line">  //1、查询剩余的票数 NSUInteger count = self.totalCount;</span><br><span class="line">  //2、判断是否还有余票</span><br><span class="line">  //2.1卖票</span><br><span class="line">  //3 、提示客户，没有票了</span><br><span class="line">  if (count&gt;0) &#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:0.1];</span><br><span class="line">    self.totalCount = count-1;</span><br><span class="line">    NSLog(@&quot;%@卖了一张票,还剩%zd票&quot;,[NSThread currentThread].name,self.totalCount);</span><br><span class="line">  &#125;</span><br><span class="line">  else</span><br><span class="line">  &#123;</span><br><span class="line">    NSLog(@&quot;没票了&quot;);</span><br><span class="line">    break;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">//解锁</span><br></pre></td></tr></table></figure>
+<p>四、自旋锁<br>注意点:<br>只会给 setter 方法加锁，并不会给getter方法加锁。</p>
+<p><a href="https://juejin.im/post/5c67e349f265da2de33f1275" target="_blank" rel="noopener">ObjC 多线程简析（一）-多线程简述和线程锁的基本应用</a></p>
+<p>在iOS10之后apple废弃了<code>OSSpinLock</code>自旋锁，使用<code>os_unfair_lock</code>互斥锁来替代。</p>
+<p>在iOS10之后apple已经不再建议使用<code>OSSpinLock</code>自旋锁了，它的替代方案是一个互斥锁，所以一般情况下我们使用互斥锁来解决线程同步的问题才是比较合理的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化OSSpinLock</span><br><span class="line">_osspinlock = OS_SPINLOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">OSSpinLockLock(&amp;_osspinlock);</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">OSSpinLockUnlock(&amp;_osspinlock);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化os_unfair_lock</span><br><span class="line">_osunfairLock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">os_unfair_lock_lock(&amp;(_osunfairLock));</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">os_unfair_lock_unlock(&amp;(_osunfairLock));</span><br></pre></td></tr></table></figure>
+<p><a href="https://www.jianshu.com/p/c2f488ad638e" target="_blank" rel="noopener">iOS中的线程同步方案</a></p>
+<p><strong>自旋锁、互斥锁比较:</strong></p>
+<p>a, 什么情况使用自旋锁比较划算？</p>
+<p>预计线程等待锁的时间很短</p>
+<p>加锁的代码（临界区）经常被调用，但竞争情况很少发生</p>
+<p>CPU资源不紧张</p>
+<p>多核处理器</p>
+<p>b,什么情况使用互斥锁比较划算？</p>
+<p>预计线程等待锁的时间较长</p>
+<p>单核处理器</p>
+<p>临界区有IO操作</p>
+<p>临界区代码复杂或者循环量大</p>
+<p>临界区竞争非常激烈</p>
+<h6 id="4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列"><a href="#4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列" class="headerlink" title="(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)"></a>(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)</h6><p>eg：主线程的主队列是串行队列，不可能在该队列上添加同步任务，否则会造成死锁。所以，同时存在同步任务和异步任务的队列应该只能是并发队列。</p>
+<p>最终的执行顺序，还是看这些各式各样的任务所在的队列是什么队列，串行的还是并发的。</p>
+<h4 id="1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION"><a href="#1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION" class="headerlink" title="1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)"></a>1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</h4><h6 id="1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"><a href="#1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁" class="headerlink" title="(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"></a>(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</h6><p>代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock1:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    	NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	dispatch_sync(q1, ^&#123; // 添加的同步任务和外面的任务是同一个串行队列</span><br><span class="line">    			sleep(2);</span><br><span class="line">    			NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	&#125;);</span><br><span class="line">    	NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h6 id="2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要"><a href="#2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要" class="headerlink" title="(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)"></a>(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</h6><h6 id="3-、死锁原因分析："><a href="#3-、死锁原因分析：" class="headerlink" title="(3)、死锁原因分析："></a>(3)、死锁原因分析：</h6><p>要了解<strong>通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</strong>，或者说<strong>往串行队列里添加的同步任务卡住该串行队列的时候会发生死锁</strong>的原因，我们首先需要知道几个概念：</p>
+<blockquote>
+<p>知识点①：创建同步任务的操作，在创建完之后，需要立马执行所创建的同步任务。即创建完同步任务的操作后，只有连其所创建的同步任务也结束了才能继续执行下去；</p>
+<p>知识点②：而创建异步任务的操作，在创建完之后，即可继续执行下去，不需要等待所创建的异步任务结束。</p>
+<p>附：在线程组的使用中，我们会遇到需要监听多个子线程中的所有任务都结束后，才去执行最后的更新UI的操作。假设最后更新UI的操作，除了需要子线程的任务结束，还需要子线程中的异步线程，如网络请求也结束后，才能更新UI，那么为了不让子线程提前退出，而是等到网络请求也结束后才退出，我们通常会通过使用gcd的enter leave或者信号量来等待。</p>
+<p>知识点③：串行队列里的任务是一个执行完，才接着执行下一个；</p>
+</blockquote>
+<p>所以，由以上①②③知识点，我们就能分析出其造成死锁的原因如下：</p>
+<blockquote>
+<p>首先，对于标记<code>1</code>、<code>2</code>、<code>3</code>，先只看是同步任务还是异步任务，而不管是串行队列，还是并行队列，或者说是哪个队列。</p>
+<p>从代码上我们很容易看出其是同步任务，所以由以上同步的知识点②，可以知道，最终标记输出的正确顺序应该依次是标记<code>1</code>、标记<code>2</code>、标记<code>3</code>。</p>
+<p>即我们的关注点是标记<code>2</code>能否在标记<code>1</code>之后输出。</p>
+<p>答，在上述代码中，标记<code>2</code>处的同步任务是被添加到串行队列的，而且还是当前的串行队列。</p>
+<p>我们知道串行队列里的任务是一个执行完，才接着执行下一个的，也就是说，往串行队列里添加的任务要执行的条件一定是在所添加的新任务之前的所有任务都已经全部执行完了后，才会执行到这一个的。</p>
+<p>这里我们依次往串行队列里添加了第一个任务块和第二个任务块。</p>
+<p>要完成第一个任务块需要同时完成任务<code>1</code>+第二个任务块<code>2</code>+任务<code>3</code>。</p>
+<p>第二个任务块要执行，根据串行队列的性质，我们知道第二个任务块要等待第一个任务块结束才会执行。（如果两个任务即使都是添加到串行队列，但是他们是不同串行队列的时候就不会需要等待）</p>
+<p>由此死锁。</p>
+<p>显然这里任务②需要等到任务①真正完成，而任务①的真正完成需要等任务②完成，这样的一个互相等待也就构成了一个死锁，导致我们<strong> EXC_BAD_INSTRUCTION</strong>的崩溃了。</p>
+</blockquote>
+<p>那么以上死锁的问题，怎么解决呢？</p>
+<blockquote>
+<p>答：其实只要解决标记<code>2</code>即任务②，可以在标记<code>1</code>执行之后执行就可以了。<br>解决方法有：将任务②改成异步任务，或者将任务②这个同步任务添加到非本串行队列下，可以是其他串行队列，也可以是其他并行队列都可以。即以下这种修改方案是能够解决死锁的。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock2:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    dispatch_queue_t q2 = dispatch_queue_create(&quot;serial_queue_2&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    ​    dispatch_sync(q2, ^&#123;</span><br><span class="line">    ​        sleep(2);</span><br><span class="line">    ​        NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？"><a href="#2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？" class="headerlink" title="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？"></a>2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？</h4><p>回答本问题前，我们需要先了解的知识点是：</p>
+<blockquote>
+<p>知识点①：主线程和主队列的关系：</p>
+<p>主队列是主线程中的一个串行队列。每一个应用程序只有唯一的一个主队列用来update UI。所有的和UI的操作(刷新或者点击按钮)都必须在主线程中的主队列中去执行，否则无法更新UI。</p>
+</blockquote>
+<p>因为主线程是一个串行队列，<strong>所以往主队列里添加同步任务</strong>（如果不是往主队列添加同步任务就不会）是<em>很有可能</em>发生死锁卡死的。如以下代码就会发生死锁。代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;打印1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;打印2&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    NSLog(@&quot;打印3&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由引述，我们已经知道<strong>往串行队列里添加的同步任务，如果卡住的是该串行队列，则会发生死锁</strong>，所以显然即执行往这个串行队列里添加同步任务的该任务也是在这个串行队列里的话，那么由于相互等待会造成死锁。</p>
+<p>最简单的解决方法：将sync同步方法，替换成异步方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记5、标记3</span><br></pre></td></tr></table></figure>
+<p>其他修改方法：将同步任务卡住的队列改成并发队列。如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">- (void)testDeadLock &#123;</span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line">    dispatch_queue_t other_queue = dispatch_queue_create(&quot;other_queue&quot;, DISPATCH_QUEUE_SERIAL);//不管是串行队列还是并发队列，都能解决这个死锁问题，因为它同步方法没有卡住这个other_queue。</span><br><span class="line">    dispatch_async(other_queue, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;标记2&quot;);</span><br><span class="line">    ​    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;标记4&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    sleep(2);</span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记2、标记5、标记3、标记4。</span><br></pre></td></tr></table></figure>
+<p>有了这些基础，你再看以下文章中的例子时，就能轻松判断是否会造成死锁了 。</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/c39c1db05305" target="_blank" rel="noopener">dispatch_get_main_queue()卡死</a></li>
+</ul>
+<p>#### </p>
+<h1 id="iOS中自旋锁与互斥锁的区别"><a href="#iOS中自旋锁与互斥锁的区别" class="headerlink" title="iOS中自旋锁与互斥锁的区别"></a>iOS中自旋锁与互斥锁的区别</h1><p><strong>自旋锁（spinlock）</strong>：是指当一个线程在获取锁的时候，如果锁已经被其它线程获取，那么该线程将循环等待，然后不断的判断锁是否能够被成功获取，直到获取到锁才会退出循环。（附：获取锁的线程一直处于活跃状态，但是并没有执行任何有效的任务，使用这种锁会造成busy-waiting。自旋锁不会使线程状态发生切换，一直处于用户态，即线程一直都是active活跃状态的；不会使线程进入阻塞状态，减少了不必要的上下文切换，执行速度快）</p>
+<p>其他参考文章：<a href="https://www.jianshu.com/p/d69495dac8cb" target="_blank" rel="noopener">iOS中自旋锁与互斥锁的区别</a></p>
+<p>pthread_mutex 表示互斥锁。互斥锁可以传入不同参数，实现递归锁pthread_mutex(recursive)。</p>
+<blockquote>
+<p>NSLock，NSCondition，NSRecursiveLock，NSConditionLock都是内部封装的pthread_mutex，即都属于互斥锁。@synchronized是NSLock的一种封装，牺牲了效率，简洁了语法。</p>
+</blockquote>
+<p>OSSpinLock 表示自旋锁，从上图可以看到自旋锁的效率最高，但是现在的iOS因为优先级反转的问题，已经不安全，所以推荐使用pthread_mutex或者dispatch_semaphore。</p>
+<p><strong>总结</strong>：<br>　　自旋锁会忙等: 所谓忙等，即在访问被锁资源时，调用者线程不会休眠，而是不停循环在那里，直到被锁资源释放锁。<br>　　互斥锁会休眠: 所谓休眠，即在访问被锁资源时，调用者线程会休眠，此时cpu可以调度其他线程工作。直到被锁资源释放锁。此时会唤醒休眠线程。</p>
+<p><strong>优缺点</strong>：<br>　　自旋锁的优点在于，因为自旋锁不会引起调用者睡眠，所以不会进行线程调度，cpu时间片轮转等耗时操作。所有如果能在很短的时间内获得锁，自旋锁的效率远高于互斥锁。<br>　　缺点在于，自旋锁一直占用CPU，他在未获得锁的情况下，一直运行－－自旋，所以占用着CPU，如果不能在很短的时 间内获得锁，这无疑会使CPU效率降低。自旋锁不能实现递归调用。</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-⑤面试/" data-id="clf0vndoc00xe63r4lnf4221n" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-③任务或线程与锁/" data-id="clf0xkfai00x2lyr4q1jmklfl" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h2 id="iOS与JS交互"><a href="#iOS与JS交互" class="headerlink" title="iOS与JS交互"></a>iOS与JS交互</h2><ul>
+<li><p><a href="https://blog.csdn.net/dolacmeng/article/details/79623708" target="_blank" rel="noopener">iOS与JS交互的4种方法</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">iOS与JS交互的方法：</span><br><span class="line">1.拦截url（适用于UIWebView和WKWebView） </span><br><span class="line">2.JavaScriptCore（只适用于UIWebView，iOS7+） </span><br><span class="line">3.WKScriptMessageHandler（只适用于WKWebView，iOS8+） </span><br><span class="line">4.WebViewJavascriptBridge（适用于UIWebView和WKWebView，属于第三方框架）</span><br><span class="line"></span><br><span class="line">更详细介绍，请点击以上链接进入查看。</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="clf0xkfbb00x4lyr4cj2itzxl" class="article-share-link">Share</a>
       
       
     </footer>
@@ -159,96 +288,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/多线程、锁、队列/" data-id="clf0vndoc00xf63r40umyd7x3" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h2 id="iOS与JS交互"><a href="#iOS与JS交互" class="headerlink" title="iOS与JS交互"></a>iOS与JS交互</h2><ul>
-<li><p><a href="https://blog.csdn.net/dolacmeng/article/details/79623708" target="_blank" rel="noopener">iOS与JS交互的4种方法</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">iOS与JS交互的方法：</span><br><span class="line">1.拦截url（适用于UIWebView和WKWebView） </span><br><span class="line">2.JavaScriptCore（只适用于UIWebView，iOS7+） </span><br><span class="line">3.WKScriptMessageHandler（只适用于WKWebView，iOS8+） </span><br><span class="line">4.WebViewJavascriptBridge（适用于UIWebView和WKWebView，属于第三方框架）</span><br><span class="line"></span><br><span class="line">更详细介绍，请点击以上链接进入查看。</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/7iOS与JS交互/7iOS与JS交互/" data-id="clf0vndoc00xg63r4nt3v155g" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程间通信" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p></p><p id="线程间的通信"></p><p></p>
-<h2 id="二、谈谈你对线程间的通信的了解"><a href="#二、谈谈你对线程间的通信的了解" class="headerlink" title="二、谈谈你对线程间的通信的了解"></a>二、谈谈你对线程间的通信的了解</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>在1个进程中，线程往往不是孤立存在的，多个线程之间需要经常进行通信。</p>
-<p>线程间通信的体现:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 一个线程传递数据给另一个线程</span><br><span class="line">2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br></pre></td></tr></table></figure>
-<p>线程间通信应用举例：（即在一个线程中执行完特定任务后，转到另一个线程继续执行任务，并将该线程数据传递给另一个线程的应用举例）</p>
-<blockquote>
-<p>以下例子摘自：<a href="https://www.cnblogs.com/supper-Ho/p/6379606.html" target="_blank" rel="noopener">线程间通讯</a></p>
-<p>①<code>NSThread</code>可以先将自己的当前线程对象注册到某个全局的对象中去，这样相互之间就可以获取对方的线程对象，然后就可以使用下面的方法进行线程间的通信了。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&gt;回到主线程执行，执行self的showImage方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelectorOnMainThread:(SEL)aSelector withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到后台线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到xx线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelector:(SEL)aSelector onThread:(NSThread *)thr withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>②、<code>GCD</code>一个线程传递数据给另一个线程。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&gt; dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">&gt;     NSLog(@&quot;donwload---%@&quot;, [NSThread currentThread]);</span><br><span class="line">&gt;     // 1.子线程下载图片</span><br><span class="line">&gt;     NSURL *url = [NSURL URLWithString:@&quot;http://d.jpg&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.回到主线程设置图片</span><br><span class="line">&gt;     dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         NSLog(@&quot;setting---%@ %@&quot;, [NSThread currentThread], image);</span><br><span class="line">&gt;         [self.button setImage:image forState:UIControlStateNormal];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt; &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>③、NSOperation线程通信的举例：在其他线程完成了耗时操作时，需要回到主线程，那么就用到了线程之间的通讯。这里有两种方法，一种是线程里转线程，另一种是线程间使用依赖。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 1.创建一个新的队列</span><br><span class="line">&gt; NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">&gt; // 2.添加任务(操作)</span><br><span class="line">&gt; [queue addOperationWithBlock:^&#123;</span><br><span class="line">&gt;     // 2.1在子线程中下载图片</span><br><span class="line">&gt;     NSURL *url  = [NSURL URLWithString:@&quot;http://imgcache.mysodao.com/img2/M04/8C/74/CgAPDk9dyjvS1AanAAJPpRypnFA573_700x0x1.JPG&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.2回到主线程更新UI</span><br><span class="line">&gt;     [[NSOperationQueue mainQueue] addOperationWithBlock:^&#123;</span><br><span class="line">&gt;         self.imageView.image = image;</span><br><span class="line">&gt;     &#125;];</span><br><span class="line">&gt; &#125;];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>首先我们先来说说线程与线程间的关系，其引入了我们下面的第二点线程等待(线程同步)问题、线程依赖问题。</p>
-<p>然后我们再来说说，有时候我们还常经常在多个线程中操作一个全局变量，这个的话，也算线程间通信吗？不管他算不算(应该是不算的，个人觉得)，但是他的存在使得我们引入了另一个线程安全的问题，即多个线程操作同一个变量。也就是下面说的第三点，线程安全问题。</p>
-<h4 id="附：其他传值方法总结"><a href="#附：其他传值方法总结" class="headerlink" title="附：其他传值方法总结"></a>附：其他传值方法总结</h4><p>参考：<a href="http://blog.csdn.net/DJH996064549/article/details/50497371" target="_blank" rel="noopener">其他传值方法总结</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、A界面到B界面的正向传值，即A界面传值给B界面使用</span><br><span class="line">2、。。。</span><br></pre></td></tr></table></figure></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="clf0vndng00x963r4ot5ewgm0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/多线程、锁、队列/" data-id="clf0xkfc400x6lyr445iotjoj" class="article-share-link">Share</a>
       
       
     </footer>
@@ -308,7 +348,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="clf0vndnv00xa63r4fiot33vu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程GCD/" data-id="clf0xkf8r00wylyr42ryh2hcl" class="article-share-link">Share</a>
       
       
     </footer>
@@ -318,9 +358,9 @@
 
 
   
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①线程间通信" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" class="article-date">
   <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
@@ -331,41 +371,39 @@
     <div class="article-entry" itemprop="articleBody">
       
         <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
-<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
-<p>一个程序至少一个进程，一个进程至少一个线程。</p>
-<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
+<p></p><p id="线程间的通信"></p><p></p>
+<h2 id="二、谈谈你对线程间的通信的了解"><a href="#二、谈谈你对线程间的通信的了解" class="headerlink" title="二、谈谈你对线程间的通信的了解"></a>二、谈谈你对线程间的通信的了解</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
 </blockquote>
-<p>进程线程的区别：</p>
+<p>在1个进程中，线程往往不是孤立存在的，多个线程之间需要经常进行通信。</p>
+<p>线程间通信的体现:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 一个线程传递数据给另一个线程</span><br><span class="line">2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br></pre></td></tr></table></figure>
+<p>线程间通信应用举例：（即在一个线程中执行完特定任务后，转到另一个线程继续执行任务，并将该线程数据传递给另一个线程的应用举例）</p>
 <blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
-<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
-<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
-<blockquote>
-<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
+<p>以下例子摘自：<a href="https://www.cnblogs.com/supper-Ho/p/6379606.html" target="_blank" rel="noopener">线程间通讯</a></p>
+<p>①<code>NSThread</code>可以先将自己的当前线程对象注册到某个全局的对象中去，这样相互之间就可以获取对方的线程对象，然后就可以使用下面的方法进行线程间的通信了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&gt;回到主线程执行，执行self的showImage方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelectorOnMainThread:(SEL)aSelector withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到后台线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;回到xx线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;</span><br><span class="line">&gt;- (void)performSelector:(SEL)aSelector onThread:(NSThread *)thr withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
 </blockquote>
 <blockquote>
-<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
+<p>②、<code>GCD</code>一个线程传递数据给另一个线程。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&gt; dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">&gt;     NSLog(@&quot;donwload---%@&quot;, [NSThread currentThread]);</span><br><span class="line">&gt;     // 1.子线程下载图片</span><br><span class="line">&gt;     NSURL *url = [NSURL URLWithString:@&quot;http://d.jpg&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.回到主线程设置图片</span><br><span class="line">&gt;     dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         NSLog(@&quot;setting---%@ %@&quot;, [NSThread currentThread], image);</span><br><span class="line">&gt;         [self.button setImage:image forState:UIControlStateNormal];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt; &#125;);</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
 </blockquote>
 <blockquote>
-<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
+<p>③、NSOperation线程通信的举例：在其他线程完成了耗时操作时，需要回到主线程，那么就用到了线程之间的通讯。这里有两种方法，一种是线程里转线程，另一种是线程间使用依赖。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt; // 1.创建一个新的队列</span><br><span class="line">&gt; NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">&gt; // 2.添加任务(操作)</span><br><span class="line">&gt; [queue addOperationWithBlock:^&#123;</span><br><span class="line">&gt;     // 2.1在子线程中下载图片</span><br><span class="line">&gt;     NSURL *url  = [NSURL URLWithString:@&quot;http://imgcache.mysodao.com/img2/M04/8C/74/CgAPDk9dyjvS1AanAAJPpRypnFA573_700x0x1.JPG&quot;];</span><br><span class="line">&gt;     NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">&gt;     UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">&gt;     // 2.2回到主线程更新UI</span><br><span class="line">&gt;     [[NSOperationQueue mainQueue] addOperationWithBlock:^&#123;</span><br><span class="line">&gt;         self.imageView.image = image;</span><br><span class="line">&gt;     &#125;];</span><br><span class="line">&gt; &#125;];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
 </blockquote>
-<blockquote>
-<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
+<p>首先我们先来说说线程与线程间的关系，其引入了我们下面的第二点线程等待(线程同步)问题、线程依赖问题。</p>
+<p>然后我们再来说说，有时候我们还常经常在多个线程中操作一个全局变量，这个的话，也算线程间通信吗？不管他算不算(应该是不算的，个人觉得)，但是他的存在使得我们引入了另一个线程安全的问题，即多个线程操作同一个变量。也就是下面说的第三点，线程安全问题。</p>
+<h4 id="附：其他传值方法总结"><a href="#附：其他传值方法总结" class="headerlink" title="附：其他传值方法总结"></a>附：其他传值方法总结</h4><p>参考：<a href="http://blog.csdn.net/DJH996064549/article/details/50497371" target="_blank" rel="noopener">其他传值方法总结</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、A界面到B界面的正向传值，即A界面传值给B界面使用</span><br><span class="line">2、。。。</span><br></pre></td></tr></table></figure></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
 </blockquote>
-<blockquote>
-<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="clf0vndoa00xb63r4f35qexf1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①线程间通信/" data-id="clf0xkf9500wzlyr44xs31gag" class="article-share-link">Share</a>
       
       
     </footer>
@@ -481,7 +519,64 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="clf0vndob00xc63r445dpt3us" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="clf0xkf9n00x0lyr44lnci33n" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
+<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
+<p>一个程序至少一个进程，一个进程至少一个线程。</p>
+<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
+</blockquote>
+<p>进程线程的区别：</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
+<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
+<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
+<blockquote>
+<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
+</blockquote>
+<blockquote>
+<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
+</blockquote>
+<blockquote>
+<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
+</blockquote>
+<blockquote>
+<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
+</blockquote>
+<blockquote>
+<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="clf0xkfax00x3lyr4ssi5wkqq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -547,7 +642,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="clf0vndm700x663r48qe115uo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="clf0xkf7j00wvlyr4i51nnfj9" class="article-share-link">Share</a>
       
       
     </footer>
@@ -586,7 +681,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="clf0vndmn00x763r4v7o4kufr" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="clf0xkf7y00wwlyr4zprdltj6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -639,7 +734,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="clf0vndn100x863r474bkqn3j" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="clf0xkf8d00wxlyr4rnvckb8e" class="article-share-link">Share</a>
       
       
     </footer>
@@ -706,7 +801,7 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>
@@ -714,15 +809,15 @@
           </li>
         
           <li>
-            <a href="/iOS/移动分析/沙盒数据分析/">第2节：沙盒数据分析</a>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/common_url_update/">(no title)</a>
           </li>
         
           <li>
-            <a href="/iOS/移动分析/沙盒数据查看/">第1节：沙盒数据查看</a>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
           </li>
         
           <li>
-            <a href="/自动化/自动化分支信息/">自动化分支信息</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
       </ul>
