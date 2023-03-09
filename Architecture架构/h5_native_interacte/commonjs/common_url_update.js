@@ -2,8 +2,8 @@
  * @Author: dvlproad
  * @Date: 2023-03-03 14:02:09
  * @LastEditors: dvlproad
- * @LastEditTime: 2023-03-03 14:02:21
- * @Description: 
+ * @LastEditTime: 2023-03-09 14:01:48
+ * @Description: 对url进行参数新增等操作的方法
  */
 /// 为 oldUrl 添加 newParams 参数，返回新url
 function addParamsForUrl(oldUrl, newParams) {
@@ -19,11 +19,16 @@ function addParamsForUrl(oldUrl, newParams) {
     for (var i = 0; i < count; i++) {
       var key = keys[i];
       var value = newParams[key];
+      if (typeof val === 'string') {
+        stringValue = value;
+      } else {
+        stringValue = JSON.stringify(value);
+      }
 
       if (i > 0) {
         newParamsString += '&';
       }
-      newParamsString += `${key}=${value}`;
+      newParamsString += `${key}=${stringValue}`;
     }
     
 
