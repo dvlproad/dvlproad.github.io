@@ -72,9 +72,9 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -90,7 +90,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
     </h1>
   
 
@@ -98,22 +98,100 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
-<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
-<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
-<p>①、SDWebImageDownloaderOperation的下载请求</p>
-<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
-<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"><a href="#必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"></a>必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题</h1><p>[Toc]</p>
+<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>后台图片内容换了，但是<code>url</code>还是老的，手机就用了缓存，没有从后台更新图片。</p>
+<p>主要问题表现在哪里呢？<br>很多app都有用户的概念，用户一般都会有头像，基本上都上传到服务器上，而服务器往往也支持在pc端更新头像（比如微博、QQ等）。<br>如果你的头像使用SDWebImage设置的，那么你会发现，pc端更新头像后，客户端可能（往往）不会自动更新！！！</p>
+<h2 id="二、解决"><a href="#二、解决" class="headerlink" title="二、解决"></a>二、解决</h2><p>问：使用<code>SDWebImage</code>如何加载url不变，但图片已经变化的图片。</p>
+<p>答：解决方法可以有如下几种：</p>
+<ol>
+<li><p>让服务器更新url，也就是说服务器端如果更新了头像，那么就生成新的url(推荐)</p>
+<blockquote>
+<p>后台给的<code>url</code>中增加字段，表示图片是否更新，比如增加一个<code>timestamp</code>字段.图片更新了，就更新下这个字段；<br>对客户端来说，只要这个<code>timestamp</code>字段变了，整个<code>url</code>就不一样了，就会从网络取图片。比如<code>http://xxx/xx? timestamp=xxx</code><br>也可以添加图片文件的<code>md5</code>来表示文件是否更新，比如<code>http://xxx/xx? md5=xxx</code>。并且<code>md5</code>比时间戳要好，这是强校验。时间戳在服务器回滚或者服务器重启的时候会有特殊的逻辑。不过大多数时候时间戳也够用了。<br>====这个方案客户端不用改，后台改动也不会太大。====强烈推荐</p>
+</blockquote>
+</li>
+<li><p>客户端只使用内存缓存，不使用磁盘缓存，那么下次启动时候就会重新下载，从而得到最新的了。(缺点：本次使用过程中没能看到最新图片。且即使之后下载到最新图片了，由于只使用内存缓存，不使用磁盘缓存。导致程序关闭又打开之后，缓存就没了，需要访问网络，重新加载图片)</p>
+<blockquote>
+<p><code>SDWebImageCacheMemoryOnly</code>这个参数对解决这个问题有帮助，只用内存缓存，不用磁盘缓存，<code>App</code>关了再开，肯定会重新下载，不会出现服务器和手机缓存图片不一致的情况。</p>
+</blockquote>
+</li>
+<li><p>客户端使用SDWebImageRefreshCached，同时让服务器端支持cache-control。</p>
+<blockquote>
+<p><code>SDWebImageRefreshCached</code>，这个参数就是为了解决url没变但是服务器图片改变的问题，很适合当前的场景。方案就是磁盘缓存不自己实现了，直接使用<code>NSURLCache</code>。记得<code>AFNetworking</code>的大神<code>Matt</code>就曾经嘲笑过<code>SDWebImage</code>的缓存是多此一举，还不如系统的<code>NSURLCache</code>好用。</p>
+<h4 id="SDWebImageRefreshCached参数设置之后，会怎么样？"><a href="#SDWebImageRefreshCached参数设置之后，会怎么样？" class="headerlink" title="SDWebImageRefreshCached参数设置之后，会怎么样？"></a><code>SDWebImageRefreshCached</code>参数设置之后，会怎么样？</h4><ul>
+<li><p>不使用<code>SDWebImage</code>提供的内存缓存和硬盘缓存</p>
+</li>
+<li><p>采用<code>NSURLCache</code>提供的缓存，默认情况下有效时间只有5秒</p>
+</li>
+<li><p>图片不一致的问题是解决了，不过效果跟不使用缓存差别不大。个人建议这个参数还是不要用为好，为了一个小特性，丢掉了<code>SDWebImage</code>最核心的特色。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt;   [imageview sd_setImageWithURL:[NSURL URLWithString:url]	</span><br><span class="line">&gt;    						 placeholderImage:nil</span><br><span class="line">&gt;    											options:SDWebImageRefreshCached];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</blockquote>
+</li>
+<li><p>不使用SDWebImage，自己控制缓存，用系统API实现（NSURLCache）实现。（缺点还是和3一样，得服务端配合更改。）</p>
+<blockquote>
+<p>主要也是和使用<code>SDWebImageRefreshCached</code>时候一样，会涉及到<code>Cache-Control(设定缓存有效时间，默认是5s)</code>、<code>Last-Modified/If-Modified-Since(时间戳)</code>、<code>Etag/If-None-Match(标签，一般用MD5值)</code>。</p>
+</blockquote>
+</li>
+</ol>
+<p>附：其他options</p>
+<p><code>SDWebImageRetryFailed</code>表示就算下载失败也会再次尝试（不把下载失败的的<code>url</code>加入黑名单）</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/8cc494e77507" target="_blank" rel="noopener">SDWebImage如何加载url不变，但图片已经变化的图片</a></li>
+<li><a href="https://www.jianshu.com/p/145ffa299eff" target="_blank" rel="noopener">SDWebImage：缓存不更新问题</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clf10d74b00xqafr4cyfu53gm" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
+<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clf0zchts00yca2r43af4j9u7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf10d74c00xwafr4rhmc8pyl" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -218,53 +296,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf0zchtt00yfa2r44iioooxo" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf0zchtv00yla2r4hsg14bg9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf10d74d00xzafr4bonh1avk" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -325,7 +357,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clf0zchtw00yra2r4by5p9hox" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clf10d74e00y2afr45a751rmt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -405,7 +437,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf0zchtx00yta2r4l1fmuil0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf10d74f00y8afr49rawzyoh" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -590,7 +622,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf0zcgem00l0a2r4susf2med" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf10d5qk00kfafr4033z9cqs" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -674,7 +706,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="clf0zcgeq00lea2r4biq98bs7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="clf10d5qm00krafr4fm4ym0ry" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -731,7 +763,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf0zcger00lla2r4xvff63ix" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf10d5qn00kyafr42jln2wyq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -800,7 +832,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="clf0zcgey00mfa2r4xm760e92" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="clf10d5qs00loafr40kfsy8s2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -926,7 +958,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="clf0zcgf100mra2r4orkpnvvv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="clf10d5qu00m0afr4cnyklom6" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -999,11 +1031,11 @@
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/common_url_update/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/commonjs/common_url_update/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
           </li>
         
           <li>

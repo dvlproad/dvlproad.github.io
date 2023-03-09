@@ -35,6 +35,8 @@ function stringFromMap(newParams) {
     var stringValue;
     if (typeof value === 'string') {
       stringValue = value;
+    } else if (typeof value === 'number') {
+      stringValue = value.toString();
     } else if (typeof value === 'object') {
       // JavaScript 判断判断某个对象是Object还是一个Array
       if (value.constructor == Array) {
