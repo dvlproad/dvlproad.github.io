@@ -72,6 +72,321 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/10其他/10其他2" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/10其他2/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><ol>
+<li><strong>CertificateSigningRequest</strong>：本地公钥。</li>
+<li><strong>p12</strong>：本地私钥，可以导入到其他电脑。</li>
+<li><strong>证书</strong>：内容是公钥或私钥，由其他机构对其签名组成的数据包。</li>
+<li><strong>Entitlements</strong>：包含了 App 权限开关列表。</li>
+<li><strong>Provisioning Profile</strong>：包含了 证书 / Entitlements 等数据，并由苹果后台私钥签名的数据包。</li>
+</ol>
+<h1 id="iOS-App-签名的原理"><a href="#iOS-App-签名的原理" class="headerlink" title="iOS App 签名的原理"></a>iOS App 签名的原理</h1><ul>
+<li><a href="http://blog.cnbang.net/tech/3386/" target="_blank" rel="noopener">iOS App 签名的原理</a> （非常好，非常详细的文章）</li>
+</ul>
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>四种方式安装一个APP的方式</p>
+<ol>
+<li>从 AppStore 下载</li>
+<li>开发 App 时可以直接把开发中的应用安装进手机进行调试。</li>
+<li>In-House 企业内部分发，可以直接安装企业证书签名后的 APP。</li>
+<li>AD-Hoc 相当于企业分发的限制版，限制安装设备数量，较少用。</li>
+</ol>
+<p>区别：</p>
+<p>App Store 下载的是Apple后台用私钥A对其进行重签名，</p>
+<p>而其他的是用Xcode配置的对应该证书的本地私钥L对app进行签名。</p>
+<h2 id="一、App-Store-下载的签名机制（最简单的签名）"><a href="#一、App-Store-下载的签名机制（最简单的签名）" class="headerlink" title="一、App Store 下载的签名机制（最简单的签名）"></a>一、App Store 下载的签名机制（最简单的签名）</h2><p>当App 提交审核通过后，Apple会对App重签名，所以从App Store下载的app都是苹果的官方签名。</p>
+<p>流程如下：</p>
+<p><img src="/iOS/3必备知识架构/10其他/10其他2/APP签名机制/APP签名机制1.png" alt="APP签名机制1" style="zoom:50%;"></p>
+<p>1、Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A存在iOS设备</p>
+<p>2、app审核通过后，<strong>Apple后台用私钥A对其进行重签名</strong></p>
+<p>3、app下载到iOS设备后，iOS设备内置的公钥A会对app的签名进行验证</p>
+<p>4、如果验证通过，则可运行，否则不能</p>
+<p>当然除了这个方式，还有一下三种方式安装一个app：</p>
+<ol>
+<li>开发时，直接通过USB将应用安装到手机进行调试；</li>
+<li>In-House 企业内部分发，可直接安装企业证书签名的App；</li>
+<li>Ad-Hoc 相当于企业分发的限制版，限制安装设备数量。</li>
+</ol>
+<p>①、KeyChain 里的“从证书颁发机构请求证书”，<strong>本地生成一对公私钥</strong>。（其中：公钥L是保存的CertificateSigningRequest(CSR)，而私钥L保存在电脑本地，可以导出为p12）</p>
+<p>附：Apple 官方也有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+<blockquote>
+<p>（因为这里的这个私钥是本地Mac持有，所以团队开发时，可在KeyChain导出私钥，存为.p12文件，其他Mac即可导入这个私钥）</p>
+</blockquote>
+<p>2、在Member Center把CertificateSigningRequest上传到<strong>苹果后台生成证书</strong>（即上传之后Apple后台用Apple 官方自己固定的私钥A对我们上传的公钥L进行签名，将得到的<strong>签名+公钥L打包起来，称为证书</strong>），下载到本地。</p>
+<blockquote>
+<p>Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+</blockquote>
+<p>3、在Member Center配置AppID、添加设备UUID／Entitlements, <strong>生成app对应的 Provisioning Profile 文件</strong>，并下载到本地<br>4、在XCode中配置好证书，打包编译时，<strong>用Xcode配置的对应该证书的本地私钥L对app进行签名，并把 Provisioning Profile 文件一起打包进App去(文件名为 embedded.mobileprovision)</strong>。这里对App的签名数据分两部分，Mach-O 可执行文件把签名直接写进这个文件，其他资源文件则保存在_CodeSignature目录下</p>
+<p>5、安装APP到手机上时，iOS设备内置的公钥A(指Apple官方自己固定的公钥)对embedded.mobileprovision的数字签名进行验证，同时对里面的证书的签名也会验证<br>如果验证通过，确保了embedded.mobileprovision的数据是苹果授权后，再取出里面数据做各种验证，包括公钥L对app签名进行验证，验证设备ID，AppID，权限开关。</p>
+<h1 id="iOS-常见三种加密（MD5、非对称加密，对称加密）"><a href="#iOS-常见三种加密（MD5、非对称加密，对称加密）" class="headerlink" title="iOS-常见三种加密（MD5、非对称加密，对称加密）"></a>iOS-常见三种加密（MD5、非对称加密，对称加密）</h1><ul>
+<li><a href="https://blog.csdn.net/ssy_1992/article/details/79094556" target="_blank" rel="noopener">iOS-常见三种加密（MD5、非对称加密，对称加密）</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/10其他2/" data-id="clew9cp3b00vwxlr48uuftnud" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/10其他/7其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/7其他/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li>十一、谈谈设计模式</li>
+<li>十二、如何优化过于臃肿的Controller</li>
+<li>十三、谈谈性能优化(功耗)</li>
+<li>十四、UITableView的优化、重用</li>
+<li>十五、布局 layoutsubview、drawrect等</li>
+<li>十六、有逼格的代码</li>
+<li>十七、单元测试</li>
+<li><p>十八、APP审核</p>
+</li>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p></p><p id="十一"></p><p></p>
+<h2 id="十一、谈谈设计模式"><a href="#十一、谈谈设计模式" class="headerlink" title="十一、谈谈设计模式"></a>十一、谈谈设计模式</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<p></p><p id="十二"></p><p></p>
+<h2 id="十二、如何优化过于臃肿的Controller"><a href="#十二、如何优化过于臃肿的Controller" class="headerlink" title="十二、如何优化过于臃肿的Controller"></a>十二、如何优化过于臃肿的Controller</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a><br><a href="http://t.cn/REFMQaU" target="_blank" rel="noopener">如何优化过于臃肿的Controller</a></p>
+</blockquote>
+<p></p><p id="十三"></p><p></p>
+<h2 id="十三、谈谈性能优化-功耗"><a href="#十三、谈谈性能优化-功耗" class="headerlink" title="十三、谈谈性能优化(功耗)"></a>十三、谈谈性能优化(功耗)</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<ul>
+<li><a href="http://www.cocoachina.com/ios/20171204/21413.html" target="_blank" rel="noopener">iOS进阶–App功耗优化看这篇就够了</a></li>
+<li><a href="https://www.jianshu.com/p/4555704f9696" target="_blank" rel="noopener">iOS耗电量检测与优化</a></li>
+</ul>
+<h2 id="UITableView的优化、重用"><a href="#UITableView的优化、重用" class="headerlink" title="UITableView的优化、重用"></a>UITableView的优化、重用</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="布局-layoutsubview、drawrect等"><a href="#布局-layoutsubview、drawrect等" class="headerlink" title="布局 layoutsubview、drawrect等"></a>布局 layoutsubview、drawrect等</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="有逼格的代码"><a href="#有逼格的代码" class="headerlink" title="有逼格的代码"></a>有逼格的代码</h2><p><code>typedef NSString * NSRunLoopMode NS_EXTENSIBLE_STRING_ENUM;</code><br><a href="http://www.bubuko.com/infodetail-1899020.html" target="_blank" rel="noopener">提升自己逼格的编程之美之代码规范</a><br><a href="http://www.cocoachina.com/ios/20171123/21298.html" target="_blank" rel="noopener">iOS开发细节 | 通知怎么写？</a><br><a href="https://www.jianshu.com/p/6c44419eb059" target="_blank" rel="noopener">实现NS_ENUM的自定义反射</a></p>
+<h2 id="单元测试"><a href="#单元测试" class="headerlink" title="单元测试"></a>单元测试</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h2 id="APP审核"><a href="#APP审核" class="headerlink" title="APP审核"></a>APP审核</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<p>如果一个页面被苹果拒回。那怎么通过审核。(参考<a href="http://www.cocoachina.com/bbs/read.php?tid=1731860" target="_blank" rel="noopener">金融类APP提交苹果审核，怎么避开5.2.1</a>)</p>
+<p>答：</p>
+<p>1.第一种是有后台控制壳什么时候出现。移动端传一个版本号给后台，后台根据版本号判断App否在审核，在审核就显示壳，不在审核就显示原生界面。</p>
+<p>2.直接由移动端来切换界面。此时App需要登录才能看到主界面，对给苹果审核人员的测试账号做一个判断，如果是测试账号，就显示壳，非测试账号显示原生界面。 </p>
+<p>其中：</p>
+<p>第一种方式用户进来就可以看到主界面，更有利于吸引自然流量，但是如果苹果后期复查，发现了用户使用的App跟审核的不一样，会被下架。</p>
+<p>第二种方式不利于吸引自然流量，但是被下架的风险很小，因为苹果的审核团队在美国，不可能自己去注册账号，复查也没关系，除非有人举报你的App。</p>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="1、如何使用一个for循环输出九九乘法表"><a href="#1、如何使用一个for循环输出九九乘法表" class="headerlink" title="1、如何使用一个for循环输出九九乘法表"></a>1、<a href="http://blog.csdn.net/mbuger/article/details/60877188" target="_blank" rel="noopener">如何使用一个for循环输出九九乘法表</a></h4><h6 id="NSJSONSerialization"><a href="#NSJSONSerialization" class="headerlink" title="NSJSONSerialization"></a>NSJSONSerialization</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSData *data = [operation.responseString dataUsingEncoding:NSUTF8StringEncoding];</span><br><span class="line">    NSMutableDictionary *responseObject_dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers | NSJSONReadingMutableLeaves error:nil];</span><br></pre></td></tr></table></figure>
+<p>//NSJSONReadingMutableContainers的作用: <a href="http://blog.csdn.net/chenyong05314/article/details/45691041" target="_blank" rel="noopener">http://blog.csdn.net/chenyong05314/article/details/45691041</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NSJSONReadingMutableContainers：返回可变容器，NSMutableDictionary或NSMutableArray。</span><br><span class="line">NSJSONReadingMutableLeaves：返回的JSON对象中字符串的值为NSMutableString</span><br><span class="line">NSJSONReadingAllowFragments：允许JSON字符串最外层既不是NSArray也不是NSDictionary，但必须是有效的JSON Fragment。例如使用这个选项可以解析 @“123” 这样的字符串。</span><br></pre></td></tr></table></figure>
+<h3 id="iOS中常见Crash总结"><a href="#iOS中常见Crash总结" class="headerlink" title="iOS中常见Crash总结"></a>iOS中常见Crash总结</h3><ul>
+<li><a href="http://www.cocoachina.com/articles/27227" target="_blank" rel="noopener">iOS中常见Crash总结</a></li>
+<li><a href="https://blog.csdn.net/zhonggaorong/article/details/52022220" target="_blank" rel="noopener">iOS开发之调试技巧Xcode7中你一定要知道的炸裂调试神技、Address Sanitizer EXC_BAD_ACCESS</a></li>
+</ul>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/7其他/" data-id="clew9cp3p00vzxlr4ca58lnut" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/类微信体验" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/类微信体验/" class="article-date">
+  <time datetime="2022-02-16T02:15:41.000Z" itemprop="datePublished">2022-02-16</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/类微信体验/">类微信体验</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="类微信体验"><a href="#类微信体验" class="headerlink" title="类微信体验"></a>类微信体验</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>微信：</p>
+<p>1、IM部分</p>
+<p>2、发现（如”看一看”功能）</p>
+<p>IM部分：</p>
+<p>数据库：从数据库中取+新记录保存到数据库中</p>
+<p>问题：</p>
+<p>1、给人同步的感觉</p>
+<p>2、不是每个调用失败，都要提示给用户</p>
+<p>错误的请求，不弹toast</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/类微信体验/" data-id="clew9cmw00011xlr4ie7n5fkv" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/10与原生相关/Flutter 与原生相关" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/10与原生相关/Flutter 与原生相关/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-与原生相关"><a href="#Flutter-与原生相关" class="headerlink" title="Flutter 与原生相关"></a>Flutter 与原生相关</h1><h2 id="一、使用与原生有关的三方库的注意点"><a href="#一、使用与原生有关的三方库的注意点" class="headerlink" title="一、使用与原生有关的三方库的注意点"></a>一、使用与原生有关的三方库的注意点</h2><h3 id="1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type"><a href="#1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type" class="headerlink" title="1、trying to create a view with an unregistered type, unregistered view type"></a>1、trying to create a view with an unregistered type, unregistered view type</h3><p>使用三方库的时候，如果该库与原生有关。如webview插件、百度地图插件等。如果直接使用，不对工程设置的话，则会报<code>trying to create a view with an unregistered type, unregistered view type:</code></p>
+<p>解决方案：在info.plist加入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;key&gt;io.flutter.embedded_views_preview&lt;/key&gt;</span><br></pre></td></tr></table></figure>
+<p>原因：</p>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/169370922" target="_blank" rel="noopener">浅析 Flutter 与 iOS 的视图桥梁 PlatformView</a></li>
+</ul>
+<h3 id="2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value"><a href="#2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value" class="headerlink" title="2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value"></a>2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value</h3><p>启动的时候使用rootBundle.loadString 加载本地配置json，但是直接加载会报错：<br>[ERROR:flutter/lib/ui/ui_dart_state.cc(199)] Unhandled Exception: Null check operator used on a null value </p>
+<p>解决办法：加载本地资源以前增加一行代码：</p>
+<p><code>WidgetsFlutterBinding.ensureInitialized();</code> //解决加载json错误</p>
+<p>例子:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">void main() async &#123;</span><br><span class="line">	WidgetsFlutterBinding.ensureInitialized(); //解决加载json错误</span><br><span class="line">	globals.config = jsonDecode(await rootBundle.loadString(‘assets/config.json’));</span><br><span class="line">	runApp(MyApp());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView"><a href="#二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView" class="headerlink" title="二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView"></a>二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView</h2><h2 id="三、百度地图"><a href="#三、百度地图" class="headerlink" title="三、百度地图"></a>三、百度地图</h2><h3 id="百度地图-Flutter插件"><a href="#百度地图-Flutter插件" class="headerlink" title="百度地图-Flutter插件"></a><a href="https://lbsyun.baidu.com/index.php?title=flutter/loc" target="_blank" rel="noopener">百度地图-Flutter插件</a></h3><p> 1)iOS权限问题可参照<a href="https://lbsyun.baidu.com/index.php?title=ios-locsdk/guide/create-project/manual-create" target="_blank" rel="noopener">iOS定位SDK手动部署说明</a>。<br>  2)iOS头文件错误：</p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios1.png" alt="ios1.png"></p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios2.png" alt="ios2.png"></p>
+<p>解决办法：Xcode-TARGETS-build settings-Allow Non-modular Includes In Famework Modules设置为YES。</p>
+<p>Allow Non-modular Includes In Famework Modules</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/10与原生相关/Flutter 与原生相关/" data-id="clew9cnyp00bgxlr4kp6zpn6t" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-iOS-点击状态栏回到顶部"><a href="#Flutter-iOS-点击状态栏回到顶部" class="headerlink" title="Flutter iOS 点击状态栏回到顶部"></a>Flutter iOS 点击状态栏回到顶部</h1><h2 id="一、会回到顶部的原理"><a href="#一、会回到顶部的原理" class="headerlink" title="一、会回到顶部的原理"></a>一、会回到顶部的原理</h2><p>ios中一个常见的交互是：点击顶部栏时，自动将当前的滚动区滚到顶部。在flutter中，大部分时候这件事是“自然完成”的，但是也有时候会遇到这个行为失效的情况。要解决这个问题首先自然是要看这个feature是如何实现的。<br> 其实大部分都是Scaffold里面干的事：<br> Scaffold里有这样一段代码:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (themeData.platform) &#123;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.iOS:</span><br><span class="line">    _addIfNonNull(</span><br><span class="line">      children,</span><br><span class="line">      GestureDetector(</span><br><span class="line">        behavior: HitTestBehavior.opaque,</span><br><span class="line">        onTap: _handleStatusBarTap,</span><br><span class="line">        <span class="comment">// iOS accessibility automatically adds scroll-to-top to the clock in the status bar</span></span><br><span class="line">        excludeFromSemantics: <span class="literal">true</span>,</span><br><span class="line">      ),</span><br><span class="line">      _ScaffoldSlot.statusBar,</span><br><span class="line">      removeLeftPadding: <span class="literal">false</span>,</span><br><span class="line">      removeTopPadding: <span class="literal">true</span>,</span><br><span class="line">      removeRightPadding: <span class="literal">false</span>,</span><br><span class="line">      removeBottomPadding: <span class="literal">true</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.android:</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.fuchsia:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里命名很舒服，可以直接看出来在干什么：如果是ios的话，那就给Scaffold加一个在状态栏上的点击区，点击的话就会触发一个函数，这个函数干的事情如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">_handleStatusBarTap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (_primaryScrollController.hasClients) &#123;</span><br><span class="line">    _primaryScrollController.animateTo(</span><br><span class="line">      <span class="number">0.0</span>,</span><br><span class="line">      duration: <span class="function"><span class="keyword">const</span> <span class="title">Duration</span><span class="params">(milliseconds: <span class="number">300</span>)</span>,</span></span><br><span class="line"><span class="function">      curve: Curves.linear, <span class="comment">// TODO(ianh): Use a more appropriate curve.</span></span></span><br><span class="line"><span class="function">    )</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也就是，Scaffold会提供一个默认的ScrollController，而点击顶部栏会使得这个controller滚到顶部，在ScrollView的build函数中则会取这个controller:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line">Widget build(BuildContext context) &#123;</span><br><span class="line">  <span class="keyword">final</span> List&lt;Widget&gt; slivers = buildSlivers(context);</span><br><span class="line">  <span class="keyword">final</span> AxisDirection axisDirection = getDirection(context);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 注意，此处的primary不是传入的primary，</span></span><br><span class="line">  <span class="comment">// primary = primary ?? controller == null &amp;&amp; identical(scrollDirection, Axis.vertical)</span></span><br><span class="line">  <span class="keyword">final</span> ScrollController scrollController = primary</span><br><span class="line">    ? PrimaryScrollController.of(context)</span><br><span class="line">    : controller;</span><br><span class="line">  <span class="keyword">final</span> Scrollable scrollable = Scrollable(</span><br><span class="line">    dragStartBehavior: dragStartBehavior,</span><br><span class="line">    axisDirection: axisDirection,</span><br><span class="line">    controller: scrollController,</span><br><span class="line">    physics: physics,</span><br><span class="line">    semanticChildCount: semanticChildCount,</span><br><span class="line">    viewportBuilder: (BuildContext context, ViewportOffset offset) &#123;</span><br><span class="line">      <span class="keyword">return</span> buildViewport(context, offset, axisDirection, slivers);</span><br><span class="line">    &#125;,</span><br><span class="line">  );</span><br><span class="line">  <span class="keyword">return</span> primary &amp;&amp; scrollController != <span class="literal">null</span></span><br><span class="line">    ? PrimaryScrollController.none(child: scrollable)</span><br><span class="line">    : scrollable;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果指定controller的话，就不会使用PrimaryScrollview，如果不指定的话，则在primary为true时使用PrimaryController，而默认情况下controller为null，primary为true，因此一个裸体的ListView是会相应屏幕点击的。<br> 知道了原理，就很容易分析自己代码里出的问题是什么，常见的可能就是：<br> 1、没加Scaffold，这个其实并不常见（自相矛盾草），不过可以检查一下，一般总是会有Scaffold的<br> 2、真正常见的：指定了controller，如果自己创建了一个Controller丢给ScrollView，那必然是会失效的。但是使用controller又是一个很常见且重要的需求，怎么办呢？也很简单，就是不要自己创建新的ScrollController，而是直接取PrimaryScrollController.of(context)这个controller，对其进行自己要做的操作。<br> 3、相对不太常见且需要分析具体代码的：多个Scaffold导致的冲突。<br> 注意到其实flutter里的这个点击状态栏并不是真的点击了状态栏，而是点击了“Scaffold提供的位于状态栏的可点击区域”，也就是说，如果有多个Scaffold就会有多个这样的区域。实际情况是，只有最内部的Scaffold的状态栏会有响应，而如果ScrollView所处位置取到的和点击的Scaffold不一致，自然也就不会有滚动到顶部的feature</p>
+<h2 id="二、错误示例"><a href="#二、错误示例" class="headerlink" title="二、错误示例"></a>二、错误示例</h2><p>今天遇到ios点击状态栏无法回到顶部（原理在文章后）的问题。研究后发现，Scaffold组件虽然会自带这个功能。但使用时候，必须遵循指定规则才行。</p>
+<p>我们以点击 TapStatusNormalPage 上的状态栏返回顶部来举例。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// tap_status_normal_page.dart</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TapStatusNormalPage</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> TapStatusNormalPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;TapStatusNormalPage&gt; createState() =&gt; _TapStatusNormalPageState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_TapStatusNormalPageState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">TapStatusNormalPage</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold( <span class="comment">// 注意这个页面已经包了 Scaffold 了</span></span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: <span class="keyword">const</span> Text(<span class="string">'状态栏点击-Normal5'</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: ListView.builder(</span><br><span class="line">        itemCount: <span class="number">200</span>,</span><br><span class="line">        itemBuilder: (context, index) &#123;</span><br><span class="line">          <span class="keyword">return</span> Text(<span class="string">'<span class="subst">$index<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">        &#125;,</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">      ),</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    );</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<h3 id="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"><a href="#错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。" class="headerlink" title="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"></a>错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。</h3><p>失效示例1：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">HomePage</span> <span class="title">extends</span> <span class="title">StatelessWidget</span> &#123;</span><br><span class="line">  @<span class="keyword">override</span></span><br><span class="line">  <span class="function">Widget <span class="title">build</span>(<span class="params">BuildContext context</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: TapStatusNormalPage(), <span class="comment">// 失效原因：TapStatusNormalPage里已经有 Scaffold 了</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种情况，点击状态栏便不会回到顶部，我们需要保证的就是每个页面仅有一个Scaffold。</p>
+<h3 id="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"><a href="#错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部" class="headerlink" title="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"></a>错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</h3><p>失效示例2：</p>
+<p>虽然home里只有一个 Scaffold ，但app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ScreenUtilInit(</span><br><span class="line">    designSize: <span class="keyword">const</span> Size(<span class="number">375</span>, <span class="number">812</span>),</span><br><span class="line">    builder: () =&gt; MaterialApp(</span><br><span class="line">      navigatorKey: navigatorKey,</span><br><span class="line">      title: <span class="string">'wish'</span>,</span><br><span class="line">      home: TapStatusNormalPage(),</span><br><span class="line">      builder: EasyLoading.init(builder: (context, widget) &#123;</span><br><span class="line">        <span class="keyword">return</span> MediaQuery(</span><br><span class="line">          <span class="comment"><span class="markdown">///设置文字大小不随系统设置改变</span></span></span><br><span class="line">          data: MediaQuery.of(context).copyWith(textScaleFactor: <span class="number">1.0</span>),</span><br><span class="line">          <span class="comment">// child: Scaffold( // 注意：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</span></span><br><span class="line">          <span class="comment">//   resizeToAvoidBottomInset: false,</span></span><br><span class="line">          <span class="comment">//   body: widget,</span></span><br><span class="line">          <span class="comment">// ),</span></span><br><span class="line">          child: widget, <span class="comment">// OK</span></span><br><span class="line">        );</span><br><span class="line">      &#125;),</span><br><span class="line">    ),</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
+<h3 id="错误三：一说要滚动就自定义controller"><a href="#错误三：一说要滚动就自定义controller" class="headerlink" title="错误三：一说要滚动就自定义controller"></a>错误三：一说要滚动就自定义controller</h3><p>点击页面上的某个按钮，让页面上的列表滚动到顶部（不需要自定义controller）。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">PrimaryScrollController.of(context).jumpTo(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PrimaryScrollController.of(context).animateTo(</span><br><span class="line">            <span class="number">0</span>,</span><br><span class="line">            duration: <span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>),</span><br><span class="line">            curve: Curves.linear,</span><br><span class="line">          );</span><br></pre></td></tr></table></figure>
+<p>如果还要监听滚动</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> didChangeDependencies() &#123;</span><br><span class="line">   <span class="keyword">super</span>.didChangeDependencies();</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">if</span> (!_hasEverInitListener) &#123;</span><br><span class="line">     PrimaryScrollController.of(context).addListener(_handleScrollViewEvent);</span><br><span class="line">     _hasEverInitListener = <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> deactivate() &#123;</span><br><span class="line">   <span class="keyword">super</span>.deactivate();</span><br><span class="line">   PrimaryScrollController.of(context).removeListener(_handleScrollViewEvent);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">_handleScrollViewEvent() &#123;</span><br><span class="line">   <span class="comment">// 滚动距离</span></span><br><span class="line">   <span class="built_in">double</span> offsetY = PrimaryScrollController.of(context).offset;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views"><a href="#错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views" class="headerlink" title="错误四：Another exception was thrown: ScrollController attached to multiple scroll views."></a>错误四：Another exception was thrown: ScrollController attached to multiple scroll views.</h3><p>问题：</p>
+<p>flutter_swiper：Another exception was thrown: ScrollController attached to multiple scroll views</p>
+<p>翻译一下：引发了另一个异常：ScrollController连接到多个滚动视图。</p>
+<p>原因：</p>
+<p>Flutter Swiper是一个轮播图组件，内部包含一个Widget List，当这个Widget List数量大于1，就可能会有这种情况</p>
+<p>解决方案：给Swiper加一个Key即可解决</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">return</span> <span class="selector-tag">Container</span>(</span><br><span class="line">     <span class="attribute">child</span>: AspectRatio(</span><br><span class="line">       <span class="attribute">aspectRatio</span>: <span class="number">1.5</span> / <span class="number">1</span>, <span class="comment">// 宽高比450/300</span></span><br><span class="line">       <span class="attribute">child</span>: Swiper(</span><br><span class="line">         <span class="attribute">key</span>: UniqueKey(), <span class="comment">// 这个必须添加，代表唯一</span></span><br><span class="line">         <span class="attribute">itemBuilder</span>: (BuildContext context, int index) &#123;</span><br><span class="line">           return new Image.network(</span><br><span class="line">             imgList[index][<span class="string">'url'</span>],</span><br><span class="line">             <span class="attribute">fit</span>: BoxFit.fill,</span><br><span class="line">           );</span><br><span class="line">         &#125;,</span><br><span class="line">         <span class="attribute">itemCount</span>: imgList.length,</span><br><span class="line">         <span class="attribute">pagination</span>: new SwiperPagination(),</span><br><span class="line">         <span class="attribute">control</span>: new SwiperControl(),</span><br><span class="line">         <span class="attribute">autoplay</span>: true,</span><br><span class="line">       ),</span><br><span class="line">     ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="clew9co3800dqxlr4zrjd1ijt" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/开发随笔/Flutter 拖曳排序" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/开发随笔/Flutter 拖曳排序/" class="article-date">
@@ -407,454 +722,6 @@
 
 
   
-    <article id="post-Architecture架构/Git-Flow" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/Git-Flow/" class="article-date">
-  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="Git-Flow"><a href="#Git-Flow" class="headerlink" title="Git Flow"></a>Git Flow</h1><h2 id="分支类型"><a href="#分支类型" class="headerlink" title="分支类型"></a>分支类型</h2><ul>
-<li>master</li>
-<li>dev</li>
-<li>feature</li>
-<li>hotfix</li>
-<li>preproduct</li>
-</ul>
-<h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>线上代码分支。</p>
-<p>【创建】在创建 repo 的时候创建 <code>master</code> 分支。</p>
-<p>【命名】master</p>
-<p>【描述】所有 release 的 tag 都打在 <code>master</code>，并且 <code>master</code> 不能直接 commit，只能通过 merge 来完成代码提交。</p>
-<p>【输入】合并自 <code>preproduct</code> <code>hotfix</code></p>
-<p>【输出】<code>hotfix</code></p>
-<p>【销毁】master 分支是恒定存在的</p>
-<h3 id="dev"><a href="#dev" class="headerlink" title="dev"></a>dev</h3><p>稳定开发分支</p>
-<p>【创建】在创建 <code>master</code> 分支时，立即创建 <code>dev</code> 分支</p>
-<p>【命名】dev</p>
-<p>【描述】新版本需求来的时候管理员会从 <code>dev</code> 中拉出一条版本分支。<code>dev</code> 分支里保存完整的版本迭代和测试环境下已经修复的 bug。</p>
-<p>【输入】合并自 <code>feature</code> <code>hotfix</code> <code>preproduct</code></p>
-<p>【输出】版本 release 时并入 <code>master</code></p>
-<p>【销毁】dev 分支是恒定存在的</p>
-<h3 id="feature-version"><a href="#feature-version" class="headerlink" title="feature / version"></a>feature / version</h3><p>功能分支、新版本分支</p>
-<p>【创建】当有新版本计划时，从 <code>dev</code> 中拉取</p>
-<p>【命名】dev_1.0.0</p>
-<p>【描述】存放某个版本的集成代码，包括这个版本在内测环境下的 bug 修复代码</p>
-<p>【输入】开发人员 commit</p>
-<p>【输出】版本结束后并入 <code>dev</code></p>
-<p>【销毁】并入后销毁</p>
-<h3 id="preproduct"><a href="#preproduct" class="headerlink" title="preproduct"></a>preproduct</h3><p>某版本预生产分支</p>
-<p>【创建】当某个版本的测试环境通过后，从 feature 分支并入 dev 分支时，从 dev 分支拉取出的分支</p>
-<p>【命名】pre_1.0.0</p>
-<p>【描述】存放某个版本的预生产代码，修复预生产时候的 bug</p>
-<p>【输入】从 <code>dev</code> 中拉取，开发人员 commit</p>
-<p>【输出】版本结束后同时并入 <code>master</code> 和 <code>dev</code>（不是并入 <code>dev</code> 再从 <code>dev</code> 并入 <code>master</code>）</p>
-<p>【销毁】并入后销毁</p>
-<h3 id="hotfix"><a href="#hotfix" class="headerlink" title="hotfix"></a>hotfix</h3><p>热补丁分支</p>
-<p>【创建】从 <code>master</code> 拉取。</p>
-<p>【命名】hotfix/新版本号</p>
-<p>【描述】需要紧急上线一个补丁版本，且已有新版本的 <code>feature</code> 分支时，需要创建该分支。如果当前没有新版本的 <code>feature</code> 分支，则按正常开发逻辑走流程。</p>
-<p>【输入】开发人员 commit</p>
-<p>【输出】先并入 <code>master</code>；判断 <code>preproduct</code> 是否存在 ？ 并入 <code>preproduct</code> : 并入 <code>dev</code></p>
-<p>【销毁】并入后销毁</p>
-<h2 id="提交格式"><a href="#提交格式" class="headerlink" title="提交格式"></a>提交格式</h2><p>使用 SourceTree 完成 commit，message 可以换行。</p>
-<p>大致格式如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【信息分类】简略描述</span><br><span class="line">详细描述</span><br><span class="line">【URL】bugly 地址，或者 JIRA 地址</span><br></pre></td></tr></table></figure>
-<h3 id="信息分类"><a href="#信息分类" class="headerlink" title="信息分类"></a>信息分类</h3><h4 id="Bugfix"><a href="#Bugfix" class="headerlink" title="Bugfix"></a>Bugfix</h4><p>【修复】修复自己开发过程中自测出来的问题</p>
-<p>【修复-jira-{id}】修复 jira 上的问题，附带 bug id</p>
-<p>【修复-bugly-{id}】修复 bugly 上的问题，附带 bug id</p>
-<h3 id="Feature"><a href="#Feature" class="headerlink" title="Feature"></a>Feature</h3><p>【新增】增加新的功能</p>
-<h3 id="Optmize"><a href="#Optmize" class="headerlink" title="Optmize"></a>Optmize</h3><p>【优化】优化某些代码</p>
-<h3 id="Resource"><a href="#Resource" class="headerlink" title="Resource"></a>Resource</h3><p>【资源】资源文件的修改，不涉及代码</p>
-<h3 id="Configuration"><a href="#Configuration" class="headerlink" title="Configuration"></a>Configuration</h3><p>【配置】修改版本号，修改打包脚本，修改工程配置，不涉及代码</p>
-<h3 id="PS"><a href="#PS" class="headerlink" title="PS"></a>PS</h3><p>增加文件会更改到工程文件，此部分更改属于 Feature 的内容。</p>
-<h3 id="举例"><a href="#举例" class="headerlink" title="举例"></a>举例</h3><p>增加某个功能：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【新增】购物车一键清空功能</span><br><span class="line">批量删除购物车内的商品。</span><br></pre></td></tr></table></figure>
-<p>修复了某个自测 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">【修复】清空购物车的时跳出支付页面</span><br><span class="line">清空购物车的时候并没有删除商品，而是全选并支付。</span><br></pre></td></tr></table></figure>
-<p>修复了某个内测 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-jira-10019】清空购物车按钮点击无效果</span><br><span class="line">selector 编辑错误，导致 controller 没有响应事件。</span><br><span class="line">【URL】http://jira.luckincoffee.com/products/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
-<p>修复了某个线上 bug</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">【修复-bugly-1191】WebView 闪退</span><br><span class="line">对 WebView 中的编辑框操作（复制、全选、粘贴）时会闪退。</span><br><span class="line">【URL】http://bugly.qq.com/luckincoffee/id_xxxxxx.html</span><br></pre></td></tr></table></figure>
-<h2 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h2><p><img src="/Architecture架构/Git-Flow/gitflow-feature.png" alt="feature"></p>
-<p><img src="/Architecture架构/Git-Flow/gitflow-hotfix.png" alt="feature"></p>
-<h2 id="GitFlow-alfredsnippets-使用"><a href="#GitFlow-alfredsnippets-使用" class="headerlink" title="GitFlow.alfredsnippets 使用"></a>GitFlow.alfredsnippets 使用</h2><p>电脑安装 Alfred 3</p>
-<p>双击 <em>GitFlow.alfredsnippets</em> 文件，导入到 Alfred 中</p>
-<blockquote>
-<p>GitFlow.alfredsnippets 文件在此 repo 的 /page/iOS-Git-Flow 文件夹下可以找到</p>
-</blockquote>
-<p>光标选中 SourceTree 的 commit 信息编辑框</p>
-<p><img src="/Architecture架构/Git-Flow/sourcetree.png" style="zoom: 50%;"></p>
-<p>激活 Alfred 窗口（ 默认快捷键是 <code>Option</code> + <code>Space</code> ），输入 <code>snip git</code> 即可出现 commit 模板。</p>
-<p><img src="/Architecture架构/Git-Flow/alfred.png" alt=""></p>
-<p>选中想要提交的内容，按 <code>cmd + 数字</code> 即可。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/Git-Flow/" data-id="clew9cmvh000dxlr4iyn64n3n" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/苹果设备注册管理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/苹果设备注册管理/" class="article-date">
-  <time datetime="2021-12-24T17:16:44.432Z" itemprop="datePublished">2021-12-25</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>各位需要安装app的苹果手机用户们，晚上好。如您在通过如下地址：<br><a href="https://www.pgyer.com/kKTt" target="_blank" rel="noopener">https://www.pgyer.com/kKTt</a><br>下载愿望屋app的时候，发现无法安装，则可能是您的设备未进行证书注册(如果您可以安装则证明已注册，请忽略本消息)。<br>如您对安装有需求，则可通过如下地址<br><a href="https://www.pgyer.com/tools/udid" target="_blank" rel="noopener">https://www.pgyer.com/tools/udid</a><br>将您的苹果手机udid告知我们，我们为您添加后。当我们打新包的时候，就可以安装上app啦。<br>因证书注册设备只能添加100台，即使添加上去之后，再删除也算是一台。所以如果您非必要安装，请忽略本消息。<br>最后，提前祝大家节日快乐！</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/苹果设备注册管理/" data-id="clew9cmw8001nxlr4siraqub6" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/旧电脑数据清理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/旧电脑数据清理/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.098Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="旧电脑-Mac-数据清理"><a href="#旧电脑-Mac-数据清理" class="headerlink" title="旧电脑(Mac)数据清理"></a>旧电脑(Mac)数据清理</h1><p>[TOC]</p>
-<h2 id="清理项"><a href="#清理项" class="headerlink" title="清理项"></a>清理项</h2><p>系统偏好设置-用户与群组，左下角解锁点击加号添加一个新的管理员账号 点击左上角苹果图标，注销登陆新账号 同一个位置选择之前的账号点击减号删除 删除的时候选择删除文件就可以了</p>
-<ul>
-<li><p>AppleID(涉及appstore)</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 系统设置里退出</li>
-<li style="list-style: none"><input type="checkbox"> appStore –&gt; 商店 –&gt; 退出登录</li>
-</ul>
-</li>
-<li><p>iCloud账号(涉及备忘录、提醒事项、Safari等)</p>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 设置 –&gt; iCloud</li>
-</ul>
-<ul>
-<li><p>邮件、备忘录、提醒事项 清理</p>
-<ul>
-<li><p>[ ] 清理系统邮箱内容</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">进入 ~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads</span><br><span class="line">请不要在终端用open命令，因为Mail Downloads这个有空格。</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 备忘录、提醒事项</li>
-</ul>
-<ul>
-<li>钥匙串</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 清除系统钥匙串中的密码等相关</li>
-</ul>
-<ul>
-<li><p>浏览器</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome账号&amp;密码</li>
-</ul>
-<blockquote>
-<p>附：<a href="https://jingyan.baidu.com/article/e3c78d649cfbdd3c4c85f5af.html" target="_blank" rel="noopener">Mac如何查看Safari保存的密码</a></p>
-</blockquote>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome浏览记录</li>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome个人收藏</li>
-</ul>
-</li>
-<li><p>微信记录<br>在输入框中输入 <code>~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/</code>，然后找到<code>com.tencent.xinWeChat</code>删除整个文件夹即可。</p>
-</li>
-<li><p>QQ记录<br>在输入框输入<code>~/Library/Containers/com.tencent.qq</code>，删除整个文件即可。</p>
-</li>
-<li><p>Keynote、Page等清除打开的文件记录</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 打开软件 –&gt; 文件 –&gt; 打开最近使用 –&gt; 清除菜单</li>
-</ul>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>其他</p>
-<ul>
-<li><p>iPhone模拟器重置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">顶部 -&gt; Erase All Content And Setting</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-<li><p>应用软件删除</p>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>文件夹删除(文稿、图片、下载内容等)</p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="clew9cmyv0048xlr44clah1ff" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/新电脑初始安装" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/新电脑初始安装/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="新电脑-Mac-初始安装"><a href="#新电脑-Mac-初始安装" class="headerlink" title="新电脑(Mac)初始安装"></a>新电脑(Mac)初始安装</h1><p>[TOC]</p>
-<h2 id="一、系统设置"><a href="#一、系统设置" class="headerlink" title="一、系统设置"></a>一、系统设置</h2><ul>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/0bc808fc5bceb21bd485b98e.html" target="_blank" rel="noopener">mac三指拖动设置</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">系统设置 --&gt; 辅助功能 --&gt; 鼠标与触控板 --&gt; 触控板选项 --&gt; 三指拖移</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/e8cdb32beec90337052bad89.html" target="_blank" rel="noopener">mac显示隐藏文件</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">defaults write com.apple.finder AppleShowAllFiles -boolean true;killall Finder</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h2 id="二、搜狗输入法、QQ、微信、Wps"><a href="#二、搜狗输入法、QQ、微信、Wps" class="headerlink" title="二、搜狗输入法、QQ、微信、Wps"></a>二、搜狗输入法、QQ、微信、Wps</h2><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://pinyin.sogou.com/mac/" target="_blank" rel="noopener">搜狗输入法</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://im.qq.com" target="_blank" rel="noopener">QQ</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://weixin.qq.com" target="_blank" rel="noopener">微信</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.google.cn/chrome/" target="_blank" rel="noopener">chrome</a>、<a href="http://www.firefox.com.cn/" target="_blank" rel="noopener">Firefox</a> 显示书签栏</li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.macbl.com/app/system/the-unarchiver" target="_blank" rel="noopener">解压工具 unarchiver</a></li>
-<li style="list-style: none"><input type="checkbox" checked> Wps(AppStore)</li>
-<li style="list-style: none"><input type="checkbox"> <a href="https://www.zoom.cn/download/" target="_blank" rel="noopener">zoom</a></li>
-<li style="list-style: none"><input type="checkbox"> <a href="https://sslvpn.zjweu.edu.cn/com/installClient.html" target="_blank" rel="noopener">Easy Connect</a></li>
-</ul>
-<h2 id="三、琐事记录-amp-计划"><a href="#三、琐事记录-amp-计划" class="headerlink" title="三、琐事记录&amp;计划"></a>三、琐事记录&amp;计划</h2><h3 id="1、开始记录各种琐事：个人博客Git"><a href="#1、开始记录各种琐事：个人博客Git" class="headerlink" title="1、开始记录各种琐事：个人博客Git"></a>1、开始记录各种琐事：个人博客Git</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://github.com/dvlproad/dvlproadHexo" target="_blank" rel="noopener">个人博客Git</a></li>
-</ul>
-<h3 id="2、找到对应的文件：Alfred"><a href="#2、找到对应的文件：Alfred" class="headerlink" title="2、找到对应的文件：Alfred"></a>2、找到对应的文件：Alfred</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.alfredapp.com" target="_blank" rel="noopener">Alfred</a></li>
-</ul>
-<h3 id="3、编辑：Typora、SublimeText、截图xnip、翻译Bob"><a href="#3、编辑：Typora、SublimeText、截图xnip、翻译Bob" class="headerlink" title="3、编辑：Typora、SublimeText、截图xnip、翻译Bob"></a>3、编辑：Typora、SublimeText、截图xnip、翻译Bob</h3><ul>
-<li><p>[x] <a href="http://www.sublimetext.com" target="_blank" rel="noopener">sublimetext</a></p>
-</li>
-<li><p>[x] <a href="https://www.typora.io" target="_blank" rel="noopener">Typora</a>  顶部 显示-&gt; 文件树</p>
-<p><img src="/电脑使用/新电脑初始安装/typora1.png" alt="image-20201103140501382"></p>
-</li>
-<li><p>[x] <a href="https://zh.xnipapp.com" target="_blank" rel="noopener">xnip</a></p>
-</li>
-<li><p>[x] <a href="https://github.com/ripperhe/Bob" target="_blank" rel="noopener">Bob</a></p>
-<p>Bob需要的权限设置</p>
-<p><img src="/电脑使用/新电脑初始安装/Bob_setting1.png" alt="Bob需要的权限设置"></p>
-</li>
-</ul>
-<h3 id="4、列计划：omniplan、Xmind"><a href="#4、列计划：omniplan、Xmind" class="headerlink" title="4、列计划：omniplan、Xmind"></a>4、列计划：omniplan、Xmind</h3><ul>
-<li><p>[ ] <a href="https://www.macbl.com/app/utilities/omniplan-pro" target="_blank" rel="noopener">omniplan-pro</a></p>
-</li>
-<li><p>[x] Xmind Zen(AppStore)</p>
-</li>
-</ul>
-<h2 id="四、代码相关"><a href="#四、代码相关" class="headerlink" title="四、代码相关"></a>四、代码相关</h2><h3 id="1、Sourcetree、gitlab、github项目、ssh"><a href="#1、Sourcetree、gitlab、github项目、ssh" class="headerlink" title="1、Sourcetree、gitlab、github项目、ssh"></a>1、Sourcetree、gitlab、github项目、ssh</h3><ul>
-<li><p>[x] <a href="https://www.sourcetreeapp.com" target="_blank" rel="noopener">Sourcetree</a></p>
-</li>
-<li><p>[x] <a href="https://git-scm.com/book/zh/v2/服务器上的-Git-生成-SSH-公钥" target="_blank" rel="noopener">生成ssh</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 查看是已有</span></span><br><span class="line">cd ~/.ssh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 没有则执行生成</span></span><br><span class="line">ssh-keygen</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 生成后，拷贝id_rsa.pub中的秘钥到git的ssh配置中</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] gitlab</p>
-</li>
-<li><p>[x] <a href="https://github.com" target="_blank" rel="noopener">github</a></p>
-<p>mac中用sourcetree下载clone代码，结果出错：<code>warning: templates not found in /usr/local/git/share/git-core/templates</code></p>
-<p><img src="/电脑使用/新电脑初始安装/sourcetree_github1.png" alt="image-20201103134013411"></p>
-<p>解决办法：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /usr/local/git/share/git-core/templates</span><br><span class="line">sudo chmod -R 755 /usr/local/git/share/git-core/templates</span><br></pre></td></tr></table></figure>
-<p><img src="/电脑使用/新电脑初始安装/sourcetree_github2.png" alt="image-20201103135013020"></p>
-</li>
-</ul>
-<h3 id="2、Cocoapods、Spec"><a href="#2、Cocoapods、Spec" class="headerlink" title="2、Cocoapods、Spec"></a>2、Cocoapods、Spec</h3><ul>
-<li><p>[x] <a href="https://cocoapods.org" target="_blank" rel="noopener">Cocoapods官网</a></p>
-<p>1、安装Cocoapods</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo gem install cocoapods</span><br></pre></td></tr></table></figure>
-<p>2、拷贝cocoapods的Spec</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pod repo # 找到pod库的路径</span><br><span class="line">cd 到上述路径</span><br><span class="line">拷贝cocoapods的Spec，并重命名该仓库名字</span><br><span class="line">pod repo update master # 将指定的仓库更新</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h3 id="3、go2sheell"><a href="#3、go2sheell" class="headerlink" title="3、go2sheell"></a>3、go2sheell</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://zipzapmac.com/go2shell" target="_blank" rel="noopener">go2sheell</a></li>
-</ul>
-<h2 id="五、iOS编码工具"><a href="#五、iOS编码工具" class="headerlink" title="五、iOS编码工具"></a>五、iOS编码工具</h2><h3 id="1、Xcode"><a href="#1、Xcode" class="headerlink" title="1、Xcode"></a>1、Xcode</h3><ul>
-<li style="list-style: none"><input type="checkbox" checked> Xcode</li>
-</ul>
-<h3 id="2、CodeSnippets"><a href="#2、CodeSnippets" class="headerlink" title="2、CodeSnippets"></a>2、CodeSnippets</h3><p>  1、进入 <a href="https://gitee.com/dvlproad/BlackMagic" target="_blank" rel="noopener">BlackMagic</a> Git工程中的 <a href="https://gitee.com/dvlproad/BlackMagic/tree/master/1.①快速编码/CodeSnippets" target="_blank" rel="noopener">CodeSnippets</a> 并下载</p>
-<p>  2、CodeSnippets所在位置</p>
-<p>  ①自己定义的代码块是在以下目录下：<br>  ~/Library/Developer/Xcode/UserData/CodeSnippets/</p>
-<h3 id="3、iSwift破解版"><a href="#3、iSwift破解版" class="headerlink" title="3、iSwift破解版"></a>3、<a href="https://www.macbl.com/app/development/iswift" target="_blank" rel="noopener">iSwift破解版</a></h3><h3 id="4、其他-cocoapods-APP"><a href="#4、其他-cocoapods-APP" class="headerlink" title="4、其他 cocoapods APP"></a>4、其他 cocoapods APP</h3><ul>
-<li><a href="https://cocoapods.org/app" target="_blank" rel="noopener">cocoapods APP</a></li>
-</ul>
-<h2 id="六、Android"><a href="#六、Android" class="headerlink" title="六、Android"></a>六、Android</h2><h3 id="1、Android-Studio"><a href="#1、Android-Studio" class="headerlink" title="1、Android Studio"></a>1、Android Studio</h3><ul>
-<li><p>[x] <a href="https://developer.android.google.cn/studio" target="_blank" rel="noopener">Android Studio</a>、<a href="http://mumu.163.com" target="_blank" rel="noopener">MuMu模拟器</a>、gradle</p>
-<p><img src="/电脑使用/新电脑初始安装/AndroidStudio_Gradle.png" alt="AndroidStudio_Gradle"></p>
-</li>
-</ul>
-<h2 id="七、WebStrom"><a href="#七、WebStrom" class="headerlink" title="七、WebStrom"></a>七、WebStrom</h2><h3 id="1、WebStrom-APP"><a href="#1、WebStrom-APP" class="headerlink" title="1、WebStrom APP"></a>1、WebStrom APP</h3><ul>
-<li><p>[x] WebStrom</p>
-<p>激活码：<a href="http://idea.medeming.com/jet/" target="_blank" rel="noopener">http://idea.medeming.com/jet/</a></p>
-</li>
-</ul>
-<h3 id="2、WebStorm细节配置"><a href="#2、WebStorm细节配置" class="headerlink" title="2、WebStorm细节配置"></a>2、WebStorm细节配置</h3><h4 id="2-1、WebStorm-gt-Editor-gt-Live-Templates-gt-Copyright"><a href="#2-1、WebStorm-gt-Editor-gt-Live-Templates-gt-Copyright" class="headerlink" title="2.1、WebStorm -&gt; Editor -&gt; Live Templates -&gt; Copyright"></a>2.1、WebStorm -&gt; Editor -&gt; Live Templates -&gt; Copyright</h4><ul>
-<li><p>[x] Copyright</p>
-</li>
-<li><p>[x] demoCopyright</p>
-</li>
-<li><p>[x] companyCopyright</p>
-<p>具体操作请查看：<a href="../../编程工具/WebStorm/WebStorm的使用技巧.md">WebStorm的使用技巧</a></p>
-</li>
-</ul>
-<h4 id="2-2、WebStorm配置直接运行RN项目"><a href="#2-2、WebStorm配置直接运行RN项目" class="headerlink" title="2.2、WebStorm配置直接运行RN项目"></a>2.2、WebStorm配置直接运行RN项目</h4><p>​        具体操作请查看：<a href="../../ReactNative/1入门/ReactNative开发环境搭建与运行.md">ReactNative开发环境搭建与运行</a></p>
-<h2 id="八、抓包-Charles"><a href="#八、抓包-Charles" class="headerlink" title="八、抓包 Charles"></a>八、抓包 Charles</h2><ul>
-<li><p>Charles 下载</p>
-<blockquote>
-<p>进入百度网盘，搜索Charles，目前实用4.5.5版本</p>
-<p><img src="/电脑使用/新电脑初始安装/Charles.png" alt="Charles"></p>
-</blockquote>
-</li>
-<li><p><a href="../实用工具/Charles/Charles.md">Charles.md</a></p>
-</li>
-</ul>
-<h2 id="九、brew、yarn、npm"><a href="#九、brew、yarn、npm" class="headerlink" title="九、brew、yarn、npm"></a>九、brew、yarn、npm</h2><ul>
-<li><p>[ ] <a href="https://brew.sh/index_zh-cn" target="_blank" rel="noopener">brew</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[ ] <a href="https://yarnpkg.com/zh-Hans/docs/install#mac-stable" target="_blank" rel="noopener">yarn</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install yarn</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[ ] npm</p>
-</li>
-</ul>
-<h2 id="十、个人娱乐类"><a href="#十、个人娱乐类" class="headerlink" title="十、个人娱乐类"></a>十、个人娱乐类</h2><ul>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://v.qq.com" target="_blank" rel="noopener">腾讯视频</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://y.qq.com" target="_blank" rel="noopener">QQ音乐</a></li>
-<li style="list-style: none"><input type="checkbox" checked> <a href="https://www.cr173.com/soft/54136.html" target="_blank" rel="noopener">爱奇艺V5.4.10无广告版</a></li>
-</ul>
-<h2 id="十一、其他"><a href="#十一、其他" class="headerlink" title="十一、其他"></a>十一、其他</h2><h3 id="1、APP网站macbl"><a href="#1、APP网站macbl" class="headerlink" title="1、APP网站macbl"></a>1、APP网站macbl</h3><ul>
-<li style="list-style: none"><input type="checkbox"> <a href="https://www.macbl.com/" target="_blank" rel="noopener">下载mac应用的好网址 https://www.macbl.com/</a></li>
-</ul>
-<h3 id="2、APP安装问题"><a href="#2、APP安装问题" class="headerlink" title="2、APP安装问题"></a>2、APP安装问题</h3><ul>
-<li><p>[x] <a href="https://jingyan.baidu.com/article/9f63fb9162e3e6c8400f0e30.html" target="_blank" rel="noopener">mac安全与隐私开启任何来源</a></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo spctl --master-disable</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>[x] <a href="https://www.macbl.com/article/how-to/1387" target="_blank" rel="noopener"> <em>XXX.app 已损坏，打不开。您应该将它移到废纸篓</em></a></p>
-<blockquote>
-<p>1、在系统的“安全与隐私”中允许“任何来源”，再打开终端。<br>2、输入以下命令；</p>
-<p><code>sudo xattr -d com.apple.quarantine /Applications/xxxx.app</code></p>
-<p>注意：/Applications/xxxx.app 换成你的App路径或在sudo xattr -d com.apple.quarantine 后将软件拖进去即可。<br>3、最后，重启App即可。</p>
-</blockquote>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/新电脑初始安装/" data-id="clew9cmys0044xlr48z6a595p" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/远程共享文件夹" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/远程共享文件夹/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
-<h2 id="一、MacBook-Pro-怎么设置smb共享文件夹"><a href="#一、MacBook-Pro-怎么设置smb共享文件夹" class="headerlink" title="一、MacBook Pro 怎么设置smb共享文件夹"></a>一、MacBook Pro 怎么设置smb共享文件夹</h2><p>在Mac要设置smb的共享文件夹，那么如何设置的好的呢？如何去设置一共享文件夹？</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/30601b6104a355e9acb59562d22ae3efe17868b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<h2 id="方法-步骤"><a href="#方法-步骤" class="headerlink" title="方法/步骤"></a>方法/步骤</h2><ol>
-<li><p>右键一个桌面新建文件夹，然后点击新建文件夹。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e1390a31dfb6326c607de47a89532f63228560b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/22c4fe36e29147e80cfb44c7b603bbea3f8658b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>把要共享文件，拖入新建文件夹，然后点击logo。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/6002c9d4483104ebbfbc22ba092b74ee1d324eb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/8db0c6a72633488499f83699ddee7b7f870e45b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>点击设置，点击共享。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e4b5e2f5ee0d3acef4cc0fde87e265e7350fbbb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/1562a0b9763e21c2d3cd9c65e6e89a618725b1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>文件共享勾上，点击加。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/87645f93cee8b0042400acba79260d9a300ea9b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/304f0999e92abab83a5b174b4814f1c594eea1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>然后点击桌面选择新建文件夹添加，右边默认的读权限，如果要写的，那么该为读写。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/f0848bee41c1b727d3487b3d1a2ca5cadde898b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/a48bc2e8904800fcf1ece5bbd42043715edb93b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>之后点击用户，点击锁。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/5e615d715fdb36203521b03cabc5260f89358db0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/2184380f8835dd8acbc538b203013870d44187b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>输入密码解锁，然后把两个允许勾上。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/444696013870d541ad97dbbd2e0f94fc518c80b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/d400248ca608a50f0ee72d3910cec7f88b77ffb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-</ol>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="clew9cmz1004cxlr4ynjx4tnm" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
 
 
   <nav id="page-nav">
@@ -870,7 +737,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：webView/">第四章：webView</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/app安全/">app安全</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/目前痛点/">目前痛点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li></ul>
     </div>
   </div>
 
@@ -890,7 +757,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 15.83px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.67px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 10px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 16.36px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.09px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.73px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.91px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.18px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.73px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.82px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
     </div>
   </div>
 
@@ -912,23 +779,23 @@
       <ul>
         
           <li>
-            <a href="/Flutter/开发随笔/Flutter面试/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_h5Action_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/iOS/移动分析/沙盒数据查看/">第1节：沙盒数据查看</a>
+          </li>
+        
+          <li>
+            <a href="/iOS/移动分析/沙盒数据分析/">第2节：沙盒数据分析</a>
+          </li>
+        
+          <li>
+            <a href="/自动化/自动化分支信息/">自动化分支信息</a>
+          </li>
+        
+          <li>
+            <a href="/专利申请/">专利申请</a>
           </li>
         
       </ul>
