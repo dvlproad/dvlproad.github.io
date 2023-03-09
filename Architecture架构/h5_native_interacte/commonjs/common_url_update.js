@@ -2,7 +2,7 @@
  * @Author: dvlproad
  * @Date: 2023-03-03 14:02:09
  * @LastEditors: dvlproad
- * @LastEditTime: 2023-03-09 15:58:58
+ * @LastEditTime: 2023-03-09 16:58:35
  * @Description: 对url进行参数新增等操作的方法
  */
 /// 为 oldUrl 添加 newParams 参数，返回新url
@@ -32,6 +32,7 @@ function stringFromMap(newParams) {
   for (var i = 0; i < count; i++) {
     var key = keys[i];
     var value = newParams[key];
+    var stringValue;
     if (typeof value === 'string') {
       stringValue = value;
     } else if (typeof value === 'object') {
