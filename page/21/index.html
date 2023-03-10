@@ -72,6 +72,165 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/">第三方库SDWebImage①缓存-①NSCache</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①NSCache"><a href="#必备知识架构-第三方库SDWebImage①缓存-①NSCache" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①NSCache"></a>必备知识架构-第三方库SDWebImage①缓存-①NSCache</h1><p>[toc]</p>
+<h2 id="一、NSCache的认识"><a href="#一、NSCache的认识" class="headerlink" title="一、NSCache的认识"></a>一、NSCache的认识</h2><h3 id="1、为什么内存缓存要基于-NSCache？"><a href="#1、为什么内存缓存要基于-NSCache？" class="headerlink" title="1、为什么内存缓存要基于 NSCache？"></a>1、为什么内存缓存要基于 NSCache？</h3><p>NSCache和NSMutableDictionary，它们是iOS中常用的两个缓存类，基本上相同，都是<strong>健-值形式的内存缓存方式</strong>。</p>
+<p>1、<code>NSCache</code>的使用很方便，提供了类似可变字典的使用方式，但它比可变字典更适用于实现缓存，最重要的原因为<strong><code>NSCache</code>是线程安全的，使用<code>NSMutableDictionary</code>自定义实现缓存时需要考虑加锁和释放锁</strong>，<code>NSCache</code>已经帮我们做好了这一步，即在开发者自己不编写加锁代码的前提下，多个线程便可以同时访问NSCache。</p>
+<p>2、其次，在内存不足时<code>NSCache</code>会自动释放存储的对象，不需要手动干预，如果是自定义实现需要监听内存状态然后做进一步的删除对象的操作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">@interface NSCache &lt;KeyType, ObjectType&gt; : NSObject &#123;</span><br><span class="line">@private</span><br><span class="line">    id _delegate;</span><br><span class="line">    void *_private[5];</span><br><span class="line">    void *_reserved;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@property (copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@property (nullable, assign) id&lt;NSCacheDelegate&gt; delegate;</span><br><span class="line"></span><br><span class="line">- (nullable ObjectType)objectForKey:(KeyType)key;</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key; // 0 cost</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key cost:(NSUInteger)g;</span><br><span class="line">- (void)removeObjectForKey:(KeyType)key;</span><br><span class="line"></span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">// NSCache可以指定缓存的限额，当缓存超出限额自动释放内存</span><br><span class="line">// ①对象缓存可持有最大的数量 ，默认是0 没有限制），一旦超出限额，会自动删除之前添加的缓存数据</span><br><span class="line">@property NSUInteger countLimit;	// limits are imprecise/not strict</span><br><span class="line">// ②缓存中可持有的最大空间 默认是0（没有限制）</span><br><span class="line">@property NSUInteger totalCostLimit;	// limits are imprecise/not strict</span><br><span class="line"></span><br><span class="line">// 管理丢弃内容</span><br><span class="line">// 是否可以自动缓存清除可丢弃的内容，默认是YES</span><br><span class="line">@property BOOL evictsObjectsWithDiscardedContent;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>3、还有一点就是<strong><code>NSCache</code>的<code>key</code>不需要实现<code>NSCopying</code>协议</strong>，因为<code>NSCache</code>的键<code>key</code>不会被复制/拷贝。在键key不支持拷贝操作的情况下，该类用起来比字典更方便。</p>
+<h3 id="2、NSCache什么时候会删除缓存中的对象"><a href="#2、NSCache什么时候会删除缓存中的对象" class="headerlink" title="2、NSCache什么时候会删除缓存中的对象"></a>2、NSCache什么时候会删除缓存中的对象</h3><p><code>NSCache</code>删除缓存中的对象会在以下情形中发生:</p>
+<ul>
+<li>NSCache缓存对象自身被释放</li>
+<li>手动调用<code>removeObjectForKey:</code>或<code>removeAllObjects</code>方法</li>
+<li>缓存中对象的个数大于countLimit，或缓存中对象的总cost值大于totalCostLimit</li>
+<li>程序进入后台后</li>
+<li>收到系统的内存警告</li>
+</ul>
+<h2 id="二、SDMemoryCache的认识"><a href="#二、SDMemoryCache的认识" class="headerlink" title="二、SDMemoryCache的认识"></a>二、SDMemoryCache的认识</h2><p>以上已说明内存缓存要基于 NSCache，所以SDMemoryCache要继承于NSCache，源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// SDMemoryCache.h</span><br><span class="line">  </span><br><span class="line">/**</span><br><span class="line"> A memory cache which auto purge the cache on memory warning and support weak cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt; // 请注意这里除继承 NSCache &lt;KeyType, ObjectType&gt; 外，还有一个 与 SDMemoryCache 类名同名的 &lt;SDMemoryCache&gt; 协议</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>可以看出类<code>@interface SDMemoryCache</code>还要遵守<code>&lt;SDMemoryCache&gt;</code>协议。虽然类<code>@interface SDMemoryCache</code>没提供什么方法，但与 SDMemoryCache 类名同名的<code>&lt;SDMemoryCache&gt;</code>协议提供了。</p>
+<p><code>&lt;SDMemoryCache&gt;</code>协议源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A protocol to allow custom memory cache used in SDImageCache.</span><br><span class="line"> */</span><br><span class="line">@protocol SDMemoryCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)initWithConfig:(nonnull SDImageCacheConfig *)config;</span><br><span class="line"></span><br><span class="line">- (nullable id)objectForKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key cost:(NSUInteger)cost;</span><br><span class="line"></span><br><span class="line">- (void)removeObjectForKey:(nonnull id)key;</span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？"><a href="#1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？" class="headerlink" title="1、为什么另外建了个与类名SDMemoryCache同名的&lt;SDMemoryCache&gt;协议，并把方法提到了&lt;SDMemoryCache&gt;协议中？"></a>1、为什么另外建了个与类名SDMemoryCache同名的<code>&lt;SDMemoryCache&gt;</code>协议，并把方法提到了<code>&lt;SDMemoryCache&gt;</code>协议中？</h3><p>答：为了当你想要要使用自定义的缓存类的时候，可以不用继承<code>@interface SDMemoryCache</code>，而只需遵循<code>&lt;SDMemoryCache&gt;</code>协议的方便。</p>
+<h3 id="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"><a href="#2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？" class="headerlink" title="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"></a>2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？</h3><p>答：</p>
+<blockquote>
+<p>内存：@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; <sdmemorycache></sdmemorycache></p>
+<p>磁盘：@interface SDDiskCache : NSObject <sddiskcache></sddiskcache></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> The built-in disk cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDDiskCache : NSObject &lt;SDDiskCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">- (void)moveCacheDirectoryFromPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、内存缓存的设计"><a href="#三、内存缓存的设计" class="headerlink" title="三、内存缓存的设计"></a>三、内存缓存的设计</h2><h3 id="1、SDImageCache"><a href="#1、SDImageCache" class="headerlink" title="1、SDImageCache"></a>1、SDImageCache</h3><p>含<code>id&lt;SDMemoryCache&gt; memoryCache;</code>和<code>id&lt;SDDiskCache&gt; diskCache;</code></p>
+<p>一个SDImageCache对象，由内存和磁盘共同控制缓存。控制的策略由<code>SDImageCacheConfig</code>类来定制。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">@interface SDImageCache : NSObject</span><br><span class="line"></span><br><span class="line">#pragma mark - Properties</span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDMemoryCache&gt; memoryCache;</span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDDiskCache&gt; diskCache;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) NSString *diskCachePath;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) SDImageCacheAdditionalCachePathBlock additionalCachePathBlock;</span><br><span class="line"></span><br><span class="line">#pragma mark - Singleton and initialization</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Returns global shared cache instance</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCache *sharedImageCache;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Init a new cache store with a specific namespace</span><br><span class="line"> *</span><br><span class="line"> * @param ns The namespace to use for this cache store</span><br><span class="line"> */</span><br><span class="line">- (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;</span><br></pre></td></tr></table></figure>
+<p>同时SDImageCache还有个类目</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCache.h</span><br><span class="line">@interface SDImageCache (SDImageCache) &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">// SDImageCacheDefine.h</span><br><span class="line">@protocol SDImageCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>内存和磁盘共同控制缓存策略定制类SDImageCacheConfig</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCacheConfig.h</span><br><span class="line">@interface SDImageCacheConfig : NSObject &lt;NSCopying&gt;</span><br><span class="line"></span><br><span class="line">// 是否使用内存做缓存，默认为YES</span><br><span class="line">@property (assign, nonatomic) BOOL shouldCacheImagesInMemory;</span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;</span><br><span class="line"></span><br><span class="line">// 缓存图片的最长时间，单位是秒，默认是缓存一周</span><br><span class="line">@property (assign, nonatomic) NSTimeInterval maxDiskAge;</span><br><span class="line">// 缓存占用最大的空间，单位是字节</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxDiskSize;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCost;</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCount;</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * The attribute which the clear cache will be checked against when clearing the disk cache</span><br><span class="line"> * Default is Modified Date</span><br><span class="line"> */</span><br><span class="line">@property (assign, nonatomic) SDImageCacheConfigExpireType diskCacheExpireType;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、SDImageCachesManager"><a href="#2、SDImageCachesManager" class="headerlink" title="2、SDImageCachesManager"></a>2、SDImageCachesManager</h3><p>管理NSArray&lt;id<sdimagecache>&gt; *caches;</sdimagecache></p>
+<p>一张图片就是一份SDImageCache元素对象。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A caches manager to manage multiple caches.</span><br><span class="line"> */</span><br><span class="line">@interface SDImageCachesManager : NSObject &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCachesManager *sharedManager;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy queryOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy storeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy removeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy containsOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy clearOperationPolicy;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) NSArray&lt;id&lt;SDImageCache&gt;&gt; *caches; // 一张图片就是一份SDImageCache元素对象。</span><br><span class="line"></span><br><span class="line">- (void)addCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line">- (void)removeCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>### </p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clf2465fd00yayxr45ocv33p2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
+<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
+<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
+</ul>
+<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
+<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
+</ul>
+<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
+<p><strong>B.一个请求一条线程</strong></p>
+<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
+<p><strong>C.一条常驻线程</strong></p>
+<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
+<p>线程保活的代码</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
+<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
+<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
+<ol>
+<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
+<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
+</ol>
+<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
+<p>其中</p>
+<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
+<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
+<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
+<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf2465fe00ybyxr43ffsc8rg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" class="article-date">
@@ -145,7 +304,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clf10d74b00xqafr4cyfu53gm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clf2465ff00yeyxr4sf3cro6v" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -157,9 +316,9 @@
 
 
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -175,7 +334,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
     </h1>
   
 
@@ -183,15 +342,89 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
+        <h1 id="必备知识架构-SDWebImage①缓存-②缓存原理"><a href="#必备知识架构-SDWebImage①缓存-②缓存原理" class="headerlink" title="必备知识架构-SDWebImage①缓存-②缓存原理"></a>必备知识架构-SDWebImage①缓存-②缓存原理</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="SDWebImage"></p><p></p>
+<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
+<ul>
+<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
+<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
+</ul>
+<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
+<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
+<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
+<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
+<p>2 GCD 异步下载 </p>
+<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
+<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
+<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
+<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
+<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
+<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
+<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
+<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
+<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
+<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
+<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
+<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clf2465fh00ygyxr4e7e9ilqj" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
+<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
+<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
+<p>①、SDWebImageDownloaderOperation的下载请求</p>
+<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
+<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf10d74c00xwafr4rhmc8pyl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clf2465fk00yjyxr49xitg55t" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -296,7 +529,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf10d74d00xzafr4bonh1avk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf2465fm00ypyxr44v49pibb" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -308,9 +541,9 @@
 
 
   
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -326,7 +559,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
     </h1>
   
 
@@ -334,110 +567,15 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
+        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
+<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clf10d74e00y2afr45a751rmt" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
-<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
-<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
-</ul>
-<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
-<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
-</ul>
-<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
-<p><strong>B.一个请求一条线程</strong></p>
-<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
-<p><strong>C.一条常驻线程</strong></p>
-<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
-<p>线程保活的代码</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
-<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
-<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
-<ol>
-<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
-<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
-</ol>
-<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
-<p>其中</p>
-<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
-<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
-<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
-<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf10d74f00y8afr49rawzyoh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf2465fm00ysyxr41hwbflis" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -622,7 +760,64 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf10d5qk00kfafr4033z9cqs" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf2463tt00ktyxr4lu1aj248" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/进阶/iOS证书" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/进阶/iOS证书/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/进阶/iOS证书/">iOS证书</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="iOS证书"><a href="#iOS证书" class="headerlink" title="iOS证书"></a>iOS证书</h1><h2 id="二、推送证书"><a href="#二、推送证书" class="headerlink" title="二、推送证书"></a>二、推送证书</h2><ul>
+<li><a href="https://help.aliyun.com/document_detail/100097.html" target="_blank" rel="noopener">制作 iOS 推送证书</a></li>
+</ul>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302172748572.png" alt="image-20230302172748572" style="zoom: 50%;"></p>
+<h3 id="2、问题"><a href="#2、问题" class="headerlink" title="2、问题"></a>2、问题</h3><h4 id="1、iOS证书不受信任解决办法"><a href="#1、iOS证书不受信任解决办法" class="headerlink" title="1、iOS证书不受信任解决办法"></a>1、iOS证书不受信任解决办法</h4><p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173013788.png" alt="image-20230302173013788"></p>
+<p>重新下载<a href="https://developer.apple.com/cn/support/code-signing/" target="_blank" rel="noopener">AppleWWDRCA</a>并安装。即下载最新的AppleWWDR</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173155682.png" alt="image-20230302173155682" style="zoom: 33%;"></p>
+<p>进入后</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173236106.png" alt="image-20230302173236106" style="zoom:33%;"></p>
+<p>进入后</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173318271.png" alt="image-20230302173318271" style="zoom: 25%;"></p>
+<p>这里我们下载个G4就够了</p>
+<h4 id="2、iOS-推送证书无法导出p12文件"><a href="#2、iOS-推送证书无法导出p12文件" class="headerlink" title="2、iOS 推送证书无法导出p12文件"></a>2、iOS 推送证书无法导出p12文件</h4><p>请一定要切换到”我的证书目录下”</p>
+<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173554802.png" alt="image-20230302173554802" style="zoom:50%;"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf2463tw00lbyxr4som1im9u" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -706,262 +901,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="clf10d5qm00krafr4fm4ym0ry" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="clf2463tx00leyxr4it5utrxx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/进阶/iOS证书" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/进阶/iOS证书/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/进阶/iOS证书/">iOS证书</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="iOS证书"><a href="#iOS证书" class="headerlink" title="iOS证书"></a>iOS证书</h1><h2 id="二、推送证书"><a href="#二、推送证书" class="headerlink" title="二、推送证书"></a>二、推送证书</h2><ul>
-<li><a href="https://help.aliyun.com/document_detail/100097.html" target="_blank" rel="noopener">制作 iOS 推送证书</a></li>
-</ul>
-<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302172748572.png" alt="image-20230302172748572" style="zoom: 50%;"></p>
-<h3 id="2、问题"><a href="#2、问题" class="headerlink" title="2、问题"></a>2、问题</h3><h4 id="1、iOS证书不受信任解决办法"><a href="#1、iOS证书不受信任解决办法" class="headerlink" title="1、iOS证书不受信任解决办法"></a>1、iOS证书不受信任解决办法</h4><p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173013788.png" alt="image-20230302173013788"></p>
-<p>重新下载<a href="https://developer.apple.com/cn/support/code-signing/" target="_blank" rel="noopener">AppleWWDRCA</a>并安装。即下载最新的AppleWWDR</p>
-<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173155682.png" alt="image-20230302173155682" style="zoom: 33%;"></p>
-<p>进入后</p>
-<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173236106.png" alt="image-20230302173236106" style="zoom:33%;"></p>
-<p>进入后</p>
-<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173318271.png" alt="image-20230302173318271" style="zoom: 25%;"></p>
-<p>这里我们下载个G4就够了</p>
-<h4 id="2、iOS-推送证书无法导出p12文件"><a href="#2、iOS-推送证书无法导出p12文件" class="headerlink" title="2、iOS 推送证书无法导出p12文件"></a>2、iOS 推送证书无法导出p12文件</h4><p>请一定要切换到”我的证书目录下”</p>
-<p><img src="/iOS/进阶/iOS证书/iOS%E8%AF%81%E4%B9%A6/image-20230302173554802.png" alt="image-20230302173554802" style="zoom:50%;"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf10d5qn00kyafr42jln2wyq" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins上显示二维码图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins上显示二维码图片/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins上显示二维码图片/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="Jenkins上显示二维码图片"><a href="#Jenkins上显示二维码图片" class="headerlink" title="Jenkins上显示二维码图片"></a>Jenkins上显示二维码图片</h1><h2 id="一、在Jenkins上显示二维码图片"><a href="#一、在Jenkins上显示二维码图片" class="headerlink" title="一、在Jenkins上显示二维码图片"></a>一、在Jenkins上显示二维码图片</h2><p><a href="https://testerhome.com/topics/19161#" target="_blank" rel="noopener">持续集成 从零开始在 Jenkins 上显示打包二维码</a></p>
-<h3 id="1-安装Jenkins插件"><a href="#1-安装Jenkins插件" class="headerlink" title="1. 安装Jenkins插件"></a>1. 安装Jenkins插件</h3><ul>
-<li><p>进入Jenkins工作台<code>系统管理</code>&gt;<code>插件管理</code>&gt;<code>可选插件</code>&gt;<code>过滤</code>&gt;<code>build-name-setter</code>，勾选对应插件<code>直接安装</code></p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR1.png" alt="showQR1"></p>
-</li>
-<li><p>返回<code>工作台首页</code>，选择一个<code>Build工程</code>&gt;<code>配置</code></p>
-</li>
-<li><p>可以看到<code>构建环境</code>处多了一个<code>Set Build Name</code>的选项，即插件安装成功</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR2.png" alt="showQR2"></p>
-</li>
-</ul>
-<h3 id="2-配置Set-Build-Name插件"><a href="#2-配置Set-Build-Name插件" class="headerlink" title="2. 配置Set Build Name插件"></a>2. 配置<code>Set Build Name</code>插件</h3><p>查看Jekins的环境变量参数，我们可以看到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BUILD_NUMBER</span><br><span class="line">The current build number, such as &quot;153&quot;</span><br><span class="line">BUILD_DISPLAY_NAME</span><br><span class="line">The display name of the current build, which is something like &quot;#153&quot; by default.</span><br></pre></td></tr></table></figure>
-<ul>
-<li><p><code>Set Build Name</code>就是修改这个<code>BUILD_DISPLAY_NAME</code>，默认为<code>#${BUILD_NUMBER}</code></p>
-</li>
-<li><p>Jenkins的默认安全设置，会把所有的输入都当成纯文本，为了使图片链接生效，需要更改一下<code>系统管理</code>&gt;<code>全局安全配置</code>&gt;<code>标记格式器</code>，将<code>纯文本</code>选项改为<code>Safe HTML</code>,保存设置</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR3.png" alt="showQR3"></p>
-</li>
-<li><p>点击<code>Set Build Name</code>的高级，会出现<code>Build Description</code>的设置，可以在这里写入一个图片的链接 <code>&lt;img src=&quot;http://ww1.sinaimg.cn/large/007x9vWyly1g2zgykchtmj30a7064dk4.jpg&quot; height=&quot;200&quot; width=&quot;200/&gt;</code></p>
-</li>
-<li><p>Build完成之后即可在Build历史中看到对应的图片链接</p>
-<p><img src="http://ww1.sinaimg.cn/large/007x9vWyly1g2zhbf2iizj30a206kwho.jpg" alt="img"></p>
-</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR4_update1.png" alt="showQR4_update1"></p>
-<h1 id="End"><a href="#End" class="headerlink" title="End"></a>End</h1>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="clf10d5qs00loafr40kfsy8s2" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins使用问题常见" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins使用问题常见/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用问题常见/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p><img src="/实用工具/Jenkins/Jenkins使用问题常见/Jenkins icon.png" alt="Jenkins"></p>
-<p>[TOC]</p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>天啊，没遇到问题之前，你永远不知道我下面要讲的这些点是多么多么的重要。你只要稍微不注意，就会导致你所有的正确操作都变成错误。</p>
-<h2 id="Jenkins管理员密码忘记的解决办法"><a href="#Jenkins管理员密码忘记的解决办法" class="headerlink" title="Jenkins管理员密码忘记的解决办法"></a>Jenkins管理员密码忘记的解决办法</h2><p>首先明确，不管是初始密码，还是找回管理员密码都是从<code>共享--Jenkins--Home</code>中处理，目录结果如下：<br><img src="/实用工具/Jenkins/Jenkins使用问题常见/jenkins_Home.png" alt="jenkins_Home"></p>
-<blockquote>
-<p>admin密码更改忘记情况</p>
-<p>1.删除Jenkins目录下config.xml文件中下面代码，并保存文件。</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;useSecurity&gt;true&lt;/useSecurity&gt;</span><br><span class="line">&lt;authorizationStrategy class=&quot;hudson.security.FullControlOnceLoggedInAuthorizationStrategy&quot;&gt;</span><br><span class="line">  &lt;denyAnonymousReadAccess&gt;true&lt;/denyAnonymousReadAccess&gt;</span><br><span class="line">&lt;/authorizationStrategy&gt;</span><br><span class="line">&lt;securityRealm class=&quot;hudson.security.HudsonPrivateSecurityRealm&quot;&gt;</span><br><span class="line">  &lt;disableSignup&gt;true&lt;/disableSignup&gt;</span><br><span class="line">  &lt;enableCaptcha&gt;false&lt;/enableCaptcha&gt;</span><br><span class="line">&lt;/securityRealm&gt;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>2.重启Jenkins服务 <a href="http://localhost:8080/restart" target="_blank" rel="noopener">http://localhost:8080/restart</a></p>
-</blockquote>
-<p> 附：重新加载配置信息 <a href="http://localhost:8080/reload" target="_blank" rel="noopener">http://localhost:8080/reload</a></p>
-<blockquote>
-<p>3.进入首页&gt;“系统管理”&gt;“Configure Global Security”；</p>
-<p>4.勾选“启用安全”；</p>
-<p>5.点选“Jenkins专有用户数据库”，并点击“保存”；</p>
-<p>6.重新点击首页&gt;“系统管理”,发现此时出现“管理用户”；</p>
-<p>7.点击进入展示“用户列表”；</p>
-<p>8.点击右侧进入修改密码页面，修改后即可重新登录。</p>
-</blockquote>
-<p>参考：<a href="http://blog.csdn.net/jlminghui/article/details/54952148" target="_blank" rel="noopener">忘记Jenkins管理员密码的解决办法</a></p>
-<h2 id="一、文件路径问题"><a href="#一、文件路径问题" class="headerlink" title="一、文件路径问题"></a>一、文件路径问题</h2><p>Jenkins脚本中，不能使用桌面路径：</p>
-<p>本地cd目录注意：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 错误<span class="built_in">cd</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">cd</span> /Users/lichaoqian/Desktop/TestScript		<span class="comment"># 不能使用桌面路径，执行构建时候Jenkins会提示  `cd: /Users/lichaoqian/Desktop/TestScript: Not a directory`</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 正确<span class="built_in">cd</span></span></span><br><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br></pre></td></tr></table></figure>
-<h2 id="二、权限问题"><a href="#二、权限问题" class="headerlink" title="二、权限问题"></a>二、权限问题</h2><h3 id="1、问题例子"><a href="#1、问题例子" class="headerlink" title="1、问题例子"></a>1、问题例子</h3><p>将在终端中已验证通过的如下脚本，放到Jenkins上执行。</p>
-<h5 id="问题例子1：文件修改"><a href="#问题例子1：文件修改" class="headerlink" title="问题例子1：文件修改"></a>问题例子1：文件修改</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br><span class="line">chmod -R 777 ./0000.txt</span><br></pre></td></tr></table></figure>
-<p>执行后，Jenkins的log如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_1.png" alt="Jenkins权限问题log"></p>
-<p>很显然这是个权限问题。</p>
-<h5 id="问题例子2：钥匙串Keychain解锁"><a href="#问题例子2：钥匙串Keychain解锁" class="headerlink" title="问题例子2：钥匙串Keychain解锁"></a>问题例子2：钥匙串Keychain解锁</h5><p>同理的当你执行钥匙串Keychain的时候也会有权限问题</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsScript.png" alt="unlock-keychain_1_JenkinsScript"></p>
-<p>执行后，Jenkins的log如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsErrorLog.png" alt="unlock-keychain_1_JenkinsErrorLog.png"></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[TestScript] $ /bin/sh -xe /Users/Shared/Jenkins/tmp/jenkins2455609193418764900.sh</span><br><span class="line">+ security unlock-keychain -p lichaoqian /Users/lichaoqian/Library/Keychains/login.keychain</span><br><span class="line">security: SecKeychainUnlock /Users/lichaoqian/Library/Keychains/login.keychain: Write permissions error.</span><br><span class="line">Build step '执行 shell' marked build as failure</span><br><span class="line">Finished: FAILURE</span><br></pre></td></tr></table></figure>
-<p>很显然这也是个权限问题。</p>
-<h3 id="2、权限问题分析"><a href="#2、权限问题分析" class="headerlink" title="2、权限问题分析"></a>2、权限问题分析</h3><p>参考文章：<a href="https://www.jianshu.com/p/69b544d2a9d1" target="_blank" rel="noopener">iOS开发-自动化打包Jenkins集成</a>的文章开头就有讲到。</p>
-<p>原因：<strong>Jenkins打开姿势不对！</strong></p>
-<p>如果你构建的工程，是在<strong>/Users/Shared/Jenkins</strong>工作目录下，那么就会有权限问题。</p>
-<p>如果你构建的工程，是在<strong>/Users/[user name]/.jenkins</strong>工作目录下，才不会有权限问题。</p>
-<ul>
-<li>错误的：有权限问题的Jenkins workspace目录</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_2.png" alt="有权限问题的Jenkins workspace目录"></p>
-<ul>
-<li>正确的：无权限问题的Jenkins workspace目录</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_3.png" alt="无权限问题的Jenkins workspace目录"></p>
-<ul>
-<li><p>如何验证你当前项目点击构建后的工作目录是哪里呢？</p>
-<p>答：直接构建，然后去查看你的项目显示在哪里啊。</p>
-</li>
-</ul>
-<h3 id="3、权限问题解决-正确的启动Jenkins姿势"><a href="#3、权限问题解决-正确的启动Jenkins姿势" class="headerlink" title="3、权限问题解决(正确的启动Jenkins姿势)"></a>3、权限问题解决(正确的启动Jenkins姿势)</h3><p>在使用正确的启动Jenkins之前，我们先来认识下下面的这个<code>org.jenkins-ci.plist</code>文件。它的位置 <em><code>/Library/LaunchDaemons/org.jenkins-ci.plist</code></em> 如下：</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_4.png" alt="正确的启动Jenkins姿势"></p>
-<p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
-<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
-<h3 id="4、解决后的结果显示"><a href="#4、解决后的结果显示" class="headerlink" title="4、解决后的结果显示"></a>4、解决后的结果显示</h3><ul>
-<li>4.1、脚本内容</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_5.png" alt="脚本内容"></p>
-<ul>
-<li>4.2、脚本执行结果</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_6.png" alt="脚本执行结果"></p>
-<p>至此，你的权限问题已完美解决。</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/分割图1.jpg" alt="休息一下"></p>
-<h2 id="三、其他权限问题"><a href="#三、其他权限问题" class="headerlink" title="三、其他权限问题"></a>三、其他权限问题</h2><ul>
-<li>Jenkins问题解决方案：</li>
-</ul>
-<p>解决：进入mac 系统偏好设置 — 用户与群组 — 其他用户 — jenkins ，勾选允许用户管理这台电脑</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_Write%20permissions%20error.png" alt="unlock-keychain_Write permissions error"></p>
-<p>勾选选项。</p>
-<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_3_JenkinsSolve.png" alt="unlock-keychain_3_JenkinsSolve"></p>
-<h2 id="四、Jenkins权限问题其他解决方法-未实践"><a href="#四、Jenkins权限问题其他解决方法-未实践" class="headerlink" title="四、Jenkins权限问题其他解决方法(未实践)"></a>四、Jenkins权限问题其他解决方法(未实践)</h2><ul>
-<li>未实践方式1(都未实践)：</li>
-</ul>
-<p><a href="https://www.jianshu.com/p/fa546f723724" target="_blank" rel="noopener">Jenkins执行脚本提示没有权限的解决办法</a> 未实践，因为已经通过上述正确的启动Jenkins来解决了。所以这里没去实践。不过看内容应该是可行的。后续有时间再补充。</p>
-<ul>
-<li>未实践方式2(看了应该无效)：</li>
-</ul>
-<p>提高Jenkins用户权限，详见《Terminal -&gt; 终端命令使用.md》中的用户相关操作。应该无效</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="clf10d5qu00m0afr4cnyklom6" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -974,7 +917,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/20/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/19/">19</a><a class="page-number" href="/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/page/22/">22</a><a class="page-number" href="/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/22/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/20/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/19/">19</a><a class="page-number" href="/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/page/22/">22</a><a class="page-number" href="/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/page/38/">38</a><a class="extend next" rel="next" href="/page/22/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -1005,7 +948,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 16.36px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.09px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.73px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.91px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.18px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.73px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.82px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 16.67px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -1027,6 +970,10 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/h5_native_interacte/feature/feature_media_autoplay_demo/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
@@ -1040,10 +987,6 @@
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
       </ul>

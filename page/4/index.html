@@ -72,6 +72,85 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Threads/Flutter_Dart/Future" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Threads/Flutter_Dart/Future/" class="article-date">
+  <time datetime="2022-04-17T04:05:41.000Z" itemprop="datePublished">2022-04-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Threads/Flutter_Dart/Future/">Future</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="等待异步"><a href="#等待异步" class="headerlink" title="等待异步"></a>等待异步</h2><p>有时候执行某个动作，需要等到另一个事件结束，可以用Completer类。 </p>
+<p>常见的有：</p>
+<p>执行某个动作，需要弹窗等待用户选择某条件后再执行后续代码，</p>
+<p>//事例</p>
+<pre><code>var c = Completer&lt;bool&gt;();
+
+Dialogs.tipsCard(title, tip,
+  failMsg: &apos;&apos;,
+  actions: [i18n.ok],
+  callback: (index) =&gt; c.complete(true),
+  dismissCallBack: () {
+    if (!c.isCompleted)
+      c.complete(false);
+  },
+);
+
+return c.future;
+</code></pre><p>其他：</p>
+<h2 id="Completer"><a href="#Completer" class="headerlink" title="Completer"></a><strong>Completer</strong></h2><p>Completer允许你做某个异步事情的时候，调用c.complete(value)方法来传入最后要返回的值。最后通过c.future的返回值来得到结果，（注意：宣告完成的complete和completeError方法只能调用一次，不然会报错）。看下面的例子更容易理解。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">test() <span class="keyword">async</span> &#123;</span><br><span class="line">   Completer c = <span class="keyword">new</span> Completer();</span><br><span class="line">   <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">     <span class="keyword">if</span> (i == <span class="number">900</span> &amp;&amp; c.isCompleted == <span class="keyword">false</span>) &#123;</span><br><span class="line">       c.completeError(<span class="string">'error in <span class="subst">$i<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">     &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">     if (i == 800 &amp;&amp; c.isCompleted == false) &#123;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">       c.complete('</span></span>complete in <span class="subst">$i<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">     &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">   &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string"></span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">   try &#123;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">     String res = await c.future;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">     print(res); //得到complete传入的返回值 '</span></span>complete in 800'</span></span><br><span class="line">   &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">     <span class="built_in">print</span>(e);<span class="comment">//捕获completeError返回的错误</span></span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p><strong>怎么将一个Callback回调转化成Future同步方法（Callback to Future），可以配套async / await去使用呢？</strong></p>
+<p>使用场景：dio请求使用call，但外部基本还是习惯使用future方式，为了减少接口的改动，使用callback转future方式。</p>
+<p>参考文章：<a href="https://www.jianshu.com/p/e5cba8ca96bc" target="_blank" rel="noopener">Flutter&amp;Dart Callback转Future</a></p>
+<h2 id="compute"><a href="#compute" class="headerlink" title="compute"></a>compute</h2><p>在一个页面中做耗时比较大的运算时，就算用了async / await异步处理， ui页面的动画还是会卡顿，因为还是在这个UI线程中做运算，异步只是说我可以先运行其他的，等我这边有结果再返回，但是，记住，我们的计算仍旧是在这个UI线程，仍会阻塞UI的刷新，异步只是在同一个线程的并发操作。</p>
+<p>要解决这个卡顿问题，可以把运算移到另一个线程中，在dart中，这里不是称呼线程，是Isolate，直译叫做隔离，是因为隔离不共享数据，每个隔离中的变量都是不同的，不能相互共享。</p>
+<p>Isolate的操作比较复杂，dart中封装了一层简单的实现</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// package:flutter/foundation.dart</span></span></span><br><span class="line">Future&lt;R&gt; <span class="built_in">Function</span>&lt;Q, R&gt;(FutureOr&lt;R&gt; <span class="built_in">Function</span>(Q), Q, &#123;debugLabel: <span class="built_in">String</span>&#125;)compute</span><br></pre></td></tr></table></figure>
+<p>使用方法</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/foundation.dart'</span>;</span><br><span class="line"></span><br><span class="line">function callback( val )&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">return</span> res</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment"><span class="markdown">/// <span class="code">`callback`</span> 必须是顶级方法或者是类的静态方法</span></span></span><br><span class="line"><span class="keyword">var</span> res = <span class="keyword">await</span> compute( callback , val );</span><br></pre></td></tr></table></figure>
+<p>简单来讲就是运行var res = await compute( callback , val )函数。callback的传入参数是val, return的数据就是callback的res;</p>
+<p>使用场景</p>
+<ul>
+<li>方法执行在几毫秒或十几毫秒左右的，应使用Future</li>
+<li>如果一个任务需要几百毫秒或之上的，则建议compute（只有一次返回）或Isolate（用于订阅或有多次返回的）</li>
+</ul>
+<h2 id="Flutter-Dart-如何在app启动前等待异步任务？"><a href="#Flutter-Dart-如何在app启动前等待异步任务？" class="headerlink" title="Flutter/Dart :如何在app启动前等待异步任务？"></a>Flutter/Dart :如何在app启动前等待异步任务？</h2><p>我在一个dart应用程序上工作，我想获取缓存(SharedPreferences)中存在的数据，然后在应用程序的UI (主屏幕)上显示它。</p>
+<p>问题:由于SharedPreferences是一个等待调用，我的主页加载，试图读取数据，应用程序崩溃，因为还没有从SharedPreferences中获取数据，并且应用程序在此之前加载。</p>
+<p>其他参考文章：</p>
+<h2 id="多任务"><a href="#多任务" class="headerlink" title="多任务"></a>多任务</h2><p>dart笔记13：用future实现等待多个任务完成后，再得到所有的执行结果</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">import &apos;dart:async&apos;;</span><br><span class="line"></span><br><span class="line">void main() &#123;</span><br><span class="line">  print(&apos;start&apos;);</span><br><span class="line"></span><br><span class="line">  Future task1 = Future(() &#123;</span><br><span class="line">    print(&apos;task1&apos;);</span><br><span class="line">    return 1;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  Future task2 = Future(() &#123;</span><br><span class="line">    print(&apos;task2&apos;);</span><br><span class="line">    return 2;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  Future task3 = Future(() &#123;</span><br><span class="line">    print(&apos;task3&apos;);</span><br><span class="line">    return 3;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  Future future = Future.wait([task1, task2, task3]);</span><br><span class="line"></span><br><span class="line">  future.then((value) &#123;</span><br><span class="line">    print(value);</span><br><span class="line">  &#125;).catchError((e)&#123;</span><br><span class="line"> </span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  print(&apos;end&apos;);</span><br><span class="line"></span><br><span class="line">  //执行结果：</span><br><span class="line">  //start</span><br><span class="line">  //end</span><br><span class="line">  //task1</span><br><span class="line">  //task2</span><br><span class="line">  //task3</span><br><span class="line">  //[1, 2, 3]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="FutureBuilder"><a href="#FutureBuilder" class="headerlink" title="FutureBuilder"></a>FutureBuilder</h2><h1 id="Flutter：使用-Completer-实现自定义任务队列"><a href="#Flutter：使用-Completer-实现自定义任务队列" class="headerlink" title="Flutter：使用 Completer 实现自定义任务队列"></a>Flutter：使用 <code>Completer</code> 实现自定义任务队列</h1><ul>
+<li><a href="https://www.jianshu.com/p/551ec32e3b6e" target="_blank" rel="noopener">Flutter：使用 <code>Completer</code> 实现自定义任务队列</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Threads/Flutter_Dart/Future/" data-id="clf2463v400pyyxr4l6s2066h" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-电脑使用/环境变量设置" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/电脑使用/环境变量设置/" class="article-date">
@@ -99,7 +178,35 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/环境变量设置/" data-id="clf10d4km004tafr4fmv9rorh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/环境变量设置/" data-id="clf2462fl004hyxr49trf5kpk" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/架构相关/4瘦身/瘦身-③app安装包" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/架构相关/4瘦身/瘦身-③app安装包/" class="article-date">
+  <time datetime="2022-03-16T05:35:13.054Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-瘦身-②app安装包"><a href="#必备知识架构-瘦身-②app安装包" class="headerlink" title="必备知识架构-瘦身-②app安装包"></a>必备知识架构-瘦身-②app安装包</h1><p><a href="https://www.jianshu.com/p/3e294c82356f" target="_blank" rel="noopener">iOS APP瘦身优化</a></p>
+<p><a href="https://blog.csdn.net/weixin_43901866/article/details/103613147?spm=1001.2101.3001.6650.1&amp;utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1.pc_relevant_paycolumn_v3&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1.pc_relevant_paycolumn_v3&amp;utm_relevant_index=2" target="_blank" rel="noopener">Flutter 如何缩减接近 50% 的 Flutter 包体积</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/架构相关/4瘦身/瘦身-③app安装包/" data-id="clf2465ea00xzyxr4xm450gvj" class="article-share-link">Share</a>
       
       
     </footer>
@@ -204,35 +311,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/架构相关/2设计模式/设计模式-①概览/" data-id="clf10d74700xfafr49w1k3y71" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/架构相关/4瘦身/瘦身-③app安装包" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/架构相关/4瘦身/瘦身-③app安装包/" class="article-date">
-  <time datetime="2022-03-16T05:35:13.054Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-瘦身-②app安装包"><a href="#必备知识架构-瘦身-②app安装包" class="headerlink" title="必备知识架构-瘦身-②app安装包"></a>必备知识架构-瘦身-②app安装包</h1><p><a href="https://www.jianshu.com/p/3e294c82356f" target="_blank" rel="noopener">iOS APP瘦身优化</a></p>
-<p><a href="https://blog.csdn.net/weixin_43901866/article/details/103613147?spm=1001.2101.3001.6650.1&amp;utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1.pc_relevant_paycolumn_v3&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1.pc_relevant_paycolumn_v3&amp;utm_relevant_index=2" target="_blank" rel="noopener">Flutter 如何缩减接近 50% 的 Flutter 包体积</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/架构相关/4瘦身/瘦身-③app安装包/" data-id="clf10d74900xkafr4tm48gyy2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/架构相关/2设计模式/设计模式-①概览/" data-id="clf2465fb00y4yxr4skvgum0v" class="article-share-link">Share</a>
       
       
     </footer>
@@ -364,7 +443,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/算法/9算法/" data-id="clf10d4lp005dafr4vrgcx9we" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/算法/9算法/" data-id="clf2462gp0053yxr4x3p0eohb" class="article-share-link">Share</a>
       
       
     </footer>
@@ -392,7 +471,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②堆栈/" data-id="clf10d4jo004fafr4pk8adskp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②堆栈/" data-id="clf2462hp005hyxr45w0982qi" class="article-share-link">Share</a>
       
       
     </footer>
@@ -434,7 +513,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②链表/" data-id="clf10d4jw004jafr4pt2a98xs" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②链表/" data-id="clf2462i1005jyxr4r19p1aik" class="article-share-link">Share</a>
       
       
     </footer>
@@ -468,7 +547,95 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-③环/" data-id="clf10d4k5004lafr4ddtja1q2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-③环/" data-id="clf2462ic005kyxr4igqx6vr8" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-数据结构/9数据结构-②二叉树" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/数据结构/9数据结构-②二叉树/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1><p>[toc]</p>
+<blockquote>
+<p>Here are main question we will ask during interview:<br>1.Data Structure:<br>a.linked lists<br>b.Stacks<br>c.Queues<br>d.binary trees<br>e.hash tables<br>2.Algorithms:<br>a.Sort (like quick sort and merge sort), binary search, greedy algorithms.<br>b.Binary tree(like traversal, construction, manipulation..)<br>You can find more to do exercises on <a href="https://leetcode.com/" target="_blank" rel="noopener">https://leetcode.com/</a></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">以下是我们在面试中要问的主要问题：</span><br><span class="line"></span><br><span class="line">1.数据结构：</span><br><span class="line">a、 链接列表</span><br><span class="line">b、 堆栈</span><br><span class="line">c、 队列</span><br><span class="line">d、 二叉树</span><br><span class="line">e、 哈希表</span><br><span class="line"></span><br><span class="line">2.算法：</span><br><span class="line">a、 排序（像快速排序和合并排序），二进制搜索，贪婪算法。</span><br><span class="line">b、 二叉树（比如遍历、构造、操作…）</span><br><span class="line"></span><br><span class="line">你可以找到更多的练习https://leetcode.com/</span><br></pre></td></tr></table></figure>
+<h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树1.png" alt="二叉树"></p>
+<p>在二叉树中，一个元素也称作一个结点。</p>
+<blockquote>
+<p>节点:二叉树中每个元素都称为节点。</p>
+</blockquote>
+<p>叶子结点：就是出度为0的结点，就是没有子结点的结点。</p>
+<h2 id="二、几种二叉树"><a href="#二、几种二叉树" class="headerlink" title="二、几种二叉树"></a>二、几种二叉树</h2><p><a href="https://www.cnblogs.com/-citywall123/p/11788764.html" target="_blank" rel="noopener">满二叉树、完全二叉树、平衡二叉树、最优二叉树</a></p>
+<h3 id="1、完全二叉树"><a href="#1、完全二叉树" class="headerlink" title="1、完全二叉树"></a>1、完全二叉树</h3><p>若设二叉树的深度为k，除第 k 层外，其它各层 (1～k-1) 的结点数都达到最大个数，第k 层所有的结点都<strong>连续集中在最左边</strong>，这就是完全二叉树。</p>
+<h3 id="2、满二叉树"><a href="#2、满二叉树" class="headerlink" title="2、满二叉树"></a>2、满二叉树</h3><p>一个二叉树，如果每一个层的结点数都达到最大值，则这个二叉树就是满二叉树。</p>
+<p>也就是说，如果一个二叉树的层数为K，且结点总数是(2^k) -1 ，则它就是满二叉树。</p>
+<p>满二叉树的第i层上有2</p>
+<p><img src="https://bkimg.cdn.bcebos.com/formula/16caf8be3a55b3d5cffcc3cff4245aae.svg" alt="img"></p>
+<p> 个结点 (i≥1)。</p>
+<p>满二叉树肯定是完全二叉树，而完全二叉树不一定是满二叉树。</p>
+<h3 id="3、平衡二叉树"><a href="#3、平衡二叉树" class="headerlink" title="3、平衡二叉树"></a>3、平衡二叉树</h3><p><a href="https://baijiahao.baidu.com/s?id=1646617486319372351&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">一文读懂平衡二叉树｜技术头条</a></p>
+<p>二叉搜索树（Binary Search Tree），又叫二叉排序树，简单而言就是左子树上所有节点的值均小于根节点的值，而右子树上所有结点的值均大于根节点的值，左小右大，并不是乱序，因此得名二叉排序树。</p>
+<p> <img src="https://pics0.baidu.com/feed/9922720e0cf3d7ca3a57dd116fa0320c6a63a97d.png?token=5501bf9c3284d38423dfc047fa7bec94&amp;s=79A834724182D945487C11DA030070B1" alt="二叉搜索树"></p>
+<p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
+<p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
+<p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉搜索树_链表.png" alt="二叉搜索树_链表"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/平衡二叉树1.png" alt="平衡二叉树"></p>
+<h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a></p>
+<p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
+<p><strong>概念1：什么是路径？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的所有结点，被我们称为两个结点之间的路径。</p>
+<p><strong>概念2：什么是路径长度？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的“边”的数量，被我们称为两个结点之间的路径长度。</p>
+<p><strong>概念3：什么是结点的带权路径长度？</strong></p>
+<p>结点的带权路径长度，是指树的【根结点到该结点的路径长度】和【该结点权重】的【乘积】。</p>
+<p><strong>概念4：什么是树的带权路径长度？</strong></p>
+<p>在一棵树中，【所有】【叶子结点】的带权路径长度之和，被称为树的带权路径长度，也被简称为WPL。</p>
+<p>哈夫曼树（Huffman Tree）是在叶子结点和权重确定的情况下，带权路径长度最小的二叉树，也被称为最优二叉树。</p>
+<p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
+<p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
+<p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树.png" alt="哈弗曼树"> </p>
+<p><code>1*3+3*3+4*2+6*2+8*2=48</code>                                                        <code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
+<p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树2.png" alt="哈弗曼树2"></p>
+<p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
+<p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
+<h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/树的遍历" target="_blank" rel="noopener">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
+<p>参考文章：<a href="https://www.cnblogs.com/lanhaicode/p/10390147.html" target="_blank" rel="noopener">二叉树的遍历（前序、中序、后序、已知前中序求后序、已知中后序求前序）</a></p>
+<p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
+<p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
+<p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
+<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;"></p>
+<ul>
+<li>前序遍历结果：GDAFEMHZ</li>
+<li>中序遍历结果：ADEFGHMZ</li>
+<li>后序遍历结果：AEFDHZMG</li>
+</ul>
+<h2 id="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"><a href="#进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）" class="headerlink" title="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"></a>进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）</h2><p><strong>1、前序遍历的第一元素是整个二叉树的根节点</strong></p>
+<p><strong>2、中序遍历中根节点的左边的元素是左子树，根节点右边的元素是右子树</strong></p>
+<p><strong>3、后序遍历的最后一个元素是整个二叉树的根节点</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②二叉树/" data-id="clf2462hg005eyxr46c11uhyu" class="article-share-link">Share</a>
       
       
     </footer>
@@ -680,144 +847,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/" data-id="clf10d4j50049afr4rl9wojup" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-数据结构/9数据结构-②二叉树" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/数据结构/9数据结构-②二叉树/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1><p>[toc]</p>
-<blockquote>
-<p>Here are main question we will ask during interview:<br>1.Data Structure:<br>a.linked lists<br>b.Stacks<br>c.Queues<br>d.binary trees<br>e.hash tables<br>2.Algorithms:<br>a.Sort (like quick sort and merge sort), binary search, greedy algorithms.<br>b.Binary tree(like traversal, construction, manipulation..)<br>You can find more to do exercises on <a href="https://leetcode.com/" target="_blank" rel="noopener">https://leetcode.com/</a></p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">以下是我们在面试中要问的主要问题：</span><br><span class="line"></span><br><span class="line">1.数据结构：</span><br><span class="line">a、 链接列表</span><br><span class="line">b、 堆栈</span><br><span class="line">c、 队列</span><br><span class="line">d、 二叉树</span><br><span class="line">e、 哈希表</span><br><span class="line"></span><br><span class="line">2.算法：</span><br><span class="line">a、 排序（像快速排序和合并排序），二进制搜索，贪婪算法。</span><br><span class="line">b、 二叉树（比如遍历、构造、操作…）</span><br><span class="line"></span><br><span class="line">你可以找到更多的练习https://leetcode.com/</span><br></pre></td></tr></table></figure>
-<h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树1.png" alt="二叉树"></p>
-<p>在二叉树中，一个元素也称作一个结点。</p>
-<blockquote>
-<p>节点:二叉树中每个元素都称为节点。</p>
-</blockquote>
-<p>叶子结点：就是出度为0的结点，就是没有子结点的结点。</p>
-<h2 id="二、几种二叉树"><a href="#二、几种二叉树" class="headerlink" title="二、几种二叉树"></a>二、几种二叉树</h2><p><a href="https://www.cnblogs.com/-citywall123/p/11788764.html" target="_blank" rel="noopener">满二叉树、完全二叉树、平衡二叉树、最优二叉树</a></p>
-<h3 id="1、完全二叉树"><a href="#1、完全二叉树" class="headerlink" title="1、完全二叉树"></a>1、完全二叉树</h3><p>若设二叉树的深度为k，除第 k 层外，其它各层 (1～k-1) 的结点数都达到最大个数，第k 层所有的结点都<strong>连续集中在最左边</strong>，这就是完全二叉树。</p>
-<h3 id="2、满二叉树"><a href="#2、满二叉树" class="headerlink" title="2、满二叉树"></a>2、满二叉树</h3><p>一个二叉树，如果每一个层的结点数都达到最大值，则这个二叉树就是满二叉树。</p>
-<p>也就是说，如果一个二叉树的层数为K，且结点总数是(2^k) -1 ，则它就是满二叉树。</p>
-<p>满二叉树的第i层上有2</p>
-<p><img src="https://bkimg.cdn.bcebos.com/formula/16caf8be3a55b3d5cffcc3cff4245aae.svg" alt="img"></p>
-<p> 个结点 (i≥1)。</p>
-<p>满二叉树肯定是完全二叉树，而完全二叉树不一定是满二叉树。</p>
-<h3 id="3、平衡二叉树"><a href="#3、平衡二叉树" class="headerlink" title="3、平衡二叉树"></a>3、平衡二叉树</h3><p><a href="https://baijiahao.baidu.com/s?id=1646617486319372351&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">一文读懂平衡二叉树｜技术头条</a></p>
-<p>二叉搜索树（Binary Search Tree），又叫二叉排序树，简单而言就是左子树上所有节点的值均小于根节点的值，而右子树上所有结点的值均大于根节点的值，左小右大，并不是乱序，因此得名二叉排序树。</p>
-<p> <img src="https://pics0.baidu.com/feed/9922720e0cf3d7ca3a57dd116fa0320c6a63a97d.png?token=5501bf9c3284d38423dfc047fa7bec94&amp;s=79A834724182D945487C11DA030070B1" alt="二叉搜索树"></p>
-<p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
-<p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
-<p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉搜索树_链表.png" alt="二叉搜索树_链表"></p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/平衡二叉树1.png" alt="平衡二叉树"></p>
-<h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a></p>
-<p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
-<p><strong>概念1：什么是路径？</strong></p>
-<p>在一棵树中，从一个结点到另一个结点所经过的所有结点，被我们称为两个结点之间的路径。</p>
-<p><strong>概念2：什么是路径长度？</strong></p>
-<p>在一棵树中，从一个结点到另一个结点所经过的“边”的数量，被我们称为两个结点之间的路径长度。</p>
-<p><strong>概念3：什么是结点的带权路径长度？</strong></p>
-<p>结点的带权路径长度，是指树的【根结点到该结点的路径长度】和【该结点权重】的【乘积】。</p>
-<p><strong>概念4：什么是树的带权路径长度？</strong></p>
-<p>在一棵树中，【所有】【叶子结点】的带权路径长度之和，被称为树的带权路径长度，也被简称为WPL。</p>
-<p>哈夫曼树（Huffman Tree）是在叶子结点和权重确定的情况下，带权路径长度最小的二叉树，也被称为最优二叉树。</p>
-<p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
-<p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
-<p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树.png" alt="哈弗曼树"> </p>
-<p><code>1*3+3*3+4*2+6*2+8*2=48</code>                                                        <code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
-<p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/哈弗曼树2.png" alt="哈弗曼树2"></p>
-<p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
-<p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
-<h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/树的遍历" target="_blank" rel="noopener">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
-<p>参考文章：<a href="https://www.cnblogs.com/lanhaicode/p/10390147.html" target="_blank" rel="noopener">二叉树的遍历（前序、中序、后序、已知前中序求后序、已知中后序求前序）</a></p>
-<p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
-<p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
-<p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
-<p><img src="/数据结构/9数据结构-②二叉树/Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;"></p>
-<ul>
-<li>前序遍历结果：GDAFEMHZ</li>
-<li>中序遍历结果：ADEFGHMZ</li>
-<li>后序遍历结果：AEFDHZMG</li>
-</ul>
-<h2 id="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"><a href="#进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）" class="headerlink" title="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"></a>进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）</h2><p><strong>1、前序遍历的第一元素是整个二叉树的根节点</strong></p>
-<p><strong>2、中序遍历中根节点的左边的元素是左子树，根节点右边的元素是右子树</strong></p>
-<p><strong>3、后序遍历的最后一个元素是整个二叉树的根节点</strong></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-②二叉树/" data-id="clf10d4jc004dafr41h5d2kpl" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-⑤面试" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-⑤面试/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.624Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程-⑤面试"><a href="#必备知识架构-线程-⑤面试" class="headerlink" title="必备知识架构-线程-⑤面试"></a>必备知识架构-线程-⑤面试</h1><p>[toc]</p>
-<h2 id="六、队列-gt-任务-gt-线程-gt-数据安全"><a href="#六、队列-gt-任务-gt-线程-gt-数据安全" class="headerlink" title="六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全"></a>六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全</h2><p>有队列，就有需要处理的任务，有任务就有线程相关的要考虑(附队列本身也处在线程中)，有多线程的考虑，就要考虑数据安全。</p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p>3、队列和数据安全</p>
-<p>那我们先来知道一个非常重要的事情：</p>
-<p>——- 队列只是负责任务的调度，而不负责任务的执行  ———</p>
-<p>——- 任务是在线程中执行的 ———</p>
-<p>所以，这个问题其实问得就不大对。让人不知怎么答。</p>
-<p>我们这里说下，分情况。</p>
-<p>如果是串行队列，数据是安全的。</p>
-<p>如果是并发队列，在读写的时候，数据是不安全的。我们可以通过以下几种方式将其处理成安全的。</p>
-<p>①、并发队列，改成串行执行。</p>
-<blockquote>
-<p>可以通过</p>
-<p>任务是同步任务；</p>
-<p>异步任务用依赖；</p>
-<p>异步任务用信号量控制并发量为1</p>
-</blockquote>
-<p>②、加锁</p>
-<blockquote>
-<p>@synchronized</p>
-<p>NSLock</p>
-<p>dispatch_semaphore</p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-⑤面试/" data-id="clf10d71t00wmafr4efbjn3o2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/" data-id="clf2462hu005iyxr4ukfpc1dc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -831,7 +861,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/3/">&laquo; Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/37/">37</a><a class="extend next" rel="next" href="/page/5/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/3/">&laquo; Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/38/">38</a><a class="extend next" rel="next" href="/page/5/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -862,7 +892,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 16.36px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.09px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.73px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.91px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.18px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.73px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.82px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 16.67px;">Architecture</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 19.17px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.5px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Python/" style="font-size: 10.83px;">Python</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/app安全/" style="font-size: 10px;">app安全</a> <a href="/tags/iOS/" style="font-size: 18.33px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 12.5px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/痛点/" style="font-size: 10px;">痛点</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/编程工具/" style="font-size: 11.67px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -884,6 +914,10 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/h5_native_interacte/feature/feature_media_autoplay_demo/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
@@ -897,10 +931,6 @@
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
       </ul>
