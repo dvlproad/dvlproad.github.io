@@ -72,6 +72,83 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Flutter/6进阶/Flutter控件的封装" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/6进阶/Flutter控件的封装/" class="article-date">
+  <time datetime="2019-03-11T09:17:54.000Z" itemprop="datePublished">2019-03-11</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/6进阶/Flutter控件的封装/">第2节：Flutter控件Widget的自定义与封装</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>如果你不是没有任何开发经验，那么你一定知道任何app里都有可能有重用性比较高的控件。所以对于那么重用性比较高的，或者需要你自定义的控件的，我们需要将它们给封装起来，以便下次或者其他app中继续使用。这也正式本节想要说的内容Flutter中如何封装Widget。</p>
+<p>下面我从自己实现一个满意的封装，分别介绍你可能用到的三种封装方式</p>
+<ul>
+<li>1、函数式封装</li>
+<li>2、以继承 StatefulWidget 的方式封装</li>
+<li>3、继承父类式封装（推荐）</li>
+</ul>
+<p>下面我们以登录页的文本框的自定义来谈封装。</p>
+<p><img src="/Flutter/6进阶/Flutter控件的封装/用户名登录的UI图.png" alt="用户名登录的UI图"></p>
+<h2 id="一、函数式封装"><a href="#一、函数式封装" class="headerlink" title="一、函数式封装"></a>一、函数式封装</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 蓝色背景按钮(常用于：登录按钮)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// 方法1:以函数的方法实现</span></span></span><br><span class="line">FlatButton blueButton(<span class="built_in">String</span> text, <span class="built_in">bool</span> enable, VoidCallback enableOnPressed) &#123;</span><br><span class="line">  <span class="keyword">return</span> FlatButton(</span><br><span class="line">    child: Text(text),</span><br><span class="line">    splashColor: Colors.transparent,</span><br><span class="line">    color: Color(<span class="number">0xff01adfe</span>),</span><br><span class="line">    textColor: Colors.white,</span><br><span class="line">    highlightColor: Color(<span class="number">0xff1393d7</span>),</span><br><span class="line">    disabledColor: Color(<span class="number">0xffd3d3d5</span>),</span><br><span class="line">    disabledTextColor: Colors.white,</span><br><span class="line">    shape: RoundedRectangleBorder(</span><br><span class="line">        borderRadius: BorderRadius.circular(<span class="number">5.0</span>)</span><br><span class="line">    ),</span><br><span class="line">    <span class="comment">//onPressed: enable ? enableOnPressed : null,</span></span><br><span class="line">    onPressed: enable ?  () &#123;</span><br><span class="line">      enableOnPressed();</span><br><span class="line">    &#125; : <span class="keyword">null</span>,</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>乍看没什么问题，好像很简洁。但当你也用这种方式来实现文本框的时候，其代码如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 文本框(常用于：登录用户名、密码文本框)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// 方法1:以函数的方法实现</span></span></span><br><span class="line">TextField loginTextField(<span class="built_in">String</span> placeholder, <span class="built_in">String</span> prefixIconImageName, ValueChanged&lt;<span class="built_in">String</span>&gt; onSubmitted) &#123;</span><br><span class="line">  <span class="keyword">return</span> TextField(</span><br><span class="line">    <span class="comment">//autofocus: shouldAutofocusUserNameTextField,</span></span><br><span class="line">    style: TextStyle(color: Colors.black, fontSize: <span class="number">17.0</span>),</span><br><span class="line">    decoration: InputDecoration(</span><br><span class="line">      contentPadding: EdgeInsets.all(<span class="number">0.0</span>),</span><br><span class="line">      <span class="comment">//labelText: "用户名",</span></span><br><span class="line">      hintText: placeholder,</span><br><span class="line">      <span class="comment">//prefixIcon: Icon(Icons.person),</span></span><br><span class="line">      prefixIcon: <span class="keyword">new</span> Image.asset(</span><br><span class="line">        prefixIconImageName,</span><br><span class="line">        width: <span class="number">14.0</span>,</span><br><span class="line">        height: <span class="number">15.0</span>,</span><br><span class="line">      ),</span><br><span class="line">      enabledBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">      focusedBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">      ),</span><br><span class="line">      <span class="comment">// keyboardType: TextInputType.text,</span></span><br><span class="line">      <span class="comment">// controller: _usernameController,</span></span><br><span class="line">      <span class="comment">// textInputAction: TextInputAction.next,</span></span><br><span class="line">      <span class="comment">// focusNode: usernameFocusNode,</span></span><br><span class="line">      <span class="comment">// onSubmitted: (text) &#123;</span></span><br><span class="line">      <span class="comment">//   print("current userName:" + text);</span></span><br><span class="line">      <span class="comment">//   if (null == currentFocusNode) &#123;</span></span><br><span class="line">      <span class="comment">//     currentFocusNode = FocusScope.of(context);</span></span><br><span class="line">      <span class="comment">//   &#125;</span></span><br><span class="line">      <span class="comment">//   currentFocusNode.requestFocus(passwordFocusNode);</span></span><br><span class="line">      <span class="comment">// &#125;</span></span><br><span class="line">      onSubmitted: onSubmitted,</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 文本框border</span></span><br><span class="line">InputBorder loginTextFieldDecorationBorder() &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> OutlineInputBorder(</span><br><span class="line">      borderSide: <span class="keyword">new</span> BorderSide(color: Color(<span class="number">0xffd2d2d2</span>), width: <span class="number">0.6</span>),</span><br><span class="line">      borderRadius: <span class="keyword">new</span> BorderRadius.circular(<span class="number">6.0</span>)</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可见这种函数的方式，没办法处理过多属性的自定义。因为它并不像我们iOS中的UIView，可以对得到的控件在后续再定制。所以，在Flutter中这种函数式的封装不适合，因为它无法满足使用。</p>
+<p>附：以下是iOS中的操作：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">- (CJTextField *)userNameTextField &#123;</span><br><span class="line">    if (_userNameTextField == nil) &#123;</span><br><span class="line">        UIImage *normalImage = [UIImage imageNamed:@&quot;login_username_gray&quot;];</span><br><span class="line">        UIImage *selectedImage = [UIImage imageNamed:@&quot;login_username_blue&quot;];</span><br><span class="line">        _userNameTextField = [CJDemoTextFieldFactory textFieldWithNormalImage:normalImage selectedImage:selectedImage];</span><br><span class="line">        _userNameTextField.placeholder = NSLocalizedString(@&quot;用户名&quot;, nil);</span><br><span class="line">        _userNameTextField.returnKeyType = UIReturnKeyNext;</span><br><span class="line">        _userNameTextField.clearButtonMode = UITextFieldViewModeWhileEditing;</span><br><span class="line">        _userNameTextField.delegate = self;</span><br><span class="line">    &#125;</span><br><span class="line">    return _userNameTextField;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (UIButton *)loginButton &#123;</span><br><span class="line">    if (_loginButton == nil) &#123;</span><br><span class="line">        _loginButton = [CJDemoButtonFactory blueButton];</span><br><span class="line">        [_loginButton setTitle:NSLocalizedString(@&quot;登录&quot;, nil) forState:UIControlStateNormal];</span><br><span class="line">        _loginButton.enabled = NO;</span><br><span class="line">        [_loginButton addTarget:self action:@selector(loginButtonAction) forControlEvents:UIControlEventTouchUpInside];</span><br><span class="line">    &#125;</span><br><span class="line">    return _loginButton;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、以继承-StatefulWidget-的方式封装"><a href="#二、以继承-StatefulWidget-的方式封装" class="headerlink" title="二、以继承 StatefulWidget 的方式封装"></a>二、以继承 StatefulWidget 的方式封装</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 文本框(常用于：登录用户名、密码文本框)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// 方法2:以继承 StatefulWidget 的方式实现</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoginTextField</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">String</span> placeholder;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">String</span> prefixIconImageName;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">bool</span> autofocus;</span><br><span class="line">  <span class="keyword">final</span> TextEditingController controller;</span><br><span class="line">  <span class="keyword">final</span> TextInputAction textInputAction;</span><br><span class="line">  <span class="keyword">final</span> FocusNode focusNode;</span><br><span class="line">  <span class="keyword">final</span> ValueChanged&lt;<span class="built_in">String</span>&gt; onSubmitted;</span><br><span class="line">  <span class="keyword">final</span> TextInputType keyboardType;</span><br><span class="line"></span><br><span class="line">  LoginTextField(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="keyword">this</span>.placeholder,</span><br><span class="line">    <span class="keyword">this</span>.prefixIconImageName,</span><br><span class="line">    <span class="keyword">this</span>.autofocus,</span><br><span class="line">    <span class="keyword">this</span>.keyboardType,</span><br><span class="line">    <span class="keyword">this</span>.controller,</span><br><span class="line">    <span class="keyword">this</span>.textInputAction,</span><br><span class="line">    <span class="keyword">this</span>.focusNode,</span><br><span class="line">    <span class="keyword">this</span>.onSubmitted</span><br><span class="line"></span><br><span class="line">&#125;)  :  <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  _LoginTextFieldState createState() =&gt; _LoginTextFieldState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_LoginTextFieldState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">LoginTextField</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Container(</span><br><span class="line">      child: TextField(</span><br><span class="line">        autofocus: widget.autofocus,</span><br><span class="line">        style: TextStyle(color: Colors.black, fontSize: <span class="number">17.0</span>),</span><br><span class="line">        decoration: InputDecoration(</span><br><span class="line">          contentPadding: EdgeInsets.all(<span class="number">0.0</span>),</span><br><span class="line">          <span class="comment">//labelText: "用户名",</span></span><br><span class="line">          hintText: widget.placeholder,</span><br><span class="line">          <span class="comment">//prefixIcon: Icon(Icons.person),</span></span><br><span class="line">          prefixIcon: <span class="keyword">new</span> Image.asset(</span><br><span class="line">            widget.prefixIconImageName,</span><br><span class="line">            width: <span class="number">14.0</span>,</span><br><span class="line">            height: <span class="number">15.0</span>,</span><br><span class="line">          ),</span><br><span class="line">          enabledBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">          focusedBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">        ),</span><br><span class="line">        keyboardType: widget.keyboardType,</span><br><span class="line">        controller: widget.controller,</span><br><span class="line">        textInputAction: widget.textInputAction,</span><br><span class="line">        focusNode: widget.focusNode,</span><br><span class="line">        onSubmitted: widget.onSubmitted</span><br><span class="line">        ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 文本框border</span></span><br><span class="line">InputBorder loginTextFieldDecorationBorder() &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> OutlineInputBorder(</span><br><span class="line">      borderSide: <span class="keyword">new</span> BorderSide(color: Color(<span class="number">0xffd2d2d2</span>), width: <span class="number">0.6</span>),</span><br><span class="line">      borderRadius: <span class="keyword">new</span> BorderRadius.circular(<span class="number">6.0</span>)</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用的时候：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">TextField userNameTextField() &#123;</span><br><span class="line">    <span class="keyword">return</span>  TextField(</span><br><span class="line">        autofocus: shouldAutofocusUserNameTextField,</span><br><span class="line">        style: TextStyle(color: Colors.black, fontSize: <span class="number">17.0</span>),</span><br><span class="line">        decoration: InputDecoration(</span><br><span class="line">          contentPadding: EdgeInsets.all(<span class="number">0.0</span>),</span><br><span class="line">          <span class="comment">//labelText: "用户名",</span></span><br><span class="line">          hintText: <span class="string">"用户名"</span>,</span><br><span class="line">          <span class="comment">//prefixIcon: Icon(Icons.person),</span></span><br><span class="line">          prefixIcon: <span class="keyword">new</span> Image.asset(</span><br><span class="line">            userNameValid ? <span class="string">'lib/Resources/login/login_username_blue.png'</span> : <span class="string">'lib/Resources/login/login_username_gray.png'</span>,</span><br><span class="line">            width: <span class="number">14.0</span>,</span><br><span class="line">            height: <span class="number">15.0</span>,</span><br><span class="line">          ),</span><br><span class="line">          enabledBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">          focusedBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">        ),</span><br><span class="line">        keyboardType: TextInputType.text,</span><br><span class="line">        controller: _usernameController,</span><br><span class="line">        textInputAction: TextInputAction.next,</span><br><span class="line">        focusNode: usernameFocusNode, <span class="comment">//usernameFocusNode</span></span><br><span class="line">        onSubmitted: (text) &#123;</span><br><span class="line">          <span class="built_in">print</span>(<span class="string">"current userName:"</span> + text);</span><br><span class="line">          <span class="keyword">if</span> (<span class="keyword">null</span> == currentFocusNode) &#123;</span><br><span class="line">            currentFocusNode = FocusScope.of(context);</span><br><span class="line">          &#125;</span><br><span class="line">          currentFocusNode.requestFocus(passwordFocusNode);</span><br><span class="line">        &#125;</span><br><span class="line">        );</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>虽然使用上看似没什么问题，但是整个TextField的继承代码难道你不觉得有更简洁的写法吗？</p>
+<p>所以下面将讲解直接继承TextFiled的方法。</p>
+<h2 id="三、继承父类式封装（推荐）"><a href="#三、继承父类式封装（推荐）" class="headerlink" title="三、继承父类式封装（推荐）"></a>三、继承父类式封装（推荐）</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 文本框(常用于：登录用户名、密码文本框)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// 方法3:以继承 TextField 的方式实现</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoginTextField</span> <span class="keyword">extends</span> <span class="title">TextField</span> </span>&#123;</span><br><span class="line">  LoginTextField(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="built_in">String</span> text,</span><br><span class="line"></span><br><span class="line">    <span class="built_in">String</span> placeholder, </span><br><span class="line"></span><br><span class="line">    <span class="comment"><span class="markdown">/// prefix icon </span></span></span><br><span class="line">    <span class="built_in">bool</span> prefixIconSelected,</span><br><span class="line">    <span class="built_in">String</span> prefixIconNormalImageName,</span><br><span class="line">    <span class="built_in">String</span> prefixIconSelectedImageName,</span><br><span class="line"></span><br><span class="line">    <span class="built_in">bool</span> autofocus = <span class="keyword">false</span>,</span><br><span class="line">    <span class="built_in">bool</span> obscureText = <span class="keyword">false</span>,</span><br><span class="line">    TextInputType keyboardType,</span><br><span class="line">    TextEditingController controller,</span><br><span class="line">    <span class="built_in">bool</span> showClear = <span class="keyword">false</span>,</span><br><span class="line">    TextInputAction textInputAction,</span><br><span class="line">    FocusNode focusNode,</span><br><span class="line">    ValueChanged&lt;<span class="built_in">String</span>&gt; onSubmitted,</span><br><span class="line">  &#125;) : <span class="keyword">super</span>(</span><br><span class="line">    key: key,</span><br><span class="line">    autofocus: autofocus,</span><br><span class="line">    obscureText: obscureText,</span><br><span class="line">    style: TextStyle(color: Colors.black, fontSize: <span class="number">17.0</span>),</span><br><span class="line">    decoration: InputDecoration(</span><br><span class="line">      contentPadding: EdgeInsets.all(<span class="number">0.0</span>),</span><br><span class="line">      <span class="comment">//labelText: "用户名",</span></span><br><span class="line">      hintText: placeholder,</span><br><span class="line">      <span class="comment">//prefixIcon: Icon(Icons.person),</span></span><br><span class="line">      prefixIcon: <span class="keyword">new</span> Image.asset(</span><br><span class="line">        !prefixIconSelected ? prefixIconNormalImageName :prefixIconSelectedImageName,</span><br><span class="line">        width: <span class="number">14.0</span>,</span><br><span class="line">        height: <span class="number">15.0</span>,</span><br><span class="line">      ),</span><br><span class="line">      suffixIcon: !showClear ? <span class="keyword">null</span> : clearButtonWithOnPressed(controller.clear),</span><br><span class="line">      enabledBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">      focusedBorder: loginTextFieldDecorationBorder(),</span><br><span class="line">    ),</span><br><span class="line">    keyboardType: keyboardType,</span><br><span class="line">    controller: controller,</span><br><span class="line">    textInputAction: textInputAction,</span><br><span class="line">    focusNode: focusNode,</span><br><span class="line">    onSubmitted: onSubmitted</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">/// selected Image</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SelectedImage</span> <span class="keyword">extends</span> <span class="title">Image</span> </span>&#123;</span><br><span class="line">  SelectedImage(&#123;</span><br><span class="line">    Key key,</span><br><span class="line">    <span class="built_in">bool</span> selected,</span><br><span class="line">    <span class="built_in">String</span> normalImageName,</span><br><span class="line">    <span class="built_in">String</span> selectedImageName,</span><br><span class="line">  &#125;) :<span class="keyword">super</span> (</span><br><span class="line">      key: key,</span><br><span class="line">      image: AssetImage(!selected ? normalImageName :selectedImageName)</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">/// 文本框border</span></span></span><br><span class="line">InputBorder loginTextFieldDecorationBorder() &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> OutlineInputBorder(</span><br><span class="line">      borderSide: <span class="keyword">new</span> BorderSide(color: Color(<span class="number">0xffd2d2d2</span>), width: <span class="number">0.6</span>),</span><br><span class="line">      borderRadius: <span class="keyword">new</span> BorderRadius.circular(<span class="number">6.0</span>)</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用时候</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 用户名文本框</span></span><br><span class="line">LoginTextField userNameTextField() &#123;</span><br><span class="line">  <span class="keyword">return</span> LoginTextField(</span><br><span class="line">      placeholder: <span class="string">"用户名"</span>,</span><br><span class="line">      prefixIconSelected: userNameValid,</span><br><span class="line">      prefixIconNormalImageName: <span class="string">'assets/images/login/login_username_gray.png'</span>,</span><br><span class="line">      prefixIconSelectedImageName: <span class="string">'assets/images/login/login_username_blue.png'</span>,</span><br><span class="line">      autofocus: shouldAutofocusUserNameTextField,</span><br><span class="line">      keyboardType: TextInputType.text,</span><br><span class="line">      controller: _usernameController,</span><br><span class="line">      textInputAction: TextInputAction.next,</span><br><span class="line">      focusNode: usernameFocusNode,</span><br><span class="line">      onSubmitted: (text) &#123;</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">"current userName:"</span> + text);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">null</span> == currentFocusNode) &#123;</span><br><span class="line">          currentFocusNode = FocusScope.of(context);</span><br><span class="line">        &#125;</span><br><span class="line">        currentFocusNode.requestFocus(passwordFocusNode);</span><br><span class="line">      &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可见使用<strong>继承父类式封装</strong>这种方式，不管在封装时候，还是在使用时候，写的代码都是最简洁的。<strong>而且后期如果要直接使用系统样式，也只需要改回类名，其他结构和属性都不用动即可</strong>。</p>
+<h2 id="四、强调自定义类的设计规范"><a href="#四、强调自定义类的设计规范" class="headerlink" title="四、强调自定义类的设计规范"></a>四、强调自定义类的设计规范</h2><p>在前面，我们已经知道<strong>使用<code>继承父类式封装</code>这种方式，不管在封装时候，还是在使用时候，写的代码都是最简洁的。而且后期如果要直接使用系统样式，也只需要改回类名，其他结构和属性都不用动即可</strong>。</p>
+<p>所以，<strong>即使是你所定义的类只有一个入参，也一定要遵守使用<code>继承父类式封装</code>的设计规范。</strong></p>
+<p>以下以按钮中 textStyle 的传值为例：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          bgColorType: ThemeBGType.pink,</span><br><span class="line">          title: <span class="string">'红底白字的按钮'</span>,</span><br><span class="line">          <span class="comment">//titleStyle: ButtonThemeUtil.PingFang_FontSize_Bold(18.0),	// bad</span></span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>), <span class="comment">// good</span></span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认true</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        ),</span><br></pre></td></tr></table></figure>
+<p>附：bad 和 good 两种实现方式的代码分别如下：</p>
+<p>bad:</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 按钮上的文本样式(按钮上的文字颜色，已通过其他属性设置；不需要 TextStyle 中设置;其他类的文本需要在 TextStyle 设置文本颜色，所以此类最多只提供给按钮使用)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ButtonThemeUtil</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 类命名注意：系统有 ButtonTheme 类，别取重名，否则外部取不到</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> TextStyle PingFang_FontSize_Medium(<span class="built_in">double</span> fontSize) &#123;</span><br><span class="line">    <span class="keyword">return</span> TextStyle(</span><br><span class="line">      fontFamily: <span class="string">'PingFang SC'</span>,</span><br><span class="line">      fontSize: fontSize,</span><br><span class="line">      fontWeight: FontWeight.w500,</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>good:</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// medium 的文本样式</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ButtonMediumTextStyle</span> <span class="keyword">extends</span> <span class="title">TextStyle</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">double</span> fontSize;</span><br><span class="line">  <span class="comment">// final Color color;</span></span><br><span class="line"></span><br><span class="line">  ButtonMediumTextStyle(&#123;</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.fontSize,</span><br><span class="line">    <span class="comment">// this.color,</span></span><br><span class="line">  &#125;)  : <span class="keyword">assert</span>(fontSize != <span class="keyword">null</span>),</span><br><span class="line">        <span class="comment">// assert(color != null),</span></span><br><span class="line">        <span class="keyword">super</span>(</span><br><span class="line">          fontFamily: <span class="string">'PingFang SC'</span>,</span><br><span class="line">          fontSize: fontSize,</span><br><span class="line">          fontWeight: FontWeight.w500,</span><br><span class="line">          <span class="comment">// color: color,</span></span><br><span class="line">        );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以，综上在Flutter中对于一个Widget的封装，我们采用直接继承其父类的方式来处理，且其具体的写法如上。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter控件的封装/" data-id="clf24w8xi009zsnr47r747mk6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/7规范/Flutter开发规范" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/7规范/Flutter开发规范/" class="article-date">
@@ -151,7 +228,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/7规范/Flutter开发规范/" data-id="clf2463lq00agyxr47fe7fffi" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/7规范/Flutter开发规范/" data-id="clf24w8yt00ansnr4lzhm8u4l" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -202,7 +279,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/MySQL/MySQL问题整理/" data-id="clf2463uk00oayxr4m9mw6xc1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/MySQL/MySQL问题整理/" data-id="clf24w98m00mqsnr48ap6yqpj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -270,7 +347,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/6进阶/iOS项目集成Flutter高级/" data-id="clf2463lj00adyxr4sbw2gsyb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/6进阶/iOS项目集成Flutter高级/" data-id="clf24w8yl00ajsnr4zoocveka" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -315,7 +392,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Script/Script README/" data-id="clf2462eg002syxr46kqubg35" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Script/Script README/" data-id="clf24w7w1002csnr4cxc9o2mv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
@@ -359,7 +436,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Script/JavaScript/JavaScript入门/" data-id="clf2463t000gxyxr47p782lv8" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Script/JavaScript/JavaScript入门/" data-id="clf24w97c00glsnr41scgun4d" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
@@ -402,65 +479,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Script/Python/Python常见问题/" data-id="clf2463t100h1yxr4gy9jy9gg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Script/Python/Python常见问题/" data-id="clf24w97d00gpsnr4xpf7nm91" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Script/Ruby/Ruby入门" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Script/Ruby/Ruby入门/" class="article-date">
-  <time datetime="2019-03-10T06:14:11.000Z" itemprop="datePublished">2019-03-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Script/">Script</a>►<a class="article-category-link" href="/categories/Script/Ruby/">Ruby</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Script/Ruby/Ruby入门/">Ruby入门</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="Ruby"><a href="#Ruby" class="headerlink" title="Ruby"></a>Ruby</h1><h2 id="一、安装-升级Ruby"><a href="#一、安装-升级Ruby" class="headerlink" title="一、安装/升级Ruby"></a>一、安装/升级Ruby</h2><p>查看Ruby版本</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash"> ruby -v <span class="comment"># 或 ruby --version</span></span></span><br><span class="line">ruby 3.1.1p18 (2022-02-18 revision 53f5fc4236) [x86_64-darwin21]</span><br></pre></td></tr></table></figure>
-<p>安装/升级Ruby</p>
-<p><img src="/Script/Ruby/Ruby入门/Ruby%E5%85%A5%E9%97%A8/image-20220427000442104.png" alt="image-20220427000442104"></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1、打开环境变量配置文件</span></span><br><span class="line">open ~/.zshrc</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2、在文件中添加一行以下配置</span></span><br><span class="line">export PATH="/usr/local/opt/ruby/bin:$PATH"</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3、让环境变量生效</span></span><br><span class="line">source ~/.zshrc</span><br></pre></td></tr></table></figure>
-<p>先看Ruby参考里面对eval和binding的解释：</p>
-<p>eval(expr[, binding[, fname[, lineno=1]]])</p>
-<p>​    把字符串expr当作Ruby程序来运行并返回其结果。</p>
-<p>binding</p>
-<p>​    生成并返回Binding对象。该对象包含变量、方法等的环境信息，它通常用作Eval的第二参数。</p>
-<ul>
-<li><a href="/Applications/flutter/packages/flutter_tools/templates/module/ios/library/Flutter.tmpl/podhelper.rb">/Applications/flutter/packages/flutter_tools/templates/module/ios/library/Flutter.tmpl/podhelper.rb</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Script/Ruby/Ruby入门/" data-id="clf2463t200h5yxr4sflwprfn" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
 
     </footer>
   </div>
@@ -571,10 +593,65 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Script/Python/Python入门/" data-id="clf2463t500hkyxr4bg0zkc4x" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Script/Python/Python入门/" data-id="clf24w97e00gssnr495gisudx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Script/Ruby/Ruby入门" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Script/Ruby/Ruby入门/" class="article-date">
+  <time datetime="2019-03-10T06:14:11.000Z" itemprop="datePublished">2019-03-10</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Script/">Script</a>►<a class="article-category-link" href="/categories/Script/Ruby/">Ruby</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Script/Ruby/Ruby入门/">Ruby入门</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Ruby"><a href="#Ruby" class="headerlink" title="Ruby"></a>Ruby</h1><h2 id="一、安装-升级Ruby"><a href="#一、安装-升级Ruby" class="headerlink" title="一、安装/升级Ruby"></a>一、安装/升级Ruby</h2><p>查看Ruby版本</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash"> ruby -v <span class="comment"># 或 ruby --version</span></span></span><br><span class="line">ruby 3.1.1p18 (2022-02-18 revision 53f5fc4236) [x86_64-darwin21]</span><br></pre></td></tr></table></figure>
+<p>安装/升级Ruby</p>
+<p><img src="/Script/Ruby/Ruby入门/Ruby%E5%85%A5%E9%97%A8/image-20220427000442104.png" alt="image-20220427000442104"></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1、打开环境变量配置文件</span></span><br><span class="line">open ~/.zshrc</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2、在文件中添加一行以下配置</span></span><br><span class="line">export PATH="/usr/local/opt/ruby/bin:$PATH"</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3、让环境变量生效</span></span><br><span class="line">source ~/.zshrc</span><br></pre></td></tr></table></figure>
+<p>先看Ruby参考里面对eval和binding的解释：</p>
+<p>eval(expr[, binding[, fname[, lineno=1]]])</p>
+<p>​    把字符串expr当作Ruby程序来运行并返回其结果。</p>
+<p>binding</p>
+<p>​    生成并返回Binding对象。该对象包含变量、方法等的环境信息，它通常用作Eval的第二参数。</p>
+<ul>
+<li><a href="/Applications/flutter/packages/flutter_tools/templates/module/ios/library/Flutter.tmpl/podhelper.rb">/Applications/flutter/packages/flutter_tools/templates/module/ios/library/Flutter.tmpl/podhelper.rb</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Script/Ruby/Ruby入门/" data-id="clf24w97e00gxsnr46ycsivgb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Script/">Script</a></li></ul>
 
     </footer>
   </div>
@@ -618,52 +695,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter的设计模式/" data-id="clf2463kk009vyxr4l8lcjh2s" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/6进阶/Flutter的自动化测试" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/6进阶/Flutter的自动化测试/" class="article-date">
-  <time datetime="2019-03-09T14:26:53.000Z" itemprop="datePublished">2019-03-09</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/6进阶/Flutter的自动化测试/">第4节：Flutter自动化测试</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="一、"><a href="#一、" class="headerlink" title="一、"></a>一、</h2><ul>
-<li><a href="https://www.jianshu.com/p/6170999fb16c" target="_blank" rel="noopener">Flutter 单元测试</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter的自动化测试/" data-id="clf2463ky00a2yxr4g4uams11" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter的设计模式/" data-id="clf24w8xp00a2snr4aya1dguv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -732,7 +764,11 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/feature/feature_media_autoplay_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/feature/audio_autoplay_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/feature/video_autoplay_demo/">(no title)</a>
           </li>
         
           <li>
@@ -745,10 +781,6 @@
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
           </li>
         
       </ul>

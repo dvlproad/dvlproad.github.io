@@ -139,87 +139,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clf2465fd00yayxr45ocv33p2" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
-<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
-<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
-</ul>
-<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
-<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
-</ul>
-<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
-<p><strong>B.一个请求一条线程</strong></p>
-<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
-<p><strong>C.一条常驻线程</strong></p>
-<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
-<p>线程保活的代码</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
-<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
-<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
-<ol>
-<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
-<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
-</ol>
-<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
-<p>其中</p>
-<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
-<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
-<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
-<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf2465fe00ybyxr43ffsc8rg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="clf24wai000xlsnr4mgkd1wqs" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -304,7 +224,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clf2465ff00yeyxr4sf3cro6v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="clf24wai100xmsnr4zd87tjnv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -371,7 +291,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clf2465fh00ygyxr4e7e9ilqj" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="clf24wai200xqsnr4aatp49gn" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -424,7 +344,53 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clf2465fk00yjyxr49xitg55t" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="clf24wai200xssnr4uc4g66ad" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
+<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf24wai400xxsnr4b0izl2wi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -529,7 +495,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf2465fm00ypyxr44v49pibb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="clf24wai400y0snr4zs1le2i9" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -541,9 +507,9 @@
 
 
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -559,7 +525,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
     </h1>
   
 
@@ -567,15 +533,110 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
+        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
+<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
+<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
+</ul>
+<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
+<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
+</ul>
+<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
+<p><strong>B.一个请求一条线程</strong></p>
+<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
+<p><strong>C.一条常驻线程</strong></p>
+<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
+<p>线程保活的代码</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
+<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
+<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
+<ol>
+<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
+<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
+</ol>
+<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
+<p>其中</p>
+<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
+<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
+<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
+<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="clf24wai500y6snr4k6qe3trs" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
+<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
+<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
+<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
+<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
+<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>queue inDatabase:的本质如下：</p>
+<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
+<p>_queue的初始化为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
+<p>FMDB是怎么处理线程安全的？</p>
+<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
+<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
+<p>FMDB是支持数据库事务的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
+<p>表结构</p>
+<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="clf2465fm00ysyxr41hwbflis" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="clf24wai600y8snr4x8ecpvv2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -760,7 +821,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf2463tt00ktyxr4lu1aj248" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="clf24w98300kqsnr49uoqxt3r" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -817,91 +878,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf2463tw00lbyxr4som1im9u" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/进阶/iOS进阶_推送模拟" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/进阶/iOS进阶_推送模拟/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/进阶/iOS进阶_推送模拟/">iOS进阶_推送模拟</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="APNS模拟"><a href="#APNS模拟" class="headerlink" title="APNS模拟"></a>APNS模拟</h1><h2 id="一、使用SmartPush调试"><a href="#一、使用SmartPush调试" class="headerlink" title="一、使用SmartPush调试"></a>一、使用SmartPush调试</h2><ul>
-<li>几个工具</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>工具</th>
-<th>Star</th>
-<th>有效性</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="https://github.com/shaojiankui/SmartPush" target="_blank" rel="noopener">SmartPush</a></td>
-<td>1144</td>
-<td>测了有问题</td>
-</tr>
-<tr>
-<td><a href="https://github.com/KnuffApp/Knuff" target="_blank" rel="noopener">Knuff</a></td>
-<td>4432</td>
-<td>亲测有效</td>
-</tr>
-<tr>
-<td><a href="https://github.com/immobiliare/ApnsPHP" target="_blank" rel="noopener">ApnsPHP</a></td>
-<td>1361</td>
-<td>未测</td>
-</tr>
-<tr>
-<td><a href="https://github.com/manifestinteractive/easyapns" target="_blank" rel="noopener">easyapns</a></td>
-<td>706</td>
-<td>未测</td>
-</tr>
-</tbody>
-</table>
-<h2 id="二、自己搭建"><a href="#二、自己搭建" class="headerlink" title="二、自己搭建"></a>二、自己搭建</h2><p>脚本实现参考文章：</p>
-<ul>
-<li><p><a href="https://blog.csdn.net/TuGeLe/article/details/79699926" target="_blank" rel="noopener">iOS客户端如何测试推送</a></p>
-</li>
-<li><p><a href="https://www.cnblogs.com/ablettchen/p/4162350.html" target="_blank" rel="noopener">iOS 远程推送的实现</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="clf2463tx00leyxr4it5utrxx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="clf24w98800l3snr4j6tv3op4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -970,7 +947,11 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/feature/feature_media_autoplay_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/feature/audio_autoplay_demo/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/feature/video_autoplay_demo/">(no title)</a>
           </li>
         
           <li>
@@ -983,10 +964,6 @@
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
           </li>
         
       </ul>
