@@ -1,0 +1,39 @@
+<h1 id="Git获取信息"><a href="#Git获取信息" class="headerlink" title="Git获取信息"></a>Git获取信息</h1><p>[toc]</p>
+<h2 id="一、获取commit信息："><a href="#一、获取commit信息：" class="headerlink" title="一、获取commit信息："></a>一、获取commit信息：</h2><p>1、获取指定分支最后一次提交的信息</p>
+<pre><code class="shell">Git获取信息
+<span class="meta">#</span><span class="bash"> 获取指定分支最后一次提交的作者</span>
+git show --format=%aN -b origin/dev_all -s
+</code></pre>
+<p>2、获取指定分支最后一次提交的信息–本地</p>
+<p>我想可以获取到远程origin/shop_report分支的最后一次提交作者，但是我又不想说必须得去拉取到本地，请问我该怎么处理</p>
+<p>如果您不想将 <code>origin/shop_report</code> 分支拉取到本地仓库中，您可以尝试使用以下命令来获取该分支的最后一次提交的作者名字：</p>
+<pre><code>git ls-remote --heads origin dev_all | cut -f 1 | xargs -I {} git show --format=%aN {} -s | head -n 1
+</code></pre><p>该命令将会首先使用 <code>git ls-remote</code> 命令获取 <code>origin/shop_report</code> 分支的引用头（ref），然后使用 <code>cut</code> 命令提取该引用头的哈希值。接着，使用 <code>xargs</code> 命令将该哈希值作为参数传递给 <code>git show</code> 命令，并使用 <code>--format=%aN</code> 参数指定输出作者名字。最后，使用 <code>head</code> 命令提取第一行输出，即为该分支的最后一次提交的作者名字。</p>
+<p>请注意，这种方式虽然可以不将 <code>origin/shop_report</code> 分支拉取到本地仓库中，但是每次执行该命令都会从远程仓库中获取该分支的引用头和最后一次提交的作者信息，因此速度可能较慢，特别是在网络条件不好的情况下。如果您需要频繁地获取 <code>origin/shop_report</code> 分支的最后一次提交的作者信息，建议还是将该分支拉取到本地仓库中。</p>
+<h3 id="1、git-查看远程分支"><a href="#1、git-查看远程分支" class="headerlink" title="1、git 查看远程分支"></a>1、git 查看远程分支</h3><p>要查看远程分支，可以使用以下命令：</p>
+<pre><code>git branch -r
+</code></pre><p>该命令会列出所有远程分支的列表，以<code>remotes/</code>为前缀。如果你想查看特定的远程分支，可以使用以下命令：</p>
+<pre><code>git branch -r | grep &lt;remote-branch-name&gt;
+</code></pre><p>其中，<code>&lt;remote-branch-name&gt;</code>是指你要查看的远程分支名称，这个命令会查询匹配远程分支名称的所有分支，然后在终端输出它们的名称。</p>
+<h3 id="2、远程删掉了，但本地执行git-branch-r-还是显示出来"><a href="#2、远程删掉了，但本地执行git-branch-r-还是显示出来" class="headerlink" title="2、远程删掉了，但本地执行git branch -r 还是显示出来"></a>2、远程删掉了，但本地执行git branch -r 还是显示出来</h3><h4 id="2-1、git-remote-prune-origin"><a href="#2-1、git-remote-prune-origin" class="headerlink" title="2.1、git remote prune origin"></a>2.1、git remote prune origin</h4><p>如果你在远程删除了一个分支，但是本地执行<code>git branch -r</code>命令仍然显示该分支名，这可能是因为本地的远程分支列表缓存了该分支名。为了解决这个问题，你可以执行以下命令来更新本地的远程分支列表：</p>
+<pre><code>git remote prune origin
+</code></pre><p>该命令会从远程 Git 仓库中删除已经不存在的分支，并更新你本地的远程分支列表。执行完这个命令后，再次执行<code>git branch -r</code>，就应该不会再看到已经被删除的分支名了。</p>
+<h4 id="2-2、git-remote-prune-origin-执行出错了"><a href="#2-2、git-remote-prune-origin-执行出错了" class="headerlink" title="2.2、git remote prune origin 执行出错了"></a>2.2、git remote prune origin 执行出错了</h4><p>如果<code>git remote prune origin</code>命令执行出错了，很可能是由于你的本地缓存信息有问题，请执行以下操作修复问题：</p>
+<ol>
+<li>首先，运行以下命令来更新远程分支缓存：</li>
+</ol>
+<pre><code class="shell"><span class="meta">#</span><span class="bash"> 这个命令会强制更新缓存，在更新过程中删除远程不存在的分支，然后更新你本地的远程分支列表</span>
+git remote update origin --prune
+</code></pre>
+<p>如果上述命令没有解决问题，你需要手动清除本地缓存。</p>
+<pre><code class="shell"><span class="meta">#</span><span class="bash"> 这个命令会从远程 Git 仓库中下载所有最新的分支，同时删除远程不存在的分支，然后更新本地分支列表。</span>
+git fetch --all --prune
+
+<span class="meta">#</span><span class="bash"> 如果上述命令仍然无法解决问题，你可以尝试处理该git工程下的 .git/refs/remotes 文件夹</span>
+<span class="meta">#</span><span class="bash"> 尝试方式1：手动删除指定分支</span>
+
+<span class="meta">#</span><span class="bash"> 尝试方式2：删除所有本地缓存目录并重新克隆仓库。</span>
+rm -rf .git/refs/remotes
+git clone &lt;repository-url&gt;
+</code></pre>
+<h4 id="End"><a href="#End" class="headerlink" title="End"></a>End</h4>

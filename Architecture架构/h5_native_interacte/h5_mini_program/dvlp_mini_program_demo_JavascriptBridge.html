@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- [was loaded over HTTPS, but requested an insecure错误解决](https://blog.csdn.net/weixin_40918067/article/details/117839199) -->
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+
+  <title>小程序测试页面</title>
+  <style>
+    .button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      background-color: #ffcc00;
+      /* color: #ffffff; 设置文字颜色为白色 */
+      line-height: 1.2;
+    }
+
+    .goPageButton {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      background-color: #009900;
+      color: #ffffff;
+      /* 设置文字颜色为白色 */
+      line-height: 1.2;
+    }
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+
+<!-- [移动端调试神器vConsole使用详解](https://www.jb51.net/article/244750.htm) -->
+<script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+<script>
+  // VConsole 默认会挂载到 `window.VConsole` 上
+  var vConsole = new window.VConsole();
+  // 接下来即可照常使用 `console` 等方法
+  console.log('Hello world');
+
+  // 结束调试后，可移除掉
+  vConsole.destroy();
+</script>
+
+<body>
+  <h1 id="pageTitle">小程序首页</h1>
+  <div id="buttonContainer">
+    <button id="backButton" onclick="goBack()">返回前一页</button>
+    <button id="reloadButton" onclick="reload()">刷新本页(无效)</button>
+    <button id="forwardButton" onclick="goForward()">进入下一页</button>
+    <br>
+    <button id="goBaiduButton" class="goPageButton" onclick="goBaidu()">进入baidu</button>
+    <button id="goPageButton1" class="goPageButton" onclick="goPage1()">进入page1</button>
+    <button id="goPageButton2" class="goPageButton" onclick="goPage2()">进入page2</button>
+  </div>
+  <h6 id="logId">日志
+    <div id="mpCallApp_closeMiniProgram_button2"></div>
+
+    <script>
+      // 从 localStorage 中获取计数器的值，如果不存在则初始化为 1。使其在整个生命周期中保持全局变量的值，并且不会在页面跳转时失效
+      var firstPageCounter = 1;
+      var secondPageCounter = 1;
+
+
+      // 获取 URL 中的查询参数
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // 获取 "title" 参数的值
+      const title = urlParams.get('title');
+      var randomNum = urlParams.get('randomNum');
+      console.log(`title=${title}, randomNum=${randomNum}`);
+
+      // 将获取的标题值设置为页面标题
+      if (title) {
+        // if (title == 'first') {
+        //   fisrtPageCounter = randomNum;
+        // } else if (title == 'second') {
+        //   secondPageCounter = randomNum;
+        // }
+        const pageTitle = `${title}_${randomNum}`
+        document.getElementById('pageTitle').innerText = pageTitle;
+      }
+    </script>
+
+
+    <script>
+      // 用于设置与移动端原生应用的通信桥梁
+      function setupWebViewJavascriptBridge(callback) {
+        if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+        if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+        window.WVJBCallbacks = [callback];
+        var WVJBIframe = document.createElement('iframe');
+        WVJBIframe.style.display = 'none';
+        WVJBIframe.src = 'https://__bridge_loaded__';
+        document.documentElement.appendChild(WVJBIframe);
+        setTimeout(function () { document.documentElement.removeChild(WVJBIframe) }, 0)
+      }
+
+
+      setupWebViewJavascriptBridge(function (bridge) {
+        var uniqueId = 1
+        function log(message, data) {
+          var log = document.getElementById('log')
+          var el = document.createElement('div')
+          el.className = 'logLine'
+          el.innerHTML = uniqueId++ + '. ' + message + ':<br />' + JSON.stringify(data)
+          if (log.children.length) { log.insertBefore(el, log.children[0]) }
+          else { log.appendChild(el) }
+        }
+
+        // 注册一个处理来自移动端的消息的处理函数。
+        bridge.registerHandler('testJavascriptHandler', function (data, responseCallback) {
+          log('ObjC called testJavascriptHandler with', data)
+          var responseData = { 'Javascript Says': 'Right back atcha!' }
+          log('JS responding with', responseData)
+          responseCallback(responseData)
+        })
+
+        var mpCallAppButton1 =
+          document.getElementById('mpCallApp_closeMiniProgram_button2').appendChild(document.createElement('button'))
+        mpCallAppButton1.innerHTML = '关闭小程序'
+        mpCallAppButton1.onclick = function (e) {
+          e.preventDefault()
+          var shareDict = {
+            'callback': 'window.shareResult'
+          }
+          bridge.callHandler('mpCallApp_closeMiniProgram', shareDict, function (response) {
+            log('分享JS传给app的response值如下', response)
+          })
+        }
+
+        setupViews(bridge)
+      })
+
+      function upateLog(message) {
+        console.log(message);
+        var log = document.getElementById('logId');
+        log.innerText = message;
+      }
+
+
+      function goBaidu() {
+        window.location.href = 'https://www.baidu.com';
+      }
+
+
+      function reload() {
+        window.location.reload();
+      }
+
+      function goBack() {
+        window.history.back();
+      }
+
+      function goForward() {
+        window.history.forward();
+      }
+      window.addEventListener('load', updateButtonStatus)
+
+      // 根据历史记录的状态更新按钮状态
+      function updateButtonStatus() {
+        const backButton = document.getElementById('backButton');
+        const forwardButton = document.getElementById('forwardButton');
+
+        backButton.disabled = !window.history || !window.history.back;
+        forwardButton.disabled = !window.history || !window.history.forward;
+      }
+
+
+      function goPage1() {
+        // firstPageCounter++;
+        // localStorage.setItem('firstPageCounter', firstPageCounter);// 将计数器的值存储到 localStorage 中
+        fisrtPageCounter = Math.floor(Math.random() * 1000); // 生成一个 0 到 999 的随机数
+
+        var page = './dvlp_mini_program_demo_JavascriptBridge.html?title=1first&randomNum=' + fisrtPageCounter;
+        //window.open(page, '_blank'); // 在 WebView 中，使用 window.open 可能无法正常打开新窗口。
+         window.location.href = page; // 使用 href 才能正确使用 window.history.back();
+         upateLog(`goPage1 已执行完进入:${page}`);
+      }
+
+      function goPage2() {
+        // secondPageCounter++;
+        // localStorage.setItem('secondPageCounter', secondPageCounter);// 将计数器的值存储到 localStorage 中
+        secondPageCounter = Math.floor(Math.random() * 1000); // 生成一个 0 到 999 的随机数
+
+        var page = './dvlp_mini_program_demo_JavascriptBridge.html?title=second&randomNum=' + secondPageCounter;
+        //window.open(page, '_blank'); // 在 WebView 中，使用 window.open 可能无法正常打开新窗口。
+         window.location.href = page; // 使用 href 才能正确使用 window.history.back();
+        upateLog(`goPage2 已执行完进入:${page}`);
+      }
+
+      /// 更新 标题
+      function _updateTitle(dataFromSource) {
+        upateLog(`更新UI上的副标题为:${dataFromSource}`);
+        document.getElementById("pageSubTilteView").innerHTML = `（${dataFromSource}）`;
+      }
+
+
+      function setupViews(bridge) {
+        // 按钮信息对象injectedJSMethods
+        const buttonInfo = {
+          closeMiniProgram: {
+            text: '关闭小程序',
+            jsMethod: 'mpCallApp_closeMiniProgram'
+          },
+          hideMiniProgram: {
+            text: '返回APP',
+            jsMethod: 'mpCallApp_hideMiniProgram'
+          },
+          openAppUserDetail1: {
+            text: '打开App的用户详情1',
+            jsMethod: 'mpCallApp_openAppUserDetail1'
+          },
+          openAppUserDetail2: {
+            text: '打开App的用户详情2',
+            jsMethod: 'mpCallApp_openAppUserDetail2'
+          },
+        };
+
+        // 生成按钮内容
+        const buttonContainer = document.getElementById('buttonContainer');
+        Object.keys(buttonInfo).forEach(function (action) {
+          const info = buttonInfo[action];
+          const button = document.createElement('button');
+          button.className = 'button';
+          button.dataset.action = action;
+          upateLog(`====赋值 ${JSON.stringify(button.dataset)} ===== ${action}`);
+
+          var buttonText = `${info.text}`;
+          if (info.jsMethod.startsWith('mpCallApp_')) {
+            buttonText += `<br>`;
+            buttonText += `<span style="color: red;">${info.jsMethod}</span>`; // 使用红色作为示例颜色
+          }
+          button.innerHTML = buttonText;
+
+          buttonContainer.appendChild(button);
+        });
+
+        // 事件委托，处理按钮点击事件
+        buttonContainer.addEventListener('click', function (event) {
+          const target = event.target;
+          const action = target.dataset.action;
+          upateLog(`====点击了1 ${JSON.stringify(event)} ===== ${action}`);
+          if (action) {
+            handleButtonAction(action);
+          }
+        });
+
+        // 处理按钮点击事件
+        function handleButtonAction(action) {
+          const info = buttonInfo[action];
+          if (info) {
+            if (info.jsMethod.startsWith('mpCallApp_')) {
+              var sendMessage = '{"message":"来自H5的文本"}';
+
+              var shareDict = {
+                'moduleType': '505',
+                'callback': 'window.scanResult'
+              }
+              // upateLog(`bridge=${bridge}`)
+              if (bridge != undefined) {
+                bridge.callHandler(info.jsMethod, shareDict, function (response) {
+                  log('传给app的response值如下', response)
+                })
+              } else {
+                _showAlert(`bridge=${bridge} 导致调用JS失败`)
+              }
+            }
+          }
+        }
+      }
+      // setupViews()
+
+
+      function _showAlert(message) {
+        upateLog(`弹窗内容：${message}`);
+      }
+
+    </script>
+</h6></body>
+
+</html>
