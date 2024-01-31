@@ -6,6 +6,8 @@
  * @Description: 
  */
 
+// import * as common_object_util from './common_object_util.js';
+// const common_object_util = require('./common_object_util.js');
 
 /// 获取指定地址的主地址
 function getRequestUrlMain(browserUrl) {
@@ -27,7 +29,7 @@ function getRequestUrlMain(browserUrl) {
 }
 
 /// 获取指定地址的所有参数
-function getRequestUrlParams(browserUrl) {
+function getRequestUrlParams(browserUrl, paramToObjectIfOK = false) {
   if (browserUrl == null || browserUrl == "" || typeof browserUrl == "undefined") {
     var url = decodeURI(location.search);  //获取url中"?"符后的字串
   } else {
@@ -39,16 +41,27 @@ function getRequestUrlParams(browserUrl) {
   if (paramStartIndex != -1) {
     var str = url.substr(paramStartIndex + 1);
     strs = str.split("&");
-
+    debugger
     for (var i = 0; i < strs.length; i++) {
       var keyValueComponent = strs[i].split("=");
       var key = keyValueComponent[0];
       var value = keyValueComponent[1];
-      theRequest[key] = unescape(value);
+      var decodeValue = decodeURIComponent(value); // 不管要不要进行object转化的判断，都要先decode
+
+      if (paramToObjectIfOK) { // 使用的是 common_object_util 的 isObject 的方法不准 decodeValue === Object(decodeValue)
+        try {
+          decodeValue = JSON.parse(decodeValue);
+        } catch (error) {
+          //
+        }
+      }
+      theRequest[key] = decodeValue;
     }
   }
   return theRequest;
 }
+
+
 
 // [js获取url中的中文参数出现乱码解决](https://www.codeleading.com/article/87533774933/)
 // "http://localhost:4000/Architecture%E6%9E%B6%E6%9E%84/h5_native_interacte/h5js/dvlp_h5js_demo.json"; // url含中文示例

@@ -102,7 +102,69 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/README/" data-id="cls067r1x003vb8r4a1zaockz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/README/" data-id="cls1nx4mh003x6er4b1hpvcmb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/开发随笔/collection相关随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/开发随笔/collection相关随笔/" class="article-date">
+  <time datetime="2019-01-10T03:30:12.000Z" itemprop="datePublished">2019-01-10</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/开发随笔/collection相关随笔/">iOS</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="UICollectionView-SelectItem方法无效的原因"><a href="#UICollectionView-SelectItem方法无效的原因" class="headerlink" title="UICollectionView SelectItem方法无效的原因"></a>UICollectionView SelectItem方法无效的原因</h1><p><a href="https://blog.csdn.net/weixin_34127717/article/details/88010800" target="_blank" rel="noopener">https://blog.csdn.net/weixin_34127717/article/details/88010800</a></p>
+<ol>
+<li>[collectionView reloadData];</li>
+<li>[collectionView layoutIfNeeded];</li>
+<li>[collectionView selectItemAtIndexPath:indexPath animated:YES scrollPosition:UICollectionViewScrollPositionNone];</li>
+</ol>
+<h4 id="UICollectionView删除数据更新"><a href="#UICollectionView删除数据更新" class="headerlink" title="UICollectionView删除数据更新"></a>UICollectionView删除数据更新</h4><p>前段时间在做商品收藏的时候，用UICollectionView展示收藏商品，删除收藏用到collection的删除方法。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">self.dataAry removeObjectAtIndex:indexPath.row</span>];</span><br><span class="line"></span><br><span class="line">[<span class="meta">collectionView deleteItemsAtIndexPaths:@[indexPath</span>]];</span><br></pre></td></tr></table></figure>
+<p>发现一个问题，collection执行deleteItems后只会调用numberOfItemsInSection刷新一下item的数量，并不会调用cellForItemAtIndexPath来刷新数据，（因为只是删除，item的内容不会变，只会动一下位置），这就导致了一个问题，当我删除到最后一个cell的时候，发现数组越界。原因是dataAry只剩一个数据，但是indexPath.row=1。</p>
+<p>解决方案：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[collectionView performBatchUpdates:^&#123;</span><br><span class="line">      [<span class="keyword">self</span>.dataAry removeObjectAtIndex:indexPath.row];</span><br><span class="line">      [collectionView deleteItemsAtIndexPaths:@[indexPath]];</span><br><span class="line">      </span><br><span class="line">  &#125; completion:^(<span class="built_in">BOOL</span> finished) &#123;</span><br><span class="line">      [collectionView reloadData];</span><br><span class="line">  &#125;];</span><br></pre></td></tr></table></figure>
+<p>每次删除执行完后刷新数据。大家有其他解决办法欢迎指正。</p>
+<p>所以为了不执行reloadData,</p>
+<p><a href="https://www.cnblogs.com/sandyzhang/p/5257905.html" target="_blank" rel="noopener"><strong>UICollectionView cellForItemAtIndexPath 方法不走</strong></a></p>
+<p>在storyboard 中</p>
+<p>UICollectionView cellForItemAtIndexPath not called</p>
+<p>被坑了好久,各种问题点查找,终于解决了</p>
+<p>解决办法：<a href="https://www.jianshu.com/p/cda4a7061cf9" target="_blank" rel="noopener">automaticallyAdjustsScrollViewInsets</a></p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">self</span>.automaticallyAdjustsScrollViewInsets = <span class="literal">NO</span>;<span class="comment">//解决cellForItemAtIndexPath not called问题</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (@available(iOS <span class="number">11.0</span>, *)) &#123;</span><br><span class="line">   <span class="keyword">self</span>.scrollView.contentInsetAdjustmentBehavior = <span class="built_in">UIScrollViewContentInsetAdjustmentNever</span>;</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="comment">// Fallback on earlier versions</span></span><br><span class="line">   <span class="keyword">self</span>.automaticallyAdjustsScrollViewInsets = <span class="literal">NO</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/开发随笔/collection相关随笔/" data-id="cls1nx6lv00q66er4l7x7v34l" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -171,7 +233,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/开发随笔/Swift相关随笔/" data-id="cls067svc00pzb8r4sb64vr9v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/开发随笔/Swift相关随笔/" data-id="cls1nx6lv00qa6er4mxl2zgbc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -183,9 +245,9 @@
 
 
   
-    <article id="post-iOS/开发随笔/collection相关随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/开发随笔/字符串:表情相关随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/开发随笔/collection相关随笔/" class="article-date">
+    <a href="/iOS/开发随笔/字符串:表情相关随笔/" class="article-date">
   <time datetime="2019-01-10T03:30:12.000Z" itemprop="datePublished">2019-01-10</time>
 </a>
     
@@ -201,7 +263,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/开发随笔/collection相关随笔/">iOS</a>
+      <a class="article-title" href="/iOS/开发随笔/字符串:表情相关随笔/">iOS</a>
     </h1>
   
 
@@ -210,30 +272,19 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="UICollectionView-SelectItem方法无效的原因"><a href="#UICollectionView-SelectItem方法无效的原因" class="headerlink" title="UICollectionView SelectItem方法无效的原因"></a>UICollectionView SelectItem方法无效的原因</h1><p><a href="https://blog.csdn.net/weixin_34127717/article/details/88010800" target="_blank" rel="noopener">https://blog.csdn.net/weixin_34127717/article/details/88010800</a></p>
-<ol>
-<li>[collectionView reloadData];</li>
-<li>[collectionView layoutIfNeeded];</li>
-<li>[collectionView selectItemAtIndexPath:indexPath animated:YES scrollPosition:UICollectionViewScrollPositionNone];</li>
-</ol>
-<h4 id="UICollectionView删除数据更新"><a href="#UICollectionView删除数据更新" class="headerlink" title="UICollectionView删除数据更新"></a>UICollectionView删除数据更新</h4><p>前段时间在做商品收藏的时候，用UICollectionView展示收藏商品，删除收藏用到collection的删除方法。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">self.dataAry removeObjectAtIndex:indexPath.row</span>];</span><br><span class="line"></span><br><span class="line">[<span class="meta">collectionView deleteItemsAtIndexPaths:@[indexPath</span>]];</span><br></pre></td></tr></table></figure>
-<p>发现一个问题，collection执行deleteItems后只会调用numberOfItemsInSection刷新一下item的数量，并不会调用cellForItemAtIndexPath来刷新数据，（因为只是删除，item的内容不会变，只会动一下位置），这就导致了一个问题，当我删除到最后一个cell的时候，发现数组越界。原因是dataAry只剩一个数据，但是indexPath.row=1。</p>
-<p>解决方案：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[collectionView performBatchUpdates:^&#123;</span><br><span class="line">      [<span class="keyword">self</span>.dataAry removeObjectAtIndex:indexPath.row];</span><br><span class="line">      [collectionView deleteItemsAtIndexPaths:@[indexPath]];</span><br><span class="line">      </span><br><span class="line">  &#125; completion:^(<span class="built_in">BOOL</span> finished) &#123;</span><br><span class="line">      [collectionView reloadData];</span><br><span class="line">  &#125;];</span><br></pre></td></tr></table></figure>
-<p>每次删除执行完后刷新数据。大家有其他解决办法欢迎指正。</p>
-<p>所以为了不执行reloadData,</p>
-<p><a href="https://www.cnblogs.com/sandyzhang/p/5257905.html" target="_blank" rel="noopener"><strong>UICollectionView cellForItemAtIndexPath 方法不走</strong></a></p>
-<p>在storyboard 中</p>
-<p>UICollectionView cellForItemAtIndexPath not called</p>
-<p>被坑了好久,各种问题点查找,终于解决了</p>
-<p>解决办法：<a href="https://www.jianshu.com/p/cda4a7061cf9" target="_blank" rel="noopener">automaticallyAdjustsScrollViewInsets</a></p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">self</span>.automaticallyAdjustsScrollViewInsets = <span class="literal">NO</span>;<span class="comment">//解决cellForItemAtIndexPath not called问题</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (@available(iOS <span class="number">11.0</span>, *)) &#123;</span><br><span class="line">   <span class="keyword">self</span>.scrollView.contentInsetAdjustmentBehavior = <span class="built_in">UIScrollViewContentInsetAdjustmentNever</span>;</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="comment">// Fallback on earlier versions</span></span><br><span class="line">   <span class="keyword">self</span>.automaticallyAdjustsScrollViewInsets = <span class="literal">NO</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="网站"><a href="#网站" class="headerlink" title="网站"></a>网站</h2><p>散文网：<a href="http://www.ruiwen.com/wenxue/sanwen/" target="_blank" rel="noopener">瑞文网</a></p>
+<h1 id="iOS输入框的字数统计-最大长度限制详解"><a href="#iOS输入框的字数统计-最大长度限制详解" class="headerlink" title="iOS输入框的字数统计/最大长度限制详解"></a>iOS输入框的字数统计/最大长度限制详解</h1><p><a href="https://www.jb51.net/article/142743.htm" target="_blank" rel="noopener">https://www.jb51.net/article/142743.htm</a></p>
+<h1 id="iOS-计算表情的个数"><a href="#iOS-计算表情的个数" class="headerlink" title="iOS 计算表情的个数"></a>iOS 计算表情的个数</h1><p><a href="https://blog.csdn.net/u010913882/article/details/37568761" target="_blank" rel="noopener">https://blog.csdn.net/u010913882/article/details/37568761</a></p>
+<p><strong>iOS带Emoji字符串的安全截取</strong></p>
+<p><strong>【iOS】iOS OC截取字符串时emoji表情处理 取emoji表情的range</strong></p>
+<p><a href="https://www.jianshu.com/p/416ff5e6fc67" target="_blank" rel="noopener"><strong>https://www.jianshu.com/p/416ff5e6fc67</strong></a></p>
+<p>iOS字符截取（表情汉字）</p>
+<p><a href="https://www.cnblogs.com/simple-life-no1/p/5340285.html" target="_blank" rel="noopener">https://www.cnblogs.com/simple-life-no1/p/5340285.html</a></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/开发随笔/collection相关随笔/" data-id="cls067svd00q4b8r48vbcs2nl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/开发随笔/字符串:表情相关随笔/" data-id="cls1nx6lw00qe6er4sog8bm23" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -298,58 +349,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/开发随笔/tableView相关随笔/" data-id="cls067svf00qcb8r4g2tpykhk" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/开发随笔/字符串:表情相关随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/开发随笔/字符串:表情相关随笔/" class="article-date">
-  <time datetime="2019-01-10T03:30:12.000Z" itemprop="datePublished">2019-01-10</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/开发随笔/字符串:表情相关随笔/">iOS</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="网站"><a href="#网站" class="headerlink" title="网站"></a>网站</h2><p>散文网：<a href="http://www.ruiwen.com/wenxue/sanwen/" target="_blank" rel="noopener">瑞文网</a></p>
-<h1 id="iOS输入框的字数统计-最大长度限制详解"><a href="#iOS输入框的字数统计-最大长度限制详解" class="headerlink" title="iOS输入框的字数统计/最大长度限制详解"></a>iOS输入框的字数统计/最大长度限制详解</h1><p><a href="https://www.jb51.net/article/142743.htm" target="_blank" rel="noopener">https://www.jb51.net/article/142743.htm</a></p>
-<h1 id="iOS-计算表情的个数"><a href="#iOS-计算表情的个数" class="headerlink" title="iOS 计算表情的个数"></a>iOS 计算表情的个数</h1><p><a href="https://blog.csdn.net/u010913882/article/details/37568761" target="_blank" rel="noopener">https://blog.csdn.net/u010913882/article/details/37568761</a></p>
-<p><strong>iOS带Emoji字符串的安全截取</strong></p>
-<p><strong>【iOS】iOS OC截取字符串时emoji表情处理 取emoji表情的range</strong></p>
-<p><a href="https://www.jianshu.com/p/416ff5e6fc67" target="_blank" rel="noopener"><strong>https://www.jianshu.com/p/416ff5e6fc67</strong></a></p>
-<p>iOS字符截取（表情汉字）</p>
-<p><a href="https://www.cnblogs.com/simple-life-no1/p/5340285.html" target="_blank" rel="noopener">https://www.cnblogs.com/simple-life-no1/p/5340285.html</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/开发随笔/字符串:表情相关随笔/" data-id="cls067svg00qfb8r4sr11k81y" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/开发随笔/tableView相关随笔/" data-id="cls1nx6lx00qh6er40ifboddx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -399,7 +399,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/混编/OC+Swift混编问题/" data-id="cls067svy00rob8r44cfjhv5g" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/混编/OC+Swift混编问题/" data-id="cls1nx6mc00rf6er4u3k2fpj2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -447,7 +447,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/证书发版/邓白氏编码申请/" data-id="cls067sw600shb8r4sg5jua7j" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/证书发版/邓白氏编码申请/" data-id="cls1nx6mm00sr6er4pag3v28q" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -527,7 +527,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/ReactNative/8实践/ReactNative的Demo实践/" data-id="cls067suv00o1b8r49svwobu2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/ReactNative/8实践/ReactNative的Demo实践/" data-id="cls1nx6le00o46er4ui6z7edd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -569,7 +569,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/4登录页实战/登录页在Android工程中的代码/" data-id="cls067snd00f8b8r4iym61hua" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/4登录页实战/登录页在Android工程中的代码/" data-id="cls1nx6bs00f96er4fkzu3qaq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -611,7 +611,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/4登录页实战/登录页在iOS工程中的代码/" data-id="cls067so700fkb8r4k9t6fc86" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/4登录页实战/登录页在iOS工程中的代码/" data-id="cls1nx6cs00fp6er4ihysytnp" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -667,7 +667,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/12/">December 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -680,23 +680,23 @@
       <ul>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_h5Action_demo/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_browser_url_demo/">(no title)</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo/">(no title)</a>
           </li>
         
           <li>
-            <a href="/Architecture架构/h5_native_interacte/h5js/dvlp_h5js_demo/">(no title)</a>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/element_value/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/common_url_util/">(no title)</a>
           </li>
         
           <li>
             <a href="/Architecture架构/h5_native_interacte/commonjs/common_url_update/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/h5_native_interacte/commonjs/common_read_file/">(no title)</a>
           </li>
         
       </ul>
