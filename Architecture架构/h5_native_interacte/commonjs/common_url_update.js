@@ -23,7 +23,26 @@ function addParamsForUrl(oldUrl, newParams) {
   return `${oldUrl}${connectorFlag}${newParamsString}`;
 }
 
+function paramsStringFromMap(newParams) {
+  debugger
+  const params = new URLSearchParams();
+
+  // 遍历newParams对象的属性
+  for (const key in newParams) {
+    if (newParams.hasOwnProperty(key)) {
+      const value = newParams[key];
+      params.append(key, JSON.stringify(value));
+    }
+  }
+
+  // 将URL参数添加到URL中
+  const newParamsString = `${params.toString()}`;
+  return newParamsString;
+}
+
 function stringFromMap(newParams) {
+  return paramsStringFromMap(newParams);
+
   var keys = Object.keys(newParams); // 获取map的所有keys
   console.log(`keys=${keys}`);
   var count = keys.length;
