@@ -72,378 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cm0b4ashp0164arr4d82qmjx3" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
-<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
-<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
-</ul>
-<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
-<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
-</ul>
-<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
-<p><strong>B.一个请求一条线程</strong></p>
-<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
-<p><strong>C.一条常驻线程</strong></p>
-<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
-<p>线程保活的代码</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
-<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
-<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
-<ol>
-<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
-<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
-</ol>
-<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
-<p>其中</p>
-<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
-<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
-<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
-<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cm0b4asih0167arr4l8wdo96o" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-优化/提示语优化" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/优化/提示语优化/" class="article-date">
-  <time datetime="2019-04-24T09:05:41.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/优化/提示语优化/">提示语优化</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="提示语优化"><a href="#提示语优化" class="headerlink" title="提示语优化"></a>提示语优化</h1><h2 id="一、提示语优化"><a href="#一、提示语优化" class="headerlink" title="一、提示语优化"></a>一、提示语优化</h2><p>如果有一个提示语在显示中，其他同类提示语不再显示</p>
-<p>提示语消失后，如果异常仍然存在，按上述规则显示第一个错误提示语</p>
-<p>如果两类提示语需要出现，后面的覆盖前面。任何时间，只显示一条提示语</p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm0b4aob1002qarr4m0icoagd" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/自动化/iOS进阶_打包" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/自动化/iOS进阶_打包/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/自动化/iOS进阶_打包/">iOS进阶_打包脚本</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h2 id="一、认识Mac的keychain机制"><a href="#一、认识Mac的keychain机制" class="headerlink" title="一、认识Mac的keychain机制"></a>一、认识Mac的keychain机制</h2><p>要使用Keychain中的证书，请先<code>unlock-keychain</code>。</p>
-<p>完整的命令如下：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
-<p><strong>如果你是在Jenkins中执行的，请确保你的权限问题。具体的解决可进入《使用工具-&gt;Jenkins-&gt;Jenkins使用问题常见》中的”二、权限问题”</strong>中查看解决。</p>
-<p>其他参考文章：</p>
-<ul>
-<li><a href="https://www.coder4.com/archives/5131" target="_blank" rel="noopener">Jenkins上后台持续集成时如何绕过Mac的keychain机制</a></li>
-<li><a href="https://blog.csdn.net/jintemp/article/details/79894263" target="_blank" rel="noopener">远程连接 Mac 设置使用密钥 security -v unlock-keychain</a></li>
-<li><a href="https://blog.csdn.net/zhaodanfeng1025/article/details/41486993" target="_blank" rel="noopener">security用法</a></li>
-<li><a href="https://stackoverflow.com/questions/35517496/unable-to-unlock-the-keychain" target="_blank" rel="noopener">Unable to unlock the keychain</a></li>
-</ul>
-<h2 id="二、认识几个命令"><a href="#二、认识几个命令" class="headerlink" title="二、认识几个命令"></a>二、认识几个命令</h2><ul>
-<li>查看SDK版本</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xcodebuild -showsdks</span><br></pre></td></tr></table></figure>
-<p>查询结果如下：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_showsdks.png" alt="xcodebuild -showsdks的执行结果"></p>
-<h2 id="三、认识执行命令"><a href="#三、认识执行命令" class="headerlink" title="三、认识执行命令"></a>三、认识执行命令</h2><p>在终端执行<code>xcodebuild --help</code>。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br></pre></td><td class="code"><pre><span class="line">Beyond-MacBook-Pro:~ lichaoqian$ xcodebuild --help</span><br><span class="line">Usage: xcodebuild [-project &lt;projectname&gt;] [[-target &lt;targetname&gt;]...|-alltargets] [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings [-json]] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild [-project &lt;projectname&gt;] -scheme &lt;schemeName&gt; [-destination &lt;destinationspecifier&gt;]... [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings [-json]] [-showdestinations] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild -workspace &lt;workspacename&gt; -scheme &lt;schemeName&gt; [-destination &lt;destinationspecifier&gt;]... [-configuration &lt;configurationname&gt;] [-arch &lt;architecture&gt;]... [-sdk [&lt;sdkname&gt;|&lt;sdkpath&gt;]] [-showBuildSettings] [-showdestinations] [&lt;buildsetting&gt;=&lt;value&gt;]... [&lt;buildaction&gt;]...</span><br><span class="line">       xcodebuild -version [-sdk [&lt;sdkfullpath&gt;|&lt;sdkname&gt;] [-json] [&lt;infoitem&gt;] ]</span><br><span class="line">       xcodebuild -list [[-project &lt;projectname&gt;]|[-workspace &lt;workspacename&gt;]] [-json]</span><br><span class="line">       xcodebuild -showsdks [-json]</span><br><span class="line">       xcodebuild -exportArchive -archivePath &lt;xcarchivepath&gt; [-exportPath &lt;destinationpath&gt;] -exportOptionsPlist &lt;plistpath&gt;</span><br><span class="line">       xcodebuild -exportNotarizedApp -archivePath &lt;xcarchivepath&gt; -exportPath &lt;destinationpath&gt;</span><br><span class="line">       xcodebuild -exportLocalizations -localizationPath &lt;path&gt; -project &lt;projectname&gt; [-exportLanguage &lt;targetlanguage&gt;...[-includeScreenshots]]</span><br><span class="line">       xcodebuild -importLocalizations -localizationPath &lt;path&gt; -project &lt;projectname&gt;</span><br><span class="line">       xcodebuild -resolvePackageDependencies [-project &lt;projectname&gt;|-workspace &lt;workspacename&gt;] -clonedSourcePackagesDirPath &lt;path&gt;</span><br><span class="line">       xcodebuild -create-xcframework [-help] [-framework &lt;path&gt;] [-library &lt;path&gt; [-headers &lt;path&gt;]] -output &lt;path&gt;</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">    -usage                                                   print brief usage</span><br><span class="line">    -help                                                    print complete usage</span><br><span class="line">    -verbose                                                 provide additional status output</span><br><span class="line">    -license                                                 show the Xcode and SDK license agreements</span><br><span class="line">    -checkFirstLaunchStatus                                  Check if any First Launch tasks need to be performed</span><br><span class="line">    -runFirstLaunch                                          install packages and agree to the license</span><br><span class="line">    -project NAME                                            build the project NAME</span><br><span class="line">    -target NAME                                             build the target NAME</span><br><span class="line">    -alltargets                                              build all targets</span><br><span class="line">    -workspace NAME                                          build the workspace NAME</span><br><span class="line">    -scheme NAME                                             build the scheme NAME</span><br><span class="line">    -configuration NAME                                      use the build configuration NAME for building each target</span><br><span class="line">    -xcconfig PATH                                           apply the build settings defined in the file at PATH as overrides</span><br><span class="line">    -arch ARCH                                               build each target for the architecture ARCH; this will override architectures defined in the project</span><br><span class="line">    -sdk SDK                                                 use SDK as the name or path of the base SDK when building the project</span><br><span class="line">    -toolchain NAME                                          use the toolchain with identifier or name NAME</span><br><span class="line">    -destination DESTINATIONSPECIFIER                        use the destination described by DESTINATIONSPECIFIER (a comma-separated set of key=value pairs describing the destination to use)</span><br><span class="line">    -destination-timeout TIMEOUT                             wait for TIMEOUT seconds while searching for the destination device</span><br><span class="line">    -parallelizeTargets                                      build independent targets in parallel</span><br><span class="line">    -jobs NUMBER                                             specify the maximum number of concurrent build operations</span><br><span class="line">    -maximum-concurrent-test-device-destinations NUMBER      the maximum number of device destinations to test on concurrently</span><br><span class="line">    -maximum-concurrent-test-simulator-destinations NUMBER   the maximum number of simulator destinations to test on concurrently</span><br><span class="line">    -parallel-testing-enabled YES|NO                         overrides the per-target setting in the scheme</span><br><span class="line">    -parallel-testing-worker-count NUMBER                    the exact number of test runners that will be spawned during parallel testing</span><br><span class="line">    -maximum-parallel-testing-workers NUMBER                 the maximum number of test runners that will be spawned during parallel testing</span><br><span class="line">    -dry-run                                                 do everything except actually running the commands</span><br><span class="line">    -quiet                                                   do not print any output except for warnings and errors</span><br><span class="line">    -hideShellScriptEnvironment                              don't show shell script environment variables in build log</span><br><span class="line">    -showsdks                                                display a compact list of the installed SDKs</span><br><span class="line">    -showdestinations                                        display a list of destinations</span><br><span class="line">    -showTestPlans                                           display a list of test plans</span><br><span class="line">    -showBuildSettings                                       display a list of build settings and values</span><br><span class="line">    -list                                                    lists the targets and configurations in a project, or the schemes in a workspace</span><br><span class="line">    -find-executable NAME                                    display the full path to executable NAME in the provided SDK and toolchain</span><br><span class="line">    -find-library NAME                                       display the full path to library NAME in the provided SDK and toolchain</span><br><span class="line">    -version                                                 display the version of Xcode; with -sdk will display info about one or all installed SDKs</span><br><span class="line">    -enableAddressSanitizer YES|NO                           turn the address sanitizer on or off</span><br><span class="line">    -enableThreadSanitizer YES|NO                            turn the thread sanitizer on or off</span><br><span class="line">    -enableUndefinedBehaviorSanitizer YES|NO                 turn the undefined behavior sanitizer on or off</span><br><span class="line">    -resultBundlePath PATH                                   specifies the directory where a result bundle describing what occurred will be placed</span><br><span class="line">    -resultStreamPath PATH                                   specifies the file where a result stream will be written to (the file must already exist)</span><br><span class="line">    -resultBundleVersion 3 [default]                         specifies which result bundle version should be used</span><br><span class="line">    -clonedSourcePackagesDirPath PATH                        specifies the directory to which remote source packages are fetch or expected to be found</span><br><span class="line">    -derivedDataPath PATH                                    specifies the directory where build products and other derived data will go</span><br><span class="line">    -archivePath PATH                                        specifies the directory where any created archives will be placed, or the archive that should be exported</span><br><span class="line">    -exportArchive                                           specifies that an archive should be exported</span><br><span class="line">    -exportNotarizedApp                                      export an archive that has been notarized by Apple</span><br><span class="line">    -exportOptionsPlist PATH                                 specifies a path to a plist file that configures archive exporting</span><br><span class="line">    -enableCodeCoverage YES|NO                               turn code coverage on or off when testing</span><br><span class="line">    -exportPath PATH                                         specifies the destination for the product exported from an archive</span><br><span class="line">    -skipUnavailableActions                                  specifies that scheme actions that cannot be performed should be skipped instead of causing a failure</span><br><span class="line">    -exportLocalizations                                     exports completed and outstanding project localizations</span><br><span class="line">    -importLocalizations                                     imports localizations for a project, assuming any necessary localized resources have been created in Xcode</span><br><span class="line">    -localizationPath                                        specifies a path to XLIFF localization files</span><br><span class="line">    -exportLanguage                                          specifies multiple optional ISO 639-1 languages included in a localization export</span><br><span class="line">    -xctestrun                                               specifies a path to a test run specification</span><br><span class="line">    -testPlan                                                specifies the name of the test plan associated with the scheme to use for testing</span><br><span class="line">    -only-testing                                            constrains testing by specifying tests to include, and excluding other tests</span><br><span class="line">    -only-testing:TEST-IDENTIFIER                            constrains testing by specifying tests to include, and excluding other tests</span><br><span class="line">    -skip-testing                                            constrains testing by specifying tests to exclude, but including other tests</span><br><span class="line">    -skip-testing:TEST-IDENTIFIER                            constrains testing by specifying tests to exclude, but including other tests</span><br><span class="line">    -only-test-configuration                                 constrains testing by specifying test configurations to include, and excluding other test configurations</span><br><span class="line">    -skip-test-configuration                                 constrains testing by specifying test configurations to exclude, but including other test configurations</span><br><span class="line">    -testLanguage                                            constrains testing by specifying ISO 639-1 language in which to run the tests</span><br><span class="line">    -testRegion                                              constrains testing by specifying ISO 3166-1 region in which to run the tests</span><br><span class="line">    -resolvePackageDependencies                              resolves any Swift package dependencies referenced by the project or workspace</span><br><span class="line">    -disableAutomaticPackageResolution                       prevents packages from automatically being resolved to versions other than those recorded in the `Package.resolved` file</span><br><span class="line">    -json                                                    output as JSON (note: -json implies -quiet)</span><br><span class="line">    -allowProvisioningUpdates                                Allow xcodebuild to communicate with the Apple Developer website. For automatically signed targets, xcodebuild will create and update profiles, app IDs, and certificates. For manually signed targets, xcodebuild will download missing or updated provisioning profiles. Requires a developer account to have been added in Xcode's Accounts preference pane.</span><br><span class="line">    -allowProvisioningDeviceRegistration                     Allow xcodebuild to register your destination device on the developer portal if necessary. This flag only takes effect if -allowProvisioningUpdates is also passed.</span><br><span class="line">    -showBuildTimingSummary                                  display a report of the timings of all the commands invoked during the build</span><br><span class="line">    -create-xcframework                                      create an xcframework from prebuilt libraries; -help for more information.</span><br><span class="line"></span><br><span class="line">Available keys for -exportOptionsPlist:</span><br><span class="line"></span><br><span class="line">	compileBitcode : Bool</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, should Xcode re-compile the app from bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	destination : String</span><br><span class="line"></span><br><span class="line">		Determines whether the app is exported locally or uploaded to Apple. Options are export or upload. The available options vary based on the selected distribution method. Defaults to export.</span><br><span class="line"></span><br><span class="line">	embedOnDemandResourcesAssetPacksInBundle : Bool</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, if the app uses On Demand Resources and this is YES, asset packs are embedded in the app bundle so that the app can be tested without a server to host asset packs. Defaults to YES unless onDemandResourcesAssetPacksBaseURL is specified.</span><br><span class="line"></span><br><span class="line">	generateAppStoreInformation : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should Xcode generate App Store Information for uploading with iTMSTransporter? Defaults to NO.</span><br><span class="line"></span><br><span class="line">	iCloudContainerEnvironment : String</span><br><span class="line"></span><br><span class="line">		If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement. Available options vary depending on the type of provisioning profile used, but may include: Development and Production.</span><br><span class="line"></span><br><span class="line">	installerSigningCertificate : String</span><br><span class="line"></span><br><span class="line">		For manual signing only. Provide a certificate name, SHA-1 hash, or automatic selector to use for signing. Automatic selectors allow Xcode to pick the newest installed certificate of a particular type. The available automatic selectors are "Mac Installer Distribution" and "Developer ID Installer". Defaults to an automatic certificate selector matching the current distribution method.</span><br><span class="line"></span><br><span class="line">	manifest : Dictionary</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, users can download your app over the web by opening your distribution manifest file in a web browser. To generate a distribution manifest, the value of this key should be a dictionary with three sub-keys: appURL, displayImageURL, fullSizeImageURL. The additional sub-key assetPackManifestURL is required when using on-demand resources.</span><br><span class="line"></span><br><span class="line">	method : String</span><br><span class="line"></span><br><span class="line">		Describes how Xcode should export the archive. Available options: app-store, validation, ad-hoc, package, enterprise, development, developer-id, and mac-application. The list of options varies based on the type of archive. Defaults to development.</span><br><span class="line"></span><br><span class="line">	onDemandResourcesAssetPacksBaseURL : String</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, if the app uses On Demand Resources and embedOnDemandResourcesAssetPacksInBundle isn't YES, this should be a base URL specifying where asset packs are going to be hosted. This configures the app to download asset packs from the specified URL.</span><br><span class="line"></span><br><span class="line">	provisioningProfiles : Dictionary</span><br><span class="line"></span><br><span class="line">		For manual signing only. Specify the provisioning profile to use for each executable in your app. Keys in this dictionary are the bundle identifiers of executables; values are the provisioning profile name or UUID to use.</span><br><span class="line"></span><br><span class="line">	signingCertificate : String</span><br><span class="line"></span><br><span class="line">		For manual signing only. Provide a certificate name, SHA-1 hash, or automatic selector to use for signing. Automatic selectors allow Xcode to pick the newest installed certificate of a particular type. The available automatic selectors are "Mac App Distribution", "iOS Distribution", "iOS Developer", "Developer ID Application", "Apple Distribution", "Mac Developer", and "Apple Development". Defaults to an automatic certificate selector matching the current distribution method.</span><br><span class="line"></span><br><span class="line">	signingStyle : String</span><br><span class="line"></span><br><span class="line">		The signing style to use when re-signing the app for distribution. Options are manual or automatic. Apps that were automatically signed when archived can be signed manually or automatically during distribution, and default to automatic. Apps that were manually signed when archived must be manually signed during distribtion, so the value of signingStyle is ignored.</span><br><span class="line"></span><br><span class="line">	stripSwiftSymbols : Bool</span><br><span class="line"></span><br><span class="line">		Should symbols be stripped from Swift libraries in your IPA? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	teamID : String</span><br><span class="line"></span><br><span class="line">		The Developer Portal team to use for this export. Defaults to the team used to build the archive.</span><br><span class="line"></span><br><span class="line">	thinning : String</span><br><span class="line"></span><br><span class="line">		For non-App Store exports, should Xcode thin the package for one or more device variants? Available options: &lt;none&gt; (Xcode produces a non-thinned universal app), &lt;thin-for-all-variants&gt; (Xcode produces a universal app and all available thinned variants), or a model identifier for a specific device (e.g. "iPhone7,1"). Defaults to &lt;none&gt;.</span><br><span class="line"></span><br><span class="line">	uploadBitcode : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should the package include bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">	uploadSymbols : Bool</span><br><span class="line"></span><br><span class="line">		For App Store exports, should the package include symbols? Defaults to YES.</span><br></pre></td></tr></table></figure>
-<h3 id="1、cd到代码目录"><a href="#1、cd到代码目录" class="headerlink" title="1、cd到代码目录"></a>1、cd到代码目录</h3><p>略</p>
-<h3 id="2、开始打包"><a href="#2、开始打包" class="headerlink" title="2、开始打包"></a>2、开始打包</h3><ul>
-<li>执行命令</li>
-</ul>
-<p>写在终端进行测试的命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xcodebuild -workspace CJAutoPackageDemo.xcworkspace -scheme App1Enterprise -configuration Debug -sdk iphoneos12.2 ARCHS='arm64 armv7' IOS_DEVELOPMENT_TARGET=8.0 -derivedDataPath ../output/build/Debug-iphoneos archive -archivePath ../output/Debug-iphoneos/App1Enterprise.xcarchive</span><br></pre></td></tr></table></figure>
-<p>写在脚本中的命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">echo ""</span><br><span class="line">echo ""</span><br><span class="line">echo "&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; step5：begin compile project &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;"</span><br><span class="line">xcodebuild -workspace $&#123;PROJECT_DIR&#125;/$&#123;APPPROJECT_NAME&#125;.xcworkspace -scheme $&#123;APPTARGET_NAME&#125; -configuration $&#123;BUILD_CONFIGURATION_NAME&#125; -sdk $&#123;SIMULATOR_OR_IOS_SDK&#125;$&#123;SDK_VERSION&#125; ARCHS='arm64 armv7' IOS_DEVELOPMENT_TARGET=$&#123;DEVELOPMENT_TARGET&#125; -derivedDataPath $&#123;BUILD_OUTPUT_PATH&#125; archive -archivePath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive"</span><br><span class="line">echo "&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; step5：end compile project &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"</span><br></pre></td></tr></table></figure>
-<p>参数介绍：</p>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>-workspace</td>
-<td>工程文件名（用cocopods集成的项目，没有的话 整个改为-xcodeproj xxx.xcodeproj）</td>
-<td></td>
-</tr>
-<tr>
-<td>-scheme</td>
-<td>通过scheme指定不同的target</td>
-<td></td>
-</tr>
-<tr>
-<td>-configuration</td>
-<td>对应的环境配置，就是编译的时候执行的模式<br>(测试Debug、预生产PreRelease、生产Release)</td>
-<td></td>
-</tr>
-<tr>
-<td>-archivePath</td>
-<td>导出的.xcarchive的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-sdk</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>-derivedDataPath</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>-archivePath</td>
-<td>导出的.xcarchive的路径</td>
-</tr>
-</tbody>
-</table>
-<h3 id="3、导出ipa"><a href="#3、导出ipa" class="headerlink" title="3、导出ipa"></a>3、导出ipa</h3><ul>
-<li>执行命令</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">echo ""</span><br><span class="line">echo ""</span><br><span class="line">echo "&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; step6：begin archiving app to ipa &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;"</span><br><span class="line">echo "PWD=$PWD"</span><br><span class="line">cd $&#123;ROOT_DIR&#125;</span><br><span class="line">echo "PWD=$PWD"</span><br><span class="line">echo "archivePath ==&gt;&gt;&gt; $&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive"</span><br><span class="line">echo "exportPath ==&gt;&gt;&gt; $&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;"</span><br><span class="line">echo "exportOptionsPlist ==&gt;&gt;&gt; $&#123;ExportOptionsPlist_PATH&#125;"</span><br><span class="line">xcodebuild -exportArchive -archivePath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;.xcarchive" -exportPath "$&#123;ARCHIVE_OUTPUT_PATH&#125;/$&#123;APPTARGET_NAME&#125;" -exportOptionsPlist "$&#123;ExportOptionsPlist_PATH&#125;" -allowProvisioningUpdates</span><br><span class="line">echo "&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; step6：end archiving app to ipa &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"</span><br></pre></td></tr></table></figure>
-<ul>
-<li>参数解读：</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>-archivePath</td>
-<td>.xcarchive文件的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-exportPath</td>
-<td>导出的ipa的路径</td>
-<td></td>
-</tr>
-<tr>
-<td>-exportOptionsPlist</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h2 id="三、完整脚本内容-含使用Jenkins打包"><a href="#三、完整脚本内容-含使用Jenkins打包" class="headerlink" title="三、完整脚本内容(含使用Jenkins打包)"></a>三、完整脚本内容(含使用Jenkins打包)</h2><ul>
-<li><p>测试项目工程详见：gitee中的<a href="https://gitee.com/dvlpCI/AutoPackage-iOS" target="_blank" rel="noopener">AutoPackage-iOS</a>工程</p>
-</li>
-<li><p>测试Jenkins工程详见：本地Jenkins中的<a href="http://localhost:8080/job/CJAutoPackage/" target="_blank" rel="noopener">CJAutoPackage</a>工程</p>
-</li>
-<li><p>最终Jenkins脚本如下图：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_Jenkins脚本.png" alt="iOS打包_Jenkins脚本"></p>
-</li>
-</ul>
-<p>附：没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
-<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
-<p>更多Jenkins知识请查看：<a href="../../实用工具/Jenkins">实用工具-&gt;Jenkins-&gt;Jenkins的安装与启动</a></p>
-<h2 id="四、注意点"><a href="#四、注意点" class="headerlink" title="四、注意点"></a>四、注意点</h2><h3 id="1、多环境的打包"><a href="#1、多环境的打包" class="headerlink" title="1、多环境的打包"></a>1、多环境的打包</h3><p>主要注意为<code>xcodebuild -workspace</code>中的<code>-configuration</code>参数即可。</p>
-<h3 id="2、多Target的打包注意"><a href="#2、多Target的打包注意" class="headerlink" title="2、多Target的打包注意"></a>2、多Target的打包注意</h3><p>多Target的Podfile文件ruby脚本内容，大概如下：</p>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">source <span class="string">'https://github.com/CocoaPods/Specs.git'</span></span><br><span class="line">source <span class="string">'https://gitee.com/dvlproad/dvlproadSpecs'</span></span><br><span class="line"></span><br><span class="line">platform <span class="symbol">:ios</span>, <span class="string">'8.0'</span></span><br><span class="line"><span class="comment">#use_frameworks!</span></span><br><span class="line">inhibit_all_warnings!</span><br><span class="line"></span><br><span class="line">post_install <span class="keyword">do</span> <span class="params">|installer|</span></span><br><span class="line">    </span><br><span class="line">    puts <span class="string">'Determining pod project minimal deployment target'</span></span><br><span class="line">    </span><br><span class="line">    pods_project = installer.pods_project</span><br><span class="line">    deployment_target_key = <span class="string">'IPHONEOS_DEPLOYMENT_TARGET'</span></span><br><span class="line">    deployment_targets = pods_project.build_configurations.map&#123; <span class="params">|config|</span> config.build_settings[deployment_target_key] &#125;</span><br><span class="line">    minimal_deployment_target = deployment_targets.min_by&#123; <span class="params">|version|</span> Gem::Version.new(version) &#125;</span><br><span class="line">    </span><br><span class="line">    puts <span class="string">'Minimal deployment target is '</span> + minimal_deployment_target</span><br><span class="line">    puts <span class="string">'Setting each pod deployment target to '</span> + minimal_deployment_target</span><br><span class="line">    </span><br><span class="line">    installer.pods_project.targets.each <span class="keyword">do</span> <span class="params">|target|</span></span><br><span class="line">        target.build_configurations.each <span class="keyword">do</span> <span class="params">|config|</span></span><br><span class="line">            config.build_settings[deployment_target_key] = minimal_deployment_target</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># There are no targets called "App1Common" in any Xcode projects</span></span><br><span class="line">abstract_target <span class="string">'App1Common'</span> <span class="keyword">do</span></span><br><span class="line">    <span class="comment"># Has its own copy of App1Common + App1Enterprise</span></span><br><span class="line">    target <span class="string">'App1Enterprise'</span> <span class="keyword">do</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Has its own copy of App1Common + App1AppStore</span></span><br><span class="line">    target <span class="string">'App1AppStore'</span> <span class="keyword">do</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">target <span class="string">'CJAutoPackageDemoTests'</span> <span class="keyword">do</span></span><br><span class="line">   </span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p>通过脚本自动化打包的时候的注意点如下：</p>
-<ol>
-<li><p>主要注意为<code>xcodebuild -workspace</code>中的<code>-scheme</code>参数即可。</p>
-</li>
-<li><p>多Target后，记得在<strong>Linked Frameworks and Libraries</strong>中删除已经不存在的原本旧的<code>libPods-xxx.a</code>文件。否则，Jenkins脚本打包Build的时候会报错。</p>
-<ul>
-<li>Jenkins脚本打包Build的时候报错的信息如下：</li>
-</ul>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_多Target打包1.png" alt="Jenkins脚本打包Build的时候报错的信息"></p>
-<ul>
-<li><p>多Target工程打包时候要删除的旧引用文件如下：</p>
-<p><img src="/iOS/自动化/iOS进阶_打包/iOS打包_多Target打包2.png" alt="多Target工程打包时候要删除的旧引用文件"></p>
-</li>
-</ul>
-</li>
-</ol>
-<ul>
-<li><p>其他参考</p>
-<p><a href="https://www.jianshu.com/p/8767f986fb30?from=jiantop.com" target="_blank" rel="noopener">iOS命令行自动化集成打包全记录（多个target，多种环境）</a>不过觉得没必要看，因为没本文精简</p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm0b4aq7300lbarr4y1ed506p" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/进阶/iOS证书" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/进阶/iOS证书/" class="article-date">
@@ -489,7 +117,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm0b4aq7600lsarr479dwzv4y" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm0b6allb00okq5r4vu9achez" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -573,7 +201,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm0b4aq7700lzarr4nbauyld7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm0b6alld00ouq5r4e1owv2tu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -642,7 +270,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cm0b4aq8e00qcarr40bysd74u" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cm0b6allz00rfq5r45telyekl" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -688,7 +316,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm0b4aq8f00qgarr4u1xcwlhw" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm0b6allz00rjq5r4wh2gp7te" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -814,7 +442,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cm0b4aq8k00r3arr4aq5dbl7t" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cm0b6alm300s2q5r42dbqg6y1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -991,10 +619,388 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cm0b4aq7700lwarr4zmhtz666" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Target/" data-id="cm0b6allc00onq5r4zo2ugrk9" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/进阶/iOS进阶_多Configuration" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/进阶/iOS进阶_多Configuration/" class="article-date">
+  <time datetime="2019-04-23T02:30:02.000Z" itemprop="datePublished">2019-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/进阶/iOS进阶_多Configuration/">iOS进阶_多Configuration</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="利用多Configuration打包不同环境"><a href="#利用多Configuration打包不同环境" class="headerlink" title="利用多Configuration打包不同环境"></a>利用多Configuration打包不同环境</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><blockquote>
+<p>序言：</p>
+<p>现象：Xcode默认只有DEBUG和RELEASE两种模式。</p>
+<p>问题：如果我们在项目中想增加预发布环境或者再增加其他多个环境呢？</p>
+<p>错误(不当)做法：如果在项目中用if else 弄个全局变量来控制，每次打包之前去手动修改，这样不仅繁琐，而且还会出错。</p>
+<p>正确(推荐)做法：下面来一下在Xcode中添加多个环境变量的方法.</p>
+<p>详细做法参考：<a href="https://blog.csdn.net/FreshManCode/article/details/80354936" target="_blank" rel="noopener">使用Xcode增加环境变量(多种环境区分)</a>，不再累诉。</p>
+</blockquote>
+<h2 id="一、认识"><a href="#一、认识" class="headerlink" title="一、认识"></a>一、认识</h2><h3 id="1、几个描述文件的认识与区别"><a href="#1、几个描述文件的认识与区别" class="headerlink" title="1、几个描述文件的认识与区别"></a>1、几个描述文件的认识与区别</h3><p>通过以下表格，你将认识到为什么你这个环境需要使用这个描述文件打包，用其他描述文件会有什么问题。</p>
+<table>
+<thead>
+<tr>
+<th>描述文件类型</th>
+<th style="text-align:center">可安装的设备</th>
+<th style="text-align:center">证书环境(开发/生产)</th>
+<th style="text-align:center">使用的推送</th>
+<th style="text-align:center">描述文件使用的环境(测试/预生产/生产)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>development</td>
+<td style="text-align:center">已注册的设备</td>
+<td style="text-align:center">开发环境的证书</td>
+<td style="text-align:center">测试环境的推送</td>
+<td style="text-align:center">测试环境</td>
+</tr>
+<tr>
+<td>adhoc</td>
+<td style="text-align:center">已注册的设备<br>(查看描述文件即可知道它没法做到在所有设备上都能安装的)</td>
+<td style="text-align:center">生产环境的证书</td>
+<td style="text-align:center">生产环境的推送<br>(这个创建描述文件的时候你就该知道的)</td>
+<td style="text-align:center">预生产环境</td>
+</tr>
+<tr>
+<td>appstore/<br>inhouse</td>
+<td style="text-align:center">所有的设备</td>
+<td style="text-align:center">生产环境的证书</td>
+<td style="text-align:center">生产环境的推送</td>
+<td style="text-align:center">生产环境</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、几种环境的认识"><a href="#2、几种环境的认识" class="headerlink" title="2、几种环境的认识"></a>2、几种环境的认识</h3><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>需要可以安装的设备</th>
+<th>需要测试的推送</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>测试环境</td>
+<td>在《已注册的设备》上可安装即可</td>
+<td>测试环境的推送</td>
+</tr>
+<tr>
+<td>预生产环境</td>
+<td>至少《已注册的设备》上都能够安装吧</td>
+<td>生产环境的推送</td>
+</tr>
+<tr>
+<td>生产环境</td>
+<td>要《所有的设备》上都能安装才行</td>
+<td>生产环境的推送</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3、环境与描述文件的总结"><a href="#3、环境与描述文件的总结" class="headerlink" title="3、环境与描述文件的总结"></a>3、环境与描述文件的总结</h3><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>应该使用的描述文件</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>测试环境</td>
+<td>development</td>
+<td>不需要上线</td>
+</tr>
+<tr>
+<td>预生产环境</td>
+<td>adhoc</td>
+<td>不需要上线</td>
+</tr>
+<tr>
+<td>生产环境</td>
+<td>appstore / inhouse</td>
+<td>需要上线</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4、Configuration的认识"><a href="#4、Configuration的认识" class="headerlink" title="4、Configuration的认识"></a>4、Configuration的认识</h3><h4 id="4-1、错误认识"><a href="#4-1、错误认识" class="headerlink" title="4.1、错误认识"></a>4.1、错误认识</h4><p>  只知道Archive打包的时候使用的是Release模式，殊不知任何操作Archive打包的时候使用的模式都是可以通过<code>Edit Scheme</code>来更改的。</p>
+<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_2.png" alt="image-20190427145459385"></p>
+<h4 id="4-2、正确认识："><a href="#4-2、正确认识：" class="headerlink" title="4.2、正确认识："></a>4.2、正确认识：</h4><p>他代表着各种配置。</p>
+<h2 id="二、问题背景"><a href="#二、问题背景" class="headerlink" title="二、问题背景"></a>二、问题背景</h2><h3 id="1、需要多Configuration的问题背景"><a href="#1、需要多Configuration的问题背景" class="headerlink" title="1、需要多Configuration的问题背景"></a>1、需要多Configuration的问题背景</h3><p>对话：帮我打个测试包</p>
+<p>对话：帮我打个预生产的包吧</p>
+<p>对话：预生产测好了，帮我最后打个生产环境的包，我再测下，没问题就可以上线了。</p>
+<p>那么，你就可能出现，每次打包的时候，去一个配置里面频繁修改证书(dev、adhoc、appstore/inhouse)。</p>
+<p>为了避免每次打不同包，还得去那个Configuration里切换证书，你何不多建个Configuration呢？(Xcode默认的已经有且只有DEBUG和RELEASE两种模式)</p>
+<h3 id="2、多Configuration使用的问题背景"><a href="#2、多Configuration使用的问题背景" class="headerlink" title="2、多Configuration使用的问题背景"></a>2、多Configuration使用的问题背景</h3><h4 id="2-1、默认情况下的Configuration常见使用"><a href="#2-1、默认情况下的Configuration常见使用" class="headerlink" title="2.1、默认情况下的Configuration常见使用"></a>2.1、默认情况下的Configuration常见使用</h4><p>Xcode默认只有DEBUG和RELEASE两种模式，如下图：</p>
+<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_1.png" alt="Xcode默认只有DEBUG和RELEASE两种模式"></p>
+<p>通常我们的做法：</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>通过作为什么环境使用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DEBUG</td>
+<td>开发环境</td>
+</tr>
+<tr>
+<td>RELEASE</td>
+<td>生产环境</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2-2、默认情况下的Configuration使用的问题"><a href="#2-2、默认情况下的Configuration使用的问题" class="headerlink" title="2.2、默认情况下的Configuration使用的问题"></a>2.2、默认情况下的Configuration使用的问题</h4><p>问题：如果我们在项目中想增加预发布环境或者再增加其他多个环境呢?</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>错误(不当)做法</th>
+<th>正确(推荐)做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>项目</td>
+<td>从一开始就没考虑到Configuration的使用，在项目中用if else 弄个全局变量来控制,每次打包之前去手动修改</td>
+<td>根据需要新增的环境个数，增加对应的Configuration个数。</td>
+</tr>
+<tr>
+<td>原因</td>
+<td>这样不仅繁琐,而且还会出错</td>
+<td>确保不用修改代码，只需要在<code>Edit Scheme</code>中修改想要使用的Configuration即可。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三、操作步骤"><a href="#三、操作步骤" class="headerlink" title="三、操作步骤"></a>三、操作步骤</h2><h4 id="1、生成新的Configuration（只能使用Duplicate方式）"><a href="#1、生成新的Configuration（只能使用Duplicate方式）" class="headerlink" title="1、生成新的Configuration（只能使用Duplicate方式）"></a>1、生成新的Configuration（只能使用Duplicate方式）</h4><h5 id="1-1、Duplicate方法略。"><a href="#1-1、Duplicate方法略。" class="headerlink" title="1.1、Duplicate方法略。"></a>1.1、Duplicate方法略。</h5><h5 id="1-2、Duplicate后，必须需要修改的东西"><a href="#1-2、Duplicate后，必须需要修改的东西" class="headerlink" title="1.2、Duplicate后，必须需要修改的东西"></a>1.2、Duplicate后，必须需要修改的东西</h5><table>
+<thead>
+<tr>
+<th>必选需修改项</th>
+<th>操作方法</th>
+<th>得到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>更新新增Configuration使用的Pod</td>
+<td>重新执行pod install</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="2、Configuration区分"><a href="#2、Configuration区分" class="headerlink" title="2、Configuration区分"></a>2、Configuration区分</h4><p>需求背景：区分配置</p>
+<p>解决办法：为Target的Prerelease Configuration在<code>Preprocessor Macros</code>中添加宏，如添加<code>PRERELEASE=1</code>。</p>
+<ul>
+<li>在Preprocessor Macros中为我们刚新增的Prerelease的Configuration中添加<code>PRERELEASE=1</code>后</li>
+</ul>
+<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Configuration_PreprocessorMacros添加后.png" alt="多Configuration_PreprocessorMacros添加后"></p>
+<p>Configuration代码区分需用到的知识：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#if</code></td>
+<td>既关心宏是否定义，又关心宏的逻辑的真假</td>
+<td></td>
+</tr>
+<tr>
+<td><code>#ifdef</code><br><code>#ifndef</code></td>
+<td>仅仅关心宏是否被定义，不关心宏的逻辑真假</td>
+</tr>
+</tbody>
+</table>
+<p>代码区分如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if DEBUG</span><br><span class="line">    </span><br><span class="line">#elif PRERELEASE</span><br><span class="line">    </span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p>至此，Configuration添加完成 。</p>
+<p><img src="/iOS/进阶/iOS进阶_多Configuration/iOS进阶_多Target/分割图1.jpg" alt="分割图1"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_多Configuration/" data-id="cm0b6alle00oyq5r46io3uvwt" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins使用技巧常用" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins使用技巧常用/" class="article-date">
+  <time datetime="2019-04-23T01:27:20.000Z" itemprop="datePublished">2019-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用技巧常用/">第3节、Jenkins使用技巧常用</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="一、正确实现并测试一个Jenkins脚本的步骤"><a href="#一、正确实现并测试一个Jenkins脚本的步骤" class="headerlink" title="一、正确实现并测试一个Jenkins脚本的步骤"></a>一、正确实现并测试一个Jenkins脚本的步骤</h2><p><strong>原则</strong>：将脚本中的命令分布测试通过后再一起合成。</p>
+<h3 id="1、将一行行命令单独在终端中操作，验证是否通过；"><a href="#1、将一行行命令单独在终端中操作，验证是否通过；" class="headerlink" title="1、将一行行命令单独在终端中操作，验证是否通过；"></a>1、将一行行命令单独在终端中操作，验证是否通过；</h3><h3 id="2、整理到-sh-py中，通过终端验证；"><a href="#2、整理到-sh-py中，通过终端验证；" class="headerlink" title="2、整理到.sh/.py中，通过终端验证；"></a>2、整理到<em><code>.sh</code></em>/<em><code>.py</code></em>中，通过终端验证；</h3><h3 id="3、放到-Jenkins-的shell脚本中，构建验证；"><a href="#3、放到-Jenkins-的shell脚本中，构建验证；" class="headerlink" title="3、放到 Jenkins 的shell脚本中，构建验证；"></a>3、放到 <em>Jenkins</em> 的shell脚本中，构建验证；</h3><h4 id="3-1、现在本地验证后，再托管到服务器上；"><a href="#3-1、现在本地验证后，再托管到服务器上；" class="headerlink" title="3.1、现在本地验证后，再托管到服务器上；"></a>3.1、现在本地验证后，再托管到服务器上；</h4><p>在本地通过<em><code>cd 脚本绝对路径</code></em>，<em><code>sh 脚本.sh</code></em>，构建验证；</p>
+<h4 id="3-2、本地验证后，使用-git-SVN-管理源码"><a href="#3-2、本地验证后，使用-git-SVN-管理源码" class="headerlink" title="3.2、本地验证后，使用 git/SVN 管理源码"></a>3.2、本地验证后，使用 <em><code>git</code></em>/<em><code>SVN</code></em> 管理源码</h4><h2 id="二、源码托管"><a href="#二、源码托管" class="headerlink" title="二、源码托管"></a>二、源码托管</h2><p>问：Jenkins中的项目一般都是托管在 <em><code>Git</code></em>/<em><code>SVN</code></em> 上，如果你想要在本地尝试呢？如何操作？</p>
+<p>答：源码管理选择None。然后直接在Jenkins中的脚本里cd到执行路径，再操作即可。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用技巧常用/" data-id="cm0b6alm000rnq5r4tj61lyn1" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins基本操作" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins基本操作/" class="article-date">
+  <time datetime="2019-04-23T01:27:20.000Z" itemprop="datePublished">2019-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins基本操作/">第2节：Jenkins基本操作</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><img src="/实用工具/Jenkins/Jenkins基本操作/Jenkins_Shell1_Add.png" alt="Jenkins_Shell1_Add"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins基本操作/" data-id="cm0b6alm100rrq5r4hgo84xcr" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins常用插件介绍" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins常用插件介绍/" class="article-date">
+  <time datetime="2019-04-23T01:27:20.000Z" itemprop="datePublished">2019-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins常用插件介绍/">第4节：Jenkins常用插件介绍</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Maven"><a href="#Maven" class="headerlink" title="Maven"></a>Maven</h2><p>Jenkins_Maven1_install</p>
+<p><img src="/实用工具/Jenkins/Jenkins常用插件介绍/Jenkins_Maven1_install.png" alt="Jenkins_Maven1_install"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins常用插件介绍/" data-id="cm0b6alm100ruq5r4r6a3p9a2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -1018,7 +1024,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/埋点相关/">埋点相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/打包/">打包</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/搜索相关/">搜索相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/权限相关/">权限相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/瘦身/">瘦身</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：代码规范/">第一章：代码规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：依赖关系可视化/">第一章：依赖关系可视化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：埋点/">第一章：埋点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：基础规范/">第一章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：网络相关/">第一章：网络相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：webView/">第四章：webView</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/路由及跳转/">路由及跳转</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/通用业务规范/">通用业务规范</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/">技术选型</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：APM调研/">第一章：APM调研</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：加固选型/">第一章：加固选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：技术选型的考虑因素/">第一章：技术选型的考虑因素</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第七章：技术选型/">第七章：技术选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第八章：页面加载相关/">第八章：页面加载相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第六章：通用业务规范/">第六章：通用业务规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：基础框架设计及接口文档/">第四章：基础框架设计及接口文档</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
     </div>
   </div>
 
@@ -1028,7 +1034,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5与app交互/">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/打包/">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/搜索相关/">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/权限相关/">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/架构模式/">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/瘦身/">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
     </div>
   </div>
 
@@ -1038,7 +1044,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 19.09px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.91px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.18px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.82px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/iOS/" style="font-size: 17.27px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/埋点/" style="font-size: 10px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.91px;">基类</a> <a href="/tags/安全/" style="font-size: 14.55px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 13.64px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.82px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.82px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.73px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.91px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 19.17px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 10px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
