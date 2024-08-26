@@ -72,6 +72,174 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/架构相关/1架构细节/你真的会用RAC吗" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/" class="article-date">
+  <time datetime="2019-04-11T05:15:07.000Z" itemprop="datePublished">2019-04-11</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/">让你不知道怎么死的RAC</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="让你不知道怎么死的RAC"><a href="#让你不知道怎么死的RAC" class="headerlink" title="让你不知道怎么死的RAC"></a>让你不知道怎么死的RAC</h1><p>[TOC]</p>
+<h2 id="前言：RAC学习起来的特点"><a href="#前言：RAC学习起来的特点" class="headerlink" title="前言：RAC学习起来的特点"></a>前言：RAC学习起来的特点</h2><ul>
+<li>学习起来比较难</li>
+<li>团队开发的时候需要谨慎使用</li>
+<li>团队代码需要不断的评审,保证团队中所有人代码的风格一致!避免阅读代码的困难</li>
+</ul>
+<h2 id="一、RAC双向绑定UITextField的正确姿势"><a href="#一、RAC双向绑定UITextField的正确姿势" class="headerlink" title="一、RAC双向绑定UITextField的正确姿势"></a>一、RAC双向绑定UITextField的正确姿势</h2><h4 id="1、先说结果"><a href="#1、先说结果" class="headerlink" title="1、先说结果"></a>1、先说结果</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// textField1: 键盘修改textField有问题的例子</span><br><span class="line">RACChannelTo(self.viewModel, text1) = RACChannelTo(self.textField1, text);</span><br><span class="line"></span><br><span class="line">// textField2: 代码修改textField有问题的例子</span><br><span class="line">RACChannelTo(self.viewModel, text2) = self.textField2.rac_newTextChannel;</span><br><span class="line"></span><br><span class="line">// textField3: 键盘和代码修改textField都没问题的例子</span><br><span class="line">RACChannelTo(self.viewModel, text3) = RACChannelTo(self.textField3, text);</span><br><span class="line">[self.textField3.rac_textSignal subscribe:RACChannelTo(self.textField3, text)];</span><br></pre></td></tr></table></figure>
+<p>比较结果如下列表所示：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>未完整的双向绑定1</th>
+<th>未完整的双向绑定2</th>
+<th>完整的双向绑定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码文本</td>
+<td><img src="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/RACBindTextField1.png" alt="RACBindTextField1"></td>
+<td><img src="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/RACBindTextField2.png" alt="RACBindTextField2"></td>
+<td><img src="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/RACBindTextField3.png" alt="RACBindTextField3"></td>
+</tr>
+<tr>
+<td>代码截图</td>
+<td><figure class="highlight plain"><figcaption><span>textField1: 键盘修改textField有问题的例子```<br>```RACChannelTo(self.viewModel, text1) </span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">| textField               | textField1: 键盘修改textField有问题的例子                    | textField2: 代码修改textField有问题的例子                    | textField3: 键盘和代码修改textField都没问题的例子            |</span><br><span class="line">| (通过代码)改变model时   | textField会改变                                              | textField会改变                                              | textField会改变                                              |</span><br><span class="line">| 通过代码改变textField时 | model会改变                                                  | &lt;u&gt;model不会改变&lt;/u&gt;                                         | model会改变                                                  |</span><br><span class="line">| 通过键盘改变textField时 | &lt;u&gt;model不会改变&lt;/u&gt;                                         | model会改变                                                  | model会改变                                                  |</span><br><span class="line"></span><br><span class="line">#### 2、分析原因</span><br><span class="line"></span><br><span class="line">要弄清为什么通过如上两种方式分别对textField1和textField2进行双向绑定会有问题，那么你需要先认识一下以下两个与textField有关的值的比较</span><br><span class="line"></span><br><span class="line">|      |                                                              |                                                              |</span><br><span class="line">| ---- | ------------------------------------------------------------ | ------------------------------------------------------------ |</span><br><span class="line">|      | ```RACChannelTo(self.textField, text)```                     | ```self.textField.rac_newTextChannel```                      |</span><br><span class="line">| 原理 | 当通过code改变self.textField.text的值的时候,才会把RACChannelTo(self.textField, text)这个值发送出去 | 当通过键盘改变self.textField.text的值的时候,才会把self.textField.rac_newTextChannel这个值发送出去 |</span><br><span class="line">| 后果 | 所以只使用这个时，键盘修改textField会有问题                  | 所以只使用这个时，代码修改textField会有问题                  |</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">如果你还存疑惑，那么我们拿`textField1: 键盘修改textField有问题的例子`来说明：</span><br><span class="line"></span><br><span class="line">```objective-c</span><br><span class="line">    // textField1: 键盘修改textField有问题的例子</span><br><span class="line">    RACChannelTo(self.viewModel, text1) = RACChannelTo(self.textField1, text);</span><br></pre></td></tr></table></figure></td>
+</tr>
+</tbody>
+</table>
+<p>我们在<code>RACKVOProxy</code>中的<code>observeValueForKeyPath</code>处设置断点，会发现，当我们只设置如上代码时候，通过键盘改变textField的值的时，其并未走入所设断点中，即其此时并未能检测到文本框的文本已经改变了。所以，也就出现了只设置如上代码，会出现当通过键盘改变文本框(键盘未收起)的时候，viewModel中的值没法改变的情况。</p>
+<blockquote>
+<p><img src="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/RACKVOProxy observeValueForKeyPath.png" alt="RACKVOProxy observeValueForKeyPath"></p>
+</blockquote>
+<p>同理，另一个的验证也如此。</p>
+<h4 id="3、解决问题"><a href="#3、解决问题" class="headerlink" title="3、解决问题"></a>3、解决问题</h4><p>下面我们对<code>RACChannelTo(self.viewModel, text3) = RACChannelTo(self.textField3, text);</code>绑定方式进行键盘修改的完善，完善方式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RACChannelTo(self.viewModel, text3) = RACChannelTo(self.textField3, text);</span><br><span class="line">@weakify(self);</span><br><span class="line">[self.textField3.rac_textSignal subscribeNext:^(NSString * _Nullable x) &#123;</span><br><span class="line">    @strongify(self);</span><br><span class="line">    self.viewModel.text3 = x;</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>该部分代码，可简化为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">RACChannelTo(self.viewModel, text3) = RACChannelTo(self.textField3, text);</span><br><span class="line">[self.textField3.rac_textSignal subscribe:RACChannelTo(self.textField3, text)];</span><br></pre></td></tr></table></figure>
+<p>即我们上诉开头时候的正确代码。</p>
+<h4 id="4、实际应用中还存在的bindViewModel的问题"><a href="#4、实际应用中还存在的bindViewModel的问题" class="headerlink" title="4、实际应用中还存在的bindViewModel的问题"></a>4、实际应用中还存在的bindViewModel的问题</h4><h6 id="4-1、在RAC绑定常见view中的textField的例子RACBindNorTextFieldViewController中"><a href="#4-1、在RAC绑定常见view中的textField的例子RACBindNorTextFieldViewController中" class="headerlink" title="4.1、在RAC绑定常见view中的textField的例子RACBindNorTextFieldViewController中"></a>4.1、在RAC绑定常见view中的textField的例子<code>RACBindNorTextFieldViewController</code>中</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    // Do any additional setup after loading the view.</span><br><span class="line">    self.title = NSLocalizedString(@&quot;RAC Bind Normal TextField&quot;, nil);</span><br><span class="line">    [self setupViews];</span><br><span class="line">    </span><br><span class="line">    [self bindViewModel];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h6 id="4-2、在RAC绑定tableView中的textField的例子RACBindTvTextFieldViewController中"><a href="#4-2、在RAC绑定tableView中的textField的例子RACBindTvTextFieldViewController中" class="headerlink" title="4.2、在RAC绑定tableView中的textField的例子RACBindTvTextFieldViewController中"></a>4.2、在RAC绑定tableView中的textField的例子<code>RACBindTvTextFieldViewController</code>中</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath &#123;</span><br><span class="line">    RACTextFieldBindTableViewCell *cell = (RACTextFieldBindTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@&quot;RACTextFieldBindTableViewCell&quot; forIndexPath:indexPath];</span><br><span class="line">    cell.backgroundColor = [UIColor greenColor];</span><br><span class="line">    </span><br><span class="line">    if (indexPath.row == 0) &#123;</span><br><span class="line">        self.textField1 = cell.textField;</span><br><span class="line">    &#125; else if (indexPath.row == 1) &#123;</span><br><span class="line">        self.textField2 = cell.textField;</span><br><span class="line">    &#125; else if (indexPath.row == 2) &#123;</span><br><span class="line">        self.textField3 = cell.textField;</span><br><span class="line">    &#125;</span><br><span class="line">    return cell;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么bindViewModel的时机比较容易出错</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    // Do any additional setup after loading the view.</span><br><span class="line">    self.title = NSLocalizedString(@&quot;RAC Bind TableView TextField&quot;, nil);</span><br><span class="line">    </span><br><span class="line">    [self setupViews];</span><br><span class="line">    //[self bindViewModel]; //textField未获取，无法进行绑定</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewWillAppear:(BOOL)animated &#123;</span><br><span class="line">    [super viewWillAppear:animated];</span><br><span class="line">    //[self bindViewModel]; //textField未获取，无法进行绑定</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewDidAppear:(BOOL)animated &#123;</span><br><span class="line">    [super viewDidAppear:animated];</span><br><span class="line">    [self bindViewModel];   //tableView中的textField绑定的正确时机</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="5、遗留问题"><a href="#5、遗留问题" class="headerlink" title="5、遗留问题"></a>5、遗留问题</h4><p>遗留问题1：为什么只有键盘没回收时候的修改文本框值才有问题，而键盘回收时候不会也存在问题？</p>
+<h2 id="二、RAC监听的属性如何正确改变值-KVO的坑"><a href="#二、RAC监听的属性如何正确改变值-KVO的坑" class="headerlink" title="二、RAC监听的属性如何正确改变值(KVO的坑)"></a>二、RAC监听的属性如何正确改变值(KVO的坑)</h2><p>假设有如下需求，根据viewModel中的<code>@property (nonatomic, assign) BOOL textFieldValid;</code>值修改UIViewController中textField的自定义属性<code>leftButtonSelected</code>的值，怎么做？？？</p>
+<p>答：<code>RAC(self.textField, leftButtonSelected) = RACObserve(viewModel, textFieldValid);</code></p>
+<p>问题是：<strong>是不是只要实现了这行代码就没什么问题了？或者说在实现这行代码前，你有什么需要注意的？如果你不知道，你不搞清楚原因，那么有一天RAC让你怎么死的，你都不知道。</strong></p>
+<h4 id="1、下面将常见的你修改属性时候使用的代码及其效果，列举如下："><a href="#1、下面将常见的你修改属性时候使用的代码及其效果，列举如下：" class="headerlink" title="1、下面将常见的你修改属性时候使用的代码及其效果，列举如下："></a>1、下面将常见的你修改属性时候使用的代码及其效果，列举如下：</h4><table>
+<thead>
+<tr>
+<th>修改属性时候使用的代码</th>
+<th>代码位置</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.inTextFieldValid1 = inTextFieldValid1;</code></td>
+<td>viewModel中</td>
+<td>正确</td>
+</tr>
+<tr>
+<td><del>_inTextFieldValid2 = inTextFieldValid2;</del></td>
+<td>viewModel中</td>
+<td>错误</td>
+</tr>
+<tr>
+<td><code>[self setValue:@(inTextFieldValid3) forKey:@&quot;inTextFieldValid3&quot;];</code></td>
+<td>viewModel中</td>
+<td>正确</td>
+</tr>
+<tr>
+<td><del>[self setValue:@(inTextFieldValid4) forKey:@”_inTextFieldValid4”];</del></td>
+<td>viewModel中</td>
+<td>错误</td>
+</tr>
+<tr>
+<td><code>self.viewModel.outTextFieldValid1 = outTextFieldValid1;</code></td>
+<td>UIViewController中</td>
+<td>正确</td>
+</tr>
+<tr>
+<td><code>[self.viewModel setValue:@(outTextFieldValid2) forKey:@&quot;outTextFieldValid2&quot;];</code></td>
+<td>UIViewController中</td>
+<td>正确</td>
+</tr>
+<tr>
+<td><del>[self.viewModel setValue:@(outTextFieldValid3) forKey:@”_outTextFieldValid3”];</del></td>
+<td>UIViewController中</td>
+<td>错误</td>
+</tr>
+</tbody>
+</table>
+<p>上面正确与否的判断标准是什么？</p>
+<p>其实如果熟悉KVO机制的你，应该知道<strong>KVO的本质是通过<code>isa-swizzling</code>新建了一个子类，并且重写了属性的<code>setter</code>方法，在<code>setter</code>方法的头和尾分别执行了<code>willChangeValueForKey:</code>和<code>didChangevlueForKey:</code>两个方法来实现监听的。</strong></p>
+<p>所以，如果你修改属性时候使用的代码不会走setter方法，那么也就无法触发监听了。因而也就出现了你明明监听了属性，却无法正确运行的情况。</p>
+<p>如上表格中的错误方法皆是不会走setter的。</p>
+<p>下面是一张别人的图：</p>
+<p><img src="/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/KVO机制.png" alt="img"></p>
+<h4 id="2、有无规避方法"><a href="#2、有无规避方法" class="headerlink" title="2、有无规避方法"></a>2、有无规避方法</h4><p>问：<em>通过如上解析，我们知道问题的根源是没调用setter，那我们可否通过编译器提示不能使用<code>_xxx</code>来规避？？？</em></p>
+<p>在这里我们补充讲下<code>@synthesize</code></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>写法1</th>
+<th>写法2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>源代码</td>
+<td>@synthesize student;</td>
+<td>@synthesize student = _student;</td>
+</tr>
+<tr>
+<td>等价代码</td>
+<td>@synthesize student = student;</td>
+<td>—-同上—-</td>
+</tr>
+</tbody>
+</table>
+<p>synthesize的作用就是让student = ？中的后者这个变量来“代替”属性，从而可以通过操作变量来进行属性的操作。但是有一点最关键的是，使用变量进行操作，属性本身的引用计数是不会增加的，因为没有经过调用setter方法或者是getter方法。但是如果使用self.student这种操作方式的话，实质上是通过setter或者是getter方法进行操作，引用计数会随着不同的操作而改变，了解了这点后就能够更好的避免内存泄露问题。</p>
+<h2 id="三、RAC监听数组的变化-KVO的坑"><a href="#三、RAC监听数组的变化-KVO的坑" class="headerlink" title="三、RAC监听数组的变化(KVO的坑)"></a>三、RAC监听数组的变化(KVO的坑)</h2><p>iOS默认不支持KVO的形式来监听数组的变化，数组改变的时候，只是数组里面的值变化，但数组的地址没有变化，KVO监听的对象地址的变化。</p>
+<p>由于不支持KVO来监听数组变化，就无法使用RAC来监听数组。</p>
+<h6 id="1、传统方式-我们不需要监听时候常使用的代码-："><a href="#1、传统方式-我们不需要监听时候常使用的代码-：" class="headerlink" title="1、传统方式(我们不需要监听时候常使用的代码)："></a>1、传统方式(我们不需要监听时候常使用的代码)：</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 只是修改数组，无法触发监听</span><br><span class="line">if (self.flawArray.count) &#123;</span><br><span class="line">   	[self.flawArray removeLastObject];</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<h6 id="2、需要使用监听时候的数组修改"><a href="#2、需要使用监听时候的数组修改" class="headerlink" title="2、需要使用监听时候的数组修改"></a>2、需要使用监听时候的数组修改</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">   // 修改数组时候同时能确保触发KVO的操作</span><br><span class="line">if (self.okArray.count) &#123;</span><br><span class="line">       NSMutableArray *kvo_okArray = [self mutableArrayValueForKey:@&quot;okArray&quot;];</span><br><span class="line">       [kvo_okArray removeLastObject];</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、RAC中监听通知的坑"><a href="#四、RAC中监听通知的坑" class="headerlink" title="四、RAC中监听通知的坑"></a>四、RAC中监听通知的坑</h2><p>请查看：<a href="https://blog.csdn.net/qinqi376990311/article/details/79031581" target="_blank" rel="noopener">RAC中监听通知的坑！</a></p>
+<h2 id="五、结束语"><a href="#五、结束语" class="headerlink" title="五、结束语"></a>五、结束语</h2><p>暂时到此！感谢查阅！</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/1架构细节/你真的会用RAC吗/" data-id="cm0b7r0ii011l82r4fsebfgpy" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-实用工具/明道/明道任务划分" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/实用工具/明道/明道任务划分/" class="article-date">
@@ -104,7 +272,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/明道/明道任务划分/" data-id="cm0b6c0yh00ssstr4sv49thou" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/明道/明道任务划分/" data-id="cm0b7qz1600sp82r4zpqgfa0i" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -151,53 +319,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/常识类/生活常识/楼房常识/" data-id="cm0b6c0z700ugstr4oy3trqe4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/常识类/生活常识/楼房常识/" data-id="cm0b7qz2700ue82r4b7yv9502" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/生活常识/">生活常识</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/架构相关/4瘦身/瘦身-①UIViewController" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/" class="article-date">
-  <time datetime="2019-03-28T01:27:20.000Z" itemprop="datePublished">2019-03-28</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/">瘦身-①UIViewController</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-瘦身-①UIViewController"><a href="#必备知识架构-瘦身-①UIViewController" class="headerlink" title="必备知识架构-瘦身-①UIViewController"></a>必备知识架构-瘦身-①UIViewController</h1><p><a href="https://mp.weixin.qq.com/s/3csN2hTIHezZNm8-49jsGQ" target="_blank" rel="noopener">UIViewController的瘦身计划（iOS架构思想篇）</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/" data-id="cm0b6c2950134str4qt5pi8iw" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/瘦身/">瘦身</a></li></ul>
 
     </footer>
   </div>
@@ -239,6 +364,7 @@
 <ul>
 <li><p><a href="https://casatwy.com/zen-yao-mian-shi-jia-gou-shi.html" target="_blank" rel="noopener">casatwy 怎么面试架构师</a></p>
 <p><a href="https://casatwy.com/iosying-yong-jia-gou-tan-wang-luo-ceng-she-ji-fang-an.html" target="_blank" rel="noopener">iOS应用架构谈 网络层设计方案</a></p>
+<p>书籍📚： <a href="架构模式-①概览/郑晔 10x 程序员工作法.pdf">郑晔 10x 程序员工作法.pdf</a></p>
 </li>
 </ul>
 <p>好文分享：</p>
@@ -366,7 +492,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/1架构模式/架构模式-①概览/" data-id="cm0b6c2960137str4b4h7t83p" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/1架构模式/架构模式-①概览/" data-id="cm0b7r0hx011i82r4lz3ow4tz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/架构模式/">架构模式</a></li></ul>
@@ -412,7 +538,50 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-②AppDelegate瘦身/" data-id="cm0b6c298013dstr4mjkfsiak" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-②AppDelegate瘦身/" data-id="cm0b7r0k7012882r4pagyppjc" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/瘦身/">瘦身</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/架构相关/4瘦身/瘦身-①UIViewController" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/" class="article-date">
+  <time datetime="2019-03-28T01:27:20.000Z" itemprop="datePublished">2019-03-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/">瘦身-①UIViewController</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-瘦身-①UIViewController"><a href="#必备知识架构-瘦身-①UIViewController" class="headerlink" title="必备知识架构-瘦身-①UIViewController"></a>必备知识架构-瘦身-①UIViewController</h1><p><a href="https://mp.weixin.qq.com/s/3csN2hTIHezZNm8-49jsGQ" target="_blank" rel="noopener">UIViewController的瘦身计划（iOS架构思想篇）</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-①UIViewController/" data-id="cm0b7r0ka012e82r4wk985hs8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/瘦身/">瘦身</a></li></ul>
@@ -541,7 +710,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/9架构实操/新项目实施步骤/" data-id="cm0b6c29x013kstr4e3a1auko" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/9架构实操/新项目实施步骤/" data-id="cm0b7r0kb012g82r4lj3z8wls" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -662,7 +831,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/其他小工具/其他小工具/" data-id="cm0b6c0yi00t1str43tofhmdy" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/其他小工具/其他小工具/" data-id="cm0b7qz1h00t882r49vdm1npm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -739,7 +908,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter控件的封装/" data-id="cm0b6c0kr00dwstr4ltv55lff" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/6进阶/Flutter控件的封装/" data-id="cm0b7qyfc009e82r4w9yb53jf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -830,61 +999,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/7规范/Flutter开发规范/" data-id="cm0b6c0qw00fgstr4ldftbn2l" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/7规范/Flutter开发规范/" data-id="cm0b7qygr00a482r47i7y2jgc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/MySQL/MySQL问题整理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/MySQL/MySQL问题整理/" class="article-date">
-  <time datetime="2019-03-11T02:24:40.000Z" itemprop="datePublished">2019-03-11</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/MySQL/">MySQL</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/MySQL/MySQL问题整理/">MySQL问题整理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="一、MySQL的下载安装"><a href="#一、MySQL的下载安装" class="headerlink" title="一、MySQL的下载安装"></a>一、MySQL的下载安装</h2><p>1、进入官网MySQL地址：<a href="https://dev.mysql.com/downloads/mysql/" target="_blank" rel="noopener">https://dev.mysql.com/downloads/mysql/</a> 以下载安装包</p>
-<p><img src="/实用工具/MySQL/MySQL问题整理/MySQL安装1.png" alt="MySQL安装1"></p>
-<p>2、选择适合您系统的指定MySQL版本，下载安装</p>
-<p><img src="/实用工具/MySQL/MySQL问题整理/MySQL安装2.png" alt="MySQL安装2"></p>
-<p>3、MySQL安装成功后的截图如下：</p>
-<p><img src="/实用工具/MySQL/MySQL问题整理/MySQL安装3.png" alt="MySQL安装成功"></p>
-<h2 id="二、终端操作MySQL的问题"><a href="#二、终端操作MySQL的问题" class="headerlink" title="二、终端操作MySQL的问题"></a>二、终端操作MySQL的问题</h2><h3 id="1、终端-bash-mysql-command-not-found"><a href="#1、终端-bash-mysql-command-not-found" class="headerlink" title="1、终端 -bash: mysql: command not found"></a>1、终端 -bash: mysql: command not found</h3><p>遇上<code>-bash: mysql: command not found</code>的情况别着急，这个是因为/usr/local/bin目录下缺失mysql导致，只需要一下方法建立软链接，即可以解决：把mysql安装目录，映射到/usr/local/bin目录下即可，即将本要链接到/usr/bin下的改链接到/usr/local/bin下就好了。命令如下：</p>
-<p><code>sudo ln -s /usr/local/mysql/bin/mysql /usr/local/bin</code></p>
-<p><img src="/实用工具/MySQL/MySQL问题整理/MySQL -bash- mysql- command not found.png" alt="MySQL -bash- mysql- command not found"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/MySQL/MySQL问题整理/" data-id="cm0b6c0xz00rastr4us99z8tf" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -937,7 +1055,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 

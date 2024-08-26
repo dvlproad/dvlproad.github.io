@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+
+  
+  <title>dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="MTC Client Cache Best PracticeServer/Client orcharstrated Cache Machenism Invalidate cache and naming is two most difficult things 两种场景：浏览器请求与应用请求浏览器控制如 &amp;lt;img src=&amp;quot;....&amp;quot;/&amp;gt; 参考 HTTP Cachi">
+<meta name="keywords" content="blog,IT,iOS,Flutter">
+<meta property="og:type" content="article">
+<meta property="og:title" content="dvlproadの博客">
+<meta property="og:url" content="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/Client Cache Best Practice/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="MTC Client Cache Best PracticeServer/Client orcharstrated Cache Machenism Invalidate cache and naming is two most difficult things 两种场景：浏览器请求与应用请求浏览器控制如 &amp;lt;img src=&amp;quot;....&amp;quot;/&amp;gt; 参考 HTTP Cachi">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/avatar_image_cache.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/tplcover_image_cache.png">
+<meta property="og:updated_time" content="2024-08-26T17:49:10.890Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="dvlproadの博客">
+<meta name="twitter:description" content="MTC Client Cache Best PracticeServer/Client orcharstrated Cache Machenism Invalidate cache and naming is two most difficult things 两种场景：浏览器请求与应用请求浏览器控制如 &amp;lt;img src=&amp;quot;....&amp;quot;/&amp;gt; 参考 HTTP Cachi">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/avatar_image_cache.png">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">整理及总结平时过程中的知识点</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Architecture架构/框架相关/网络相关/Client Cache Best Practice" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/网络相关/Client Cache Best Practice/" class="article-date">
+  <time datetime="2022-06-12T10:43:34.044Z" itemprop="datePublished">2022-06-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="MTC-Client-Cache-Best-Practice"><a href="#MTC-Client-Cache-Best-Practice" class="headerlink" title="MTC Client Cache Best Practice"></a>MTC Client Cache Best Practice</h1><p>Server/Client orcharstrated Cache Machenism</p>
+<p>Invalidate cache and naming is two most difficult things</p>
+<h2 id="两种场景：浏览器请求与应用请求"><a href="#两种场景：浏览器请求与应用请求" class="headerlink" title="两种场景：浏览器请求与应用请求"></a>两种场景：浏览器请求与应用请求</h2><h3 id="浏览器控制"><a href="#浏览器控制" class="headerlink" title="浏览器控制"></a>浏览器控制</h3><p>如 <code>&lt;img src=&quot;....&quot;/&gt;</code></p>
+<p>参考 <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" target="_blank" rel="noopener">HTTP Caching</a> 文档</p>
+<ul>
+<li>彻底不缓存</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: no-store</span><br></pre></td></tr></table></figure>
+<ul>
+<li>缓存，但每次都去服务器检查是否有新数据</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: no-cache</span><br></pre></td></tr></table></figure>
+<ul>
+<li>缓存，但在一定时间内不去服务器检查是否有新数据</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>使用 If-Modified-Since 来判断</p>
+<p>服务器端下发：</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 1024</span><br><span class="line">Date: Tue, 22 Feb 2022 22:22:22 GMT</span><br><span class="line">Last-Modified: Tue, 22 Feb 2022 22:00:00 GMT</span><br><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
+<p>浏览器端后续请求：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /index.html HTTP/1.1</span><br><span class="line">Host: example.com</span><br><span class="line">Accept: text/html</span><br><span class="line">If-Modified-Since: Tue, 22 Feb 2022 22:00:00 GMT</span><br></pre></td></tr></table></figure>
+<ul>
+<li>使用 If-None-Match 来判断 服务器端下发：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 1024</span><br><span class="line">Date: Tue, 22 Feb 2022 22:22:22 GMT</span><br><span class="line">ETag: &quot;deadbeef&quot;</span><br><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
+<p>浏览器端后续请求：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /index.html HTTP/1.1</span><br><span class="line">Host: example.com</span><br><span class="line">Accept: text/html</span><br><span class="line">If-None-Match: &quot;deadbeef&quot;</span><br></pre></td></tr></table></figure>
+<p>MTC 实践中，使用的是 ETag/If-None-Match, 数据有变化时，只在 Redis 中生成一个新的 ETag，后续处理判断 ETag 是否一致</p>
+<p>例一：MTC Avatar</p>
+<ul>
+<li>服务器端：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">return (</span><br><span class="line">  h</span><br><span class="line">      .response(fs.createReadStream(avatarinfo.path))</span><br><span class="line">      .header(&quot;Content-Type&quot;, avatarinfo.media)</span><br><span class="line">      .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">      .header(&quot;Cache-Control&quot;, &quot;max-age=600, private&quot;)</span><br><span class="line">      //.header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">      .header(&quot;ETag&quot;, avatarinfo.etag)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>客户端浏览器网络效果：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/avatar_image_cache.png" alt="avtar_image"></p>
+</li>
+<li><p>结果：</p>
+<ol>
+<li>浏览器在 10 分钟内，不再重新请求，而是使用缓存中的图片</li>
+<li>请求时，只有在图片变化时，服务器返回新图片，否则返回 304 头，浏览器使用已有缓存</li>
+</ol>
+</li>
+</ul>
+<p>例二：MTC Template Cover</p>
+<ul>
+<li>服务器端：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">    return (</span><br><span class="line">        h</span><br><span class="line">            .response(fs.createReadStream(coverInfo.path))</span><br><span class="line">            .header(&quot;Content-Type&quot;, &quot;image/png&quot;)</span><br><span class="line">            .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">            .header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">            //.header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">            .header(&quot;ETag&quot;, coverInfo.etag)</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>客户端浏览器网络效果：</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/tplcover_image_cache.png" alt="TPL Cover Image"></p>
+<ul>
+<li>结果：<ol>
+<li>浏览器每次都请求新数据</li>
+<li>请求时，只有在图片变化时，服务器返回新图片，否则返回 304 头，浏览器使用已有换</li>
+</ol>
+</li>
+</ul>
+<h3 id="应用控制"><a href="#应用控制" class="headerlink" title="应用控制"></a>应用控制</h3><ul>
+<li>如使用 Fetch, Axios, HttpClient 等请求数据，包括移动 APP 客户端从服务器获取数据</li>
+<li>需要自行设计实现</li>
+<li>两个问题：<ul>
+<li>是否有更合理的方案？</li>
+<li>APP 中如何实现？</li>
+</ul>
+</li>
+</ul>
+<h2 id="业务层刷新机制思考："><a href="#业务层刷新机制思考：" class="headerlink" title="业务层刷新机制思考："></a>业务层刷新机制思考：</h2><ul>
+<li>须考虑用户本地操作后，需要刷新<ul>
+<li>当前用户操作，及时刷新</li>
+<li>其它用户，可定时刷新</li>
+</ul>
+</li>
+<li>须考虑页面切换，使用本地缓存数据，无须访问服务器重新拉取</li>
+<li>须考虑自动刷新<ul>
+<li>设置合理的间隔</li>
+<li>设置总刷新次数，防止用户不活动<ul>
+<li>或检测用户鼠标动作，上次鼠标移动在多长时间内，断定为用户活跃，继续自动刷新，否则停止。<ul>
+<li>提供手动刷新按钮（APP 移动端为下拉）</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="技术层刷新机制："><a href="#技术层刷新机制：" class="headerlink" title="技术层刷新机制："></a>技术层刷新机制：</h2><ul>
+<li>服务端对每种业务对象设置 ETag Key， 每次返回数据，带上一个 ETag<ul>
+<li>这个 ETag，用于表示某种数据是否刷新，仅在有变化时，修改这个 ETag</li>
+</ul>
+</li>
+<li>客户端对每次请求的结果，进行缓存，同时记录 ETag；</li>
+<li>客户端每次请求，通过 If-None-Match 带入 ETag</li>
+<li>服务端相应请求时，判断服务端带来的 ETag 是否与服务端的 ETag 一致<ul>
+<li>如一致，返回 304</li>
+<li>如不一致，返回 200，及最新数据</li>
+</ul>
+</li>
+<li>客户端根据 Header 是否是 304，决定使用已缓存数据，还是更新缓存为服务端返回数据。</li>
+</ul>
+<h2 id="具体实现方式："><a href="#具体实现方式：" class="headerlink" title="具体实现方式："></a>具体实现方式：</h2><h3 id="服务端-CORS-设置中，允许-ETag"><a href="#服务端-CORS-设置中，允许-ETag" class="headerlink" title="服务端 CORS 设置中，允许 ETag"></a>服务端 CORS 设置中，允许 ETag</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">routes: &#123;</span><br><span class="line">      cors: &#123;</span><br><span class="line">          origin: [&quot;*&quot;],</span><br><span class="line">          credentials: true,</span><br><span class="line">          additionalExposedHeaders: [&quot;ETag&quot;, &quot;X-Content-Type-Options&quot;],</span><br><span class="line">      &#125;,</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+<h3 id="客户端请求，将请求内容组装为-cacheKey，并-MD5-位-cacheID"><a href="#客户端请求，将请求内容组装为-cacheKey，并-MD5-位-cacheID" class="headerlink" title="客户端请求，将请求内容组装为 cacheKey，并 MD5 位 cacheID"></a>客户端请求，将请求内容组装为 cacheKey，并 MD5 位 cacheID</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">const cacheKey = &#123; method, path, body, token &#125;;</span><br><span class="line">const cacheID = MD5(JSON.stringify(cacheKey));</span><br></pre></td></tr></table></figure>
+<h3 id="请求可以带-cache-控制-cacheFlag，用户控制："><a href="#请求可以带-cache-控制-cacheFlag，用户控制：" class="headerlink" title="请求可以带 cache 控制 cacheFlag，用户控制："></a>请求可以带 cache 控制 cacheFlag，用户控制：</h3><ul>
+<li>preDelete： 在请求前，删除已有缓存</li>
+<li>useIfExists： 如存在缓存，直接返回缓存，不执行服务器请求</li>
+<li>否则，在请求头中添加 If-None-Match</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">if (cacheFlag === CACHE_FLAG.preDelete) &#123;</span><br><span class="line">    console.log(path, &apos;Preclear cache&apos;);</span><br><span class="line">    delete theCache[cacheID];</span><br><span class="line">&#125;</span><br><span class="line">if (theCache[cacheID]) &#123;</span><br><span class="line">    foundCache = true;</span><br><span class="line">    //console.log(path, &apos;Found cacheID in cache, should add If-None-Match header&apos;);</span><br><span class="line">    opts.headers[&apos;If-None-Match&apos;] = theCache[cacheID].etag;</span><br><span class="line">    // &#125; else &#123;</span><br><span class="line">    //   console.log(path, &apos;no local cache&apos;);</span><br><span class="line">    if (cacheFlag === CACHE_FLAG.useIfExists) &#123;</span><br><span class="line">        console.log(path, &apos;Return cached&apos;);</span><br><span class="line">        return JSON.parse(theCache[cacheID].data);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>服务器端检查到 If-None-Match 后，判断业务数据是否有改变，如没有改变，直接返回 304，不用做数据库查询等操作</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">let ifNoneMatch = req.headers[&quot;if-none-match&quot;];</span><br><span class="line">let latestETag = await Cache.getETag(`ETAG:TODOS:$&#123;doer&#125;`);</span><br><span class="line">if (ifNoneMatch &amp;&amp; latestETag &amp;&amp; ifNoneMatch === latestETag) &#123;</span><br><span class="line">    return h</span><br><span class="line">    .response(&#123;&#125;)</span><br><span class="line">    .code(304)</span><br><span class="line">    .header(&quot;Content-Type&quot;, &quot;application/json; charset=utf-8;&quot;)</span><br><span class="line">    .header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">    .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">    .header(&quot;ETag&quot;, latestETag);</span><br><span class="line">&#125;</span><br><span class="line">//后续的操作无须执行</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>以上代码中，服务器端只需要按照业务逻辑，刷新相应的的 ETag Redis 记录，数据有变化，就修改 Redis 中相应 eTag key 的值。 如没有修改，则直接返回 304</p>
+<ul>
+<li>客户端请求后接收到 304， 则直接使用缓存中的数据</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (response.status === 304) &#123;</span><br><span class="line">    returnCode304 = true;</span><br><span class="line">    responseETag = response.headers.get(&apos;etag&apos;);</span><br><span class="line">    return theCache[cacheID].data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>客户端从服务器端接收到的不是 304，则说明，有新数据，则写入客户端缓存（包括收到的 etag， 用于下次请求时，通过 If-None-Match 带到服务器上对比）</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">if (responseETag) &#123;</span><br><span class="line">    theCache[cacheID] = &#123;</span><br><span class="line">        path: path,</span><br><span class="line">        data: jsonText,</span><br><span class="line">        etag: responseETag ? responseETag : &apos;&apos;,</span><br><span class="line">    &#125;;</span><br><span class="line">    //Write to local cache</span><br><span class="line">    fetchCache.set(theCache);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="缓存数据的记录方法"><a href="#缓存数据的记录方法" class="headerlink" title="缓存数据的记录方法"></a>缓存数据的记录方法</h2><ul>
+<li>浏览器自身： 不用管它</li>
+<li>Cookie： 数据量非常小</li>
+<li>localStorage： 跨浏览器 , 跟配置相关的数据建议用 LS</li>
+<li>Session，但是使用 K-V</li>
+<li>indexedDB: 数据库，SQL 差不多，比 LS 复杂， 也是跨浏览器</li>
+<li>Sveltekit 的 Session 浏览器关掉，就消失。只要在 session 内部，没有问题</li>
+</ul>
+<h2 id="收益"><a href="#收益" class="headerlink" title="收益"></a>收益</h2><ul>
+<li>用户体验提升， 快速展示，不存在刷新<ul>
+<li>直接使用缓存，不请求</li>
+<li>请求，但得到的是 304， 数据量非常小。直接是缓存</li>
+</ul>
+</li>
+<li>网络和服务器的压力<ul>
+<li>直接使用缓存，不请求时， 请求变少</li>
+<li>返回 304 时， 304 的判断是在 Redis 里做，后续的所有数据库操作都没有必要。大部分的请求，是可以直接 304 的。</li>
+</ul>
+</li>
+<li>整体平台的相应能力提升</li>
+<li>整体的费用得以下降</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/Client Cache Best Practice/" data-id="cm0balilp0000scr4plwe3i5a" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/Architecture架构/基础规范/路由及跳转/优雅的自定义返回/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          页面跳转相关
+        
+      </div>
+    </a>
+  
+  
+    <a href="/Threads/Flutter_Dart/Future/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Future</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第七章：技术选型/">第七章：技术选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第八章：页面加载相关/">第八章：页面加载相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第六章：通用业务规范/">第六章：通用业务规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：基础框架设计及接口文档/">第四章：基础框架设计及接口文档</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5与app交互/">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/打包/">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/搜索相关/">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/权限相关/">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/架构模式/">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/瘦身/">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Architecture/" style="font-size: 19.17px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 10px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/总目录/">总目录</a>
+          </li>
+        
+          <li>
+            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2024 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
