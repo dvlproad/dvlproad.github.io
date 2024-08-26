@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+
+  
+  <title>网络耗时及其优化 | dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="[toc] 第2节：网络耗时及其优化一、网络耗时流程及优化方案结论发起请求 -&amp;gt; 域名DNS解析 -&amp;gt; TCP三次握手 ( -&amp;gt; TLS握手 -&amp;gt; ) -&amp;gt; request -&amp;gt; response -&amp;gt; json解析 -&amp;gt; 业务 1、过程中的优化方案   序号 阶段 耗时根源 优化方案     1 发起请求 每个接口都要建立连接 前端配置想要的数据，">
+<meta name="keywords" content="Architecture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="网络耗时及其优化">
+<meta property="og:url" content="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="[toc] 第2节：网络耗时及其优化一、网络耗时流程及优化方案结论发起请求 -&amp;gt; 域名DNS解析 -&amp;gt; TCP三次握手 ( -&amp;gt; TLS握手 -&amp;gt; ) -&amp;gt; request -&amp;gt; response -&amp;gt; json解析 -&amp;gt; 业务 1、过程中的优化方案   序号 阶段 耗时根源 优化方案     1 发起请求 每个接口都要建立连接 前端配置想要的数据，">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/dns%20flow.png">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/charles_DNS%20Spoofing.png">
+<meta property="og:updated_time" content="2024-08-25T13:54:42.986Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="网络耗时及其优化">
+<meta name="twitter:description" content="[toc] 第2节：网络耗时及其优化一、网络耗时流程及优化方案结论发起请求 -&amp;gt; 域名DNS解析 -&amp;gt; TCP三次握手 ( -&amp;gt; TLS握手 -&amp;gt; ) -&amp;gt; request -&amp;gt; response -&amp;gt; json解析 -&amp;gt; 业务 1、过程中的优化方案   序号 阶段 耗时根源 优化方案     1 发起请求 每个接口都要建立连接 前端配置想要的数据，">
+<meta name="twitter:image" content="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/dns%20flow.png">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">整理及总结平时过程中的知识点</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Architecture架构/框架相关/网络相关/网络耗时及其优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/网络相关/网络耗时及其优化/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第一章：网络相关/">第一章：网络相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      网络耗时及其优化
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="第2节：网络耗时及其优化"><a href="#第2节：网络耗时及其优化" class="headerlink" title="第2节：网络耗时及其优化"></a>第2节：网络耗时及其优化</h1><h2 id="一、网络耗时流程及优化方案结论"><a href="#一、网络耗时流程及优化方案结论" class="headerlink" title="一、网络耗时流程及优化方案结论"></a>一、网络耗时流程及优化方案结论</h2><p>发起请求 -&gt; 域名DNS解析 -&gt; TCP三次握手 ( -&gt; TLS握手 -&gt; ) -&gt; request -&gt; response -&gt; json解析 -&gt; 业务</p>
+<h3 id="1、过程中的优化方案"><a href="#1、过程中的优化方案" class="headerlink" title="1、过程中的优化方案"></a>1、过程中的优化方案</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>阶段</th>
+<th>耗时根源</th>
+<th>优化方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>发起请求</td>
+<td>每个接口都要建立连接</td>
+<td>前端配置想要的数据，后台通过一个接口返回<br>如商品详情页，请求[Base,Detai,Images]：商品基础信息+详情+图片<br>其他减少请求参数的body数据。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>域名DNS解析</td>
+<td>DNS解析过程不受控制，⽆法保证解析到最快的IP</td>
+<td>方案1：<a href="#IP直连">IP直连</a> 点击链接可跳转到下文介绍<br>HTTP(HTTPS)请求，底层基于TCP连接，需要有IP和端口信息。<br>⾃⼰做域名解析⼯作，通过HTTP请求后台去拿到域名对应的IP地址。<br>方案2：<a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener">HTTPDNS</a><br>阿里云的DNS SDK：<a href="https://help.aliyun.com/zh/dns/sdk-for-ios-developer-guide?spm=a2c4g.11186623.0.0.1e124f14wri277" target="_blank" rel="noopener">AlicloudPDNS</a>、<a href="https://www.alibabacloud.com/help/zh/httpdns/latest/install-httpdns-sdk-for-ios?spm=a2c63.p38356.0.0.506464b4p0KBCD" target="_blank" rel="noopener">AlicloudHTTPDNS</a><br>附：<a href="https://help.aliyun.com/zh/dns/native-encrypted-dns-in-ios-14?spm=a2c4g.11186623.0.0.31c86f48zh2Ojc#topic-2042900" target="_blank" rel="noopener">iOS14原生加密DNS方案</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>TCP三次握手</td>
+<td>TCP：面向连接的协议<br>UDP：无连接协议<br>TCP 比 UDP 要慢</td>
+<td>方案1：<a href="#用HTTP实现长连接">用HTTP实现长连接</a> 点击链接可跳转到下文介绍<br>方案2：使用HTTP/3.0 采用了基于 UDP 的 QUIC 协议来替代传统的 TCP 协议<br><a href="#HTTP协议各版本使用情况">HTTP协议各版本使用情况</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>TLS握手</td>
+<td>——</td>
+<td>——</td>
+</tr>
+<tr>
+<td>5</td>
+<td>request</td>
+<td></td>
+<td>服务端排查是否有耗时逻辑</td>
+</tr>
+<tr>
+<td>6</td>
+<td>response</td>
+<td>数据体积大</td>
+<td>删减冗余数据，开启gzip，数据分页、Protobuf、WebP等方式进行优化<br>Protobuf：见我的另一篇文章 <a href="../../protobuf/protobuf的安装.md">protobuf的安装.md</a><br>分页：见我的另一篇文章 <a href="../../Architecture架构/基础规范/分页规范.md">分页规范.md</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>json解析</td>
+<td>解析耗时</td>
+<td>采用解析效率更高的库，如 YYModel</td>
+</tr>
+<tr>
+<td>8</td>
+<td>业务</td>
+<td>——</td>
+<td>——</td>
+</tr>
+</tbody>
+</table>
+<p>上述优化方案的参考文档来源于：</p>
+<blockquote>
+<ul>
+<li><a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener">iOS 网络优化和网络基础</a></li>
+<li><p><a href="https://www.jianshu.com/p/a57f963310a6" target="_blank" rel="noopener">iOS 网络优化</a></p>
+</li>
+<li><p><a href="https://help.aliyun.com/zh/dns/guide-to-obtaining-dns-resolution-time-on-ios?spm=5176.22414175.sslink.3.36377dc5X2Sfyc" target="_blank" rel="noopener">阿里云 iOS端获取DNS解析时间指南</a></p>
+</li>
+<li><p><a href="http://www.52im.net/thread-2172-1-1.html" target="_blank" rel="noopener">美图App的移动端DNS优化实践：HTTPS请求耗时减小近半</a></p>
+<blockquote>
+<p>TCP \ RTMP</p>
+</blockquote>
+</li>
+<li><p><a href="https://www.jianshu.com/p/66ee6798b99a" target="_blank" rel="noopener">iOS之网络优化</a></p>
+</li>
+<li><p><a href="http://www.52im.net/thread-2479-1-1.html" target="_blank" rel="noopener">百度APP移动端网络深度优化实践分享(二)：网络连接优化篇</a></p>
+</li>
+</ul>
+</blockquote>
+<h3 id="2、其他优化方案"><a href="#2、其他优化方案" class="headerlink" title="2、其他优化方案"></a>2、其他优化方案</h3><h4 id="2-1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。"><a href="#2-1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。" class="headerlink" title="2.1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。"></a>2.1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。</h4><h4 id="2-2、缓存（必备：API缓存-可考虑加：Last-Modified-ETag）"><a href="#2-2、缓存（必备：API缓存-可考虑加：Last-Modified-ETag）" class="headerlink" title="2.2、缓存（必备：API缓存+可考虑加：Last-Modified/ETag）"></a>2.2、缓存（必备：API缓存+可考虑加：Last-Modified/ETag）</h4><p>见我的另一篇文章：</p>
+<p><strong>发布的内容，优先写入数据库，视频切片使用另一个请求异步获取。</strong></p>
+<h2 id="二、网络耗时分布统计"><a href="#二、网络耗时分布统计" class="headerlink" title="二、网络耗时分布统计"></a>二、网络耗时分布统计</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ResponseModel</span> </span>&#123;</span><br><span class="line">  <span class="built_in">int</span> statusCode;</span><br><span class="line">  <span class="built_in">String</span>? message;</span><br><span class="line">  <span class="keyword">dynamic</span> result;</span><br><span class="line">  <span class="built_in">bool</span>? isCache;</span><br><span class="line">  <span class="built_in">bool</span>? isSameToBefore; <span class="comment">// 网络新数据是否和之前数据一样(重试/缓存)</span></span><br><span class="line">  <span class="keyword">final</span> ResponseDateModel dateModel; <span class="comment">// 这次结果的时间。</span></span><br><span class="line">  <span class="built_in">List</span>&lt;ResponseDateModel&gt;? cacheDateModels; <span class="comment">// 请求缓存接口过程的所有时间段（缓存数据获取时间、缓存数据执行时间、网络数据获取时间）。因为有时候得到一个结果是不仅经过一次，而是多次请求才得到的（如缓存）,所以一个请求有多条时间线的时候。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1、ResponseDateModel dateModel; // 这次结果的时间</p>
+<p>2、List<responsedatemodel>? cacheDateModels; // 请求缓存接口过程的所有时间段（缓存数据获取时间、缓存数据执行时间、网络数据获取时间）。因为有时候得到一个结果是不仅经过一次，而是多次请求才得到的（如缓存）,所以一个请求有多条时间线的时候。</responsedatemodel></p>
+<h3 id="1、网络请求各阶段的耗时（iOS）"><a href="#1、网络请求各阶段的耗时（iOS）" class="headerlink" title="1、网络请求各阶段的耗时（iOS）"></a>1、网络请求各阶段的耗时（iOS）</h3><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session task:(<span class="built_in">NSURLSessionTask</span> *)task didFinishCollectingMetrics:(<span class="built_in">NSURLSessionTaskMetrics</span> *)metrics API_AVAILABLE(macosx(<span class="number">10.12</span>), ios(<span class="number">10.0</span>), watchos(<span class="number">3.0</span>), tvos(<span class="number">10.0</span>)) </span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// 首先检查是否是iOS 10.0或更高版本，如果不是，则退出方法</span></span><br><span class="line">  <span class="keyword">if</span> (!@available(iOS <span class="number">10.0</span>, *)) &#123;</span><br><span class="line">    <span class="keyword">return</span>; <span class="comment">// 退出方法</span></span><br><span class="line">  &#125;</span><br><span class="line">    </span><br><span class="line">  <span class="comment">// 由于使用了@available注解，下面的代码默认只在iOS 10.0或更高版本上执行</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="built_in">NSURLSessionTaskTransactionMetrics</span> *sMetric <span class="keyword">in</span> metrics.transactionMetrics) &#123;</span><br><span class="line">    <span class="built_in">NSInteger</span> dom = timeDiff(sMetric.domainLookupStartDate, sMetric.domainLookupEndDate);	<span class="comment">// 域名解析</span></span><br><span class="line">    <span class="built_in">NSInteger</span> sec = timeDiff(sMetric.secureConnectionStartDate, sMetric.secureConnectionEndDate);<span class="comment">// TLS</span></span><br><span class="line">    <span class="built_in">NSInteger</span> con = timeDiff(sMetric.connectStartDate, sMetric.connectEndDate);		<span class="comment">// 连接耗时(包括TLS)</span></span><br><span class="line">    <span class="built_in">NSInteger</span> req = timeDiff(sMetric.requestStartDate, sMetric.requestEndDate);		<span class="comment">// 请求</span></span><br><span class="line">    <span class="built_in">NSInteger</span> res = timeDiff(sMetric.responseStartDate, sMetric.responseEndDate);	<span class="comment">// 回调</span></span><br><span class="line">    <span class="built_in">NSInteger</span> tot = timeDiff(sMetric.fetchStartDate, sMetric.responseEndDate); 		<span class="comment">// 总耗时</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">NSString</span> *locip = <span class="string">@""</span>;</span><br><span class="line">    <span class="built_in">NSString</span> *remip = <span class="string">@""</span>;</span><br><span class="line">    <span class="keyword">if</span> (@available(iOS <span class="number">13.0</span>, *)) &#123;</span><br><span class="line">      locip = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"%@"</span>, sMetric.localAddress];</span><br><span class="line">      remip = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"%@"</span>, sMetric.remoteAddress];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"metric path:%@ 总耗时:%ldms, 域名解析:%ldms, 连接耗时:%ldms(包括TLS:%ldms), 请求:%ldms, 回调:%ldms l:%@ r:%@"</span>, sessionMetric.request.URL.lastPathComponent, (<span class="keyword">long</span>)tot, (<span class="keyword">long</span>)dom, (<span class="keyword">long</span>)con, (<span class="keyword">long</span>)sec, (<span class="keyword">long</span>)req, (<span class="keyword">long</span>)res, locip, remip);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 辅助方法，计算两个NSDate之间的时间差，单位为毫秒</span></span><br><span class="line">- (<span class="built_in">NSInteger</span>)timeDifferenceInMilliseconds:(<span class="built_in">NSDate</span> *)start to:(<span class="built_in">NSDate</span> *)end &#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">NSInteger</span>)((end.timeIntervalSince1970 - start.timeIntervalSince1970) * <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id=""><a href="#" class="headerlink" title=" "></a> </h2><h2 id="Next：第3节：弱网优化空间探索"><a href="#Next：第3节：弱网优化空间探索" class="headerlink" title="Next：第3节：弱网优化空间探索"></a>Next：<a href="./弱网优化空间探索">第3节：弱网优化空间探索</a></h2><h2 id="-1"><a href="#-1" class="headerlink" title=" "></a> </h2><p><a name="HTTP协议各版本使用情况"></a></p>
+<h2 id="附1：HTTP协议各版本使用情况"><a href="#附1：HTTP协议各版本使用情况" class="headerlink" title="附1：HTTP协议各版本使用情况"></a>附1：HTTP协议各版本使用情况</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>发布时间与现状</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP/1.1</td>
+<td>在1997年被标准化，是目前互联网上广泛使用的HTTP协议版本</td>
+<td></td>
+</tr>
+<tr>
+<td>HTTP/2.0</td>
+<td>于2015年发布，也是目前互联网上广泛使用的HTTP协议版本</td>
+<td>不是对HTTP/1.1的重写，而是在性能方面的改进</td>
+</tr>
+<tr>
+<td>HTTP/3.0</td>
+<td>目前尚未成为主流，还在逐步推广和应用中</td>
+<td>是基于Google的QUIC协议开发</td>
+</tr>
+</tbody>
+</table>
+<h2 id="附2：DNS"><a href="#附2：DNS" class="headerlink" title="附2：DNS"></a>附2：DNS</h2><h3 id="1、DNS介绍"><a href="#1、DNS介绍" class="headerlink" title="1、DNS介绍"></a>1、DNS介绍</h3><h4 id="1-1、DNS劫持-DNS污染前后"><a href="#1-1、DNS劫持-DNS污染前后" class="headerlink" title="1.1、DNS劫持/DNS污染前后"></a>1.1、DNS劫持/DNS污染前后</h4><p>未劫持 VS 劫持</p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/dns flow.png" alt="dns flow" style="zoom: 25%;"></p>
+</blockquote>
+<h4 id="1-2、DNS劫持模拟"><a href="#1-2、DNS劫持模拟" class="headerlink" title="1.2、DNS劫持模拟"></a>1.2、DNS劫持模拟</h4><ul>
+<li><p><a href="https://cloud.tencent.com/developer/article/1043506" target="_blank" rel="noopener">PC局域网DNS劫持实战</a></p>
+</li>
+<li><p><a href="https://github.com/shinvey/dns-spoofing" target="_blank" rel="noopener">charles DNS Spoofing</a></p>
+<blockquote>
+<p>1、Charles 在 Tools 中设置 DNS Spoofing</p>
+<p><img src="/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/charles_DNS Spoofing.png" alt="charles_DNS Spoofing" style="zoom: 33%;"></p>
+<p>2、修改终端设备的代理</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="1-3、如何检测-DNS-劫持"><a href="#1-3、如何检测-DNS-劫持" class="headerlink" title="1.3、如何检测 DNS 劫持"></a>1.3、如何检测 DNS 劫持</h4><ul>
+<li>iOS 用户推荐 iNetTools</li>
+<li>Android 用户推荐 LanDroid</li>
+</ul>
+<ul>
+<li><p><a href="https://www.kaspersky.com.cn/resource-center/definitions/what-is-dns-hijacking" target="_blank" rel="noopener">如何检测 DNS 劫持</a></p>
+<blockquote>
+<p> ping 一个不存在的 IP 地址却仍获得解析，则 DNS 很可能已被黑客入侵。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="2、DNS的优化"><a href="#2、DNS的优化" class="headerlink" title="2、DNS的优化"></a>2、DNS的优化</h3><p>方案1：IP直连</p>
+<p>方案2：HTTPDNS</p>
+<p><a name="IP直连"></a></p>
+<h4 id="2-1、IP直连"><a href="#2-1、IP直连" class="headerlink" title="2.1、IP直连"></a>2.1、IP直连</h4><p><a href="https://juejin.cn/post/6844903564960088071" target="_blank" rel="noopener">iOS IP 直连原理剖析</a></p>
+<blockquote>
+<p>为什么大家会选择直接使用 IP 来进行连接呢？它具有多方面的优势：</p>
+<ul>
+<li>防劫持，可以绕过运营商 LocalDNS 解析过程，避免域名劫持，提高网络访问成功率</li>
+<li>降低延迟，DNS 解析是一个相对耗时的工作，跳过这个过程可以降低一定的延迟</li>
+<li>精准调度，运营商解析返回的节点不一定是最优的，自己获取 IP 可以基于自己的策略来获取最精准的、最优的节点</li>
+</ul>
+<p>对于获取 IP，我了解到的是两种方案，</p>
+<p>一种是直接接入腾讯或者阿里的 HTTPDNS 服务，在发起请求的时候是通过 HTTPDNS 获取 IP，然后直接使用 IP 来进行业务访问；一种是内置 Server IP，可以在启动等阶段由服务端下发域名和 IP 的对应列表，客户端来进行缓存，发起网络请求的时候直接根据缓存 IP 来进行业务访问。</p>
+</blockquote>
+<p><a name="用HTTP实现长连接"></a></p>
+<h2 id="附3：用HTTP实现长连接"><a href="#附3：用HTTP实现长连接" class="headerlink" title="附3：用HTTP实现长连接"></a>附3：用HTTP实现长连接</h2><p>长连接：长连接的特点是一旦通过三次握手建立链接之后，该条链路就一直存在，而且该链路是一种双向的通行机制，适合于频繁的网络请求，避免 Http 每一次请求都会建立链接和关闭链接的操作，减少浪费，提高效率。</p>
+<p>在首部字段中设置Connection:keep-alive 和Keep-Alive: timeout=60，表明连接建立之后，空闲时间超过60秒之后，就会失效。如果在空闲第58秒时，再次使用此连接，则连接仍然有效，使用完之后，重新计数，空闲60秒之后过期。</p>
+<p>设置HTTP长连接，无过期时间：<br>在首部字段中只设置Connection:keep-alive，表明连接永久有效。</p>
+<p>其他文章：<a href="https://zhuanlan.zhihu.com/p/542380273" target="_blank" rel="noopener">tcp长短连接、http长短连接、心跳包、tcp KeepAlive保活机制</a></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>其他参考文档：</p>
+<p>项目 ：<a href="https://github.com/aozhimin/iOS-Monitor-Platform" target="_blank" rel="noopener">iOS-Monitor-Platform</a>  中的网络部分 <a href="https://github.com/aozhimin/iOS-Monitor-Platform?tab=readme-ov-file#network" target="_blank" rel="noopener">https://github.com/aozhimin/iOS-Monitor-Platform?tab=readme-ov-file#network</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/" data-id="cm0b4aru9013garr4w7ynak2j" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/Architecture架构/框架相关/网络相关/网络框架/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          网络框架
+        
+      </div>
+    </a>
+  
+  
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">页面加载时长-1需求规划</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/埋点相关/">埋点相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/打包/">打包</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/搜索相关/">搜索相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/权限相关/">权限相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/瘦身/">瘦身</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：代码规范/">第一章：代码规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：依赖关系可视化/">第一章：依赖关系可视化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：埋点/">第一章：埋点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：基础规范/">第一章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：网络相关/">第一章：网络相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：webView/">第四章：webView</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/路由及跳转/">路由及跳转</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/通用业务规范/">通用业务规范</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/">技术选型</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：APM调研/">第一章：APM调研</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：加固选型/">第一章：加固选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：技术选型的考虑因素/">第一章：技术选型的考虑因素</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Architecture/" style="font-size: 19.09px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.91px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.18px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.82px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/iOS/" style="font-size: 17.27px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/埋点/" style="font-size: 10px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.91px;">基类</a> <a href="/tags/安全/" style="font-size: 14.55px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 13.64px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.82px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.82px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.73px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.91px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/总目录/">总目录</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/">(no title)</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2024 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>

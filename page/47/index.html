@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+
+  
+  <title>dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="学而时习之不亦说乎(dvlproad)">
+<meta name="keywords" content="blog,IT,iOS,Flutter">
+<meta property="og:type" content="website">
+<meta property="og:title" content="dvlproadの博客">
+<meta property="og:url" content="https://dvlproad.github.io/page/47/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="学而时习之不亦说乎(dvlproad)">
+<meta property="og:locale" content="zh-Hans">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="dvlproadの博客">
+<meta name="twitter:description" content="学而时习之不亦说乎(dvlproad)">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">整理及总结平时过程中的知识点</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-iOS/3必备知识架构/2内存/高磁盘占用的排查与优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/">高磁盘占用的排查与优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="高磁盘占用的排查与优化"><a href="#高磁盘占用的排查与优化" class="headerlink" title="高磁盘占用的排查与优化"></a>高磁盘占用的排查与优化</h1><h2 id="图片缓存区太大的案例"><a href="#图片缓存区太大的案例" class="headerlink" title="图片缓存区太大的案例"></a>图片缓存区太大的案例</h2><p>1、案例描述</p>
+<p><strong>在我们的Flutter打包的app上，出现测试人员对首页的无限列表疯狂频繁刷，冷启动刷的时候还好，越刷越后面越卡。</strong></p>
+<p>2、案例分析过程</p>
+<p>经测试验证在其他机器上无法重现。后通过观察应用的磁盘占比，发现出现崩溃的该设备该应用的磁盘占比巨大，达好几G（只要占用有网络点播视频缓存、打赏动画视频、图片）。进一步观察发现<strong>在图片不大的情况下，其中图片的占比竟然也能接近上G，说明图片数量巨大</strong>。由此猜测是图片数量太多导致。随后通过<a href="#高磁盘占用环境模拟">高磁盘占用环境模拟</a>，确实也出现了同样的情况。由此我们开始设想<a href="#磁盘对应用性能的影响">磁盘对应用性能的影响</a> 的几种原因，并进行对应修复。<strong>经过代码排查图片库内部的同步、阻塞问题，发现了一个潜在的同步危险。</strong></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (cacheFlie.existsSync()) &#123;  <span class="comment"><span class="markdown">/// existsSync是一个同步方法，用于检查具有该路径的文件系统实体是否存在。</span></span></span><br></pre></td></tr></table></figure>
+<p>3、为什么原生iOS上没发现类似问题/微信为什么没出现类似问题？</p>
+<p>可能原因：①之前原图相同的图片显示在不同地方，也只是原图和缩略图两套而已，而不像图片万象这样，可能会存在好多套。②原生的SDWebImage在监测到内存不足的时候会自动进行清除。</p>
+<h2 id="图片缓存（无、太小、太大）的问题"><a href="#图片缓存（无、太小、太大）的问题" class="headerlink" title="图片缓存（无、太小、太大）的问题"></a>图片缓存（无、太小、太大）的问题</h2><p>小结：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>图片缓冲区默认太小时（一定有问题）</th>
+<th>图片缓冲区设大后（可能有问题）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>出现的平台</td>
+<td>Flutter上默认的缓存上限1000个图片或者100MB内。<br>原生iOS的SDWebImage一般不设大小，只根据maxCacheAge</td>
+<td>Flutter上<code>extended_image</code>判断图片是否已缓存时候有性能问题，而导致卡顿。<br>原因滑动列表会进行很多图片的获取，从而由于任务过多，对性能产生影响，例如增加CPU使用率，导致电池消耗加快，进而可能引发崩溃。</td>
+</tr>
+<tr>
+<td>后果</td>
+<td>加载过的图片很容易再次出现。</td>
+<td>可能：存的图片数量太大。影响图片存取，而崩溃。</td>
+</tr>
+<tr>
+<td>出现的案例</td>
+<td>①列表划过之后再回来；<br>②列表页面离开后再回来。</td>
+<td>测试人员频繁刷，导致刷满图片缓冲区后，图片数量太大，影响图片存取，从而崩溃。</td>
+</tr>
+<tr>
+<td>解决方案</td>
+<td></td>
+<td>图片存储进行分区。对 url 进行 md5 取值，对 md5 取前两个字母为新文件夹。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1、图片缓冲区默认太小时"><a href="#1、图片缓冲区默认太小时" class="headerlink" title="1、图片缓冲区默认太小时"></a>1、图片缓冲区默认太小时</h3><p>在Flutter中加载图片（一般是网络图片），我们常常会遇到下面几个问题：<a href="https://juejin.cn/post/7101283293030514695" target="_blank" rel="noopener">Flutter 图片缓存问题分析</a></p>
+<ol>
+<li><p>同页面内，加载过的图片，再次出现的时候，会重新加载，特别是列表的图片；</p>
+<blockquote>
+<p>根源：<a href="https://book.flutterchina.club/chapter14/image_and_cache.html" target="_blank" rel="noopener">Flutter 内置的缓存机制</a> PaintingBinding.instance.imageCache 的 <code>maximumSize</code> 和 <code>maximumSizeBytes</code> 属性默认的缓存上限1000个图片或者100MB内。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="keyword">const</span> <span class="built_in">int</span> _kDefaultSize = <span class="number">1000</span>;</span><br><span class="line">&gt; <span class="keyword">const</span> <span class="built_in">int</span> _kDefaultSizeBytes = <span class="number">100</span> &lt;&lt; <span class="number">20</span>; <span class="comment">// 100 MiB</span></span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>即图片没有加载到100MB，加载到1000个图片，也会开始根据LRU的规则清理释放缓存。在某些情况下，比如电商，一整个页面80%的元素都用图片占满，小到图标，大到广告banner，个数很容易就到1000了，但是经过压缩剪裁，图片普遍都控制在几十kb甚至10kb以下，即使1000张也远远达不到内存的上限，并且100MB的上限对于某些机型来讲也相对较小了。</p>
+<p>解决：设置大一点</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; PaintingBinding.instance.imageCache.maximumSize = <span class="number">10000</span>;</span><br><span class="line">&gt; PaintingBinding.instance.imageCache.maximumSizeBytes = <span class="number">800</span> &lt;&lt; <span class="number">20</span>; <span class="comment">// 800 MiB</span></span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>附：除了 Flutter 内置的缓存机制外，还有第三方库如 <code>cached_network_image</code> 提供了更丰富的图片缓存功能，包括硬盘缓存等 。如果需要更复杂的图片缓存策略，可以考虑使用这类第三方库来扩展 Flutter 的图片加载和缓存能力。</p>
+<p>附2：<code>extended_image</code> 提供了一套完整的图片加载和缓存解决方案，其缓存的控制也还是通过修改 <code>ImageCache</code> 的配置来控制内存缓存的大小和数量。</p>
+<p>附2：SDWebImage 默认情况下会缓存图片一周（<code>maxCacheAge</code> 的默认值），并且没有对缓存空间大小设置限制（<code>maxCacheSize</code> 默认值未设定），这意味着理论上应用中的图片缓存可以占满整个设备存储空间。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt; [SDImageCache sharedImageCache].maxCacheSize = <span class="number">50</span> * <span class="number">1024</span> * <span class="number">1024</span>; *<span class="comment">// 50MB*</span></span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+</li>
+<li><p>列表快速滑动时，加载完成再往回滑动，之前的图片还是需要重新加载；</p>
+<blockquote>
+<p>根源：等同于按需加载。</p>
+<p>解释：加载图片时，为了<strong>避免过快滑动</strong>，使得同时加载的图片过多导致卡顿甚至崩溃。所以若是内存中已有缓存，则直接返回缓存，若是没有则判断是否在快速滑动，若是正在快速滑动，则<strong>下一帧</strong>再加入队列处理，若是图片已经被移出屏幕（即没有在tree上），可能会被跳过。</p>
+<p>解决：快速滑动如此，可不处理。</p>
+</blockquote>
+</li>
+<li><p>有时返回上一页面时，上一页面已经加载完成的图片，会重新加载，假如没有占位图会特别明显的闪动。</p>
+<blockquote>
+<p>同现象1一样。</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="2、图片缓冲区设大后"><a href="#2、图片缓冲区设大后" class="headerlink" title="2、图片缓冲区设大后"></a>2、图片缓冲区设大后</h3><p>图片分区：</p>
+<blockquote>
+<p>SDWebImage 所有的图片都放在 _diskCachePath 目录下，_diskCachePath是只有一层吗?还是里面还会再分文件目录？</p>
+<p>SDWebImage 的 <code>_diskCachePath</code> 目录是 SDWebImage 用来存储磁盘缓存的根目录。在这个根目录下，SDWebImage 会进一步组织文件结构，以避免所有图片都放在单一目录下造成文件系统性能问题。具体来说，图片文件会根据图片 URL 的 MD5 值进行散列，然后根据这个散列值来创建子目录和文件名，从而在磁盘上形成一个树状的目录结构 。</p>
+<p>这种目录结构的设计有助于分散文件系统操作，减少单个目录下的文件数量，从而提高文件检索和写入的性能。此外，SDWebImage 还提供了设置选项，允许开发者自定义图片的存储路径，以及通过 <code>addReadOnlyCachePath:</code> 方法添加额外的只读缓存路径 。</p>
+<p>总的来说，<code>_diskCachePath</code> 不是单一层级，而是一个包含多个子目录的复杂结构，每个子目录下存储着根据 MD5 散列值组织好的图片文件，以此来优化磁盘缓存的性能和效率 。</p>
+</blockquote>
+<p><a name="磁盘对应用性能的影响"></a></p>
+<h2 id="一、磁盘对应用性能的影响"><a href="#一、磁盘对应用性能的影响" class="headerlink" title="一、磁盘对应用性能的影响"></a>一、磁盘对应用性能的影响</h2><h3 id="1、原因猜测"><a href="#1、原因猜测" class="headerlink" title="1、原因猜测"></a>1、原因猜测</h3><p>可能原因：应用使用过程时候，存在对磁盘中的某个文件的操作，从而导致应用性能问题。操作的可能性如下：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>阶段</th>
+<th>如果</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>访问</td>
+<td>文件量太大</td>
+<td>访问效率问题</td>
+</tr>
+<tr>
+<td>2</td>
+<td>读写</td>
+<td>文件大小太大</td>
+<td>读写问题</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、排查方案"><a href="#2、排查方案" class="headerlink" title="2、排查方案"></a>2、排查方案</h3><p><img src="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/高磁盘占用的排查与优化.png" alt="高磁盘占用的排查与优化" style="zoom: 67%;"></p>
+<p>图片来源于：<a href="./高磁盘占用的排查与优化.graffle">高磁盘占用的排查与优化.graffle</a></p>
+<p><a name="高磁盘占用环境模拟"></a></p>
+<h2 id="二、高磁盘占用环境模拟"><a href="#二、高磁盘占用环境模拟" class="headerlink" title="二、高磁盘占用环境模拟"></a>二、高磁盘占用环境模拟</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>阶段</th>
+<th>操作</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>资源准备1</td>
+<td>提供图片的万象接口，以通过万象能获取到各种图片地址</td>
+<td>避免得去找非常多的图片数据源</td>
+</tr>
+<tr>
+<td>2</td>
+<td>资源准备2</td>
+<td>提供下载万象图片的接口(指定宽范围)，以通过万象图片能下载到很多图片</td>
+<td>避免得去找非常多的图片数据源</td>
+</tr>
+<tr>
+<td>3</td>
+<td>资源下载</td>
+<td>下载指定宽范围的万象图片，得到各种图片<br>每次只添加 100 张，避免模拟功能在同步状态下执行出错；</td>
+<td>通过下载占据磁盘空间</td>
+</tr>
+<tr>
+<td>4</td>
+<td>数据验证1</td>
+<td>打印磁盘(沙盒)目录，验证下载<br><a href="../../../iOS/移动分析/沙盒数据查看">iOS-查看沙盒文件(真机+模拟器)</a></td>
+<td>验证确实磁盘空间被增加</td>
+</tr>
+<tr>
+<td>5</td>
+<td>数据验证2</td>
+<td>计算磁盘大小</td>
+<td>验证确实磁盘空间被增加</td>
+</tr>
+</tbody>
+</table>
+<p>相应的代码实现，见 <a href="#高磁盘占用环境模拟的相关代码">附1：高磁盘占用环境模拟的相关代码</a></p>
+<h2 id="三、高磁盘占用环境优化"><a href="#三、高磁盘占用环境优化" class="headerlink" title="三、高磁盘占用环境优化"></a>三、高磁盘占用环境优化</h2><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>解决</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>避免单文件夹太大</td>
+<td>存储分区处理</td>
+</tr>
+<tr>
+<td>2</td>
+<td>单文件夹已经太大</td>
+<td>存储空间清理</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1、避免单文件夹太大—-存储分区处理"><a href="#1、避免单文件夹太大—-存储分区处理" class="headerlink" title="1、避免单文件夹太大—-存储分区处理"></a>1、避免单文件夹太大—-存储分区处理</h3><p>1、背景：图片文件下文件数量太多，导致搜索效率下降</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> Directory _cacheImagesDirectory = Directory(</span><br><span class="line">    join((<span class="keyword">await</span> getTemporaryDirectory()).path, cacheImageFolderName));</span><br><span class="line"></span><br><span class="line"><span class="comment">// exist, try to find cache image file</span></span><br><span class="line"><span class="keyword">if</span> (_cacheImagesDirectory.existsSync()) &#123; <span class="comment"><span class="markdown">/// existsSync是一个同步方法，用于检查具有该路径的文件系统实体是否存在。</span></span></span><br><span class="line">  <span class="keyword">final</span> File cacheFlie = File(join(_cacheImagesDirectory.path, md5Key));</span><br><span class="line">  <span class="keyword">if</span> (cacheFlie.existsSync()) &#123;  <span class="comment"><span class="markdown">/// existsSync是一个同步方法，用于检查具有该路径的文件系统实体是否存在。</span></span></span><br><span class="line">    </span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>2、优化方案：对图片存储，进行分区存储。获取方式同理。</p>
+<p>3、优化步骤如下</p>
+<p>对 url 进行 md5 取值</p>
+<p>对 md5 取首字母为新文件夹</p>
+<p>将该url所对应的图片存储在图片存储目录下的子目录</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// get md5 from key</span></span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> keyToMd5(<span class="built_in">String</span> key) =&gt; md5.convert(utf8.encode(key)).toString();</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">/// 获取网络图片最后的本地存储文件夹路径</span></span></span><br><span class="line"><span class="keyword">static</span> Future&lt;<span class="built_in">String</span>&gt; getLastDirPath(<span class="built_in">String</span> imageUrl, &#123;<span class="built_in">bool</span>? useSubDir&#125;) <span class="keyword">async</span> &#123;</span><br><span class="line">  Directory cacheDir = <span class="keyword">await</span> getTemporaryDirectory();</span><br><span class="line">  <span class="built_in">String</span> imageCacheHomeDirPath = join(cacheDir.path, cacheImageFolderName);</span><br><span class="line">  <span class="keyword">if</span> (useSubDir != <span class="keyword">true</span>) &#123; <span class="comment">// 不使用子目录，直接一个文件夹存放</span></span><br><span class="line">    <span class="keyword">return</span> imageCacheHomeDirPath;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">String</span> subDirHome = keyToMd5(imageUrl);</span><br><span class="line">  <span class="built_in">String</span> imageCacheSubDirName = subDirHome.substring(<span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">  <span class="built_in">String</span> lastDirPath = <span class="string">"<span class="subst">$imageCacheHomeDirPath</span>/<span class="subst">$imageCacheSubDirName<span class="string">";</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  return lastDirPath;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<p>4、优化验证</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 计算图片文件的查找耗时(查找失败返回-1)</span></span></span><br><span class="line"><span class="keyword">static</span> Future&lt;<span class="built_in">int</span>&gt; calculateFindDuration(<span class="built_in">String</span> imageUrl, &#123;<span class="built_in">bool</span>? useSubDir&#125;) <span class="keyword">async</span> &#123;</span><br><span class="line">  <span class="built_in">String</span> md5Key = keyToMd5(imageUrl);</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">String</span> lastDirPath = <span class="keyword">await</span> getLastDirPath(imageUrl, useSubDir: useSubDir);</span><br><span class="line">  <span class="keyword">final</span> Directory cacheImagesDirectory = Directory(lastDirPath);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">int</span> foundStartTime = <span class="built_in">DateTime</span>.now().millisecondsSinceEpoch;</span><br><span class="line">  <span class="comment">// exist, try to find cache image file</span></span><br><span class="line">  <span class="keyword">if</span> (cacheImagesDirectory.existsSync()) &#123; <span class="comment"><span class="markdown">/// existsSync同步方法，检查该路径的文件夹是否存在</span></span></span><br><span class="line">    <span class="keyword">final</span> File cacheFlie = File(join(cacheImagesDirectory.path, md5Key));</span><br><span class="line">    <span class="keyword">if</span> (cacheFlie.existsSync()) &#123; <span class="comment"><span class="markdown">/// existsSync同步方法，检查该路径的文件是否存在</span></span></span><br><span class="line">      <span class="built_in">int</span> foundEndTime = <span class="built_in">DateTime</span>.now().millisecondsSinceEpoch;</span><br><span class="line">      <span class="built_in">int</span> foundDuration = foundEndTime - foundStartTime;</span><br><span class="line">      <span class="keyword">return</span> foundDuration;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、单文件夹已经太大—-存储空间清理"><a href="#2、单文件夹已经太大—-存储空间清理" class="headerlink" title="2、单文件夹已经太大—-存储空间清理"></a>2、单文件夹已经太大—-存储空间清理</h3><p>文件的属性有创建时间、修改时间</p>
+<p>原理：变化过期时间，遍历文件属性，删除修改时间大于该过期时间的文件</p>
+<p>1、设置过期时间的初始值，遍历文件属性，删除修改时间大于该过期时间的文件；</p>
+<p>2、检查清理后的大小，如果大小还不在规定大小内，则继续清理；</p>
+<p>3、继续清理：设置每次清理的过期时间增加值，对过期时间的初始值增加，并重复以上步骤；</p>
+<h2 id="四、优化方案的实施"><a href="#四、优化方案的实施" class="headerlink" title="四、优化方案的实施"></a>四、优化方案的实施</h2><p>目的：避免功能异常，出现集体性问题。</p>
+<p>灰度方案：请参照 <a href="../../../Architecture架构/灰度/灰度系统">灰度系统</a></p>
+<h2 id="五、延伸"><a href="#五、延伸" class="headerlink" title="五、延伸"></a>五、延伸</h2><p>问题：一旦修改分区规则（如原本使用url进行md5后的首位值，后面改成md5后的两位值），旧文件就得重新下载。</p>
+<p>解决：使用一致性哈希算法。<a href="https://developer.huawei.com/consumer/cn/forum/topic/0203810951415790238" target="_blank" rel="noopener">16 张图解带你掌握一致性哈希算法</a></p>
+<p>1、对存储节点进行hash，创建节点和hash值的哈希映射，如 {100001: “a”, 300001: “a”, 400001: “a”}</p>
+<p>2、对数据url进行hash寻址</p>
+<ul>
+<li>首先，对 key 进行哈希计算，确定此 key 在环上的位置；</li>
+<li>然后，从这个位置沿着顺时针方向走，遇到的第一节点就是存储 key 的节点。（对「数据」进行哈希映射得到一个结果要怎么找到存储该数据的节点呢？）</li>
+</ul>
+<p>结果：<strong>在一致哈希算法中，如果增加或者移除一个节点，仅影响该节点在哈希环上顺时针相邻的后继节点，其它数据也不会受到影响</strong>。</p>
+<blockquote>
+<p>假设节点数量从 3 减少到了 2，比如将节点 A 移除：你可以看到，key-02 和 key-03 不会受到影响，只有 key-01 需要被迁移节点 B。</p>
+</blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/%E9%AB%98%E7%A3%81%E7%9B%98%E5%8D%A0%E7%94%A8%E7%9A%84%E6%8E%92%E6%9F%A5%E4%B8%8E%E4%BC%98%E5%8C%96/HashRing_02.png" alt="image-20231008173625108" style="zoom:25%;"></p>
+<p>隐患：<strong>一致性哈希算法虽然减少了数据迁移量，但是存在节点分布不均匀的问题</strong>。如下：</p>
+<p><img src="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/%E9%AB%98%E7%A3%81%E7%9B%98%E5%8D%A0%E7%94%A8%E7%9A%84%E6%8E%92%E6%9F%A5%E4%B8%8E%E4%BC%98%E5%8C%96/HashRing_03.png" alt="image-20231008173700010" style="zoom:25%;"></p>
+<p>说明：一致哈希算法也用了取模运算，但与哈希算法不同的是，哈希算法是对节点的数量进行取模运算，而<strong>一致哈希算法是对 2^32 进行取模运算，是一个固定的值</strong>。</p>
+<p>附：hash算法</p>
+<blockquote>
+<p> 使用一致性哈希（Consistent Hashing）可以帮助您将大批图片文件分散存储到不同的文件中，其中每个文件对应一个字母或数字。一致性哈希算法能够提供高效的数据分布和负载均衡，同时允许动态添加或删除文件节点。</p>
+</blockquote>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'dart:convert'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:crypto/crypto.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ConsistentHashing</span> </span>&#123;</span><br><span class="line">  <span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; nodes;</span><br><span class="line">  <span class="built_in">Map</span>&lt;<span class="built_in">int</span>, <span class="built_in">String</span>&gt; ring;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 构造hash环</span></span><br><span class="line">  ConsistentHashing(<span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; nodes) &#123;</span><br><span class="line">    <span class="keyword">this</span>.nodes = nodes;</span><br><span class="line">    <span class="keyword">this</span>.ring = &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">String</span> node <span class="keyword">in</span> nodes) &#123;</span><br><span class="line">      addNode(node);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// ring[_hash(node + n.toString())] = node;</span></span><br><span class="line">  <span class="keyword">void</span> addNode(<span class="built_in">String</span> node) &#123;			<span class="comment">// a、b...</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> n = <span class="number">0</span>; n &lt; <span class="number">3</span>; n++) &#123; <span class="comment">// 每个节点有3个虚拟节点（a0、a1、a2、b0、b1、b2...）</span></span><br><span class="line">      <span class="built_in">String</span> virtualNode = node + n.toString();</span><br><span class="line">      <span class="built_in">int</span> hashValue = _hash(virtualNode);</span><br><span class="line">      ring[hashValue] = node;  <span class="comment">// &#123;hash_a0: "a", hash_a1: "a", hash_a2: "a"&#125;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">	<span class="comment">// ring.remove(_hash(node + n.toString()));</span></span><br><span class="line">  <span class="keyword">void</span> removeNode(<span class="built_in">String</span> node) &#123;	<span class="comment">// a、b...</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> n = <span class="number">0</span>; n &lt; <span class="number">3</span>; n++) &#123; <span class="comment">// 每个节点有3个虚拟节点（a0、a1、a2、b0、b1、b2...）</span></span><br><span class="line">      <span class="built_in">String</span> virtualNode = node + n.toString();</span><br><span class="line">      <span class="built_in">int</span> hashValue = _hash(virtualNode);</span><br><span class="line">      ring.remove(hashValue);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 从小到大排序所有虚拟节点的hash值，并进行遍历，找到最接近的虚拟节点。判断值应该存储的节点</span></span><br><span class="line">  <span class="built_in">String</span> getNode(<span class="built_in">String</span> key) &#123;</span><br><span class="line">    <span class="keyword">if</span> (ring.isEmpty) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">int</span> hashValue = _hash(key);</span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">int</span>&gt; sortedKeys = ring.keys.toList()..sort(); <span class="comment">// [hash_a0, hash_b0, hash_a1, hash_a2, ...]</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> ringKey <span class="keyword">in</span> sortedKeys) &#123;</span><br><span class="line">      <span class="keyword">if</span> (hashValue &lt;= ringKey) &#123; <span class="comment">// hash_xxx &lt;=  hash_a1</span></span><br><span class="line">        <span class="keyword">return</span> ring[ringKey]; <span class="comment">// ring[hash_a1] = "a"  =&gt; 返回 "a"</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ring[sortedKeys[<span class="number">0</span>]];</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">int</span> _hash(<span class="built_in">String</span> key) &#123;</span><br><span class="line">    Digest hash = md5.convert(utf8.encode(key));</span><br><span class="line">    <span class="built_in">int</span> hashValue = <span class="built_in">int</span>.parse(hash.toString(), radix: <span class="number">16</span>);</span><br><span class="line">    <span class="keyword">return</span> hashValue;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> main() &#123;</span><br><span class="line">  <span class="comment">// 创建36个文件节点，每个节点对应一个字母或数字</span></span><br><span class="line">  <span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; nodes = <span class="built_in">List</span>.generate(<span class="number">26</span>, (index) =&gt; <span class="built_in">String</span>.fromCharCode(<span class="number">97</span> + index))</span><br><span class="line">      ..addAll(<span class="built_in">List</span>.generate(<span class="number">10</span>, (index) =&gt; index.toString()));</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 初始化一致性哈希环</span></span><br><span class="line">  ConsistentHashing ring = ConsistentHashing(nodes);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 假设有一批图片文件需要存储</span></span><br><span class="line">  <span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; imageFiles = [<span class="string">'image1.jpg'</span>, <span class="string">'image2.jpg'</span>, <span class="string">'image3.jpg'</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="built_in">String</span> imageFile <span class="keyword">in</span> imageFiles) &#123;</span><br><span class="line">    <span class="comment">// 根据文件名获取对应的节点</span></span><br><span class="line">    <span class="built_in">String</span> node = ring.getNode(imageFile);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将文件存储到对应的节点中</span></span><br><span class="line">    <span class="comment">// 这里可以根据需要自行实现文件存储逻辑</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">'Storing <span class="subst">$imageFile</span> to node <span class="subst">$node<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<p><a name="高磁盘占用环境模拟的相关代码"></a></p>
+<h2 id="附1：高磁盘占用环境模拟的相关代码"><a href="#附1：高磁盘占用环境模拟的相关代码" class="headerlink" title="附1：高磁盘占用环境模拟的相关代码"></a>附1：高磁盘占用环境模拟的相关代码</h2><p>1、<code>ts_toomany_image_data_vientiane.dart</code></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// [<span class="string">图片处理方式:快速缩略模板</span>](<span class="link">https://cloud.tencent.com/document/product/460/6929</span>)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// [<span class="string">图片处理方式:数据万象-缩放thumbnail</span>](<span class="link">https://cloud.tencent.com/document/product/460/36540</span>)</span></span></span><br><span class="line"><span class="comment"><span class="markdown">/// [<span class="string">图片处理方式:数据万象-旋转rotate</span>](<span class="link">https://cloud.tencent.com/document/product/460/36542</span>)</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TSTooManyImageDataVientiane</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="built_in">String</span> newImageUrl(<span class="built_in">String</span> imageUrl, &#123;required <span class="built_in">int</span> width&#125;) &#123;</span><br><span class="line">    <span class="built_in">String</span> thumbnail = <span class="string">'?imageMogr2/thumbnail/'</span>;</span><br><span class="line">    thumbnail += <span class="string">'<span class="subst">$&#123;width&#125;</span>x/'</span>;</span><br><span class="line">    thumbnail += <span class="string">'format/webp/auto-orient/quality/100'</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">String</span> newImageUrl = <span class="string">"<span class="subst">$imageUrl</span><span class="subst">$thumbnail<span class="string">";</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    // debugPrint('newImageUrl = <span class="subst">$newImageUrl<span class="string">');</span></span></span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string"><span class="subst"><span class="string">    return newImageUrl;</span></span></span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span></span></span><br></pre></td></tr></table></figure>
+<p>2、<code>ts_toomany_image_download_util.dart</code></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'dart:io'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:extended_image/extended_image.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'ts_toomany_image_data_vientiane.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TSTooManyImageDownloadUtil</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="built_in">String</span> vientianeImageUrl = <span class="string">"https://images.xihuanwu.com/mcms/uploads/1647604960983901.jpg"</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> simulate_download_too_many(<span class="built_in">int</span> imageWidthStart, <span class="built_in">int</span> imageWidthEnd) &#123;</span><br><span class="line">    <span class="built_in">int</span> imageCount = imageWidthEnd - imageWidthStart;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; imageCount; i++) &#123;</span><br><span class="line">      <span class="built_in">int</span> iImageWidth = imageWidthStart + i;</span><br><span class="line">      <span class="built_in">String</span> iImageUrl = TSTooManyImageDataVientiane.newImageUrl(vientianeImageUrl, width: iImageWidth);</span><br><span class="line">      getNetworkImageData(iImageUrl);</span><br><span class="line">      sleep(<span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">10</span>)); <span class="comment">// 延迟10ms，避免下载太多计算问题</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>3、<code>ts_toomany_image_optimize_check_util.dart</code></p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'dart:convert'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'dart:io'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:crypto/crypto.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/foundation.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:path/path.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:path_provider/path_provider.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:extended_image_library/extended_image_library.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'ts_toomany_image_data_vientiane.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'ts_toomany_image_download_util.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TSTooManyImageOptimizeCheckUtil</span> </span>&#123;</span><br><span class="line">  <span class="comment"><span class="markdown">/// 计算图片的查找时长</span></span></span><br><span class="line">  <span class="keyword">static</span> checkImageFindDuration() <span class="keyword">async</span> &#123;</span><br><span class="line">    <span class="built_in">String</span> foundImageUrl = TSTooManyImageDataVientiane.newImageUrl(TSTooManyImageDownloadUtil.vientianeImageUrl,</span><br><span class="line">        width: <span class="number">6600</span>);</span><br><span class="line">    getNetworkImageData(foundImageUrl);</span><br><span class="line">    <span class="built_in">int</span> foundDuration = <span class="keyword">await</span> TSTooManyImageOptimizeCheckUtil.calculateFindDuration(foundImageUrl);</span><br><span class="line">    debugPrint(<span class="string">"<span class="subst">$foundImageUrl</span> 的查找时间为:<span class="subst">$foundDuration<span class="string">");</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm0b4as1j014rarr4uz8s9lsb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-电脑使用/Mac中个各种文件夹" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/电脑使用/Mac中个各种文件夹/" class="article-date">
+  <time datetime="2018-03-20T12:45:10.000Z" itemprop="datePublished">2018-03-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/电脑使用/Mac中个各种文件夹/">Mac中个各种文件夹</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Mac中个各种文件夹"><a href="#Mac中个各种文件夹" class="headerlink" title="Mac中个各种文件夹"></a>Mac中个各种文件夹</h2><h3 id="1、Mac系统自带的桌面壁纸在哪个文件夹"><a href="#1、Mac系统自带的桌面壁纸在哪个文件夹" class="headerlink" title="1、Mac系统自带的桌面壁纸在哪个文件夹"></a>1、Mac系统自带的桌面壁纸在哪个文件夹</h3><p><img src="/电脑使用/Mac中个各种文件夹/image-20210123223301377.png" alt="image-20210123223301377"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm0b4aobo003uarr48jd0ufy7" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Terminal/1终端常用命令" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Terminal/1终端常用命令/" class="article-date">
+  <time datetime="2018-03-05T08:07:12.000Z" itemprop="datePublished">2018-03-05</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Terminal/1终端常用命令/">终端常用命令</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="一、brew-安装"><a href="#一、brew-安装" class="headerlink" title="一、brew 安装"></a>一、brew 安装</h2><p>Mac系统是使用brew命令install，而brew的安装需要通过ruby安装</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 安装ruby</span></span><br><span class="line">/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"</span><br></pre></td></tr></table></figure>
+<p>其他：</p>
+<p>brew update -》更新homebrew到最新版本</p>
+<p>brew doctor -》检查homebrew状态</p>
+<h1 id="二、brew-使用"><a href="#二、brew-使用" class="headerlink" title="二、brew 使用"></a>二、brew 使用</h1><p>建议安装前，先执行遍<code>brew update</code></p>
+<h3 id="1、使用-brew-安装-卸载-node、npm"><a href="#1、使用-brew-安装-卸载-node、npm" class="headerlink" title="1、使用 brew 安装/卸载 node、npm"></a>1、使用 brew 安装/卸载 node、npm</h3><figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">brew install node</span><br><span class="line">brew uninstall node</span><br></pre></td></tr></table></figure>
+<p>使用 <code>brew install node</code> 安装即可。(如果已存在，则使用<code>brew upgrade node</code>)</p>
+<p>安装完成npm就ok啦～</p>
+<p>可以使用 <code>npm -v</code> 看下效果</p>
+<h3 id="2、使用brew安装nvm"><a href="#2、使用brew安装nvm" class="headerlink" title="2、使用brew安装nvm"></a>2、使用brew安装nvm</h3><p>brew update<br>brew install nvm</p>
+<p>npm install npm@latest -g</p>
+<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><h3 id="1、版本相关命令"><a href="#1、版本相关命令" class="headerlink" title="1、版本相关命令"></a>1、版本相关命令</h3><table>
+<thead>
+<tr>
+<th>命令描述</th>
+<th>命令举例</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查看node版本</td>
+<td>node –v</td>
+<td></td>
+</tr>
+<tr>
+<td>查看版本详情</td>
+<td>npm version</td>
+<td></td>
+</tr>
+<tr>
+<td>查看npm最新版本号</td>
+<td>npm view npm version</td>
+<td></td>
+</tr>
+<tr>
+<td>查看npm所有的版本号</td>
+<td>npm view npm versions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、升级相关命令"><a href="#2、升级相关命令" class="headerlink" title="2、升级相关命令"></a>2、升级相关命令</h3><table>
+<thead>
+<tr>
+<th>命令描述</th>
+<th>命令举例</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安装最新稳定版</td>
+<td>nvm install stable</td>
+<td></td>
+</tr>
+<tr>
+<td>升级到最新版</td>
+<td>npm install npm@latest -g</td>
+<td></td>
+</tr>
+<tr>
+<td>升级到指定版本</td>
+<td>npm install npm@xx -g</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/实用工具/Terminal/1终端常用命令/1%E7%BB%88%E7%AB%AF%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/image-20230420193528874.png" alt="image-20230420193528874"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm0b4aq8l00raarr4uszisykf" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/框架相关/foundation框架" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/foundation框架/" class="article-date">
+  <time datetime="2018-01-21T09:08:41.000Z" itemprop="datePublished">2018-01-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/框架相关/foundation框架/">foundation</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="foundation"><a href="#foundation" class="headerlink" title="foundation"></a>foundation</h1><h2 id="一、Url处理"><a href="#一、Url处理" class="headerlink" title="一、Url处理"></a>一、Url处理</h2><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>关键字</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>WebUrlUtil</td>
+<td>for 、 swtich</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ApiUrlUtil</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm0b4aplm008darr4sykzbmxj" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins的安装与启动" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins的安装与启动/" class="article-date">
+  <time datetime="2017-04-23T01:27:20.000Z" itemprop="datePublished">2017-04-23</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins的安装与启动/">第1节：Jenkins的安装与启动</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="第1节：Jenkins的安装与启动"><a href="#第1节：Jenkins的安装与启动" class="headerlink" title="第1节：Jenkins的安装与启动"></a>第1节：Jenkins的安装与启动</h1><p>自己的文章：</p>
+<p>①、<a href="https://www.jianshu.com/p/126c9e6b63ef" target="_blank" rel="noopener">Jenkins(一)初步认识</a></p>
+<h2 id="一、Jenkins的安装"><a href="#一、Jenkins的安装" class="headerlink" title="一、Jenkins的安装"></a>一、Jenkins的安装</h2><p>①、直接下载<a href="https://jenkins.io/index.html" target="_blank" rel="noopener">Jenkins</a>安装。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">brew install jenkins-lts</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Stable：稳定版本。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> LTS（Long Term Support）：长期演进版</span></span><br></pre></td></tr></table></figure>
+<p>②、安装成功后，其会自动打开<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080</a></p>
+<p>此时如果我们发现打开错误。原因是我们缺少Jenkins的运行环境，所以我们需要安装java的jdk。如果要验证是否是这个原因的话，我们可以<code>通过命令行查看当前的java版本</code><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/Java.png" alt="Java"><br>果然发现没有安装，则我们通过下载jdk来进行安装。<br><a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html" target="_blank" rel="noopener">java的jdk下载地址</a><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_jdk1.png" alt="jenkins_jdk1"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_jdk2.png" alt="jenkins_jdk2"><br>安装完后，我们再运行一下验证命令，发现可以运行了，即我们安装好了。<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/Java.png" alt="Java"></p>
+<p>③、java环境安装成功之后，接下来我们就可以正常访问Jenkins了。Jenkins的访问地址为<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080</a>。打开的页面显示如下：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_3.png" alt="jenkins_3"></p>
+<p>④、提示我们需要输入其指定文件夹下的密码来访问。则我们访问其指定文件，发现没法访问该文件内容<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_4.png" alt="jenkins_4"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_noPermission1.png" alt="jenkins_noPermission1"></p>
+<p>所以这里我们通过修改权限，让读取该文件内容，如下：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_noPermission2.png" alt="jenkins_noPermission2"><br>⑤、将读取后的密码输入到登录网页上，即可登录，登录后的结果为：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start1.png" alt="jenkins_start1"></p>
+<p>⑥、因为此时为首次登陆，所以其会提示我们安装Jenkins建议的插件。则我们按照步骤进行Jenkins默认插件的安装。安装过程如下所示：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start2.jpg" alt="jenkins_start2"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start3.jpg" alt="jenkins_start3"></p>
+<p>⑦、一路安装过来，输入用户名，密码。<br>之后继续登录<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080/</a>可以看到最终的显示结果为：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_use1.png" alt="jenkins_use1"><br>此时则我们的Jenkins的初始安装完毕(之后我们可能还需要安装一些自己需要的插件)。</p>
+<h2 id="二、Jenkins的启动"><a href="#二、Jenkins的启动" class="headerlink" title="二、Jenkins的启动"></a>二、Jenkins的启动</h2><p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
+<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
+<h2 id="三、Jenkins的升级"><a href="#三、Jenkins的升级" class="headerlink" title="三、Jenkins的升级"></a>三、Jenkins的升级</h2><h3 id="1、如何查看jenkins-的版本号"><a href="#1、如何查看jenkins-的版本号" class="headerlink" title="1、如何查看jenkins 的版本号"></a>1、如何查看jenkins 的版本号</h3><p>jenkins页面的右下角就是jenkins版本号信息</p>
+<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927143448781.png" alt="image-20200927143448781"></p>
+<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927143111985.png" alt="image-20200927143111985"></p>
+<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927233412864.png" alt="image-20200927233412864"></p>
+<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927234036120.png" alt="image-20200927234036120"></p>
+<p>要执行下载好的版本</p>
+<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200928001116531.png" alt="image-20200928001116531"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm0b4aq8j00qzarr48l7q4ott" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-随笔/游戏随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/随笔/游戏随笔/" class="article-date">
+  <time datetime="2016-08-17T10:28:34.000Z" itemprop="datePublished">2016-08-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/随笔/游戏随笔/">游戏随笔</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="有这么一个技能，当怪物血量高于总血量的70-时，你的伤害增加50-。"><a href="#有这么一个技能，当怪物血量高于总血量的70-时，你的伤害增加50-。" class="headerlink" title="有这么一个技能，当怪物血量高于总血量的70%时，你的伤害增加50%。"></a><strong>有这么一个技能，当怪物血量高于总血量的70%时，你的伤害增加50%。</strong></h2><p>以血量1000下的不同攻击力分别计算带该技能后，相当于整个攻击过程增加了多少的攻击力？<br>情况1，攻击力10：未带技能时攻击次数是100次，有带技能时加成与未加成的攻击次数分别是20和70（有带技能且加成时攻击力是15，打20次后降到70%以下的血，剩700要用攻击力10打），相当于攻击力增加10%。附(20+70)/100=0.90<br>情况2，攻击力100：未带技能时攻击次数是10次，有带技能时加成与未加成的攻击次数分别是2和7（有带技能且加成时攻击力是150，打2次后降到70%以下的血，剩700要用攻击力100打），相当于攻击力增加10%。附(2+7)/10=0.90<br>情况3，攻击力200：未带技能时攻击次数是5.0次，有带技能时加成与未加成的攻击次数分别是1和3.5(有带技能且加成时攻击力是300，打1次后降到70%以下的血，剩700要用攻击力200打），相当于攻击力增加10%，即(1+3.5)/5.0=0.90<br>情况4，攻击力300：未带技能时攻击次数是3.3次，有带技能时加成与未加成攻击次数分别是1和1.83(有带技能且加成时攻击力是450，打1次后降到70%以下的血，剩550要用攻击力300打），相当于攻击力增加15%，即(1+1.83)/3.3≈0.85<br>情况5，攻击力400：未带技能时攻击次数是2.5次，有带技能时加成与未加成的攻击次数分别是1和1.0(有带技能且加成时攻击力是600，打1次后降到70%以下的血，剩400要用攻击力400打），相当于攻击力增加20%，即(1+1.0)/2.5=0.80<br>情况6，攻击力500：未带技能时攻击次数是2.0次，有带技能时加成与未加成的攻击次数分别是1和0.5(有带技能且加成时攻击力是750，打1次后降到70%以下的血，剩250要用攻击力500打），相当于攻击力增加25%，即(1+0.5)/2.0=0.75</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>攻击力</th>
+<th>未带技能时<br>攻击次数</th>
+<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
+<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
+<th>攻击次数比</th>
+<th>增长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>10</td>
+<td>1000/10 = 100次</td>
+<td>15功 * 20次 = 300血</td>
+<td>700血 / 10功 = 70次</td>
+<td>(20+70)/100 = 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>2</td>
+<td>100</td>
+<td>10次</td>
+<td>150功 * 2次 = 300血</td>
+<td>700血 / 100功 = 7.0次</td>
+<td>(2+7.0)/10 = 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>3</td>
+<td>200</td>
+<td>5.0次</td>
+<td>300功 * 1次 = 300血(剩&lt;700)</td>
+<td>700血 / 200功 = 3.5次</td>
+<td>(1+3.5)/5.0 = 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>300</td>
+<td>3.3次</td>
+<td>450功 * 1次 = 450血</td>
+<td>550血 / 300功 ≈ 1.83次</td>
+<td>(1+1.83)/3.3≈0.85</td>
+<td>15%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>400</td>
+<td>2.5次</td>
+<td>600功 * 1次 = 600血</td>
+<td>400血 / 400功 = 1.0次</td>
+<td>(1+1.0)/2.5 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>6</td>
+<td>500</td>
+<td>2.0次</td>
+<td>750功 * 1次 = 750血</td>
+<td>250血 / 500功 = 0.5次</td>
+<td>(1+0.5)/2.0 = 0.75</td>
+<td>25%</td>
+</tr>
+<tr>
+<td>7</td>
+<td>600</td>
+<td>1000/600≈1.66次</td>
+<td>900功 * 1次 = 900血</td>
+<td>100血 / 600功 ≈ 0.16次</td>
+<td>(1+0.16)/1.66≈0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>8</td>
+<td>666</td>
+<td>1000/666.6=1.5次</td>
+<td>1000功 * 1次 = 1000血</td>
+<td>0血 / 666.66功 = 0.0次</td>
+<td>(1+0.0)/1.5 ≈ 0.66</td>
+<td><strong>33%</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>700</td>
+<td>1000/700 ≈1.42次</td>
+<td>1050功 * 1次 = 1050血</td>
+<td>0血 / 700功 = 0.0次</td>
+<td>(1+0.0)/1.42 ≈ 0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>10</td>
+<td>800</td>
+<td>1000/800 =1.25次</td>
+<td>1200功 * 1次 = 1200血</td>
+<td>0血 / 800功 = 0.0次</td>
+<td>(1+0.0)/1.25 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>11</td>
+<td>900</td>
+<td>1000/900 ≈1.11次</td>
+<td>1350功 * 1次 = 1350血</td>
+<td>0血 / 900功 = 0.0次</td>
+<td>(1+0.0)/1.11 ≈ 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1000</td>
+<td>1000/1000 =1.0次</td>
+<td>1500功 * 1次 = 1500血</td>
+<td>0血 / 1000功 = 0.0次</td>
+<td>(1+0.0)/1.0 = 1.0</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+<p>最大增长率是33% 。<strong>发生在带技能后技能生效一枪爆头，把技能的增效才充分利用了。即最大增长率发生在 <code>(1+50%)*1枪=处决</code> 。</strong>即未加攻时1.5枪，加功时1枪。(1+0.0)/1.5 ≈ 0.66，增长了33%，差不多略小于 50%*70% = 35%</p>
+<p>如果技能是当怪物血量高于总血量的70%时，伤害可以增加60%（而不是50%）呢？</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>攻击力</th>
+<th>未带技能时<br>攻击次数</th>
+<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
+<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
+<th>攻击次数比</th>
+<th>增长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>10</td>
+<td>1000/10 = 100次</td>
+<td>16功 * 19次 = 304血</td>
+<td>696血 / 10功 = 70次</td>
+<td>(19+70)/100 = 0.89</td>
+<td>11%</td>
+</tr>
+<tr>
+<td>2</td>
+<td>100</td>
+<td>10次</td>
+<td>160功 * 2次 = 320血</td>
+<td>680血 / 100功 = 6.8次</td>
+<td>(2+6.8)/10 = 0.88</td>
+<td>12%</td>
+</tr>
+<tr>
+<td>3</td>
+<td>200</td>
+<td>5.0次</td>
+<td>320功 * 1次 = 320血(剩&lt;700)</td>
+<td>680血 / 200功 = 3.4次</td>
+<td>(1+3.4)/5.0 = 0.88</td>
+<td>12%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>300</td>
+<td>3.3次</td>
+<td>480功 * 1次 = 480血</td>
+<td>520血 / 300功 ≈ 1.73次</td>
+<td>(1+1.73)/3.3≈0.82</td>
+<td>18%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>400</td>
+<td>2.5次</td>
+<td>640功 * 1次 = 640血</td>
+<td>360血 / 400功 = 0.9次</td>
+<td>(1+0.9)/2.5 = 0.76</td>
+<td>24%</td>
+</tr>
+<tr>
+<td>6</td>
+<td>500</td>
+<td>2.0次</td>
+<td>800功 * 1次 = 800血</td>
+<td>200血 / 500功 = 0.4次</td>
+<td>(1+0.4)/2.0 = 0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>7</td>
+<td>600</td>
+<td>1000/600≈1.66次</td>
+<td>960功 * 1次 = 960血</td>
+<td>40血 / 600功 ≈ 0.06次</td>
+<td>(1+0.06)/1.66≈0.64</td>
+<td>36%</td>
+</tr>
+<tr>
+<td>8</td>
+<td>625</td>
+<td>1000/625 =1.6次</td>
+<td>1000功 * 1次 = 1000血</td>
+<td>0血 / 625功 = 0.0次</td>
+<td>(1+0.0)/1.6 = 0.625</td>
+<td><strong>37.5%</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>700</td>
+<td>1000/700 ≈1.42次</td>
+<td>1120功 * 1次 = 1120血</td>
+<td>0血 / 700功 = 0.0次</td>
+<td>(1+0.0)/1.42 ≈ 0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>10</td>
+<td>800</td>
+<td>1000/800 =1.25次</td>
+<td>1280功 * 1次 = 1280血</td>
+<td>0血 / 800功 = 0.0次</td>
+<td>(1+0.0)/1.25 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>11</td>
+<td>900</td>
+<td>1000/900 ≈1.11次</td>
+<td>1440功 * 1次 = 1440血</td>
+<td>0血 / 900功 = 0.0次</td>
+<td>(1+0.0)/1.11 ≈ 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1000</td>
+<td>1000/1000 =1.0次</td>
+<td>1600功 * 1次 = 1600血</td>
+<td>0血 / 1000功 = 0.0次</td>
+<td>(1+0.0)/1.0 = 1.0</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+<p>最大增长率是37.5% 。<strong>发生在带技能后技能生效一枪爆头，把技能的增效才充分利用了。即最大增长率发生在 <code>(1+60%)*1枪=处决</code> 。</strong>即未加攻时1.6枪，加功时1枪。(1+0.0)/1.6 = 0.625，增长了37.5%，差不多略小于 60%*70% = 42%</p>
+<p>如果技能是当怪物血量高于总血量的50%（不用到70%）就可以生效伤害增加50%的效果呢？</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>攻击力</th>
+<th>未带技能时<br>攻击次数</th>
+<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
+<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
+<th>攻击次数比</th>
+<th>增长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>10</td>
+<td>1000/10 = 100次</td>
+<td>15功 * 34次 = 510血</td>
+<td>490血 / 10功 = 49次</td>
+<td>(34+49)/100 = 0.73</td>
+<td>27%</td>
+</tr>
+<tr>
+<td>2</td>
+<td>100</td>
+<td>10次</td>
+<td>150功 * 4次 = 600血</td>
+<td>400血 / 100功 = 4.0次</td>
+<td>(4+4.0)/10 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>3</td>
+<td>200</td>
+<td>5.0次</td>
+<td>300功 * 2次 = 600血</td>
+<td>400血 / 200功 = 2.0次</td>
+<td>(2+2.0)/5.0 = 0.80</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>300</td>
+<td>3.3次</td>
+<td>450功 * 2次 = 900血</td>
+<td>100血 / 300功 ≈ 0.33次</td>
+<td>(2+0.33)/3.3≈0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td></td>
+<td>333.33</td>
+<td>1000/333.33=3.0次</td>
+<td>500功 * 1次 = 500血(剩&lt;500)</td>
+<td>500血 / 333.33功=1.5次</td>
+<td>(1+1.5)/3.0≈0.83</td>
+<td>17%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>400</td>
+<td>2.5次</td>
+<td>600功 * 1次 = 600血(剩&lt;500)</td>
+<td>400血 / 400功 = 1.0次</td>
+<td>(1+1.0)/2.5 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>6</td>
+<td>500</td>
+<td>2.0次</td>
+<td>750功 * 1次 = 750血</td>
+<td>250血 / 500功 = 0.5次</td>
+<td>(1+0.5)/2.0 = 0.75</td>
+<td>25%</td>
+</tr>
+<tr>
+<td>7</td>
+<td>600</td>
+<td>1000/600≈1.66次</td>
+<td>900功 * 1次 = 900血</td>
+<td>100血 / 600功 ≈ 0.16次</td>
+<td>(1+0.16)/1.66≈0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>8</td>
+<td>666</td>
+<td>1000/666.6=1.5次</td>
+<td>1000功 * 1次 = 1000血</td>
+<td>0血 / 666.66功 = 0.0次</td>
+<td>(1+0.0)/1.5 ≈ 0.66</td>
+<td><strong>33%</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>700</td>
+<td>1000/700 ≈1.42次</td>
+<td>1050功 * 1次 = 1050血</td>
+<td>0血 / 700功 = 0.0次</td>
+<td>(1+0.0)/1.42 ≈ 0.70</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>10</td>
+<td>800</td>
+<td>1000/800 =1.25次</td>
+<td>1200功 * 1次 = 1200血</td>
+<td>0血 / 800功 = 0.0次</td>
+<td>(1+0.0)/1.25 = 0.80</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>11</td>
+<td>900</td>
+<td>1000/900 ≈1.11次</td>
+<td>1350功 * 1次 = 1350血</td>
+<td>0血 / 900功 = 0.0次</td>
+<td>(1+0.0)/1.11 ≈ 0.90</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1000</td>
+<td>1000/1000 =1.0次</td>
+<td>1500功 * 1次 = 1500血</td>
+<td>0血 / 1000功 = 0.0次</td>
+<td>(1+0.0)/1.0 = 1.0</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/随笔/游戏随笔/" data-id="cm0b4aof5005uarr4aa0k175s" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理/库管理/CocoaPods/CocoaPods库部署" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/库管理/CocoaPods/CocoaPods库部署/" class="article-date">
+  <time datetime="2014-12-24T06:25:36.000Z" itemprop="datePublished">2014-12-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/库管理/CocoaPods/CocoaPods库部署/">CocoaPods库部署</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h3 id="搜索库pod-search"><a href="#搜索库pod-search" class="headerlink" title="搜索库pod search"></a>搜索库<code>pod search</code></h3><p>如果你在终端执行<code>pod search xxx</code>，未得到上面的结果，是因为cocoaPods的本地search_index.json文件有问题，<br>方法①：请前往<code>~/Library/Caches/CocoaPods/search_index.json</code>将该文件删除，<br>方法②：或者直接在终端输入：<code>rm ~/Library/Caches/CocoaPods/search_index.json</code>，<br>删除后，再重新执行命令即可。</p>
+<h2 id="一、远程库"><a href="#一、远程库" class="headerlink" title="一、远程库"></a>一、远程库</h2><h3 id="1、添加库的版本"><a href="#1、添加库的版本" class="headerlink" title="1、添加库的版本"></a>1、添加库的版本</h3><h4 id="1-1、添加公有库的版本"><a href="#1-1、添加公有库的版本" class="headerlink" title="1.1、添加公有库的版本"></a>1.1、添加公有库的版本</h4><h4 id="1-2、添加私有库的版本"><a href="#1-2、添加私有库的版本" class="headerlink" title="1.2、添加私有库的版本"></a>1.2、添加私有库的版本</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"> #</span><span class="bash">验证方法1：</span></span><br><span class="line"> pod lib lint CQBaseUIKit.podspec --sources='https://github.com/CocoaPods/Specs.git,https://gitee.com/dvlproad/dvlproadSpecs' --allow-warnings --use-libraries --verbose</span><br><span class="line"><span class="meta">#</span><span class="bash">验证方法2：</span></span><br><span class="line">pod lib lint CQBaseUIKit.podspec --sources=master,dvlproad --allow-warnings --use-libraries --verbose</span><br><span class="line"><span class="meta">#</span><span class="bash">提交方法： </span></span><br><span class="line">pod repo push dvlproad CQBaseUIKit.podspec --sources=master,dvlproad --allow-warnings --use-libraries --verbose</span><br></pre></td></tr></table></figure>
+<p>不需要过多验证的话，简洁版：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod repo push dvlproad CQThemeUIKit.podspec --allow-warnings</span><br></pre></td></tr></table></figure>
+<h3 id="2、删除库的某个版本"><a href="#2、删除库的某个版本" class="headerlink" title="2、删除库的某个版本"></a>2、删除库的某个版本</h3><h4 id="2-1、删除公有库的某个版本"><a href="#2-1、删除公有库的某个版本" class="headerlink" title="2.1、删除公有库的某个版本"></a>2.1、删除公有库的某个版本</h4><h4 id="2-2、删除私有库的某个版本"><a href="#2-2、删除私有库的某个版本" class="headerlink" title="2.2、删除私有库的某个版本"></a>2.2、删除私有库的某个版本</h4><p>CocoaPods创建公有Pod库后删除特定版本来纠正意外推送</p>
+<p>可以删除一个POD的特定版本来纠正意外推送。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod trunk delete PODNAME VERSION</span><br></pre></td></tr></table></figure>
+<h3 id="3、放弃整个库"><a href="#3、放弃整个库" class="headerlink" title="3、放弃整个库"></a>3、放弃整个库</h3><p>你也可以放弃整个POD和所有版本。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod trunk deprecate PODNAME</span><br></pre></td></tr></table></figure>
+<p>确认时，请回复一个”y”(小写字母 y)</p>
+<h2 id="二、本地库"><a href="#二、本地库" class="headerlink" title="二、本地库"></a>二、本地库</h2><h3 id="1、库的本地位置"><a href="#1、库的本地位置" class="headerlink" title="1、库的本地位置"></a>1、库的本地位置</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 库目录</span></span><br><span class="line">~/.cocoapods/repos/dvlproad</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods库部署/" data-id="cm0b4asj4016aarr41xk7p55z" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理/Git/Git Feature" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/Git/Git Feature/" class="article-date">
+  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/Git/Git Feature/">Git</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Git-feature"><a href="#Git-feature" class="headerlink" title="Git feature"></a>Git feature</h2><h2 id="使用Git-Flow工作流："><a href="#使用Git-Flow工作流：" class="headerlink" title="使用Git Flow工作流："></a>使用Git Flow工作流：</h2><p><img src="/代码管理/Git/Git Feature/image-20220301145230642.png" alt="image-20220301145230642" style="zoom:33%;"></p>
+<p><img src="/代码管理/Git/Git Feature/image-20220301145504810.png" alt="image-20220301145504810" style="zoom:33%;"></p>
+<p>输入对应的生产环境分支名和开发分支名，如果输入的分支不存在，则会弹出如下提示：</p>
+<p><img src="/代码管理/Git/Git Feature/image-20220301152403882.png" alt="image-20220301152403882" style="zoom:50%;"></p>
+<p>git 项目默认自动创建 master 主分支；<br>点击仓库–&gt; git flow 或 hg fow –&gt;初始化仓库，初始化仓库并创建develop开发分支；</p>
+<p><img src="/代码管理/Git/Git Feature/git_feature_init1.png" alt="在这里插入图片描述"></p>
+<p>创建 feature 功能分支：</p>
+<p>双击 Sourcetree 左侧的 develop 开发分支，切换到 develop 开发分支；<br>点击仓库–&gt; git flow 或 hg fow –&gt;建立新的功能，输入功能名称，点击确定即可；</p>
+<ol>
+<li><p><img src="/代码管理/Git/Git Feature/git_feature_create1.png" alt="在这里插入图片描述"></p>
+<p><img src="/代码管理/Git/Git Feature/git_feature_create2.png" alt="在这里插入图片描述" style="zoom:25%;"></p>
+<p><img src="/代码管理/Git/Git Feature/git_feature_create3.png" alt="在这里插入图片描述"></p>
+</li>
+</ol>
+<h6 id="完成-feature-功能分支："><a href="#完成-feature-功能分支：" class="headerlink" title="完成 feature 功能分支："></a>完成 feature 功能分支：</h6><p>当 feature 功能分支开发完成后，即可将 feature 中的代码合并到 develop 分支中。</p>
+<p>提交 feature 功能分支的代码到远程；<br>在 feature 分支上，点击仓库–&gt; git flow 或 hg fow –&gt;完成功能；</p>
+<p><img src="/代码管理/Git/Git Feature/git_feature_finish1.png" alt="在这里插入图片描述"></p>
+<p>feature 功能分支中的代码合并到了develop 开发分支，feature 分支被删除；</p>
+<p>创建 release 发布分支：</p>
+<p>双击 Sourcetree 左侧的 develop 开发分支，切换到 develop 开发分支；<br>点击仓库–&gt; git flow 或 hg fow –&gt;建立新的发布版本，输入发布版本号，点击确定即可；<br>完成 release 发布分支：</p>
+<p>在 release 分支上，点击仓库–&gt; git flow 或 hg fow –&gt;完成发布版本，发布完成后 release 分支的代码同时合并到了 master 分支和 develop 分支。</p>
+<p>创建 hotfix 补丁分支：</p>
+<p>在 master 分支上，点击仓库–&gt; git flow 或 hg fow –&gt;建立新的修复补丁。</p>
+<p>完成 hotfix 补丁分支：</p>
+<p>在 hotfix 分支上，点击仓库–&gt; git flow 或 hg fow –&gt;完成修复补丁，合并完成后 hotfix 的代码同时合并到了 master 分支和 develop 分支。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Feature/" data-id="cm0b4aq7x00o6arr432rzmqw7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理/Git/Git Log" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/Git/Git Log/" class="article-date">
+  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/Git/Git Log/">Git Log</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Git-log"><a href="#Git-log" class="headerlink" title="Git log"></a>Git log</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git log --merges --after="2022-10-13" --oneline --decorate</span><br><span class="line">git log --after="2022-10-13" --oneline --decorate</span><br><span class="line"></span><br><span class="line">git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)&lt;%an&gt;%Creset' --abbrev-commit --date=relative --all --after '10-13-2022' --merges</span><br></pre></td></tr></table></figure>
+<p>查看历史版本记录–指定显示条数</p>
+<p>同时，与git log相同的是，git reflog也提供了控制显示条数的选项：</p>
+<p>命令：git reflog -n </p>
+<h2 id="1、获取本分支合入指定分支的commitId"><a href="#1、获取本分支合入指定分支的commitId" class="headerlink" title="1、获取本分支合入指定分支的commitId"></a>1、获取本分支合入指定分支的commitId</h2><p>有些时候需要解析分支，tag，或者其他对于提交的间接引用。对于这种情况，你可以使用<code>git rev-parse</code>命令。下面的命令返回指向<code>development</code>分支的提交哈希串。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git rev-parse development</span><br></pre></td></tr></table></figure>
+<p>这对于编写只接受提交ID作为参数的自定义脚本非常有用。你可以使用<code>git rev-parse</code>命令来标准化脚本的输入，进而进入对于提交的统一处理。这就避免了脚本用户需要手动解析提交的引用。</p>
+<h2 id="二、获取commitId的信息"><a href="#二、获取commitId的信息" class="headerlink" title="二、获取commitId的信息"></a>二、获取commitId的信息</h2><h3 id="1、获取commitId的提交信息"><a href="#1、获取commitId的提交信息" class="headerlink" title="1、获取commitId的提交信息"></a>1、获取commitId的提交信息</h3><p>想要将此哈希串作为参数传递给其他Git命令，只需要提供足够长度的字符串就可以了。比如说，你可以通过下面的命令来传入上面的哈希串，以便使用<code>git show</code>命令查看那次提交的具体内容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git show 0c708f</span><br><span class="line"></span><br><span class="line">git show -s --oneline 3d21461a7ef205ed0cee0baf45e95e782f4e84af</span><br></pre></td></tr></table></figure>
+<h3 id="2、获取commitId的根源远程分支"><a href="#2、获取commitId的根源远程分支" class="headerlink" title="2、获取commitId的根源远程分支"></a>2、获取commitId的根源远程分支</h3><h4 id="①、获取有哪些远程分支里已经合入了commitId"><a href="#①、获取有哪些远程分支里已经合入了commitId" class="headerlink" title="①、获取有哪些远程分支里已经合入了commitId"></a>①、获取有哪些远程分支里已经合入了commitId</h4><ul>
+<li><a href="https://www.jianshu.com/p/6ad6981f8ec5" target="_blank" rel="noopener">git获取某次commit是在哪个分支提交的</a></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git branch --contains eb0633b76925041f84b592a2e261e0b8537953f7 -r # -r标识远程分支</span><br></pre></td></tr></table></figure>
+<h4 id="②、第一个合入commitId的远程分支，即为commitId的根源分支"><a href="#②、第一个合入commitId的远程分支，即为commitId的根源分支" class="headerlink" title="②、第一个合入commitId的远程分支，即为commitId的根源分支"></a>②、第一个合入commitId的远程分支，即为commitId的根源分支</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">branchResultForFisrtCommit=$(git branch --contains "$&#123;firstCommitId&#125;" -r)</span><br><span class="line">echo "$&#123;branchResultForFisrtCommit&#125;"</span><br><span class="line"></span><br><span class="line">branchArrayForFisrtCommit=($&#123;branchResultForFisrtCommit&#125;)</span><br><span class="line">branchCountForFisrtCommit=$&#123;#branchArrayForFisrtCommit[@]&#125;</span><br><span class="line"><span class="meta">#</span><span class="bash"><span class="built_in">echo</span> <span class="string">"branchCountForFisrtCommit=<span class="variable">$branchCountForFisrtCommit</span>"</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"><span class="keyword">for</span> ((i=0;i&lt;branchCountForFisrtCommit;i+=1))</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">    branchName=<span class="variable">$&#123;branchArrayForFisrtCommit[i]&#125;</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash">    <span class="built_in">echo</span> <span class="string">"branchName=<span class="variable">$&#123;branchName&#125;</span>"</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#125;</span></span><br><span class="line"></span><br><span class="line">echo "\n------下面开始获取firstCommitId:$&#123;firstCommitId&#125;的提交所属的根源远程功能分支名------"</span><br><span class="line">sourceBranchForFisrtCommit=$&#123;branchArrayForFisrtCommit[$&#123;branchCountForFisrtCommit&#125;-1]&#125;</span><br><span class="line">echo "sourceBranchForFisrtCommit=$&#123;sourceBranchForFisrtCommit&#125;"</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Log/" data-id="cm0b4aq7y00obarr42p456di8" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理/Git/Git Rebase" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/Git/Git Rebase/" class="article-date">
+  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/Git/Git Rebase/">Git Rebase</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="Git-Rebase"><a href="#Git-Rebase" class="headerlink" title="Git Rebase"></a>Git Rebase</h2><h3 id="【Git系列】git-rebase详解"><a href="#【Git系列】git-rebase详解" class="headerlink" title="【Git系列】git rebase详解"></a>【Git系列】git rebase详解</h3><p><a href="https://www.jianshu.com/p/4a8f4af4e803" target="_blank" rel="noopener">【Git】rebase 用法小结</a><br><a href="https://www.cnblogs.com/pinefantasy/articles/6287147.html" target="_blank" rel="noopener">【Git系列】git rebase详解</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Rebase/" data-id="cm0b4aq7z00oharr4i669e51a" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+
+
+  <nav id="page-nav">
+    
+    <a class="extend prev" rel="prev" href="/page/46/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/45/">45</a><a class="page-number" href="/page/46/">46</a><span class="page-number current">47</span><a class="page-number" href="/page/48/">48</a><a class="extend next" rel="next" href="/page/48/">Next &raquo;</a>
+  </nav>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/埋点相关/">埋点相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/打包/">打包</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/搜索相关/">搜索相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/权限相关/">权限相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/瘦身/">瘦身</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：代码规范/">第一章：代码规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：依赖关系可视化/">第一章：依赖关系可视化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：埋点/">第一章：埋点</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：基础规范/">第一章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构分层/">第一章：架构分层</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：网络相关/">第一章：网络相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：h5与app交互/">第三章：h5与app交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：体验优化/">第二章：体验优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：webView/">第四章：webView</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/路由及跳转/">路由及跳转</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/通用业务规范/">通用业务规范</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/">技术选型</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：APM调研/">第一章：APM调研</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：加固选型/">第一章：加固选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术选型/第一章：技术选型的考虑因素/">第一章：技术选型的考虑因素</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Architecture/" style="font-size: 19.09px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.91px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.18px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.55px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.82px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.91px;">React</a> <a href="/tags/ReactNative/" style="font-size: 16.36px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.45px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.82px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.73px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/iOS/" style="font-size: 17.27px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.91px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.73px;">交互</a> <a href="/tags/埋点/" style="font-size: 10px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.91px;">基类</a> <a href="/tags/安全/" style="font-size: 14.55px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.27px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/技术常识/" style="font-size: 13.64px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/文档管理/" style="font-size: 14.55px;">文档管理</a> <a href="/tags/环境搭建/" style="font-size: 10.91px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/登录页实战/" style="font-size: 12.73px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.82px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.82px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.82px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.73px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.82px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.91px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.64px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.82px;">集成</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/总目录/">总目录</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/">(no title)</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2024 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
