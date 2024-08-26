@@ -72,16 +72,398 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-Flutter/9框架升级/Flutter组件化框架" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Architecture架构/架构相关/2设计模式/设计模式-②单例模式" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/9框架升级/Flutter组件化框架/" class="article-date">
-  <time datetime="2021-12-06T01:13:32.000Z" itemprop="datePublished">2021-12-06</time>
+    <a href="/Architecture架构/架构相关/2设计模式/设计模式-②单例模式/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.882Z" itemprop="datePublished">2021-12-17</time>
 </a>
     
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
   </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-框架设计模式-②单例模式"><a href="#必备知识架构-框架设计模式-②单例模式" class="headerlink" title="必备知识架构-框架设计模式-②单例模式"></a>必备知识架构-框架设计模式-②单例模式</h1><p>–</p>
+<h2 id="精选文章"><a href="#精选文章" class="headerlink" title="精选文章"></a>精选文章</h2><p>以下目录内容全部摘自：<a href="http://www.cocoachina.com/ios/20171123/21300.html" target="_blank" rel="noopener">iOS中的单例模式</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><p><a href="#">一、什么是单例模式</a></p>
+</li>
+<li><p><a href="#">二、如何实现基本的单例模式？</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#">三、多线程怎么办？</a></p>
+</li>
+<li><p><a href="#">四、Objective-C的坑</a></p>
+</li>
+<li><p><a href="#">五、可不可以再方便点？</a></p>
+</li>
+<li><p><a href="#">六、单例模式潜在的问题</a></p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、内存问题</span><br><span class="line">2、循环依赖问题</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p></p><p id=""></p><p></p>
+<h2 id="一、单例"><a href="#一、单例" class="headerlink" title="一、单例"></a>一、单例</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>1、单例：dispatch_once （使用dispatch_once时，不用使用@synchronized）<br>单例是一种用于实现单例的数学概念，即将类的实例化限制成仅一个对象的设计模式。<br>或者我的理解是：单例是一种类，该类只能实例化一个对象。</p>
+<p>实现单例模式的函数就是void dispatch_once( dispatch_once_t *predicate, dispatch_block_t block);<br>该函数接收一个dispatch_once用于检查该代码块是否已经被调度的谓词（是一个长整型，实际上作为BOOL使用）。它还接收一个希望在应用的生命周期内仅被调度一次的代码块，对于本例就用于shared实例的实例化。<br>dispatch_once不仅意味着代码仅会被运行一次，而且还是线程安全的，这就意味着你不需要使用诸如@synchronized之类的来防止使用多个线程或者队列时不同步的问题。<br>Apple的GCD Documentation证实了这一点:<br>如果被多个线程调用，该函数会同步等等直至代码块完成。</p>
+<p>示例：在整个应用中访问某个类的共享实例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+ (NetworkManager *)sharedInstance</span><br><span class="line">&#123;</span><br><span class="line">    static NetworkManager *sharedManager;</span><br><span class="line"></span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        sharedManager = [[NetworkManager alloc] init];</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    return sharedManager;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>就这些，你现在在应用中就有一个共享的实例，该实例只会被创建一次。<br>下次你任何时候访问共享实例，需要做的仅是：NetworkManager *networkManager = [NetworkManager sharedInstance];</p>
+<p>2、线程的同步执行@synchronized<br>为了防止多个线程同时执行同一个代码块，OC提供了@synchronized()指令。使用@synchronized()指令可以锁住在线程中执行的某一个代码块。存在被保护（即被锁住）的代码块的其他线程，将被阻塞，这也就意味着，他们将在@synchronized()代码块的最后一条语句执行结束后才能继续执行。<br>@synchronized()指令的唯一参数可以使用任何OC对象，包括self。这个对象就是我们所谓的信号量。</p>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
 
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/2设计模式/设计模式-②单例模式/" data-id="cm0b6c28z012pstr43efr40z1" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.882Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-框架设计模式-⑦组件化"><a href="#必备知识架构-框架设计模式-⑦组件化" class="headerlink" title="必备知识架构-框架设计模式-⑦组件化"></a>必备知识架构-框架设计模式-⑦组件化</h1><p>[toc]</p>
+<p>好文分享：</p>
+<ul>
+<li><p><a href="https://www.cnblogs.com/dins/p/ios-zu-jian-hua-fang-an.html" target="_blank" rel="noopener">iOS 组件化方案</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/67a6004f6930" target="_blank" rel="noopener">组件化架构漫谈</a></p>
+</li>
+</ul>
+<h2 id="一、产生背景"><a href="#一、产生背景" class="headerlink" title="一、产生背景"></a>一、产生背景</h2><p>1、产生背景：</p>
+<p>所有模块代码都编写在一个项目中，在项目越来越大后，<strong>测试/使用某个模块或功能，需要编译运行整个项目，麻烦</strong>。</p>
+<p>2、组件化思路：</p>
+<p>将每个模块作为一个组件，加一个<strong>中间层</strong>来协调各个模块间的调用，<strong>所有的模块间的调用都会经过中间层中转。</strong>（<strong>只让其他模块对中间层产生耦合关系，中间层不对其他模块发生耦合</strong>。）</p>
+<p>3、组件化好处：</p>
+<blockquote>
+<p>业务划分更佳清晰，新人接手更佳容易，可以按组件分配开发任务。</p>
+<p>项目可维护性更强，提高开发效率。</p>
+<p>更好排查问题，某个组件出现问题，直接对组件进行处理。</p>
+<p>开发测试过程中，可以只编译自己那部分代码，不需要编译整个项目代码。</p>
+<p>方便集成，项目需要哪个模块直接通过<code>CocoaPods</code>集成即可。</p>
+</blockquote>
+<h2 id="二、架构设计"><a href="#二、架构设计" class="headerlink" title="二、架构设计"></a>二、架构设计</h2><h3 id="1、架构封层"><a href="#1、架构封层" class="headerlink" title="1、架构封层"></a>1、架构封层</h3><p>整个APP架构上从上到下分为<strong>三层</strong>，独立于APP的通用层，通用业务层，业务层。</p>
+<p><img src="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/架构分层1.png" alt="架构分层1" style="zoom: 33%;"></p>
+<h4 id="1-1、独立于APP的通用层"><a href="#1-1、独立于APP的通用层" class="headerlink" title="1.1、独立于APP的通用层"></a>1.1、独立于APP的通用层</h4><p>此层常为：一些Cocoapods公有库或者自己编写的独立于APP的库。</p>
+<p>举例：MJExtension、CJNetwork、分享、CJOverlayKit(Toast、HUD、ActionSheet)、CJShareList</p>
+<h4 id="1-2、每个APP自己的通用层"><a href="#1-2、每个APP自己的通用层" class="headerlink" title="1.2、每个APP自己的通用层"></a>1.2、每个APP自己的通用层</h4><p>此层常为：前面的独立于APP的通用层的二次封装。若公司内部引用了第三方库，按照依赖倒置的原则，建议封装一层之后放到Basic Specs供业务方使用。好处：跟外部环境有效隔离，第三方库发生问题，公司内部可控。</p>
+<p>如：CQNetwork、CQOverlayKit、CQShareKit、网络库CQNetwork、数据库(FMDB/WCDB)、缓存库等</p>
+<p>依赖倒置原则告诉我们要面向接口编程；通过抽象（接口或抽象类）使各个类或模块实现彼此独立，互不影响，实现模块间的松耦合。</p>
+<h4 id="1-3、业务模块"><a href="#1-3、业务模块" class="headerlink" title="1.3、业务模块"></a>1.3、业务模块</h4><p>业务层的模块应该按照模块化的设计思想，尽量做到高度的“高内聚，低耦合”。</p>
+<p>因模块高度独立，且高频使用，若公司内部有多个App同时需要依赖，建议单独创建私有库Specs。</p>
+<h4 id="1、组件化"><a href="#1、组件化" class="headerlink" title="1、组件化"></a>1、组件化</h4><blockquote>
+<p>​    就是<strong>“基础库”</strong>或者<strong>“基础组件”，</strong>意思是把代码重复的部分提炼出一个个组件供给功能使用。</p>
+<p>​    使用：Dialog，各种自定义的UI控件、能在项目或者不同项目重复应用的代码等等。</p>
+<p>​    目的：复用，解耦。</p>
+<p>​    依赖：组件之间低依赖，比较独立。</p>
+<p>​    架构定位：纵向分层（位于架构底层，被其他层所依赖）。</p>
+</blockquote>
+<h4 id="2、模块化"><a href="#2、模块化" class="headerlink" title="2、模块化"></a>2、模块化</h4><blockquote>
+<p>​    就是<strong>“业务框架”</strong>或者<strong>“业务模块”</strong>，也可以理解为“框架”，意思是把功能进行划分，将同一类型的代码整合在一起，所以模块的功能相对复杂，但都同属于一个业务。</p>
+<p>​    使用：按照项目功能需求划分成不同类型的业务框架（例如：注册、登录、外卖、直播…..）</p>
+<p>​    目的：隔离/封装 （高内聚）。</p>
+<p>​    依赖：模块之间有依赖的关系，可通过路由器进行模块之间的耦合问题。</p>
+<p>​    架构定位：横向分块（位于架构业务框架层）。</p>
+</blockquote>
+<h4 id="3、总结"><a href="#3、总结" class="headerlink" title="3、总结"></a>3、总结</h4><p>​      其实组件相当于<strong>库</strong>，把一些能在<strong>项目里或者不同类型项目中</strong>可复用的代码进行工具性的封装。</p>
+<p>​      而模块相应于<strong>业务逻辑模块</strong>，把<strong>同一类型项目里</strong>的功能逻辑进行进行需求性的封装。</p>
+<h2 id="iOS端APP架构设计心得"><a href="#iOS端APP架构设计心得" class="headerlink" title="iOS端APP架构设计心得"></a>iOS端APP架构设计心得</h2><ul>
+<li><a href="https://www.jianshu.com/p/0ea6b72ea1a3" target="_blank" rel="noopener">iOS端APP架构设计心得</a></li>
+<li><a href="https://mobile.51cto.com/hot-600305.htm" target="_blank" rel="noopener">对于App架构和组件化的思考</a></li>
+</ul>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/" data-id="cm0b6c290012sstr4525ds4p9" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/架构相关/2设计模式/设计模式-⑤多代理模式" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/2设计模式/设计模式-⑤多代理模式/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.882Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-框架设计模式-⑤多代理模式"><a href="#必备知识架构-框架设计模式-⑤多代理模式" class="headerlink" title="必备知识架构-框架设计模式-⑤多代理模式"></a>必备知识架构-框架设计模式-⑤多代理模式</h1><p>[toc]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h3 id="1、什么是多代理"><a href="#1、什么是多代理" class="headerlink" title="1、什么是多代理"></a>1、什么是多代理</h3><h4 id="引文①、环信SDK"><a href="#引文①、环信SDK" class="headerlink" title="引文①、环信SDK"></a>引文①、环信SDK</h4><p>用过环信SDK的同学应该对多代理不陌生了，请看下面代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> @method</span><br><span class="line"> @brief 注册一个监听对象到监听列表中</span><br><span class="line"> @discussion 把监听对象添加到监听列表中准备接收相应的事件</span><br><span class="line"> @param delegate 需要注册的监听对象</span><br><span class="line"> @param queue 通知监听对象时的线程</span><br><span class="line"> @result</span><br><span class="line"> */</span><br><span class="line">- (void)addDelegate:(id&lt;EMChatManagerDelegate&gt;)delegate delegateQueue:(dispatch_queue_t)queue;</span><br></pre></td></tr></table></figure>
+<p>平时我们写得比较多的代理: <code>@property (nonatomic,weak) id&lt;EMChatManagerDelegate&gt;delegate;</code> 写了上面属性后系统会默认生成set方法: <code>- (void)setDelegate:(id&lt;EMChatManagerDelegate&gt;)delegate;</code>通过对两个接口的比较就不难看出：<code>单代理只能设置一个，而多代理可以设置多个，准确来说应该是多代理可以添加多个</code>。</p>
+<p>以上摘自：<a href="https://github.com/chengpengfei1993/Multi-Delegate" target="_blank" rel="noopener">iOS 实现多代理的方法及实例代码</a></p>
+<h4 id="引文②、XMPP"><a href="#引文②、XMPP" class="headerlink" title="引文②、XMPP"></a>引文②、XMPP</h4><p>XMPP以及类似IM框架里通常会有这种需求：打开多个聊天窗口，和多个人聊天。然鹅框架底层消息转发管理器却只有一个。通常是这两个窗口都要收到消息回调，然后取自己有用的消息。。。<br>大概就这么个意思，我两年前用了下，具体也解释不清楚，欢迎指点交流，反正就是有一个需求需要多代理回调，这种IM框架通常有这种方法<br><code>[xmppRoom addDelegate:self delegateQueue:dispatch_get_main_queue()];</code></p>
+<p>以上摘自：<a href="https://www.jianshu.com/p/79c5da4fe198" target="_blank" rel="noopener">iOS 多代理的实现</a></p>
+<h4 id="引文③、类似IM库，当接受到消息，在几个不同地方做回调，比如改变消息数，显示小红点等"><a href="#引文③、类似IM库，当接受到消息，在几个不同地方做回调，比如改变消息数，显示小红点等" class="headerlink" title="引文③、类似IM库，当接受到消息，在几个不同地方做回调，比如改变消息数，显示小红点等"></a>引文③、类似IM库，当接受到消息，在几个不同地方做回调，比如改变消息数，显示小红点等</h4><p>参考文章：<a href="https://www.jianshu.com/p/f7e768a21ab2" target="_blank" rel="noopener">iOS实现多重代理及应用场景</a></p>
+<h3 id="2、为什么不用NSNotificationCenter"><a href="#2、为什么不用NSNotificationCenter" class="headerlink" title="2、为什么不用NSNotificationCenter"></a>2、为什么不用NSNotificationCenter</h3><p>系统不是已经有通知中心NSNotificationCenter了吗？为什么还要自己实现一个呢？</p>
+<p>举个例子，现在我们有一个模块需要抛一个通知出来，通知其它模块用户名改变了，我们来看代码大致是怎么写的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// 发通知一方</span><br><span class="line">NSString *const kUserNameChangedNotification = @&quot;UserNameChangedNotification&quot;;</span><br><span class="line"></span><br><span class="line">NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];</span><br><span class="line">[notificationCenter postNotificationName:UserNameChangedNotification object:nil 	</span><br><span class="line"> 																userInfo:@&#123;@&quot;oldName&quot;:@&quot;zhangsan&quot;,&quot;newName&quot;:&quot;lisi&quot;&#125;];</span><br><span class="line"></span><br><span class="line">// 接收通知的一方可以是</span><br><span class="line">[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(UserNameChanged1:) </span><br><span class="line"> 																						 name:kUserNameChangedNotification object:nil];</span><br><span class="line">// 也可以是</span><br><span class="line">[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(UserNameChanged2:) </span><br><span class="line"> 																						 name:kUserNameChangedNotification object:nil];</span><br></pre></td></tr></table></figure>
+<p>从例子中可以看到有的缺点:<br>1.对于接收同一个事件的通知，不同的人可能会用不同的方法名来执行（例子中是<code>UserNameChanged1</code>和<code>UserNameChanged1</code>)，无法统一。<br>2.对于多参数支持不方便。</p>
+<p>所以<strong>本文我们的优化的是统一接收方的执行方法，并为该方法提供明确的参数。</strong></p>
+<p><a href="https://github.com/dvlproad/033-Data-Notification-iOS" target="_blank" rel="noopener">CJProtocolCenter</a></p>
+<p><a href="https://github.com/dvlproad/033-Data-Notification-iOS/blob/master/CJProtocolCenter/CJProtocolCenter.m" target="_blank" rel="noopener">CJProtocolCenter.m</a></p>
+<h2 id="项目背景举例："><a href="#项目背景举例：" class="headerlink" title="项目背景举例："></a>项目背景举例：</h2><p>背景描述如下：</p>
+<p>vc中所做的某个操作(指一个操作)，想要发送给多个人，让他们接收到信息后，自己处理。</p>
+<p>我们假设接收者为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">DelegateReceivedViewModel1 *delegateReceiver1 = [[DelegateReceivedViewModel1 alloc] init];</span><br><span class="line">DelegateReceivedViewModel2 *delegateReceiver2 = [[DelegateReceivedViewModel2 alloc] init];</span><br><span class="line">self.delegateReceiver1 = delegateReceiver1;</span><br><span class="line">self.delegateReceiver2 = delegateReceiver2;</span><br></pre></td></tr></table></figure>
+<h2 id="一、正常操作"><a href="#一、正常操作" class="headerlink" title="一、正常操作"></a>一、正常操作</h2><p>①<strong>发送</strong>状态变化的信息如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">// OneToManyDelegateNormalViewController1.h</span><br><span class="line">#import &quot;CJUIKitBaseHomeViewController.h&quot;</span><br><span class="line">#import &quot;TSDelegate.h&quot;</span><br><span class="line"></span><br><span class="line">@interface OneToManyDelegateNormalViewController1 : CJUIKitBaseHomeViewController &#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line">@property (nonatomic, weak) id&lt;TSDelegate&gt; delegate1;	// 提供给外部设置</span><br><span class="line">@property (nonatomic, weak) id&lt;TSDelegate&gt; delegate2;	// 提供给外部设置</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line"></span><br><span class="line">// OneToManyDelegateNormalViewController1.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  [self.delegate1 delegate_didUpdateLoginState:YES];</span><br><span class="line">  [self.delegate2 delegate_didUpdateLoginState:YES];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>②设置代理的地方会是如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">OneToManyDelegateNormalViewController1 *viewController = [[OneToManyDelegateNormalViewController1 alloc] init];</span><br><span class="line">viewController.delegate1 = delegateReceiver1;</span><br><span class="line">viewController.delegate2 = delegateReceiver2;</span><br><span class="line">[self.navigationController pushViewController:viewController animated:YES];</span><br></pre></td></tr></table></figure>
+<h2 id="二、优化delegate"><a href="#二、优化delegate" class="headerlink" title="二、优化delegate"></a>二、优化delegate</h2><h3 id="依赖注入"><a href="#依赖注入" class="headerlink" title="依赖注入"></a>依赖注入</h3><p>依赖注入：把做的事情交给某人。至于依赖的某人有什么能力，依靠外部决定。</p>
+<p>参考文档：</p>
+<ul>
+<li><a href="https://github.com/hehonghui/iOS-tech-frontier/blob/master/issue-10/iOS依赖注入.md" target="_blank" rel="noopener">iOS依赖注入</a> </li>
+</ul>
+<p>注入可以通过对象的初始化（或者可以说构造器）或者通过特性（setter），即构造器注入和setter方法注入。</p>
+<p><a href="https://github.com/dvlproad/033-Data-Notification-iOS/blob/master/TSNotificationDemo/TSNotificationDemo/DelegateDemo/OneToManyDelegateDemo/Normal/OneToManyDelegateNormalMediator21.h" target="_blank" rel="noopener">OneToManyDelegateNormalMediator21</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">OneToManyDelegateNormalMediator21 *delegateMediator</span><br><span class="line">  </span><br><span class="line">// 方法1：构造器注入</span><br><span class="line">- (instancetype)initWithDelegate1:(Delegate1 *)delegate1 </span><br><span class="line">                        delegate2:(Delegate2 *)delegate2;</span><br><span class="line">@property (nonatomic, weak, readonly) Delegate1 *delegate1;</span><br><span class="line">@property (nonatomic, weak, readonly) Delegate2 *delegate2;</span><br><span class="line"></span><br><span class="line">// 方法2：Setter 注入</span><br><span class="line">@property (nonatomic, weak) id&lt;Delegate1&gt; delegate1;</span><br><span class="line">@property (nonatomic, weak) id&lt;Delegate2&gt; delegate2;</span><br></pre></td></tr></table></figure>
+<p>参考的其他文档：</p>
+<ul>
+<li><a href="https://juejin.cn/post/6844903676947988494" target="_blank" rel="noopener">iOS一次高效的依赖注入</a></li>
+</ul>
+<blockquote>
+<p><code>EXTConcreteProtocol</code> 虽然没有直接叫做依赖注入，而是叫做混合协议，但是充分使用了 OC 动态语言的特性，不侵入项目，高度自动化，框架十分轻量，使用非常简单。</p>
+</blockquote>
+<h3 id="1、优化思路一：从vc中抽离delegate到Mediator"><a href="#1、优化思路一：从vc中抽离delegate到Mediator" class="headerlink" title="1、优化思路一：从vc中抽离delegate到Mediator"></a>1、优化思路一：从vc中抽离delegate到Mediator</h3><p>为了优化代码，我们从vc中抽离delegate，则此时</p>
+<p>①设置代理的地方会是如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">OneToManyDelegateNormalMediator21 *delegateMediator = [[OneToManyDelegateNormalMediator21 alloc] init];</span><br><span class="line">delegateMediator.delegate1 = self.delegateReceiver1;</span><br><span class="line">delegateMediator.delegate2 = self.delegateReceiver2;</span><br><span class="line"></span><br><span class="line">OneToManyDelegateNormalViewController21 *viewController = [[OneToManyDelegateNormalViewController21 alloc] init];</span><br><span class="line">viewController.delegateMediator = delegateMediator;</span><br><span class="line">[self.navigationController pushViewController:viewController animated:YES];</span><br></pre></td></tr></table></figure>
+<p>②发送状态变化的信息如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// OneToManyDelegateNormalViewController21.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  //[self.delegate1 delegate_didUpdateLoginState:YES];</span><br><span class="line">  //[self.delegate2 delegate_didUpdateLoginState:YES];</span><br><span class="line">  [self.delegateMediator delegate_didUpdateLoginState:YES];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>③此时<code>delegateMediator</code>中的<code>delegate_didUpdateLoginState:</code>方法如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - TSDelegate</span><br><span class="line">- (void)delegate_didUpdateLoginState:(BOOL)loginState &#123;</span><br><span class="line">    if (self.delegate1 &amp;&amp; [self.delegate1 respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">        [self.delegate1 delegate_didUpdateLoginState:YES];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    if (self.delegate2 &amp;&amp; [self.delegate2 respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">        [self.delegate2 delegate_didUpdateLoginState:YES];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、优化思路二：在Mediator中管理delegate数组"><a href="#2、优化思路二：在Mediator中管理delegate数组" class="headerlink" title="2、优化思路二：在Mediator中管理delegate数组"></a>2、优化思路二：在Mediator中管理delegate数组</h3><p>为了减少设置代理的变量，我们使用delegate数组，则此时</p>
+<p>①设置代理的地方会是如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">OneToManyDelegateArrayMediator31 *delegateMediator = [[OneToManyDelegateArrayMediator31 alloc] init];</span><br><span class="line">[delegateMediator addDelegate:self.delegateReceiver1];</span><br><span class="line">[delegateMediator addDelegate:self.delegateReceiver2];</span><br><span class="line"></span><br><span class="line">OneToManyDelegateArrayViewController31 *viewController = [[OneToManyDelegateArrayViewController31 alloc] init];</span><br><span class="line">viewController.delegateMediator = delegateMediator;</span><br><span class="line">[self.navigationController pushViewController:viewController animated:YES];</span><br></pre></td></tr></table></figure>
+<p>②发送状态变化的信息如下：不变</p>
+<p>③此时<code>delegateMediator</code>中的<code>delegate_didUpdateLoginState:</code>方法如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">//  OneToManyDelegateArrayMediator31.m</span><br><span class="line"></span><br><span class="line">- (void)addDelegate:(id)delegate &#123;</span><br><span class="line">    [_delegates addPointer:(__bridge void*)delegate];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">#pragma mark - TSDelegate</span><br><span class="line">- (void)delegate_didUpdateLoginState:(BOOL)loginState &#123;</span><br><span class="line">    for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">        id delegate = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">        if (delegate &amp;&amp; [delegate respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">            [delegate delegate_didUpdateLoginState:YES];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="说说上面我们应该用什么来管理遵守协议的类-NSHashTable"><a href="#说说上面我们应该用什么来管理遵守协议的类-NSHashTable" class="headerlink" title="说说上面我们应该用什么来管理遵守协议的类(NSHashTable)?"></a>说说上面我们应该用什么来管理遵守协议的类(NSHashTable)?</h3><p>这边用了NSHashTable来存储遵守协议的类,NSHashTable和NSSet类似,但又有所不同,总的来说有这几个特点:</p>
+<p>NSHashTable中的元素可以通过Hashable协议来判断是否相等.</p>
+<p>NSHashTable中的元素如果是弱引用,对象销毁后会被移除,可以避免循环引用.</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">masterOrderDelegateManager</span> : <span class="title">MasterOrderDelegate</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">let</span> multiDelegate: <span class="type">NSHashTable</span>&lt;<span class="type">AnyObject</span>&gt; = <span class="type">NSHashTable</span>.weakObjects()</span><br><span class="line"> </span><br><span class="line">  <span class="keyword">init</span>(<span class="number">_</span> delegates: [<span class="type">MasterOrderDelegate</span>]) &#123;</span><br><span class="line">    delegates.forEach(multiDelegate.add)</span><br><span class="line">  &#125;</span><br><span class="line">   </span><br><span class="line">  <span class="comment">// 协议中的方法,可以有多个</span></span><br><span class="line">  <span class="function"><span class="keyword">func</span> <span class="title">toEat</span><span class="params">(<span class="number">_</span> food: String)</span></span> &#123;</span><br><span class="line">    invoke &#123; $<span class="number">0</span>.toEat(food) &#125;</span><br><span class="line">  &#125;</span><br><span class="line">   </span><br><span class="line">  <span class="comment">// 添加遵守协议的类</span></span><br><span class="line">  <span class="function"><span class="keyword">func</span> <span class="title">add</span><span class="params">(<span class="number">_</span> delegate: MasterOrderDelegate)</span></span> &#123;</span><br><span class="line">    multiDelegate.add(delegate)</span><br><span class="line">  &#125;</span><br><span class="line">   </span><br><span class="line">  <span class="comment">// 删除指定遵守协议的类</span></span><br><span class="line">  <span class="function"><span class="keyword">func</span> <span class="title">remove</span><span class="params">(<span class="number">_</span> delegateToRemove: MasterOrderDelegate)</span></span> &#123;</span><br><span class="line">    invoke &#123;</span><br><span class="line">      <span class="keyword">if</span> $<span class="number">0</span> === delegateToRemove <span class="keyword">as</span> <span class="type">AnyObject</span> &#123;</span><br><span class="line">        multiDelegate.remove($<span class="number">0</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">   </span><br><span class="line">  <span class="comment">// 删除所有遵守协议的类</span></span><br><span class="line">  <span class="function"><span class="keyword">func</span> <span class="title">removeAll</span><span class="params">()</span></span> &#123;</span><br><span class="line">    multiDelegate.removeAllObjects()</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">// 遍历所有遵守协议的类</span></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">func</span> <span class="title">invoke</span><span class="params">(<span class="number">_</span> invocation: <span class="params">(MasterOrderDelegate)</span></span></span> -&gt; <span class="type">Void</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> delegate <span class="keyword">in</span> multiDelegate.allObjects.reversed() &#123;</span><br><span class="line">      invocation(delegate <span class="keyword">as</span>! <span class="type">MasterOrderDelegate</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="附：不常见集合NSHashTable和NSMapTable"><a href="#附：不常见集合NSHashTable和NSMapTable" class="headerlink" title="附：不常见集合NSHashTable和NSMapTable"></a>附：不常见集合NSHashTable和NSMapTable</h2><p><a href="https://www.jianshu.com/p/ea1f261f71f7" target="_blank" rel="noopener">不常见集合NSHashTable和NSMapTable</a></p>
+<h2 id="三、优化状态变化的发送方法"><a href="#三、优化状态变化的发送方法" class="headerlink" title="三、优化状态变化的发送方法"></a>三、优化状态变化的发送方法</h2><h3 id="1、未优化时候："><a href="#1、未优化时候：" class="headerlink" title="1、未优化时候："></a>1、未优化时候：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">// vc.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  if (self.delegateMediator &amp;&amp; [self.delegateMediator respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">      [self.delegateMediator delegate_didUpdateLoginState:YES];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">// Mediator.m</span><br><span class="line">#pragma mark - TSDelegate</span><br><span class="line">- (void)delegate_didUpdateLoginState:(BOOL)loginState &#123;</span><br><span class="line">    for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">        id delegate = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">        if (delegate &amp;&amp; [delegate respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">            [delegate delegate_didUpdateLoginState:YES];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了能够在Mediator中减少我们要实现每个代理的每个方法，我们进行如下优化：</p>
+<h3 id="2、增加个发送的封装方法，将协议要执行的方法改为参数等传进去"><a href="#2、增加个发送的封装方法，将协议要执行的方法改为参数等传进去" class="headerlink" title="2、增加个发送的封装方法，将协议要执行的方法改为参数等传进去"></a>2、增加个发送的封装方法，将协议要执行的方法改为参数等传进去</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">// vc.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  [self.delegateMediator broadcastProtocol:@protocol(TSDelegate)</span><br><span class="line">   																selector:@selector(delegate_didUpdateLoginState:)</span><br><span class="line">   															 responder:^(id&lt;TSDelegate&gt; delegateReceiver) &#123;</span><br><span class="line">     [delegateReceiver delegate_didUpdateLoginState:YES];</span><br><span class="line">   &#125;];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">// Mediator.m</span><br><span class="line">- (void)broadcastProtocol:(Protocol * _Nonnull)protocol selector:(SEL _Nullable)selector responder:(void (^_Nonnull)(id _Nonnull delegateReceiver))block &#123;</span><br><span class="line">    NSAssert(protocol, @&quot;Protocol is nil.&quot;);</span><br><span class="line">    NSAssert(block, @&quot;Block is nil.&quot;);</span><br><span class="line">    </span><br><span class="line">    for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">        id delegateReceiver = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">        if (!selector || [delegateReceiver respondsToSelector:selector]) &#123;</span><br><span class="line">            block(delegateReceiver);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、如果你不用上述的封装方法，你还可以利用消息转发"><a href="#3、如果你不用上述的封装方法，你还可以利用消息转发" class="headerlink" title="3、如果你不用上述的封装方法，你还可以利用消息转发"></a>3、如果你不用上述的封装方法，你还可以利用消息转发</h3><p>对Mediator对象调用<code>delegate_didUpdateLoginState</code>方法时，因为<code>含delegates的Mediator对象</code>并没有实现协议中的方法，如<code>delegate_didUpdateLoginState</code>，所以，我们只能要么补充实现，要么不实现的话，就<strong>利用消息转发，将协议中的方法转发到自己delegate链中的对象</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">// vc.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  if (self.delegateMediator &amp;&amp; [self.delegateMediator respondsToSelector:@selector(delegate_didUpdateLoginState:)]) &#123;</span><br><span class="line">      [self.delegateMediator delegate_didUpdateLoginState:YES];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">// Mediator.m</span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">    NSMethodSignature *signature = [super methodSignatureForSelector:aSelector];</span><br><span class="line">    if (signature) &#123;</span><br><span class="line">        return signature;</span><br><span class="line">    &#125;</span><br><span class="line">  	[_delegates addPointer:nil]; //不加上这句的话，直接调用compact，并不能清除 _delegates 数组中的 nil 对象。</span><br><span class="line">    [_delegates compact];   //注意 [_delegates compact]，这个方法可以帮助你去掉数组里面的野指针，避免你在快速遍历的时候拿到一个指向不存在对象的地址</span><br><span class="line"></span><br><span class="line">    for (id delegate in _delegates) &#123;</span><br><span class="line">        if (!delegate) &#123;</span><br><span class="line">          continue;</span><br><span class="line">        &#125;</span><br><span class="line">        signature = [delegate methodSignatureForSelector:aSelector];</span><br><span class="line">        if (signature) &#123;</span><br><span class="line">          break;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return signature;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation &#123;</span><br><span class="line">    SEL selector = [anInvocation selector];</span><br><span class="line">    BOOL responded = NO;</span><br><span class="line">    for (id delegate in _delegates) &#123;</span><br><span class="line">        if (delegate &amp;&amp; [delegate respondsToSelector:selector]) &#123;</span><br><span class="line">            [anInvocation invokeWithTarget:delegate];</span><br><span class="line">            responded = YES;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    if (!responded) &#123;</span><br><span class="line">        [self doesNotRecognizeSelector:selector];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>此方式的问题：由于<code>[self.delegateMediator delegate_didUpdateLoginState:YES];</code>，所以delegateMediator需要在@interface支持<xxdelegate>，同样的因为这个支持，我们需要在.m文件中去实现它里面的方法，否则会有警告。除非说协议里的那些方法全部都是设置为了<code>@optional</code>。</xxdelegate></strong></p>
+<p><strong>结论：基于此方式的问题，所以为了减少对其他的约束，我们这里最后采用2的优化方式。</strong></p>
+<h2 id="四、发现潜在问题"><a href="#四、发现潜在问题" class="headerlink" title="四、发现潜在问题"></a>四、发现潜在问题</h2><h3 id="1、如果两个protocal中有同名方法怎么办？"><a href="#1、如果两个protocal中有同名方法怎么办？" class="headerlink" title="1、如果两个protocal中有同名方法怎么办？"></a>1、如果两个protocal中有同名方法怎么办？</h3><p>举例：在vc.m中想要告诉大家去实现协议1中的<code>showMessage</code>方法，但是如果不说明是协议1中的方法，可能有个协议2也有同样的方法，导致执行的方法错了。</p>
+<p>分析：这种情况是可能出现的，但是这种情况出现的时候，不会被引用到同一个监听者，不然分不清delegateReceiver中现在执行的是哪一个。</p>
+<p>如原本名字不一样，我们区分得开。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// viewModel.m</span><br><span class="line">#pragma mark - TSUserDelegate</span><br><span class="line">- (void)userDelegate_didUpdateLoginState:(BOOL)loginState &#123;</span><br><span class="line">    NSLog(@&quot;vm收到userDelegate:登录状态发生变化，您已%@&quot;, loginState ? @&quot;登录&quot; : @&quot;登出&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">#pragma mark - TSMessageDelegate</span><br><span class="line">- (void)messageDelegate_didUpdateMessageState:(BOOL)messageState &#123;</span><br><span class="line">    NSLog(@&quot;vm收到messageDelegate:信息状态发生变化&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们直接在上述原本实现的基础上看问题，修改后为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// vc.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  [self.delegateMediator broadcastProtocol:@protocol(TSDelegate)</span><br><span class="line">   																selector:@selector(delegate_didUpdateLoginState:)</span><br><span class="line">   															 responder:^(id&lt;TSDelegate&gt; delegateReceiver) &#123;</span><br><span class="line">     [delegateReceiver delegate_didUpdateLoginState:YES];</span><br><span class="line">   &#125;];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">// Mediator.m</span><br><span class="line">- (void)broadcastProtocol:(Protocol * _Nonnull)protocol selector:(SEL _Nullable)selector responder:(void (^_Nonnull)(id _Nonnull delegateReceiver))block &#123;</span><br><span class="line">    NSAssert(protocol, @&quot;Protocol is nil.&quot;);</span><br><span class="line">    NSAssert(block, @&quot;Block is nil.&quot;);</span><br><span class="line">    </span><br><span class="line">    for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">        id delegateReceiver = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">      </span><br><span class="line">      	if (![delegateReceiver conformsToProtocol:protocol]) &#123;  // 处理多个protocal中有同名方法,通过传进来的protocol参数，我们在判断接收者有我们想要的方法前，先找到有实现我们想要协议的那个接收者</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line">      </span><br><span class="line">        if (!selector || [delegateReceiver respondsToSelector:selector]) &#123;</span><br><span class="line">            block(delegateReceiver);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同理：添加delegate的时候，也</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">if (![delegateReceiver conformsToProtocol:protocol]) &#123;  // 处理多个protocal中有同名方法,通过传进来的protocol参数，我们在判断接收者有我们想要的方法前，先找到有实现我们想要协议的那个接收者</span><br><span class="line">        // continue or return or ...;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、如何保证delegates操作的数据安全"><a href="#2、如何保证delegates操作的数据安全" class="headerlink" title="2、如何保证delegates操作的数据安全"></a>2、如何保证delegates操作的数据安全</h3><p>场景：B页面发送一个信号，B页面的viewModel会去执行，当然还有其他地方也有可能执行。</p>
+<p>那么当B发送信号出去，还在遍历执行的时候，突然某个从B页面返回A页面，B页面释放，B的viewModel也跟着释放，即这个信号的其中一个接收者B的viewModel被释放了，那么当执行的时候相当于给nil发送信息，不会崩溃。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">       id delegateReceiver = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">     </span><br><span class="line">     	if (![delegateReceiver conformsToProtocol:protocol]) &#123;  // 处理多个protocal中有同名方法,通过传进来的protocol参数，我们在判断接收者有我们想要的方法前，先找到有实现我们想要协议的那个接收者</span><br><span class="line">           continue;</span><br><span class="line">       &#125;</span><br><span class="line">     </span><br><span class="line">       if (!selector || [delegateReceiver respondsToSelector:selector]) &#123;</span><br><span class="line">           block(delegateReceiver);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>需要注意数据安全的地方，应该是<strong>避免重复添加和重复删除</strong>。</p>
+<p>所以，我们使用@synchronized来保护。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">@synchronized(xxx) &#123;</span><br><span class="line">      </span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="五、delegateMediator升级为中心单例"><a href="#五、delegateMediator升级为中心单例" class="headerlink" title="五、delegateMediator升级为中心单例"></a>五、delegateMediator升级为中心单例</h2><p>发送时候的核心代码，大概如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">// vc.m</span><br><span class="line">loginModule.actionBlock = ^&#123;</span><br><span class="line">  [[TSNotificationCenter defaultCenter] broadcastProtocol:@protocol(TSDelegate)</span><br><span class="line">   																	 selector:@selector(delegate_didUpdateLoginState:)</span><br><span class="line">                            				responder:^(id&lt;TSDelegate&gt; delegateReceiver) &#123;</span><br><span class="line">  	[delegateReceiver delegate_didUpdateLoginState:YES];</span><br><span class="line">  &#125;];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 该发送方法在`TSNotificationCenter.m`中的代码如下</span><br><span class="line">- (void)broadcastProtocol:(Protocol * _Nonnull)protocol selector:(SEL _Nullable)selector responder:(void (^_Nonnull)(id _Nonnull delegateReceiver))block &#123;</span><br><span class="line">    NSAssert(protocol, @&quot;Protocol is nil.&quot;);</span><br><span class="line">    NSAssert(block, @&quot;Block is nil.&quot;);</span><br><span class="line">    </span><br><span class="line">    for (NSUInteger i = 0; i &lt; self.delegates.count; i++) &#123;</span><br><span class="line">        id delegateReceiver = (__bridge id)[self.delegates pointerAtIndex:i];</span><br><span class="line">      </span><br><span class="line">      	if (![delegateReceiver conformsToProtocol:protocol]) &#123;  // 处理多个protocal中有同名方法,通过传进来的protocol参数，我们在判断接收者有我们想要的方法前，先找到有实现我们想要协议的那个接收者</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line">      </span><br><span class="line">        if (!selector || [delegateReceiver respondsToSelector:selector]) &#123;</span><br><span class="line">            block(delegateReceiver);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接收时候的核心代码，大概如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">// receiver.m</span><br><span class="line">[[TSNotificationCenter defaultCenter] addDelegate:self.diffDelegateReceiver</span><br><span class="line">                                      forProtocol:@protocol(TSUserDelegate)];</span><br><span class="line">[[TSNotificationCenter defaultCenter] addDelegate:self.diffDelegateReceiver</span><br><span class="line"> 																			forProtocol:@protocol(TSMessageDelegate)];</span><br><span class="line"></span><br><span class="line">// 该添加方法在`TSNotificationCenter.m`中的代码如下</span><br><span class="line">- (void)addDelegate:(id __nonnull)listener forProtocol:(Protocol * _Nonnull )protocol &#123;</span><br><span class="line">    NSAssert(listener, @&quot;listener is nil&quot;);</span><br><span class="line">    NSAssert(protocol, @&quot;Protocol is nil&quot;);</span><br><span class="line">#ifdef DEBUG</span><br><span class="line">    NSAssert([listener conformsToProtocol:protocol], @&quot;This listener does not conform to the protocol&quot;);</span><br><span class="line">#endif</span><br><span class="line">    </span><br><span class="line">    @synchronized(protocol) &#123;</span><br><span class="line">        [self.hashTable addObject:listener];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p>其他参考文章：</p>
+<p><a href="https://www.jb51.net/article/94596.htm" target="_blank" rel="noopener">iOS 实现多代理的方法及实例代码</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/2设计模式/设计模式-⑤多代理模式/" data-id="cm0b6c293012ystr46wbamzhu" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/架构相关/1架构模式/架构模式-④MVC与MVVM" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/1架构模式/架构模式-④MVC与MVVM/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.879Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-架构模式-④MVC与MVVM"><a href="#必备知识架构-架构模式-④MVC与MVVM" class="headerlink" title="必备知识架构-架构模式-④MVC与MVVM"></a>必备知识架构-架构模式-④MVC与MVVM</h1><p>[toc]</p>
+<p></p><p id="框架"></p><p></p>
+<h2 id="一、框架"><a href="#一、框架" class="headerlink" title="一、框架"></a>一、框架</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h1 id="MVC，MVP-和-MVVM-的图示"><a href="#MVC，MVP-和-MVVM-的图示" class="headerlink" title="MVC，MVP 和 MVVM 的图示"></a>MVC，MVP 和 MVVM 的图示</h1><p><a href="http://www.ruanyifeng.com/blog/2015/02/mvcmvp_mvvm.html" target="_blank" rel="noopener">MVC，MVP 和 MVVM 的图示</a></p>
+<h2 id="三、MVC与MVVM"><a href="#三、MVC与MVVM" class="headerlink" title="三、MVC与MVVM"></a>三、MVC与MVVM</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、MVC的开发模式"><a href="#1、MVC的开发模式" class="headerlink" title="1、MVC的开发模式"></a>1、MVC的开发模式</h4><p>MVC是模型、视图、控制器开发模式，对于iOS SDK，所有的View都是视图层的，它应该独立于模型层，由视图器来控制。所有的用户数据都是模型层，它应该独立于视图。所有的ViewController都是视图器，由它负责控制视图，访问模型数据。</p>
+<h4 id="3、关于MVC-和-MVVM-的区别"><a href="#3、关于MVC-和-MVVM-的区别" class="headerlink" title="3、关于MVC 和 MVVM 的区别"></a>3、关于MVC 和 MVVM 的区别</h4><p><a href="https://objccn.io/issue-13-1/" target="_blank" rel="noopener">MVVM 介绍</a></p>
+<p>设有如下原始Model</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@interface Person : NSObject</span><br><span class="line"></span><br><span class="line">- (instancetype)initwithSalutation:(NSString *)salutation firstName:(NSString *)firstName lastName:(NSString *)lastName birthdate:(NSDate *)birthdate;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, readonly) NSString *salutation;</span><br><span class="line">@property (nonatomic, readonly) NSString *firstName;</span><br><span class="line">@property (nonatomic, readonly) NSString *lastName;</span><br><span class="line">@property (nonatomic, readonly) NSDate *birthdate;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>则如果仅有此Model的话，我们在PersonViewController中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    </span><br><span class="line">    NSString *nameText = nil;</span><br><span class="line">    if (self.personModel.salutation.length &gt; 0) &#123;</span><br><span class="line">        nameText = [NSString stringWithFormat:@&quot;%@ %@ %@&quot;, self.personModel.salutation, self.personModel.firstName, self.personModel.lastName];</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        nameText = [NSString stringWithFormat:@&quot;%@ %@&quot;, self.personModel.firstName, self.personModel.lastName];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    self.nameLabel.text = nameText;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>而如果我们进而增加一个ViewModel，则如果我们PersonViewController中可以简化成</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">@implementation PersonViewModel</span><br><span class="line"></span><br><span class="line">- (instancetype)initWithPerson:(Person *)person &#123;</span><br><span class="line">    self = [super init];</span><br><span class="line">    if (!self) return nil;</span><br><span class="line"></span><br><span class="line">    _person = person;</span><br><span class="line">    if (person.salutation.length &gt; 0) &#123;</span><br><span class="line">        _nameText = [NSString stringWithFormat:@&quot;%@ %@ %@&quot;, self.person.salutation, self.person.firstName, self.person.lastName];</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        _nameText = [NSString stringWithFormat:@&quot;%@ %@&quot;, self.person.firstName, self.person.lastName];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">// 此时我们PersonViewController中可以简化成</span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    self.nameLabel.text = self.personViewModel.nameText;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/1架构模式/架构模式-④MVC与MVVM/" data-id="cm0b6c2940131str4a105wvfl" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/架构相关/1架构模式/5编程思想-面向协议" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/架构相关/1架构模式/5编程思想-面向协议/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.878Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-编程思想-面向协议"><a href="#必备知识架构-编程思想-面向协议" class="headerlink" title="必备知识架构-编程思想-面向协议"></a>必备知识架构-编程思想-面向协议</h1><p>[toc]</p>
+<p>好文分享：</p>
+<ul>
+<li><a href="https://www.cnblogs.com/dins/p/ios-zu-jian-hua-fang-an.html" target="_blank" rel="noopener">iOS 组件化方案</a></li>
+</ul>
+<h2 id="一、产生背景"><a href="#一、产生背景" class="headerlink" title="一、产生背景"></a>一、产生背景</h2><h4 id="1-1-传统面向对象编程（OOP）的弊端-继承的痛点："><a href="#1-1-传统面向对象编程（OOP）的弊端-继承的痛点：" class="headerlink" title="1.1 传统面向对象编程（OOP）的弊端/继承的痛点："></a>1.1 传统面向对象编程（OOP）的弊端/继承的痛点：</h4><p><strong>继承的痛点</strong>：滥用继承的话，后面如果要抽离功能就会牵一发而动全身。即抽离一个功能会导致也要把继承链上涉及的功能都抽出来。显然太麻烦了。</p>
+<p><strong>痛点的解决</strong>：使用面向协议，将每个单独功能一个协议，复杂功能将协议组合起来即可。如此后续抽离时，抽单独协议和实现类即可（swift中可以将实现写在扩展中，可能不涉及实现类）。</p>
+<p>我们将网络库<a href="https://github.com/dvlproad/CJNetwork" target="_blank" rel="noopener">CJNetwork</a>使用面向协议编程后</p>
+<p>1、定义协议CQNetworkRequestCompletionClientProtocal.h</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NS_ASSUME_NONNULL_BEGIN</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">@protocol</span> <span class="title">CQNetworkRequestCompletionClientProtocal</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">@required</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> *  请求</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  @param model            请求相关的信息(包含请求方法、请求地址、请求参数等)real\simulate\local</span></span><br><span class="line"><span class="comment"> *  @param completeBlock    请求结束的回调(为方便接口的重复利用回调中的responseModel使用id类型)</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  @return 执行请求的任务</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">- (<span class="built_in">NSURLSessionDataTask</span> *)requestModel:(__kindof <span class="built_in">NSObject</span>&lt;CJRequestModelProtocol&gt; *)model</span><br><span class="line">                         completeBlock:(<span class="keyword">void</span> (^)(CJResponeFailureType failureType, CJResponseModel *responseModel))completeBlock;</span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">NS_ASSUME_NONNULL_END</span></span><br></pre></td></tr></table></figure>
+<p>2、使用CQNetworkRequestCompletionClientProtocal</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NS_ASSUME_NONNULL_BEGIN</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">CJNetworkClient</span> (<span class="title">Completion</span>) &lt;<span class="title">CQNetworkRequestCompletionClientProtocal</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">NS_ASSUME_NONNULL_END</span></span><br></pre></td></tr></table></figure>
+<h4 id="1-2-什么是面向协议编程-POP"><a href="#1-2-什么是面向协议编程-POP" class="headerlink" title="1.2 什么是面向协议编程(POP)?"></a>1.2 什么是面向协议编程(POP)?</h4><p>这个问题，我感觉比较明确的定义就是2015年Apple WWDC中说的一句话很直了的解释了：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Don't start with a <span class="class"><span class="keyword">class</span>.</span></span><br><span class="line"><span class="class"><span class="title">Start</span> <span class="title">with</span> <span class="title">a</span> <span class="title">protocol</span>.</span></span><br></pre></td></tr></table></figure>
+<p>即在程序设计中，不要以一个类开始设计，应该从一个协议开始，应抛弃之前OOP的对象设计理念，设计协议，这样不同的继承链之间也可以使用同一个协议。可以将协议看做一个组件，哪里需要哪里继承协议即可，而且协议是可以多继承的，iOS中的类只能单继承，这也是面向协议相对面向对象的一大优势。</p>
+<h4 id="1-3-Objective-C-和Swift的面向协议编程区别"><a href="#1-3-Objective-C-和Swift的面向协议编程区别" class="headerlink" title="1.3 Objective-C 和Swift的面向协议编程区别"></a>1.3 Objective-C 和Swift的面向协议编程区别</h4><p>OC和swift面向协议编程一个最大区别是OC的 <strong>Protocol</strong> 没有默认的实现，需要依赖具体的实现类实现协议定义的方法，而Swift2.0开始提供了<strong>Protocol + Extension</strong>，协议可以再 Extension中提供默认的实现，这样上层调用可以直接调用协议的默认实现。</p>
+<p>严谨来说，OC不是一门面向协议编程的语言，因为 <strong>Protocol</strong> 只提供定义，而不提供实现，所以叫他 <strong>面向接口编程</strong> 更合适一些。</p>
+<p>面向协议和依赖注入</p>
+<p>依赖注入要求我们传入的参数遵循协议，这样做的好处是：</p>
+<ul>
+<li>我们可以在外部注入一个通用类，只要它遵循协议。</li>
+<li>也可以注入一个可测试的模拟类，便于测试。</li>
+</ul>
+<p>参考文章：<a href="https://www.jianshu.com/p/1a47f5e0f1b5" target="_blank" rel="noopener">iOS-面向协议编程(POP)</a></p>
+<h2 id="二、替代继承的方式"><a href="#二、替代继承的方式" class="headerlink" title="二、替代继承的方式"></a>二、替代继承的方式</h2><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/39e6a8409476" target="_blank" rel="noopener">继承和面向接口（iOS架构思想篇）</a></li>
+</ul>
+<p>1、协议</p>
+<blockquote>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">// 在屏幕中间弹出</span></span><br><span class="line">&gt; <span class="class"><span class="keyword">@protocol</span> <span class="title">ShowInCenterProtocol</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)show;</span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">// 在屏幕底部弹出</span></span><br><span class="line">&gt; <span class="class"><span class="keyword">@protocol</span> <span class="title">ShowInBottomProtocol</span> &lt;<span class="title">NSObject</span>&gt;</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)show;</span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="class"><span class="keyword">@class</span> <span class="title">NormalVoicePlayer</span> : <span class="title">NSObject</span> &lt;<span class="title">ShowInCenterProtocol</span>&gt;</span></span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">@end</span></span><br><span class="line">&gt; </span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>2、用组合替代继承</p>
+<blockquote>
+<p>eg1:想要为一个视图做一个show操作。（设想这个show方法后面可能随时会变，比如show的位置，或者动画）</p>
+<p>AlertUtil：使用由AlertView/PopupView+PopupAction来组合，而不使用继承AlertView+为其添加show方法。</p>
+<p>eg2：常见的举例还有，文本框TextField的根据历史记录填充、根据@邮箱填充。</p>
+</blockquote>
+<p>3、类别category</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">@interface NSArray (OBJExtras)</span><br><span class="line">- (void)removingFirstObject;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、使用面向协议为视图添加抖动功能"><a href="#三、使用面向协议为视图添加抖动功能" class="headerlink" title="三、使用面向协议为视图添加抖动功能"></a>三、使用面向协议为视图添加抖动功能</h2><p>举例：为UIImageView和UIButton等添加视图的抖动</p>
+<h3 id="1、方法1：添加Category方式"><a href="#1、方法1：添加Category方式" class="headerlink" title="1、方法1：添加Category方式"></a>1、方法1：添加Category方式</h3><p>如果你写过 Objective-C, 你很可能会把 <strong>shake()</strong> 写到一个 UIView 的分类（Category) 中（也就是 Swift 中的拓展 (extension)）：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  UIViewExtension.swift</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> UIKit</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UIView</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">shake</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">let</span> animation = <span class="type">CABasicAnimation</span>(keyPath: <span class="string">"position"</span>)</span><br><span class="line">        animation.duration = <span class="number">0.05</span></span><br><span class="line">        animation.repeatCount = <span class="number">5</span></span><br><span class="line">        animation.autoreverses = <span class="literal">true</span></span><br><span class="line">        animation.fromValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x - <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        animation.toValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x + <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        layer.addAnimation(animation, forKey: <span class="string">"position"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、方法2：面向协议方式"><a href="#2、方法2：面向协议方式" class="headerlink" title="2、方法2：面向协议方式"></a>2、方法2：面向协议方式</h3><p>但在swift里，我们除了对UIView添加extension外，其实还有另一种更好的方式：创建面向协议的视图</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FoodImageView</span>: <span class="title">UIImageView</span>, <span class="title">Shakeable</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 其他自定义写在这儿</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ActionButton</span>: <span class="title">UIButton</span>, <span class="title">Shakeable</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 其他自定义写在这儿</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ViewController</span>: <span class="title">UIViewController</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> foodImageView: <span class="type">FoodImageView</span>!</span><br><span class="line">    <span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> actionButton: <span class="type">ActionButton</span>!</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@IBAction</span> <span class="function"><span class="keyword">func</span> <span class="title">onShakeButtonTap</span><span class="params">(sender: AnyObject)</span></span> &#123;</span><br><span class="line">        foodImageView.shake()</span><br><span class="line">        actionButton.shake()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>附上述面向协议的视图里所对的<strong>Shakeable</strong> 协议如下：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  Shakeable.swift</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> UIKit</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Shakeable</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 你可以只为 UIView 添加 shake 方法！</span></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">Shakeable</span> <span class="title">where</span> <span class="title">Self</span>: <span class="title">UIView</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// shake 方法的默认实现</span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">shake</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">let</span> animation = <span class="type">CABasicAnimation</span>(keyPath: <span class="string">"position"</span>)</span><br><span class="line">        animation.duration = <span class="number">0.05</span></span><br><span class="line">        animation.repeatCount = <span class="number">5</span></span><br><span class="line">        animation.autoreverses = <span class="literal">true</span></span><br><span class="line">        animation.fromValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x - <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        animation.toValue = <span class="type">NSValue</span>(<span class="type">CGPoint</span>: <span class="type">CGPointMake</span>(<span class="keyword">self</span>.center.x + <span class="number">4.0</span>, <span class="keyword">self</span>.center.y))</span><br><span class="line">        layer.addAnimation(animation, forKey: <span class="string">"position"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参考文章：</p>
+<ul>
+<li><p><a href="https://swift.gg/2016/06/01/protocol-oriented-views-in-swift/" target="_blank" rel="noopener">用 Swift 编写面向协议的视图</a> 一定要看</p>
+</li>
+<li><p><a href="https://blog.csdn.net/weixin_43194732/article/details/83380486" target="_blank" rel="noopener">Swift面向协议编程</a></p>
+</li>
+</ul>
+<h2 id="四、使用面向协议处理reuseIdentifier"><a href="#四、使用面向协议处理reuseIdentifier" class="headerlink" title="四、使用面向协议处理reuseIdentifier"></a>四、使用面向协议处理reuseIdentifier</h2><p>tableView的cell注册的基本代码如下</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: <span class="string">"FoodTableViewCell"</span>, bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier: <span class="string">"FoodTableViewCell"</span>)</span><br></pre></td></tr></table></figure>
+<p>改进1：FoodTableViewCell字符串改成由类获得</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: <span class="type">String</span>(<span class="type">FoodTableViewCell</span>), bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier: <span class="type">String</span>(<span class="type">FoodTableViewCell</span>))</span><br></pre></td></tr></table></figure>
+<p>改进2：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">ReusableView</span>: <span class="title">class</span> </span>&#123;&#125;</span><br><span class="line"><span class="comment">// 你可以只为 UIView 添加 ReusableView 方法！</span></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">ReusableView</span> <span class="title">where</span> <span class="title">Self</span>: <span class="title">UIView</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">var</span> reuseIdentifier: <span class="type">String</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="type">String</span>(<span class="keyword">self</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UITableViewCell</span>: <span class="title">ReusableView</span> </span>&#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> foodCellNib = <span class="type">UINib</span>(<span class="type">NibName</span>: “<span class="type">FoodTableViewCell</span>”, bundle: <span class="literal">nil</span>)</span><br><span class="line">tableView.registerNib(foodCellNib, forCellReuseIdentifier:<span class="type">FoodTableViewCell</span>.reuseIdentifier)</span><br></pre></td></tr></table></figure>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/1架构模式/5编程思想-面向协议/" data-id="cm0b6c291012vstr4oy60jvia" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-hello-world" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/hello-world/" class="article-date">
+  <time datetime="2021-12-17T14:19:19.835Z" itemprop="datePublished">2021-12-17</time>
+</a>
+    
   </div>
   <div class="article-inner">
     
@@ -90,7 +472,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/Flutter组件化框架/">Flutter组件化框架</a>
+      <a class="article-title" href="/hello-world/">Hello World</a>
     </h1>
   
 
@@ -98,19 +480,22 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>[toc]</p>
-<h1 id="Flutter组件化框架"><a href="#Flutter组件化框架" class="headerlink" title="Flutter组件化框架"></a>Flutter组件化框架</h1><ul>
-<li><a href="https://www.jianshu.com/p/2b49517500bd" target="_blank" rel="noopener">Flutter组件化框架</a></li>
-</ul>
+        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter组件化框架/" data-id="cm0b6albw00e2q5r4c1r9nyi7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/hello-world/" data-id="cm0b6byqa0001str4thngy5pw" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
     </footer>
   </div>
   
@@ -154,7 +539,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/系统控制/" data-id="cm0b6alc300e6q5r4svpkvxic" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/系统控制/" data-id="cm0b6c0n100elstr46kpit0ah" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -166,10 +551,10 @@
 
 
   
-    <article id="post-Flutter/9框架升级/数据类的使用" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Flutter/9框架升级/Flutter组件化框架" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/9框架升级/数据类的使用/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
+    <a href="/Flutter/9框架升级/Flutter组件化框架/" class="article-date">
+  <time datetime="2021-12-06T01:13:32.000Z" itemprop="datePublished">2021-12-06</time>
 </a>
     
   <div class="article-category">
@@ -184,7 +569,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/数据类的使用/">数据类</a>
+      <a class="article-title" href="/Flutter/9框架升级/Flutter组件化框架/">Flutter组件化框架</a>
     </h1>
   
 
@@ -193,14 +578,14 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="数据类"><a href="#数据类" class="headerlink" title="数据类"></a>数据类</h1><p>为了统一，各数据类(包含宏)分别使用如下：</p>
-<h2 id="一、颜色"><a href="#一、颜色" class="headerlink" title="一、颜色"></a>一、颜色</h2><p>暂无</p>
-<h2 id="二、TextStyle"><a href="#二、TextStyle" class="headerlink" title="二、TextStyle"></a>二、TextStyle</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_effect/flutter_effect.dart'</span>;</span><br><span class="line"></span><br><span class="line"> 	 <span class="keyword">return</span> Column(</span><br><span class="line">      children: &lt;Widget&gt;[</span><br><span class="line">        Text(</span><br><span class="line">            <span class="string">'Bold'</span>,</span><br><span class="line">            style: BoldTextStyle(fontSize: <span class="number">17</span>, color: Colors.red), <span class="comment">// bold</span></span><br><span class="line">          ),</span><br><span class="line">        Text(</span><br><span class="line">            <span class="string">'Medium'</span>,</span><br><span class="line">            style: MediumTextStyle(fontSize: <span class="number">17</span>, color: Colors.red), <span class="comment">// medium</span></span><br><span class="line">          ),</span><br><span class="line">      ],</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+<h1 id="Flutter组件化框架"><a href="#Flutter组件化框架" class="headerlink" title="Flutter组件化框架"></a>Flutter组件化框架</h1><ul>
+<li><a href="https://www.jianshu.com/p/2b49517500bd" target="_blank" rel="noopener">Flutter组件化框架</a></li>
+</ul>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/数据类的使用/" data-id="cm0b6albp00dzq5r4zg31zzkv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter组件化框架/" data-id="cm0b6c0oo00f1str40ob3ilth" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -280,7 +665,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter空安全/" data-id="cm0b6alcj00e9q5r4vu8yzqgr" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/Flutter空安全/" data-id="cm0b6c0lo00eastr4z491ljw4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -292,9 +677,9 @@
 
 
   
-    <article id="post-Flutter/9框架升级/组件的使用-Overlay" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Flutter/9框架升级/数据类的使用" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Overlay/" class="article-date">
+    <a href="/Flutter/9框架升级/数据类的使用/" class="article-date">
   <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
 </a>
     
@@ -310,7 +695,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Overlay/">组件的使用-Overlay</a>
+      <a class="article-title" href="/Flutter/9框架升级/数据类的使用/">数据类</a>
     </h1>
   
 
@@ -319,386 +704,14 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="组件的使用-Overlay"><a href="#组件的使用-Overlay" class="headerlink" title="组件的使用-Overlay"></a>组件的使用-Overlay</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="一、ToastUtil"><a href="#一、ToastUtil" class="headerlink" title="一、ToastUtil"></a>一、ToastUtil</h2><p>弹出toast：</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_overlay_kit/flutter_overlay_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">ToastUtil.showMessage(<span class="string">'登录成功'</span>);</span><br></pre></td></tr></table></figure>
-<p>开发卡在<strong>产品</strong>或<strong>h5</strong>的时候，请使用如下弹出提示：</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_overlay_kit/flutter_overlay_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 需要产品补充完善需求</span></span><br><span class="line">ToastUtil.showNeedProduct(</span><br><span class="line">	message: <span class="string">'我的首页中的愿望即将实现'</span>,</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 需要H5补充url</span></span><br><span class="line">ToastUtil.showNeedH5(</span><br><span class="line">	message: <span class="string">'登录页面中的用户协议'</span>,</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-<h2 id="二、AlertUtil"><a href="#二、AlertUtil" class="headerlink" title="二、AlertUtil"></a>二、AlertUtil</h2><p>弹窗</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_overlay_kit/flutter_overlay_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">	AlertUtil.showCancelOKAlert(</span><br><span class="line">      context: context,</span><br><span class="line">      title: <span class="string">"退出登录"</span>,</span><br><span class="line">      message: <span class="string">"您确定要退出登录吗?"</span>,</span><br><span class="line">      cancelHandle: <span class="keyword">null</span>,</span><br><span class="line">      okHandle: () &#123;</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">'点击确认按钮'</span>);</span><br><span class="line">      &#125;,</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+<h1 id="数据类"><a href="#数据类" class="headerlink" title="数据类"></a>数据类</h1><p>为了统一，各数据类(包含宏)分别使用如下：</p>
+<h2 id="一、颜色"><a href="#一、颜色" class="headerlink" title="一、颜色"></a>一、颜色</h2><p>暂无</p>
+<h2 id="二、TextStyle"><a href="#二、TextStyle" class="headerlink" title="二、TextStyle"></a>二、TextStyle</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_effect/flutter_effect.dart'</span>;</span><br><span class="line"></span><br><span class="line"> 	 <span class="keyword">return</span> Column(</span><br><span class="line">      children: &lt;Widget&gt;[</span><br><span class="line">        Text(</span><br><span class="line">            <span class="string">'Bold'</span>,</span><br><span class="line">            style: BoldTextStyle(fontSize: <span class="number">17</span>, color: Colors.red), <span class="comment">// bold</span></span><br><span class="line">          ),</span><br><span class="line">        Text(</span><br><span class="line">            <span class="string">'Medium'</span>,</span><br><span class="line">            style: MediumTextStyle(fontSize: <span class="number">17</span>, color: Colors.red), <span class="comment">// medium</span></span><br><span class="line">          ),</span><br><span class="line">      ],</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Overlay/" data-id="cm0b6alde00egq5r4lr8djz80" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件的使用-Picker" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Picker/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Picker/">组件的使用</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件的使用-Picker"><a href="#组件的使用-Picker" class="headerlink" title="组件的使用-Picker"></a>组件的使用-Picker</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="二、选择器Picker"><a href="#二、选择器Picker" class="headerlink" title="二、选择器Picker"></a>二、选择器Picker</h2><h3 id="1、事项选择器：ItemPickerUtil"><a href="#1、事项选择器：ItemPickerUtil" class="headerlink" title="1、事项选择器：ItemPickerUtil"></a>1、事项选择器：ItemPickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-ItemPicker.png" alt="事项选择器" style="zoom:33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		ItemPickerUtil.chooseItem(</span><br><span class="line">      context,</span><br><span class="line">      title: <span class="string">'更换头像'</span>,</span><br><span class="line">      itemTitles: [<span class="string">'拍照上传'</span>, <span class="string">'从相册选择'</span>],</span><br><span class="line">      onConfirm: (<span class="built_in">int</span> selectedIndex) &#123;</span><br><span class="line">        dealAvatar(selectedIndex);</span><br><span class="line">      &#125;,</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
-<h3 id="2、日期选择器DatePickerUtil"><a href="#2、日期选择器DatePickerUtil" class="headerlink" title="2、日期选择器DatePickerUtil"></a>2、日期选择器DatePickerUtil</h3><p><img src="/Flutter/9框架升级/组件的使用-Picker/组件的使用/image-DatePicker.png" alt="日期选择器" style="zoom: 33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_datepicker/flutter_datepicker.dart'</span>;</span><br><span class="line"></span><br><span class="line">		<span class="built_in">String</span> currentBirthday = <span class="string">'2000-01-01'</span>;</span><br><span class="line">		</span><br><span class="line">		DatePickerUtil.chooseBirthday(context,</span><br><span class="line">        title: <span class="string">'选择你的生日'</span>, selectedyyyyMMddDateString: currentBirthday,</span><br><span class="line">        onConfirm: (<span class="built_in">String</span> yyyyMMddDateStirng) &#123;</span><br><span class="line">      setState(() &#123;</span><br><span class="line">        currentBirthday = yyyyMMddDateStirng;</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Picker/" data-id="cm0b6aldn00ekq5r4s7fixr5j" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件的使用-Cache" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Cache/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Cache/">组件的使用-Cache</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件的使用-Cache"><a href="#组件的使用-Cache" class="headerlink" title="组件的使用-Cache"></a>组件的使用-Cache</h1><p>初始化：init</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_cache_kit/flutter_cache_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">LocalStorage.init();</span><br></pre></td></tr></table></figure>
-<p>Flutter 类型数据保存和获取方法：save/get</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_cache_kit/flutter_cache_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 保存方法:支持bool\int\double\String\List&lt;String&gt;</span></span><br><span class="line">LocalStorage.save(<span class="string">'test_string'</span>, string);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取方法:支持bool\int\double\String\List&lt;String&gt;</span></span><br><span class="line"><span class="built_in">String</span> string = LocalStorage.<span class="keyword">get</span>(<span class="string">'test_string'</span>);</span><br></pre></td></tr></table></figure>
-<p>自定义的类的保存和获取方法：saveCustomBean\getCustomBean</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_cache_kit/flutter_cache_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 保存</span></span><br><span class="line">TSCustomBean customBean = TSCustomBean(</span><br><span class="line">                  proxyId: <span class="string">'1001'</span>,</span><br><span class="line">                  proxyIp: <span class="string">'192.168.1.1'</span>,</span><br><span class="line">                  name: <span class="string">'代理'</span>,</span><br><span class="line">                );</span><br><span class="line">LocalStorage.saveCustomBean(</span><br><span class="line">                  <span class="string">'test_custom'</span>,</span><br><span class="line">                  customBean,</span><br><span class="line">                  itemToJson: (TSCustomBean bItem) &#123;</span><br><span class="line">                    <span class="keyword">return</span> bItem.toJson();</span><br><span class="line">                  &#125;,</span><br><span class="line">                );</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取</span></span><br><span class="line">TSCustomBean customBean = LocalStorage.getCustomBean(</span><br><span class="line">                  <span class="string">'test_custom'</span>,</span><br><span class="line">                  fromJson: (bMap) &#123;</span><br><span class="line">                    <span class="keyword">return</span> TSCustomBean.fromJson(bMap);</span><br><span class="line">                  &#125;,</span><br><span class="line">                );</span><br></pre></td></tr></table></figure>
-<p>自定义的数组类的保存和获取方法：saveCustomBeans\getCustomBeans</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_cache_kit/flutter_cache_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 保存</span></span><br><span class="line">LocalStorage.saveCustomBeans(</span><br><span class="line">                  <span class="string">'test_customBeans'</span>,</span><br><span class="line">                  customBeans,</span><br><span class="line">                  itemToJson: (TSCustomBean bItem) &#123;</span><br><span class="line">                    <span class="keyword">return</span> bItem.toJson();</span><br><span class="line">                  &#125;,</span><br><span class="line">                );</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取</span></span><br><span class="line"><span class="built_in">List</span>&lt;TSCustomBean&gt; customBeans = LocalStorage.getCustomBeans(</span><br><span class="line">                  <span class="string">'test_customBeans'</span>,</span><br><span class="line">                  fromJson: (bMap) &#123;</span><br><span class="line">                    <span class="keyword">return</span> TSCustomBean.fromJson(bMap);</span><br><span class="line">                  &#125;,</span><br><span class="line">                );</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Cache/" data-id="cm0b6aldv00enq5r4v2lj7ufc" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件的使用-Button" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件的使用-Button/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件的使用-Button/">组件的使用-Button</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件的使用-Button"><a href="#组件的使用-Button" class="headerlink" title="组件的使用-Button"></a>组件的使用-Button</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="一、按钮Button"><a href="#一、按钮Button" class="headerlink" title="一、按钮Button"></a>一、按钮Button</h2><p>不用再写一堆嵌套地狱代码。（支持高亮效果，目前app按钮点击效果不佳，后续可能需要加，提前避免）</p>
-<p>按钮的分类：</p>
-<table>
-<thead>
-<tr>
-<th>编号</th>
-<th>类名</th>
-<th>样式举例</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>纯背景的按钮：<br>ThemeBGButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButton.png" alt="纯背景的按钮" style="zoom: 33%;"></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>有边框的按钮：<br>ThemeBorderButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBorderButton.png" alt="有边框的按钮" style="zoom:33%;"></td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>切状态的按钮：<br>ThemeStateButton</td>
-<td><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonNormal.png" alt="状态按钮之未选中状态">未选中状态(selected=false)<br><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonSelected.png" alt="状态按钮之已选中状态" style="zoom: 80%;">已选中状态(selected=true)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1、纯背景的按钮：ThemeBGButton"><a href="#1、纯背景的按钮：ThemeBGButton" class="headerlink" title="1、纯背景的按钮：ThemeBGButton"></a>1、纯背景的按钮：ThemeBGButton</h3><p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButton.png" alt="纯背景的按钮" style="zoom: 33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          bgColorType: ThemeBGType.pink,</span><br><span class="line">          needHighlight: <span class="keyword">true</span>,	<span class="comment">// 默认false,不需要高亮</span></span><br><span class="line">          title: <span class="string">'红底白字的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认true</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        ),</span><br></pre></td></tr></table></figure>
-<p>如果你还需要在文字前添加图片，</p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBGButtonWithImage.png" alt="纯背景并带有图片的按钮" style="zoom:33%;"></p>
-<p>可以通过 imageWidget 添加</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          ...</span><br><span class="line">          title: <span class="string">'以主题色(红色)为背景的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          imageWidget: ImageAsset(<span class="string">'images/xx.jpg'</span>, width: <span class="number">22</span>, height: <span class="number">22</span>,),</span><br><span class="line">          <span class="comment">//imageTitleGap: 5, // 默认5</span></span><br><span class="line">          ...</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<h3 id="2、有边框的按钮：ThemeBorderButton"><a href="#2、有边框的按钮：ThemeBorderButton" class="headerlink" title="2、有边框的按钮：ThemeBorderButton"></a>2、有边框的按钮：ThemeBorderButton</h3><p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeBorderButton.png" alt="有边框的按钮" style="zoom:33%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBorderButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          borderColorType: ThemeBGType.pink,</span><br><span class="line">          title: <span class="string">'白底红字红框的按钮'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认ture</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<h3 id="3、状态切换按钮：ThemeStateButton"><a href="#3、状态切换按钮：ThemeStateButton" class="headerlink" title="3、状态切换按钮：ThemeStateButton"></a>3、状态切换按钮：ThemeStateButton</h3><p>未选中状态(selected=false)：<img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonNormal.png" alt="状态按钮之未选中状态"><br>已选中状态(selected=true)：<img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-ThemeStateButtonSelected.png" alt="状态按钮之已选中状态" style="zoom:90%;"></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeStateButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          normalBGColorType: ThemeBGType.pink,</span><br><span class="line">          normalTitle: <span class="string">'修改'</span>,</span><br><span class="line">          selectedTitle: <span class="string">'提交'</span>,</span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>),</span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          selected: <span class="keyword">false</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认ture</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<p>其他按钮样式：</p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211217121410240.png" alt="image-20211217121410240" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024015942.png" alt="image-20211218024015942" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024157575.png" alt="image-20211218024157575" style="zoom:33%;"></p>
-<p><img src="/Flutter/9框架升级/组件的使用-Button/组件的使用/image-20211218024244344.png" alt="image-20211218024244344" style="zoom:33%;"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件的使用-Button/" data-id="cm0b6ale400erq5r4r0zh0o5g" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/组件设计规范" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/组件设计规范/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/组件设计规范/">组件设计规范</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="组件设计规范"><a href="#组件设计规范" class="headerlink" title="组件设计规范"></a>组件设计规范</h1><p>为了统一，各视图分别使用如下组件</p>
-<h2 id="一、样式设计规范"><a href="#一、样式设计规范" class="headerlink" title="一、样式设计规范"></a>一、样式设计规范</h2><p>在第六章进阶<a href="../6进阶/Flutter控件的封装">Flutter控件的封装</a>一文中，我们已经知道<strong>使用<code>继承父类式封装</code>这种方式，不管在封装时候，还是在使用时候，写的代码都是最简洁的。而且后期如果要直接使用系统样式，也只需要改回类名，其他结构和属性都不用动即可</strong>。</p>
-<p>所以，<strong>即使是你所定义的类只有一个入参，也一定要遵守使用<code>继承父类式封装</code>的设计规范。</strong></p>
-<p>以下以按钮中 textStyle 的传值为例：</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter_baseui_kit/flutter_baseui_kit.dart'</span>;</span><br><span class="line"></span><br><span class="line">				ThemeBGButton(</span><br><span class="line">          <span class="comment">//width: 300, // 不设置会根据内容自适应</span></span><br><span class="line">          <span class="comment">//height: 80, // 不设置会根据内容自适应</span></span><br><span class="line">          bgColorType: ThemeBGType.pink,</span><br><span class="line">          title: <span class="string">'红底白字的按钮'</span>,</span><br><span class="line">          <span class="comment">//titleStyle: ButtonThemeUtil.PingFang_FontSize_Bold(18.0),	// bad</span></span><br><span class="line">          titleStyle: ButtonBoldTextStyle(fontSize: <span class="number">18.0</span>), <span class="comment">// good</span></span><br><span class="line">          cornerRadius: <span class="number">20</span>,</span><br><span class="line">          <span class="comment">//enable: true, // 不设置,默认true</span></span><br><span class="line">          onPressed: () &#123;&#125;,</span><br><span class="line">        ),</span><br></pre></td></tr></table></figure>
-<p>good:</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// medium 的文本样式</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ButtonMediumTextStyle</span> <span class="keyword">extends</span> <span class="title">TextStyle</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">double</span> fontSize;</span><br><span class="line">  <span class="comment">// final Color color;</span></span><br><span class="line"></span><br><span class="line">  ButtonMediumTextStyle(&#123;</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.fontSize,</span><br><span class="line">    <span class="comment">// this.color,</span></span><br><span class="line">  &#125;)  : <span class="keyword">assert</span>(fontSize != <span class="keyword">null</span>),</span><br><span class="line">        <span class="comment">// assert(color != null),</span></span><br><span class="line">        <span class="keyword">super</span>(</span><br><span class="line">          fontFamily: <span class="string">'PingFang SC'</span>,</span><br><span class="line">          fontSize: fontSize,</span><br><span class="line">          fontWeight: FontWeight.w500,</span><br><span class="line">          <span class="comment">// color: color,</span></span><br><span class="line">        );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/组件设计规范/" data-id="cm0b6alel00eyq5r45yruxovk" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/9框架升级/账号管理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/9框架升级/账号管理/" class="article-date">
-  <time datetime="2021-12-04T01:13:32.000Z" itemprop="datePublished">2021-12-04</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/9框架升级/账号管理/">组件的使用</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="账号管理"><a href="#账号管理" class="headerlink" title="账号管理"></a>账号管理</h1><table>
-<thead>
-<tr>
-<th>编号</th>
-<th>场景</th>
-<th>官网</th>
-<th>key/id信息</th>
-<th>注册的账号</th>
-<th>续费时间</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>app发布</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>微信登录</td>
-<td><a href="https://open.weixin.qq.com" target="_blank" rel="noopener">https://open.weixin.qq.com</a></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>Bugly</td>
-<td><a href="https://bugly.qq.com/v2/" target="_blank" rel="noopener">https://bugly.qq.com/v2/</a></td>
-<td>appid<br>iOS:xxx<br>Android:xxx</td>
-<td></td>
-<td>无</td>
-<td>个人账号</td>
-</tr>
-<tr>
-<td>4</td>
-<td>百度地图</td>
-<td><a href="https://lbsyun.baidu.com" target="_blank" rel="noopener">https://lbsyun.baidu.com</a></td>
-<td>iOS：xxx<br>Android：</td>
-<td></td>
-<td>无</td>
-<td>个人账号</td>
-</tr>
-<tr>
-<td>5</td>
-<td>极光一键登录</td>
-<td><a href="https://www.jiguang.cn" target="_blank" rel="noopener">https://www.jiguang.cn</a></td>
-<td>appkey<br></td>
-<td></td>
-<td>无</td>
-<td>公司账号</td>
-</tr>
-<tr>
-<td>6</td>
-<td>xxx</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>7</td>
-<td>xxxx</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>8</td>
-<td>xxxx</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/账号管理/" data-id="cm0b6alet00f1q5r40u4lp9jw" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9框架升级/数据类的使用/" data-id="cm0b6c0mn00ehstr4cexsq4kf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -754,7 +767,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -771,19 +784,19 @@
           </li>
         
           <li>
+            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/">(no title)</a>
           </li>
         
       </ul>

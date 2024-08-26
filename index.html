@@ -133,8 +133,6 @@
 <li><a href="Architecture架构/基础规范/埋点规范">第5节：埋点规范</a></li>
 </ul>
 </li>
-</ul>
-<ul>
 <li>第四章：基础框架设计及接口文档<ul>
 <li><a href="Architecture架构/基础框架设计及接口文档/网络库接口文档">第1节：网络库接口文档</a></li>
 <li><a href="Architecture架构/基础框架设计及接口文档/版本检查">第2节：版本检查</a></li>
@@ -154,8 +152,6 @@
 <li><a href="Architecture架构/通用业务规范/分享业务规范">第2节：分享业务规范</a></li>
 </ul>
 </li>
-</ul>
-<ul>
 <li>第七章：技术选型<ul>
 <li><a href="Architecture架构/技术选型/技术选型流程">第1节：技术选型流程</a></li>
 <li><a href="Architecture架构/技术选型/UI组件选择历程">第2节：UI组件选择历程</a></li>
@@ -525,11 +521,7 @@
 </ul>
 </li>
 <li><a href="实用工具/Nginx">Nginx</a></li>
-<li><p><a href="实用工具/其他小工具/其他小工具">其他小工具</a></p>
-<blockquote>
-<p>截图、录屏、音频转换</p>
-</blockquote>
-</li>
+<li><a href="实用工具/其他小工具/其他小工具">其他小工具</a><br>截图、录屏、音频转换</li>
 </ul>
 <h2 id="代码管理"><a href="#代码管理" class="headerlink" title="代码管理"></a>代码管理</h2><ul>
 <li>Git<ul>
@@ -613,9 +605,1224 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm0b6ajjj000cq5r4ggasd776" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm0b6byqj000astr4bpwazyju" class="article-share-link">Share</a>
       
       
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-安全/网络加密" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/安全/网络加密/" class="article-date">
+  <time datetime="2024-06-07T02:39:52.000Z" itemprop="datePublished">2024-06-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/安全与破解/">安全与破解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="一、对数据加密的概述"><a href="#一、对数据加密的概述" class="headerlink" title="一、对数据加密的概述"></a>一、对数据加密的概述</h2><h3 id="1、安全的数据传输是什么样的"><a href="#1、安全的数据传输是什么样的" class="headerlink" title="1、安全的数据传输是什么样的"></a>1、安全的数据传输是什么样的</h3><p>数据传输：都是使用密文（客户端提供加密的参数，服务端提供加密的结果）。</p>
+<p>【客户端提供加密的参数】：需要在客户端加密后，上传到服务端，并在服务端对其进行解密，以确认传过来的参数。</p>
+<p>【服务端提供加密的结果】：需要在服务端加密后，返回给客户端，并在客户端对其进行解密，以确认传过来的结果。</p>
+<p><img src="/安全/网络加密/数据安全传输(AES).jpg" alt="数据安全传输(AES)" style="zoom:50%;"></p>
+<p>若要了解加密方式可查看下文【<a href="#附1：加密的方式有哪些">附1：加密的方式有哪些</a>】</p>
+<h3 id="2、一端的AESKey怎么【安全的】传给另一端-为什么要对AES的密钥进行RSA公钥加密后传输？？"><a href="#2、一端的AESKey怎么【安全的】传给另一端-为什么要对AES的密钥进行RSA公钥加密后传输？？" class="headerlink" title="2、一端的AESKey怎么【安全的】传给另一端 / 为什么要对AES的密钥进行RSA公钥加密后传输？？"></a>2、一端的AESKey怎么【安全的】传给另一端 / 为什么要对AES的密钥进行RSA公钥加密后传输？？</h3><p>答：为了安全，一端的AESKey必须先加密，然后才能传给另一端，这样才能防止用户从请求中抓取到AESKey。同时另一端需要对传过来的数据进行解密得到AESKey原值，后续两端才能都通过AESkey原值进行两边数据的对称加解密。即<strong>数据加密采用AES，而把AES的加密秘钥用RSA加密。</strong>（附：<strong>为什么AESKey不是使用md5方式加密？答：因为另一端要解密来使用原值。</strong>）。</p>
+<p><strong>问题：为什么要对AES的密钥进行RSA公钥加密后传输？</strong></p>
+<p>AES是对称加密算法，加密和解密的密钥都是同一个，为了防止被别人恶意获取到该密钥，然后对我们的业务请求参数进行解密，我们需要将AES密钥进行非对称加密后再进行传输。</p>
+<h4 id="2-1、密钥来源于客户端（类似Https）"><a href="#2-1、密钥来源于客户端（类似Https）" class="headerlink" title="2.1、密钥来源于客户端（类似Https）"></a>2.1、密钥来源于客户端（类似Https）</h4><p><img src="/安全/网络加密/数据安全传输(Https_AES+RSA).jpg" alt="数据安全传输(AES+RSA)" style="zoom:50%;"></p>
+<p>上图和Https原理有点相像。</p>
+<h5 id="2-1-1、客户端密钥保存的安全问题"><a href="#2-1-1、客户端密钥保存的安全问题" class="headerlink" title="2.1.1、客户端密钥保存的安全问题"></a>2.1.1、客户端密钥保存的安全问题</h5><p>如果密钥是来源于客户端，那如何在客户端安全的保存密钥？请查看下文中的【<a href="#附2：如何在客户端安全的保存密钥AESKey">附2：如何在客户端安全的保存密钥AESKey</a>】</p>
+<h4 id="2-2、密钥来源于服务端（为了密钥能够像版本那样进行控制）"><a href="#2-2、密钥来源于服务端（为了密钥能够像版本那样进行控制）" class="headerlink" title="2.2、密钥来源于服务端（为了密钥能够像版本那样进行控制）"></a>2.2、密钥来源于服务端（为了密钥能够像版本那样进行控制）</h4><p>实际过程中，可能你的AESKey为了能够像版本那样进行控制，可能你的AESKey是由服务端分发的，则其过程可能如下：</p>
+<p><img src="/安全/网络加密/数据安全传输(AES+RSA" alt="数据安全传输(AES+RSA)">.jpg)</p>
+<p>空 ==&gt;  getServicePublicKey ==&gt;  servicePublicKey</p>
+<p>clientPublicKey(使用ServicePublicKey加密)  ==&gt;   sendClientPublicKey  ==&gt;  使用servicePrivateKey解密得到clientPublicKey</p>
+<p>空 ==&gt;   getServiceAESKey ==&gt;   aesKey(使用clientPublicKey加密)</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://juejin.cn/post/7078952957739286542" target="_blank" rel="noopener">前端RSA+AES混合加密</a></li>
+<li><a href="https://juejin.cn/post/7146386827522342948" target="_blank" rel="noopener">客户端与服务端数据加密传输方案</a></li>
+</ul>
+<p>最终网络数据传输，可能就只剩下类似下面一样，只有一个参数和</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">只剩一个参数：</span><br><span class="line">encryptedParametersString: xxxx</span><br><span class="line"></span><br><span class="line">只剩一个返回：</span><br><span class="line">encryptedResultString: yyyy</span><br></pre></td></tr></table></figure>
+<h2 id="二、被破解后，篡改参数值，进行请求攻击，怎么办？（二次加密：签名）"><a href="#二、被破解后，篡改参数值，进行请求攻击，怎么办？（二次加密：签名）" class="headerlink" title="二、被破解后，篡改参数值，进行请求攻击，怎么办？（二次加密：签名）"></a>二、被破解后，篡改参数值，进行请求攻击，怎么办？（二次加密：签名）</h2><p>如果上面的加密过程被破解了，用户就能自己还原原始参数和原始返回值了。这时候如果他篡改参数值进行请求攻击怎么办？</p>
+<h3 id="1、请求参数值被篡改的场景"><a href="#1、请求参数值被篡改的场景" class="headerlink" title="1、请求参数值被篡改的场景"></a>1、请求参数值被篡改的场景</h3><p>购物车多商品结算时候，本需共100美元的商品。在生成订单的时候，携带了所要支付的各个商品的id，以及总费用。结果总费用被篡改成以0.01美元的价格生成了订单Id。而后服务端却没有校验这些商品是不是0.01美元，从而导致平台损失。</p>
+<p>以购物车结算为例，传统的传给服务器的参数一般是如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">goods: [</span><br><span class="line">  &#123;</span><br><span class="line">    id: xxx</span><br><span class="line">    title: </span><br><span class="line">    price: </span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    id: yyy</span><br><span class="line">    title: </span><br><span class="line">    price: </span><br><span class="line">  &#125;</span><br><span class="line">],</span><br><span class="line">totoalPrice: 100</span><br></pre></td></tr></table></figure>
+<p>当用户破解了我们之前的加密算法后，其就能还原原始参数结果，并篡改参数值，然后再利用破解所得的加密算法得到一个新的加密参数如下：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">篡改前所传参数：</span><br><span class="line">encryptedParametersString: xxxx1</span><br><span class="line"></span><br><span class="line">篡改后所传参数：</span><br><span class="line">encryptedParametersString: xxxx2</span><br></pre></td></tr></table></figure>
+<p>之后，如果服务器接收和处理的就是被修改过的值了。</p>
+<p>那这种情况下怎么办法呢？答：再加一层加密算法，即签名。</p>
+<h3 id="2、请求参数值被篡改的解决-防篡改方案"><a href="#2、请求参数值被篡改的解决-防篡改方案" class="headerlink" title="2、请求参数值被篡改的解决/防篡改方案"></a>2、请求参数值被篡改的解决/防篡改方案</h3><p>为了防篡改，通常有以下三个步骤：</p>
+<p>1、我们通过上述原始参数计算得出一个签名值。然后将签名值添加一起传给服务端。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">篡改前所传参数：</span><br><span class="line">encryptedParametersString: xxxx1</span><br><span class="line">signatureValue: xxxx1的签名值</span><br><span class="line">signatureMethod: xxx1的签名方式（如果客户端有md5、sha256等多种加密方式）</span><br><span class="line"></span><br><span class="line">篡改后所传参数：</span><br><span class="line">encryptedParametersString: xxxx2</span><br><span class="line">signatureValue: xxxx1的签名值（用户不知道此签名值的计算方法）</span><br><span class="line">signatureMethod: xxx1的签名方式（如果客户端有md5、sha256等多种加密方式）</span><br></pre></td></tr></table></figure>
+<p>由于用户不知道签名值的计算方法，所以即使其篡改了原原始参数中的部分参数值并生成加密参数，其也仍需要再破解出这个签名值的计算方法，如果其不修改签名值，而是把签名值直接上传到服务端，则服务端会进行以下操作。</p>
+<p>2、然后服务端接收到所传的参数（含签名值）后，也按照和客户端一样的方式对除签名值外的其他参数再计算一遍签名值。</p>
+<p>3、如果所得的签名值和客户端传过来的签名值不一样，则是参数被篡改了，服务端放弃该请求。（注：<strong>为了保证正常情况下计算出的客户端和服务端的签名一样，我们会对请求参数进行字典排序后再签名。</strong>）</p>
+<p>所以，防篡改的解决办法是客户端加签，服务端验签。</p>
+<h4 id="2-1、加签的方法"><a href="#2-1、加签的方法" class="headerlink" title="2.1、加签的方法"></a>2.1、加签的方法</h4><p>对上述的 <code>encryptedParametersString: xxxx1</code> 进行md5、sha256或其他加密算法。</p>
+<h5 id="2-1-1、签名算法的防猜测"><a href="#2-1-1、签名算法的防猜测" class="headerlink" title="2.1.1、签名算法的防猜测"></a>2.1.1、签名算法的防猜测</h5><p>如果签名的加密算法被猜到是用md5进行的签名。则用户可以也跟着对<code>encryptedParametersString: xxxx1</code> 进行md5加密即可得到签名会被服务端认证通过的请求了。那是不是md5不能用呢？如果用怎么用？答：md5加盐，进一步增加破解的难度。</p>
+<p>为什么加盐？<br>避免用户直接使用参数值进行md5加密，发现签名值就是由参数值md5加密而来。所以为了让MD5码更加安全 ，我们现在都采用加盐，盐要越长越乱。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">加盐前：</span><br><span class="line">digest = hash(input)</span><br><span class="line"></span><br><span class="line">加盐后：用户拿参数值直接md5发现和签名值匹配不上，则一般就不会发现是用md5加密了。</span><br><span class="line">digest = hash(salt + input)</span><br></pre></td></tr></table></figure>
+<p>这样加盐后，当用户再拿参数值直接进行md5后，发现和签名值匹配不上，则一般就不会想到算法是用md5加密了。</p>
+<p><strong>这个salt可以看作是一个额外的“认证码”，可以是固定的值，也可以是动态的值，如每个用户自己的userid。</strong></p>
+<p>更多MD5及其加盐可查看下文中的【<a href="#附3：签名 --&gt; md5(加盐">附3：签名 –&gt; md5(加盐)</a>)】</p>
+<h5 id="2-1-2、签名算法关注的内容"><a href="#2-1-2、签名算法关注的内容" class="headerlink" title="2.1.2、签名算法关注的内容"></a>2.1.2、签名算法关注的内容</h5><p>除了请求参数外，签名算法还关注请求的接口和方法，即其一般是对含参数在内、外加其他值（如URL、Method)一起进行签名。</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://cloud.tencent.com/developer/article/1557750" target="_blank" rel="noopener">如何设计一个API签名</a></li>
+<li><a href="https://help.aliyun.com/zh/api-gateway/traditional-api-gateway/user-guide/use-digest-authentication-to-call-an-api" target="_blank" rel="noopener">使用摘要签名认证方式调用API</a></li>
+</ul>
+<h2 id="三、不破解，但进行二次请求-API重放攻击-Replay-Attacks-怎么办？"><a href="#三、不破解，但进行二次请求-API重放攻击-Replay-Attacks-怎么办？" class="headerlink" title="三、不破解，但进行二次请求/API重放攻击(Replay Attacks)怎么办？"></a>三、不破解，但进行二次请求/API重放攻击(Replay Attacks)怎么办？</h2><p>加密后，破解难度增加了，但是如果用户不破解，而是通过API重放攻击你的服务器呢，怎么办？</p>
+<h3 id="1、重放攻击-Replay-Attacks-概述及危害介绍"><a href="#1、重放攻击-Replay-Attacks-概述及危害介绍" class="headerlink" title="1、重放攻击(Replay Attacks)概述及危害介绍"></a>1、重放攻击(Replay Attacks)概述及危害介绍</h3><p>API重放攻击(Replay Attacks)又称为重播攻击、回放攻击。它的原理就是把之前窃听到的数据原封不动的重新发送给接收方。</p>
+<h4 id="1-1、即使有幂等性情况下，重放请求的危害"><a href="#1-1、即使有幂等性情况下，重放请求的危害" class="headerlink" title="1.1、即使有幂等性情况下，重放请求的危害"></a>1.1、即使有幂等性情况下，重放请求的危害</h4><p>追问：服务端不是应该有做幂等性了吗，为什么还需要处理防重放问题？</p>
+<p>答：虽然如果一个系统操作是幂等的，即使攻击者重放了一个请求，系统也不会因为重复执行而产生不同的结果或状态。在一定程度上可以减少重放攻击的潜在损害（例如，一个幂等的HTTP GET请求，无论请求多少次，服务器都会返回相同的结果，而不会对服务器的状态产生影响）。但是即使请求本身是幂等的，也需要<strong>防止恶意用户发送大量重放请求来耗尽系统资源</strong>，从而实现拒绝服务攻击（DoS）。</p>
+<p>若要了解幂等性知识，可查看</p>
+<ul>
+<li><a href="https://developer.aliyun.com/article/812075" target="_blank" rel="noopener">接口的幂等性设计和防重保证，详细分析幂等性的几种实现方法</a></li>
+<li><a href="https://blog.csdn.net/XinTeng2012/article/details/121093535" target="_blank" rel="noopener">幂等性问题的思考和总结，防重、幂等，常用解决方案，解决方式</a></li>
+</ul>
+<h4 id="1-2、没有幂等性情况下，重放请求的危害"><a href="#1-2、没有幂等性情况下，重放请求的危害" class="headerlink" title="1.2、没有幂等性情况下，重放请求的危害"></a>1.2、没有幂等性情况下，重放请求的危害</h4><p>如果服务端没有幂等性，则假设有一个在线投票系统，用于选举或表决，每个用户只能投票一次。那么攻击者可能会尝试重放投票请求，进行<strong>重复投票</strong>，以增加他们支持的候选人或选项的票数。</p>
+<h3 id="2、重放攻击-Replay-Attacks-的解决方案"><a href="#2、重放攻击-Replay-Attacks-的解决方案" class="headerlink" title="2、重放攻击(Replay Attacks)的解决方案"></a>2、重放攻击(Replay Attacks)的解决方案</h3><p><strong>防止重放攻击必须要保证请求仅一次有效</strong>。需要通过在请求体中携带当前请求的唯一标识，并且进行签名防止被篡改。所以，防止重放攻击需要建立在添加签名且防止签名被篡改的基础之上。</p>
+<h4 id="2-1、措施一：添加请求的时效性参数-Timestamp"><a href="#2-1、措施一：添加请求的时效性参数-Timestamp" class="headerlink" title="2.1、措施一：添加请求的时效性参数 Timestamp"></a>2.1、措施一：添加请求的时效性参数 Timestamp</h4><p>即某个请求，其请求时间戳<strong>Timestamp</strong>，和服务端的当前时间在规定时间内（如1分钟内）则为合法请求，反之，则视为无效请求。</p>
+<p>服务端时间戳的获取时机和服务端的RSA公钥一致，你可理解为网络库的初始化阶段（虽然这是真正初始化之后的请求的”二次初始化”）。</p>
+<p><img src="/安全/网络加密/image-20240723215212915.png" alt="image-20240723215212915" style="zoom:50%;"></p>
+<p>客户端与服务端的时间戳差值 diff = 服务器返回的时间戳 - 客户端请求结束的时间戳</p>
+<p>校准服务端后的客户端的时间戳 = 当前客户端时间戳 + 客户端与服务端的时间戳差值 diff</p>
+<h4 id="2-2、措施二：添加一个唯一的随机数Nonce"><a href="#2-2、措施二：添加一个唯一的随机数Nonce" class="headerlink" title="2.2、措施二：添加一个唯一的随机数Nonce"></a>2.2、措施二：添加一个唯一的随机数Nonce</h4><h5 id="2-2-1、Nonce的核心思路："><a href="#2-2-1、Nonce的核心思路：" class="headerlink" title="2.2.1、Nonce的核心思路："></a>2.2.1、Nonce的核心思路：</h5><p>调用者每次调用时：</p>
+<p>​        A：调用者生成并带上一个随机数<strong>Nonce</strong>（可以考虑用用户id+当前时间戳+接口url）</p>
+<p>​        B：服务端该随机数是否已出现，有则拒绝，无则存储该随机数并放过请求。</p>
+<p>则请求参数变为如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">未加 timestamp 和 nonce 前：</span><br><span class="line">encryptedParametersString: xxxx1</span><br><span class="line">signatureValue: xxxx1的签名值</span><br><span class="line">signatureMethod: xxx1的签名方式（如果客户端有md5、sha256等多种加密方式）</span><br><span class="line"></span><br><span class="line">加了 timestamp 和 nonce 后：</span><br><span class="line">encryptedParametersString: xxxx1</span><br><span class="line">signatureValue: xxxx1的签名值,📢：要把timestamp和nonce也包括进去，避免它们被篡改</span><br><span class="line">signatureMethod: xxx1的签名方式（如果客户端有md5、sha256等多种加密方式）</span><br><span class="line">nonce: xxx1的nonce</span><br><span class="line">timestamp: xxx1的timestamp</span><br></pre></td></tr></table></figure>
+<p>这里注意：计算xxxx1的<strong>签名值要把timestamp和nonce也包括进去，避免它们被篡改。</strong></p>
+<h5 id="2-2、Nonce的优化思路："><a href="#2-2、Nonce的优化思路：" class="headerlink" title="2.2、Nonce的优化思路："></a>2.2、Nonce的优化思路：</h5><p>这里服务端要保证Nonce唯一，就得存储已经用过的Nonce，但长期保持会带来两个问题</p>
+<p>​        （1）存储成本增加，日积月累，这里要存储的Nonce会越来越多，需要的存储空间就越大</p>
+<p>​        （2）碰撞概率增加，正常服务被拒绝概率增大；这里随着生成Nonce值越来越多，碰撞的概率一定越来越大，若通过增加Nonce值的长度，有增加存储成本。</p>
+<p>​         那么，另一个可行的办法，就是调用者每次请求时带上当前请求时间点Timestamp，然后由服务端限制请求的时效性。   </p>
+<p>​         如此，上面提到的Nonce值存储成本可能比较大的问题，在结合Timestamp后，可大大降低存储成本，如Timestamp=1min，则仅需存储1min内的请求Nonce值即可，大大减少存储的量级。</p>
+<p>至此，客户端发送的参数为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">encryptedParametersString: xxxx1</span><br><span class="line">signatureValue: xxxx1的签名值,📢：要把timestamp和nonce也包括进去，避免它们被篡改</span><br><span class="line">signatureMethod: xxx1的签名方式（如果客户端有md5、sha256等多种加密方式）</span><br><span class="line">nonce: xxx1的nonce</span><br><span class="line">timestamp: xxx1的timestamp</span><br></pre></td></tr></table></figure>
+<h3 id="3、扩展：客户端自己如何防止接口重复请求？"><a href="#3、扩展：客户端自己如何防止接口重复请求？" class="headerlink" title="3、扩展：客户端自己如何防止接口重复请求？"></a>3、扩展：客户端自己如何防止接口重复请求？</h3><p>1、界面添加 loading</p>
+<p>2、进行节流（最后执行）和防抖（立即执行）中的防抖。</p>
+<p>3、请求队列：类似SDWebImage加载相同地址的图片。</p>
+<p>如果重复请求的话，客户端的优化：</p>
+<p>1、缓存</p>
+<p>其他可参考：<a href="https://juejin.cn/post/7377208894551261193" target="_blank" rel="noopener">功能问题：如何防止接口重复请求？</a></p>
+<hr>
+<p>## </p>
+<p><a name="附1：加密的方式有哪些"></a></p>
+<h2 id="附1：加密的方式有哪些"><a href="#附1：加密的方式有哪些" class="headerlink" title="附1：加密的方式有哪些"></a>附1：加密的方式有哪些</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>对称加密</th>
+<th>非对称加密</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>概念</td>
+<td>加密密钥和解密密钥相同</td>
+<td>加密密钥和解密密钥不相同</td>
+</tr>
+<tr>
+<td>算法</td>
+<td>DES、AES、RC2、RC4、RC5 等</td>
+<td>RSA、ECC 等</td>
+</tr>
+<tr>
+<td>缺点</td>
+<td>速度快，安全性低。使用<code>同一个密钥</code>，如果一方密钥泄露，数据就不安全了</td>
+<td>非对称加密的安全性更高，但加密速度较慢。</td>
+</tr>
+</tbody>
+</table>
+<p>注意：非对称加密的安全性更高，但加密速度较慢。一般我们在项目中采用的是 <strong>”结合对称和非对称加密，数据加密采用AES，而把AES的加密秘钥用RSA加密，这样兼顾速度及安全性“</strong>。<a href="https://juejin.cn/post/7002058547395559438" target="_blank" rel="noopener">https://juejin.cn/post/7002058547395559438</a></p>
+<h3 id="1-1、对称加密"><a href="#1-1、对称加密" class="headerlink" title="1.1、对称加密"></a>1.1、对称加密</h3><p><img src="/安全/网络加密/image-20240704140036415.png" alt="image-20240704140036415" style="zoom: 33%;"></p>
+<p>1、李雷想要给韩梅梅发送消息，他们约定使用对称加密的方式把消息进行加密</p>
+<p>2、李雷用密钥把消息加密然后发送给韩梅梅</p>
+<p>3、韩梅梅用同一个密钥解密，然后看到李雷发送给自己的消息</p>
+<h3 id="1-2、非对称加密"><a href="#1-2、非对称加密" class="headerlink" title="1.2、非对称加密"></a>1.2、非对称加密</h3><p><img src="/安全/网络加密/image-20240704140223911.png" alt="image-20240704140223911" style="zoom: 33%;"></p>
+<p>1、李雷想要给韩梅梅发送消息，他们约定使用非对称加密的方式把消息进行加密</p>
+<p>2、李雷首先要得到韩梅梅的公钥</p>
+<p>2、李雷用韩梅梅的公钥把消息加密然后发送给韩梅梅</p>
+<p>3、韩梅梅用自己的私钥解密，然后看到李雷发送给自己的消息</p>
+<p>韩梅梅给李雷发送消息同理。</p>
+<p><a name="附2：如何在客户端安全的保存密钥AESKey"></a></p>
+<h2 id="附2：如何在客户端安全的保存密钥AESKey"><a href="#附2：如何在客户端安全的保存密钥AESKey" class="headerlink" title="附2：如何在客户端安全的保存密钥AESKey"></a>附2：如何在客户端安全的保存密钥AESKey</h2><p>如果密钥是来源于客户端，那如何在客户端安全的保存密钥？</p>
+<h3 id="1、密钥在代码上-内部"><a href="#1、密钥在代码上-内部" class="headerlink" title="1、密钥在代码上(内部)"></a>1、密钥在代码上(内部)</h3><h4 id="1-1、存放密码的常见的代码"><a href="#1-1、存放密码的常见的代码" class="headerlink" title="1.1、存放密码的常见的代码"></a>1.1、存放密码的常见的代码</h4><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#define kSecret <span class="meta-string">"abcd1234"</span></span></span><br><span class="line"></span><br><span class="line"> <span class="comment">// 或者</span></span><br><span class="line"> <span class="keyword">const</span> <span class="keyword">char</span>* kSecret = <span class="string">"abcd1234"</span>;</span><br></pre></td></tr></table></figure>
+<p>这是非常危险的，因为常量会被直接编译到可执行文件的data段，只要对生成的可执行文件使用<code>strings</code>、<code>otool</code>等命令就可以dump出原始字符串。</p>
+<h4 id="1-2、对密码加加密"><a href="#1-2、对密码加加密" class="headerlink" title="1.2、对密码加加密"></a>1.2、对密码加加密</h4><p>仍然存</p>
+<p>1、类的代码层面</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 方法1：密码在可执行文件的data段，且是明文</span></span><br><span class="line"><span class="meta">#define kSecret <span class="meta-string">"abcd1234"</span></span></span><br><span class="line"><span class="keyword">void</span> getSecret &#123;</span><br><span class="line">	<span class="keyword">return</span> kSecret</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法2：密码在可执行文件的data段，虽是明文，但取到的值要再经过一层你自己知道的方法解密</span></span><br><span class="line"><span class="meta">#define kSecret <span class="meta-string">"\x7e\x77\x64\x3c\xa7\xd4\x6d\x46\x29\x8b\xe3\x23\x9f\x1a\x5c\xdb"</span>;  // 使用aes加密后的</span></span><br><span class="line"><span class="meta">#define kAESKey	<span class="meta-string">"abcdefgh12345678"</span>;</span></span><br><span class="line"><span class="keyword">char</span>* getSecret() &#123;</span><br><span class="line">	<span class="keyword">return</span> decryptSecretByAESKey(kSecret, kAESKey);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 方法2的优化：内部代码使用额外包在宏(kAppSecret)上，由于宏没有明确的入口，使得静态分析相比直接调用函数形式的getSecret更加不容易被破解。</span></span><br><span class="line"><span class="meta">#define kAppSecret                                          \</span></span><br><span class="line">(&#123;                                                          \</span><br><span class="line">    <span class="keyword">char</span>* buf = decryptSecretByAESKey(kSecret, kAESKey);		\</span><br><span class="line">    [<span class="built_in">NSString</span> stringWithUTF8String:buf];					    			\</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>附：<strong><a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/" target="_blank" rel="noopener">宏定义的两个技巧：</a></strong></p>
+<blockquote>
+<ul>
+<li>带返回值的宏</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&gt; #define SOME_MACRO \ </span><br><span class="line">&gt; (&#123;                 \</span><br><span class="line">&gt; 	expression;      \</span><br><span class="line">&gt; &#125;)</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>最后一个表达式的值就是宏的返回值，使用时更像函数的返回值。</p>
+<ul>
+<li>局部标签</li>
+</ul>
+<p>局部标签用<code>__label__</code>定义。如果标签<code>end</code>没有<code>__label__</code>修饰，在同一个函数中多次使用<code>kAppSecret</code>将产生编译错误，因为宏展开后相当于定义了多个<code>end</code>标签，标签重复定义。</p>
+</blockquote>
+<p>2、类本身（可包含类中的函数名）</p>
+<p>因为objc代码的动态性，编译器会在binary中留下类名、函数名等信息，这些信息是可以被<code>class-dump-z</code>等工具提取的，友好的命名让程序猿更方便，但同时也方便了破解者。对安全相关的重要模块类，可以故意混淆类名，让人不容易轻易联想到该的真实目的。</p>
+<p>PS、更多混淆知识可看我写的另一篇文章：<a href="https://www.jianshu.com/p/ccfe5623483d" target="_blank" rel="noopener">iOS APP安全加固方案(一、代码混淆CodeObfuscation)</a></p>
+<h3 id="2、密钥保存在外部"><a href="#2、密钥保存在外部" class="headerlink" title="2、密钥保存在外部"></a>2、密钥保存在外部</h3><h4 id="2-1、密钥保存在Keychain"><a href="#2-1、密钥保存在Keychain" class="headerlink" title="2.1、密钥保存在Keychain"></a>2.1、密钥保存在Keychain</h4><p>密钥保存在Keychain并不安全，iOS越狱后可以导出Keychain的内容。应该尽量避免存放重要信息(如：token、用户名、密码等)在Keychain中，即使要存放，也一定要加密后存放。参考：<a href="http://blog.csdn.net/yiyaaixuexi/article/details/18404343" target="_blank" rel="noopener">iOS安全攻防（九）：使用Keychain-Dumper导出keychain数据</a></p>
+<h4 id="2-2、密钥保存在文件"><a href="#2-2、密钥保存在文件" class="headerlink" title="2.2、密钥保存在文件"></a>2.2、密钥保存在文件</h4><p>保存在app bundle、plist等配置文件更不安全，但可以使用隐写术等方式迷惑hackers。</p>
+<blockquote>
+<p><strong>*Xcode打包时会对png图片做特殊处理，如果将密码携带在png中，可能会在使用的时候无法复原。</strong>当然现在的隐写术非常多，不只是图片能作为载体，视频、音乐等文件都可以，隐写的方法也多种多样，选择适合自己的就行，据说基地组织就是通过岛国电影传递信息的。*</p>
+</blockquote>
+<h5 id="2-2-1、隐写术"><a href="#2-2-1、隐写术" class="headerlink" title="2.2.1、隐写术"></a>2.2.1、隐写术</h5><ul>
+<li><a href="https://blog.csdn.net/wpgdream/article/details/126497352" target="_blank" rel="noopener">隐写术，图片中隐藏的秘密！</a></li>
+</ul>
+<p>本节点【如何防止客户端被破解/密钥的保护】部分内容摘自/参考：<a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/" target="_blank" rel="noopener">如何防止客户端被破解</a></p>
+<p><a name="附3：签名 --> md5(加盐)"></a></p>
+<h2 id="附3：签名-–-gt-md5-加盐"><a href="#附3：签名-–-gt-md5-加盐" class="headerlink" title="附3：签名 –&gt; md5(加盐)"></a>附3：签名 –&gt; md5(加盐)</h2><p>Mac：在终端上实现将abcd1234进行MD5（Message Digest algorithm 5 ,信息摘要算法）加密。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">echo -n 'abcd1234' | md5</span><br><span class="line"></span><br><span class="line">得到结果：e19d5cd5af0378da05f63f891c7467af</span><br></pre></td></tr></table></figure>
+<p>使用MD5就是将一串字符串通过某特定的算法来将其变成另一种形式，这样子就在外观上起到了加密的效果，但是由于背后的算法是固定的，所以每一个字符串都有固定的MD5格式。（反过来，一个hash值是否只能是一个值才可能？答：不是）</p>
+<p>因为<strong>每一个字符串就只有一种特定的MD5格式</strong>，所以md5的破解（从c=hash(m)逆向得到原始明文m）容易想到的方式有：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>优缺点</th>
+<th>推荐程度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暴力破解法</td>
+<td>时间成本太高</td>
+<td>⭐️</td>
+</tr>
+<tr>
+<td>字典法</td>
+<td>提前构建一个“明文-&gt;密文”对应关系的一个大型数据库，破解时通过密文直接反查明文。但存储一个这样的数据库，空间成本是惊人的</td>
+<td>⭐️⭐️⭐️</td>
+</tr>
+<tr>
+<td>构建彩虹表</td>
+<td>在字典法的基础上改进，以时间换空间。是现在破解哈希常用的办法。<br>彩虹表：彩虹表记录了几乎所有字符串的MD5对照表。</td>
+<td>⭐️⭐️⭐️⭐️⭐️</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><a href="https://www.cmd5.com/" target="_blank" rel="noopener">md5在线解密网站</a></strong></p>
+<p><img src="/安全/网络加密/image-20240722183855871.png" alt="image-20240722183855871" style="zoom:50%;"></p>
+</blockquote>
+<p>因为已经有了类似彩虹表的破解方法，所以如果不<strong>‘加盐’</strong>，则当用户知道是 e19d5cd5af0378da05f63f891c7467af 时候，就很容易知道原值是 ‘abcd1234’了。</p>
+<p>所以Md5加密方式的进化之路小结：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>密码存储的种方式</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>直接存储密码明文m</td>
+<td>明文存储，无安全性可言。</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>存储密码明文的哈希值hash(m)</td>
+<td>虽然是入侵者得到的是hash值，但由于<strong>彩虹表</strong>的存在，也很容易批量还原出密码明文来。</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>存储密码明文的加盐哈希 hash(m+salt)。<br><strong>这里的salt可以是用户名，手机号等</strong>，但必须保证每个用户的salt都不一样才是安全的。</td>
+<td>相对前两种安全</td>
+</tr>
+</tbody>
+</table>
+<h2 id="网路本身的安全"><a href="#网路本身的安全" class="headerlink" title="网路本身的安全"></a>网路本身的安全</h2><p><strong>HTTPS是应用层的安全协议。TCP是传输层的协议，但是它不安全，因为它是明文传输的，所以SSL的诞生就是给TCP加了一层保险，使HTTPS和TCP之间使用加密传输。而TLS只是SSL的升级版，他们的作用是一样的。</strong></p>
+<p>以下内容摘自<a href="https://www.sohu.com/a/251746171_216613" target="_blank" rel="noopener">HTTPS、SSL/TLS、TCP之间错综复杂的情感纠葛 </a></p>
+<blockquote>
+<p>SSL(Secure Sockets Layer) 安全套接层：为网络通信提供安全及数据完整性的一种安全协议。</p>
+<p>TLS(Transport Layer Security）安全传输层协议：用于在两个通信应用程序之间提供保密性和数据完整性。该协议由两层组成： TLS 记录协议（TLS Record）和 TLS 握手协议（TLS Handshake），是更新、更安全的SSL版本。</p>
+</blockquote>
+<p>SSL/TLS协议的基本思路是采用公钥加密法，也就是说，客户端先向服务器端索要公钥，然后用公钥加密信息，服务器收到密文后，用自己的私钥解密。<strong>==&gt; 类似 RSA</strong></p>
+<p>但是，这里有两个问题。</p>
+<p>（1）如何保证公钥不被篡改？</p>
+<p>解决方法：将公钥放在数字证书中。只要证书是可信的，公钥就是可信的。</p>
+<p>（2）公钥加密计算量太大，如何减少耗用的时间？</p>
+<p>解决方法：每一次对话（session），客户端和服务器端都生成一个”对话密钥”（session key），用它来加密信息。由于”对话密钥”是对称加密，所以运算速度非常快，而服务器公钥只用于加密”对话密钥”本身，这样就减少了加密运算的消耗时间。 <strong>==&gt; 类似 AES</strong></p>
+<p>HTTPS（超文本传输安全协议）是建立在HTTP（超文本传输协议）之上，通过SSL/TLS（安全套接字层/传输层安全协议）进行加密的安全协议。在HTTPS的握手过程中，SSL/TLS握手会先于HTTP握手发生。以下是HTTPS连接建立的基本步骤：</p>
+<ol>
+<li><strong>TCP握手</strong>：客户端首先通过TCP（传输控制协议）与服务器建立一个普通的连接。这个过程包括三次握手，确保双方都准备好进行数据传输。</li>
+<li><strong>SSL/TLS握手</strong>：一旦TCP连接建立，SSL/TLS握手就开始了。这个过程包括：<ul>
+<li>客户端发送一个“hello”消息给服务器，请求建立一个安全的连接。</li>
+<li>服务器响应自己的“hello”消息，并发送其证书（包含公钥）给客户端。</li>
+<li><strong>客户端验证服务器的证书</strong>，如果证书有效，客户端会生成一个随机数（用于会话加密），并使用服务器的公钥加密这个随机数，然后发送给服务器。（<a href="https://juejin.cn/post/6844903564960088071" target="_blank" rel="noopener">使用 AFNetworking 时怎么进行证书认证：AFSSLPinningModeNone(Default)：客户端自己不会对服务端证书进行自主校验，而是直接默认信任</a>)</li>
+<li>服务器使用自己的私钥解密这个随机数，然后使用这个随机数来加密接下来的通信。</li>
+</ul>
+</li>
+<li><strong>应用层协议</strong>：一旦SSL/TLS握手完成，客户端和服务器就可以使用这个安全的连接来传输加密的数据。这时，HTTP请求和响应就会在SSL/TLS层之上进行传输。</li>
+</ol>
+<p>因此，HTTPS的连接建立过程中，是先进行TCP握手，然后进行SSL/TLS握手，最后才开始HTTP通信。</p>
+<h2 id="其他参考文章"><a href="#其他参考文章" class="headerlink" title="其他参考文章"></a>其他参考文章</h2><ul>
+<li><p><a href="https://www.cnblogs.com/xingxia/p/api_security.html" target="_blank" rel="noopener">API接口之安全篇(含https原理图解)</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/HO1_K/article/details/109285565" target="_blank" rel="noopener">Java API加密 从sign签名验证到RSA、AES数据加密的实际应用</a></p>
+</li>
+<li><p><a href="https://cloud.tencent.com/developer/article/1557750" target="_blank" rel="noopener">如何设计一个API签名</a></p>
+</li>
+</ul>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm0b6bz5p003istr41dbj7qu8" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全/">安全</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/监控相关/日志系统" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/监控相关/日志系统/" class="article-date">
+  <time datetime="2024-05-31T09:08:41.000Z" itemprop="datePublished">2024-05-31</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="前言：主要事项"><a href="#前言：主要事项" class="headerlink" title="前言：主要事项"></a>前言：主要事项</h2><p>1、异常数据的发现及补充、日志分类优化<br>2、日志数据的文件保存、滚动存储<br>3、日志文件上传<br>4、日志回捞</p>
+<h2 id="一、日志收集"><a href="#一、日志收集" class="headerlink" title="一、日志收集"></a>一、日志收集</h2><h3 id="1、日志分类"><a href="#1、日志分类" class="headerlink" title="1、日志分类"></a>1、日志分类</h3><h4 id="1-1、日志目标"><a href="#1-1、日志目标" class="headerlink" title="1.1、日志目标"></a>1.1、日志目标</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>目标(Target)</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>app</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>sdk</td>
+<td>三方库</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>h5</td>
+<td>网页</td>
+</tr>
+</tbody>
+</table>
+<p><a name="日志类型"></a></p>
+<h4 id="1-2、日志类型"><a href="#1-2、日志类型" class="headerlink" title="1.2、日志类型"></a>1.2、日志类型</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>类型</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>api_app</td>
+<td>app中的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>api_app_cache</td>
+<td>app中的网络请求的网络缓存请求</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>api_buriedPoint</td>
+<td>埋点的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>sdk_other</td>
+<td>sdk的各种事件(初始化等)</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>sdk_api</td>
+<td>sdk中的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>dart</td>
+<td>语法</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>widget</td>
+<td>视图(布局像素越界等)</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>click_other</td>
+<td>点击、</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>click_share</td>
+<td>分享</td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>native_route</td>
+<td>路由/跳转</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>h5_route</td>
+<td>与网页跳转有关</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>h5_js</td>
+<td>js交互</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>monitor_network</td>
+<td>监控：网络类型变化</td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>monitor_lifecycle</td>
+<td>监控：生命周期变化</td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>buriedPoint_other</td>
+<td>埋点数据生成等</td>
+<td></td>
+</tr>
+<tr>
+<td>16</td>
+<td>im</td>
+<td>IM</td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>heartbeat</td>
+<td>心跳</td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td>other</td>
+<td>其他</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、日志等级"><a href="#2、日志等级" class="headerlink" title="2、日志等级"></a>2、日志等级</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>目标(Level)</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Normal</td>
+<td>正常信息(目前用于请求开始)</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Success</td>
+<td>成功信息(目前用于请求结束：成功)</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Warning</td>
+<td>警告信息(目前用于请求结束：报错)</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Error</td>
+<td>错误日志(目前用于请求结束：失败)</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Dangerous</td>
+<td>危险(处理白屏等)</td>
+<td>一般会<strong>进行额外的埋点</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a name="日志整合归类"></a></p>
+<h3 id="3、日志整合归类"><a href="#3、日志整合归类" class="headerlink" title="3、日志整合归类"></a>3、日志整合归类</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>列表</th>
+<th>标志</th>
+<th>包含</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>全部</td>
+<td>all</td>
+<td>所有</td>
+</tr>
+<tr>
+<td>2</td>
+<td>警告</td>
+<td>warning</td>
+<td>所有的警告</td>
+</tr>
+<tr>
+<td>3</td>
+<td>错误</td>
+<td>error</td>
+<td>所有的错误</td>
+</tr>
+<tr>
+<td>4</td>
+<td>接口</td>
+<td>api</td>
+<td>api_app、api_cache(不包括sdk_api、api_buriedPoint)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>点击</td>
+<td>click</td>
+<td>click_share、click_other、h5_js</td>
+</tr>
+<tr>
+<td>6</td>
+<td>路由</td>
+<td>route</td>
+<td>navite_route、h5_route</td>
+</tr>
+<tr>
+<td>7</td>
+<td>网页</td>
+<td>H5</td>
+<td>h5_route、h5_js</td>
+</tr>
+<tr>
+<td>8</td>
+<td>sdk</td>
+<td>sdk</td>
+<td>sdk_api、sdk_other</td>
+</tr>
+<tr>
+<td>9</td>
+<td>code</td>
+<td>code</td>
+<td>dart、widget</td>
+</tr>
+<tr>
+<td>10</td>
+<td>埋点</td>
+<td>buriedPoint</td>
+<td>api_buriedPoint、buriedPoint_other</td>
+</tr>
+<tr>
+<td>11</td>
+<td>监控</td>
+<td>monitor</td>
+<td>monitor_lifecycle、monitor_network</td>
+</tr>
+<tr>
+<td>12</td>
+<td>其他</td>
+<td>other</td>
+<td>other</td>
+</tr>
+<tr>
+<td>13</td>
+<td>api结果</td>
+<td>api_result</td>
+<td>type=api_app &amp; level != Normal</td>
+</tr>
+<tr>
+<td>14</td>
+<td>im</td>
+<td>im</td>
+<td>本地缓存消息、历史消息、收到的消息等</td>
+</tr>
+<tr>
+<td>15</td>
+<td>心跳</td>
+<td>heartbeat</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/Architecture架构/监控相关/日志系统/devtool_log_home_page.gif" alt="devtool_log_home_page" style="zoom:50%;"></p>
+<h3 id="4、日志的补充收集及其策略"><a href="#4、日志的补充收集及其策略" class="headerlink" title="4、日志的补充收集及其策略"></a>4、日志的补充收集及其策略</h3><p>要收集的数据已在上述《<a href="#日志类型">1.2、日志类型</a>》中说明。</p>
+<h4 id="4-1、页面跳转"><a href="#4-1、页面跳转" class="headerlink" title="4.1、页面跳转"></a>4.1、页面跳转</h4><p>详见上述 《<a href="#日志整合归类">3、日志整合归类</a>》中的”路由”</p>
+<h4 id="4-2、截断的收集"><a href="#4-2、截断的收集" class="headerlink" title="4.2、截断的收集"></a>4.2、截断的收集</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>关键字</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>break</td>
+<td>for 、 swtich</td>
+</tr>
+<tr>
+<td>2</td>
+<td>return</td>
+</tr>
+</tbody>
+</table>
+<h4 id="4-3、用户关键行为"><a href="#4-3、用户关键行为" class="headerlink" title="4.3、用户关键行为"></a>4.3、用户关键行为</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>行为</th>
+<th>用途的场景说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>用户的资源选择</td>
+<td>判断选择的本地资源是否上传到错误的存储桶</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二、日志数据的文件保存、滚动存储"><a href="#二、日志数据的文件保存、滚动存储" class="headerlink" title="二、日志数据的文件保存、滚动存储"></a>二、日志数据的文件保存、滚动存储</h2><h3 id="1、数据的文件保存"><a href="#1、数据的文件保存" class="headerlink" title="1、数据的文件保存"></a>1、数据的文件保存</h3><p>写入xlog文件中。</p>
+<h3 id="2、数据的文件滚动存储"><a href="#2、数据的文件滚动存储" class="headerlink" title="2、数据的文件滚动存储"></a>2、数据的文件滚动存储</h3><h4 id="2-1、日志的过期清理"><a href="#2-1、日志的过期清理" class="headerlink" title="2.1、日志的过期清理"></a>2.1、日志的过期清理</h4><p>1、本地日志文件结构</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-- Document</span><br><span class="line">	-- log</span><br><span class="line">		-- 2020-10-01</span><br><span class="line">			-- xlog_2020-10-01_1.xlog</span><br><span class="line">			-- xlog_2020-10-01_2.xlog</span><br><span class="line">		-- 2020-10-18</span><br><span class="line">			-- xlog_2020-10-18_1.xlog</span><br></pre></td></tr></table></figure>
+<p>2、日志保留清理的配置信息(摘自/同 下文的日志接口中的《日志文件配置信息》)</p>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>最多保留几个天的日志目录</td>
+<td>maxDayDirCount</td>
+<td>7</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>最多每天保留几个文件</td>
+<td>maxDayFileCount</td>
+<td>10</td>
+</tr>
+<tr>
+<td>接口回值3</td>
+<td>每个日志文件超过多少后创建新文件</td>
+<td>perFileMaxMB</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>3、清理方案</p>
+<p><strong>清理时机：在切换前后台的时候，</strong></p>
+<ul>
+<li>日志配置信息的更新</li>
+<li>根据最新的日志配置信息，延迟10s后(避免影响启动)，进行清理判断及清理<ul>
+<li>遍历总日志目录 Document/log 下的所有日志文件夹</li>
+<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志<ul>
+<li>遍历天日志目录 Document/log/yyyy-MM-dd 下的所有日志文件夹</li>
+<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-2、日志文件的滚动写入"><a href="#2-2、日志文件的滚动写入" class="headerlink" title="2.2、日志文件的滚动写入"></a>2.2、日志文件的滚动写入</h4><p>要增加的日志记录，如果添加后会超过日志文件的大小，则使用新文件写入。</p>
+<p><strong>细节点</strong>：<br>1、日志文件的大小判断，不要每次都去读取文件，而是记录住大小变化<br>2、日志不要有一条写一条，而是使用写入缓冲区+定时器，5s尝试写入一次</p>
+<h3 id="3、数据的加密、解密"><a href="#3、数据的加密、解密" class="headerlink" title="3、数据的加密、解密"></a>3、数据的加密、解密</h3><p>1、加密：</p>
+<p>写入日志字符串时候，对编码后的字节数据，额外增加一个三位随机值。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// 使用 GZip 压缩算法将字符串进行压缩，并返回压缩后的字节数据（List&lt;int&gt; 类型）。</span></span><br><span class="line"><span class="built_in">List</span>&lt;<span class="built_in">int</span>&gt; _gzipCompressString(<span class="built_in">String</span> inputString) &#123;</span><br><span class="line">  <span class="keyword">final</span> codec = GZipCodec();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 将输入字符串 inputString 编码为 UTF-8 格式的字节数据</span></span><br><span class="line">  <span class="keyword">final</span> encoded = utf8.encode(inputString);</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 对编码后的字节数据进行压缩，并返回压缩后的字节数据。</span></span><br><span class="line">  <span class="keyword">final</span> compressedData = codec.encode(encoded);</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">return</span> compressedData;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// 加密日志字符串</span></span><br><span class="line"><span class="built_in">String</span> _encryptLogString(<span class="built_in">String</span> logString) &#123;</span><br><span class="line">  <span class="keyword">final</span> compressedData = _gzipCompressString(logString); <span class="comment">// 压缩字符串，并返回压缩后的字节数据（List&lt;int&gt; 类型）</span></span><br><span class="line">  <span class="keyword">final</span> randomNumber = Random().nextInt(<span class="number">800</span>) + <span class="number">100</span>;</span><br><span class="line">  <span class="keyword">final</span> confound = compressedData.toString().substring(<span class="number">0</span>, compressedData.toString().length - <span class="number">1</span>) + <span class="string">", <span class="subst">$randomNumber</span>]"</span>; <span class="comment">// 在压缩后的字符串尾部加上一个随机字符串</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> confound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>2、解密：</p>
+<p>使用python脚本对log文件进行解密</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> gzip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 读取.clog文件并解析数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parse_clog_file</span><span class="params">(input_file)</span>:</span></span><br><span class="line">    parsed_data = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(input_file, <span class="string">'r'</span>) <span class="keyword">as</span> clog_file:</span><br><span class="line">        current_data = <span class="string">""</span></span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> clog_file:</span><br><span class="line">            <span class="keyword">if</span> current_data:</span><br><span class="line">                parsed_data.append(current_data)</span><br><span class="line">            binary_data = line[:<span class="number">-6</span>] + <span class="string">']'</span> <span class="comment"># 去除加密时候额外添加的三位随机数</span></span><br><span class="line">            byte_data = bytes(eval(binary_data))</span><br><span class="line">            decompressed_data = gzip.decompress(byte_data)</span><br><span class="line">            <span class="comment"># current_data = byte_data.decode('utf-8')</span></span><br><span class="line">            print(decompressed_data)</span><br><span class="line">            current_data = decompressed_data.decode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 添加最后一个数据条目</span></span><br><span class="line">        <span class="keyword">if</span> current_data:</span><br><span class="line">            parsed_data.append(current_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> parsed_data</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">write_to_log_file</span><span class="params">(parsed_data, input_file)</span>:</span></span><br><span class="line">    base_name = os.path.splitext(input_file)[<span class="number">0</span>]</span><br><span class="line">    output_file = base_name + <span class="string">".log"</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(output_file, <span class="string">'w'</span>) <span class="keyword">as</span> log_file:</span><br><span class="line">        <span class="keyword">for</span> data <span class="keyword">in</span> parsed_data:</span><br><span class="line">            log_file.write(data + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"================================================================================================="</span> + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    <span class="keyword">if</span> len(sys.argv) != <span class="number">2</span>:</span><br><span class="line">        print(<span class="string">"Usage: python script.py &lt;clogFileName&gt;"</span>)</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    input_clog_file = sys.argv[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 解析.clog文件</span></span><br><span class="line">    parsed_data = parse_clog_file(input_clog_file)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line">    write_to_log_file(parsed_data, input_clog_file)</span><br><span class="line"></span><br><span class="line">    print(<span class="string">f"Log data parsed from <span class="subst">&#123;input_clog_file&#125;</span> and written to <span class="subst">&#123;input_clog_file&#125;</span>.log."</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="三、日志文件上传"><a href="#三、日志文件上传" class="headerlink" title="三、日志文件上传"></a>三、日志文件上传</h2><h3 id="1、日志文件命名及目录规范"><a href="#1、日志文件命名及目录规范" class="headerlink" title="1、日志文件命名及目录规范"></a>1、日志文件命名及目录规范</h3><p>以用户<code>1000001</code>在<code>2020-01</code>时候上传<code>声音文件 beautiful_scenery.aac</code>为例，其路径完整示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">https://media.xxx.com/app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</span></span><br></pre></td></tr></table></figure>
+<p>要上传的存储桶：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>参数</th>
+<th>约定值示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>存储桶region<br>regionGetFunction</td>
+<td>网络环境</td>
+<td>ap-shanghai</td>
+</tr>
+<tr>
+<td>2</td>
+<td>存储桶bucket<br>bucketGetFunction</td>
+<td>网络环境</td>
+<td>xxx-pro-image-1302324914</td>
+</tr>
+<tr>
+<td>3</td>
+<td>上传成功后，桶的映射路径值<br>cosFileUrlPrefixGetFunction</td>
+<td></td>
+<td>1、图片桶：<a href="https://images.xxx.com/" target="_blank" rel="noopener">https://images.xxx.com/</a><br>2、媒体桶：<a href="https://media.xxx.com/" target="_blank" rel="noopener">https://media.xxx.com/</a><br>3、日志桶：<a href="https://static.xxx.com/" target="_blank" rel="noopener">https://static.xxx.com/</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>要上传到桶的哪个相对路径下<br>cosFileRelativePathGetFunction<br>上传成功后完整路径=以上桶值+此相对路径<br></td>
+<td>见下文</td>
+<td>见下文<br>eg：app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</td>
+</tr>
+</tbody>
+</table>
+<p>《要上传到桶的哪个相对路径下 <strong>cosFileRelativePathGetFunction</strong> 》的文件路径分批说明：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>层次说明</th>
+<th>层次值算法</th>
+<th>层次值描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td>存储桶里相对路径的前缀</td>
+<td>app标志_环境标志<br>eg：app1_pro、app1_test1、app1_dev1</td>
+<td>文件区分</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>是否在存储桶里进行进一步路径区分(可选)</td>
+<td>根据场景决定是否对桶进行进一步分类。<br>if ( mediaType == xxx ) {<br>     if(mediaScene == yyy) {<br>     <br>     }<br>}</td>
+<td>如<br>1、都是图片，但自拍图片要求独立出来<br>2、都是多媒体，但音视频要区分开</td>
+</tr>
+<tr>
+<td>2.1</td>
+<td>用户1级</td>
+<td>int.parse(uid) % 1000; // 取余数</td>
+<td>用户名取余，有效减少同层上文件夹个数</td>
+</tr>
+<tr>
+<td>2.2</td>
+<td>用户2级</td>
+<td>uid</td>
+<td>用户名</td>
+</tr>
+<tr>
+<td>3</td>
+<td>年月</td>
+<td>DateTime.now().toString().substring(0, 7);</td>
+<td>年-月</td>
+</tr>
+<tr>
+<td>4</td>
+<td>文件名</td>
+<td>${fileOriginName}_<br>${DateTime.now().microsecondsSinceEpoch}<br>.$fileExtensionType</td>
+<td>文件名</td>
+</tr>
+</tbody>
+</table>
+<p>附1：MediaType 媒体类型</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>UploadMediaType 媒体类型</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>unkonw</td>
+<td>未知（默认值）</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>image</td>
+<td>图片</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>audio</td>
+<td>音频</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>video</td>
+<td>视频</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>xlog</td>
+<td>日志文件</td>
+</tr>
+</tbody>
+</table>
+<p>附2：MediaScene场景 说明</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>UploadMediaScene场景</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>unkonw</td>
+<td>未知（默认值）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>selfie</td>
+<td>自拍（安全等级较多）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>im</td>
+<td>会话聊天</td>
+</tr>
+<tr>
+<td>4</td>
+<td>live</td>
+<td>直播</td>
+</tr>
+</tbody>
+</table>
+<h2 id="四、日志接口"><a href="#四、日志接口" class="headerlink" title="四、日志接口"></a>四、日志接口</h2><h3 id="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"><a href="#1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）" class="headerlink" title="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"></a>1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）</h3><p>1、是否记录日志的开关及其配置信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>是否开启日志记录</td>
+<td>isLogOn</td>
+<td>1:开启、其他:关</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>要开启日志的用户(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
+<td>logUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置3</td>
+<td>要开启日志的设备(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>是否进行日志记录(灰度上线)</td>
+<td>needLog</td>
+<td>1:记录、其他:不记录</td>
+</tr>
+</tbody>
+</table>
+<p>2、不需要记录什么日志信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>不需要记录的日志类型</td>
+<td>ignoreLogLevel</td>
+<td>[“Normal”, “Success”]</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>不需要记录的日志等级</td>
+<td>ignoreLogType</td>
+<td>[“api_buriedPoint”, “buriedPoint_other”]</td>
+</tr>
+</tbody>
+</table>
+<p>3、日志文件配置信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>最多保留几个天的日志目录</td>
+<td>maxDayDirCount</td>
+<td>7</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>最多每天保留几个文件</td>
+<td>maxDayFileCount</td>
+<td>10</td>
+</tr>
+<tr>
+<td>接口回值3</td>
+<td>每个日志文件超过多少后创建新文件</td>
+<td>perFileMaxMB</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p>4、日志文件问题回滚</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>强制删除什么时间前的日志</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个用户的日志</td>
+<td>removeUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个设备的日志</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>强制删除什么时间前的日志(不删除时空)</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31 或 空值</td>
+</tr>
+</tbody>
+</table>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerConfig(userid, deviceId)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"logConfig"</span>: &#123;</span><br><span class="line">		<span class="attr">"needLog"</span>: <span class="number">1</span>,</span><br><span class="line">		<span class="attr">"ignoreLogLevel"</span>: [<span class="string">"Normal"</span>, <span class="string">"Success"</span>],</span><br><span class="line">		<span class="attr">"ignoreLogType"</span>: [<span class="string">"api_buriedPoint"</span>, <span class="string">"buriedPoint_other"</span>],</span><br><span class="line">		<span class="attr">"maxDayDirCount"</span>: <span class="number">7</span>,</span><br><span class="line">		<span class="attr">"maxDayFileCount"</span>: <span class="number">10</span>,</span><br><span class="line">		<span class="attr">"perFileMaxMB"</span>: <span class="number">5</span></span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="attr">"logRevert"</span>: &#123;</span><br><span class="line">		<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、日志回捞及问题回滚接口"><a href="#2、日志回捞及问题回滚接口" class="headerlink" title="2、日志回捞及问题回滚接口"></a>2、日志回捞及问题回滚接口</h3><p>1、日志回捞</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>要回捞日志的用户</td>
+<td>salvageUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>要回捞日志的设备</td>
+<td>salvageDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>网页配置3</td>
+<td>日志回捞的开始时间</td>
+<td>salvageStartDate</td>
+<td>2020-01-01</td>
+</tr>
+<tr>
+<td>网页配置4</td>
+<td>日志回捞的结束时间</td>
+<td>salvageEndDate</td>
+<td>2020-01-07</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>此用户此设备日志回捞的开始时间</td>
+<td>salvageStartDate</td>
+<td>2020-01-01</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>此用户此设备日志回捞的结束时间</td>
+<td>salvageEndDate</td>
+<td>2020-01-07</td>
+</tr>
+</tbody>
+</table>
+<p>2、日志文件问题回滚</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>强制删除什么时间前的日志</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个用户的日志</td>
+<td>removeUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个设备的日志</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>强制删除什么时间前的日志(不删除时空)</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31 或 空值</td>
+</tr>
+</tbody>
+</table>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerSalvageAndRevert(salvageUserids, salvageDeviceIds)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"salvageId"</span>: <span class="string">"1001"</span>, </span><br><span class="line">	<span class="attr">"salvageStartDate"</span>: <span class="string">"2020-01-01"</span>,</span><br><span class="line">  <span class="attr">"salvageEndDate"</span>: <span class="string">"2020-01-07"</span>,</span><br><span class="line">	<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、日志文件上传到cos后同步给后台"><a href="#3、日志文件上传到cos后同步给后台" class="headerlink" title="3、日志文件上传到cos后同步给后台"></a>3、日志文件上传到cos后同步给后台</h3><p>用途：日志文件上传到cos后同步给后台，后台数据库记录每个用户，每个设备都捞到了什么数据。</p>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function addLoggerFile(userid, deviceId)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、日志回捞"><a href="#四、日志回捞" class="headerlink" title="四、日志回捞"></a>四、日志回捞</h2><p>1、后台通过接口返回要回捞的信息。</p>
+<p>2、前端用户在下次使用，收到后台信息时候，进行本地日志的上传。在腾云存储桶能收到对应日志，即代表成功。</p>
+<h2 id="五、方案实施"><a href="#五、方案实施" class="headerlink" title="五、方案实施"></a>五、方案实施</h2><p>灰度方案：请参照 <a href="灰度系统">灰度系统 </a> 。（附：日志记录开关里目前已有灰度策略。）</p>
+<p>目的：避免功能异常，出现集体性问题。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/日志系统/" data-id="cm0b6c09x008qstr4n5l8352f" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/监控相关/灰度系统" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/监控相关/灰度系统/" class="article-date">
+  <time datetime="2024-05-31T09:07:41.000Z" itemprop="datePublished">2024-05-31</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<p><strong>目的：避免功能异常，出现集体性问题。</strong></p>
+<h2 id="一、灰度接口"><a href="#一、灰度接口" class="headerlink" title="一、灰度接口"></a>一、灰度接口</h2><h3 id="1、灰度开关接口"><a href="#1、灰度开关接口" class="headerlink" title="1、灰度开关接口"></a>1、灰度开关接口</h3><p>1、是否进行功能的灰度使用的开关</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>是否开启功能</td>
+<td>isOpen</td>
+<td>1:开启、其他:关</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>要开启功能的用户(灰度上线)<br>(当且仅当开启上述功能时有效)</td>
+<td>openUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置3</td>
+<td>要开启功能的设备(灰度上线)<br>(当且仅当开启上述功能时有效)<br>未配置但开关为开时为全记录</td>
+<td>openDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>是否进行功能的使用(灰度上线)</td>
+<td>needOpen</td>
+<td>1:使用、其他:不使用</td>
+</tr>
+</tbody>
+</table>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getGrayscaleSwitchConfig(userid, deviceId)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"logFuture"</span>: &#123;</span><br><span class="line">		<span class="attr">"needOpen"</span>: <span class="number">1</span>,</span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="attr">"cacheOptimize"</span>: &#123;</span><br><span class="line">		<span class="attr">"needOpen"</span>: <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/灰度系统/" data-id="cm0b6c09o008nstr4dnx5vz4c" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
     </footer>
   </div>
   
@@ -639,7 +1846,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm0b6aren019zq5r4hiybcwcy" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm0b6c6j10190str4gouo7icl" class="article-share-link">Share</a>
       
       
     </footer>
@@ -665,7 +1872,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm0b6arjq01a7q5r437hxydvu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm0b6c6kd0198str4q299vlgt" class="article-share-link">Share</a>
       
       
     </footer>
@@ -691,7 +1898,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/" data-id="cm0b6arfa01a0q5r4orgr00tb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/" data-id="cm0b6c6jn0191str4vk6hsbb3" class="article-share-link">Share</a>
       
       
     </footer>
@@ -717,7 +1924,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/" data-id="cm0b6arj401a6q5r4r2hfn2ii" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/" data-id="cm0b6c6kc0197str463a2wqy7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -743,7 +1950,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_ui/" data-id="cm0b6arkd01a8q5r4kh0vmv70" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_ui/" data-id="cm0b6c6kf019cstr49do2vuha" class="article-share-link">Share</a>
       
       
     </footer>
@@ -769,85 +1976,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_route/" data-id="cm0b6arii01a5q5r48c5webdv" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_overlay" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_overlay/" class="article-date">
-  <time datetime="2024-05-17T07:24:25.412Z" itemprop="datePublished">2024-05-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        [{"sectionTitle":"h5调用app的方法(①无入参和回参;②有入参给app,但无需回参;③需回参给h5)","sectionDatas":[{"h5CallBridgeActionDes":"显示app的toast样式","h5CallBridgeActionName":"h5CallBridgeAction_showAppToast_v10000","h5CallBridgeSendMessage":{"message":"恭喜您调用成功"}}]}]
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_overlay/" data-id="cm0b6arfw01a1q5r45laao0uf" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_test" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_test/" class="article-date">
-  <time datetime="2024-05-17T07:14:16.866Z" itemprop="datePublished">2024-05-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        [{"sectionTitle":"只是测试方法，不再实际项目中使用","sectionDatas":[{"h5CallBridgeActionDes":"测试 h5 调用 app 方法，并将返回值回调给 h5","h5CallBridgeActionName":"h5CallBridgeAction_test_h5CallAppAndCallBackToH5","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，没其他操作","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://www.baidu.com"}},{"h5CallBridgeActionDes":"测试浏览器中的链接显示，且链接可打开app的_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_test_openBrowser","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=farmGamePage&accountId=1475332557208702976"}}]}]
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_test/" data-id="cm0b6arh501a3q5r4tig58fgl" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_info" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_info/" class="article-date">
-  <time datetime="2024-05-17T07:13:10.519Z" itemprop="datePublished">2024-05-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        [{"sectionTitle":"H5调用app，回调给H5(app、device monitor、user信息)","sectionDatas":[{"h5CallBridgeActionDes":"获取app的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedAppInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"version":"1.0.0","buildNumber":"1","platform":"iOS","appType":"App类型，公司产品上可能有多个app","appFeatureType":"dev(pgyer蒲公英)、inner(TestFlight)、formal(AppStore)"}},{"h5CallBridgeActionDes":"获取埋点monitor的公共信息，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getFixedMonitorInfo","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString","app_id":"com.dvlproad.Beyond","app_name":"愿望屋","app_version":"1.0.0","app_buildNumber":"1","platform":"iOS","lib":"iOS","systemName":"iOS","lib_version":"16.1","lib_method":"code","lib_source":1,"brand":"iPhone","model":"iPhone","os":"x86_64","screen_width":393,"screen_height":852,"screen_devicePixelRatio":3,"device_id":"8CA0BE41-DE55-41E3-ABBD-8F8EC98652E3","geo_coordinate_system":"bd09ll"}}]},{"sectionTitle":"H5调用app，回调给H5(实时变化的)","sectionDatas":[{"h5CallBridgeActionDes":"获取用户token(用于安全的告知h5用户信息)，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentUserToken_v10000","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"userToken":"bearer clientApp8983c8e6-5e3c-48e9-a3f7-9af53a946911"}},{"h5CallBridgeActionDes":"获取键盘变化高度，并回调给h5","h5CallBridgeActionName":"h5CallBridgeAction_getCurrentKeyboardHeight","h5CallBridgeSendMessage":{"callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"keyboardHeight":123}}]}]
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_info/" data-id="cm0b6arht01a4q5r4wbush7tu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_route/" data-id="cm0b6c6kc0196str4pmvc44x4" class="article-share-link">Share</a>
       
       
     </footer>
@@ -901,7 +2030,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -918,19 +2047,19 @@
           </li>
         
           <li>
+            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/">(no title)</a>
           </li>
         
       </ul>

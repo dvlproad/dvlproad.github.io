@@ -72,6 +72,391 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/10其他/10其他2" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/10其他2/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.560Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><ol>
+<li><strong>CertificateSigningRequest</strong>：本地公钥。</li>
+<li><strong>p12</strong>：本地私钥，可以导入到其他电脑。</li>
+<li><strong>证书</strong>：内容是公钥或私钥，由其他机构对其签名组成的数据包。</li>
+<li><strong>Entitlements</strong>：包含了 App 权限开关列表。</li>
+<li><strong>Provisioning Profile</strong>：包含了 证书 / Entitlements 等数据，并由苹果后台私钥签名的数据包。</li>
+</ol>
+<h1 id="iOS-App-签名的原理"><a href="#iOS-App-签名的原理" class="headerlink" title="iOS App 签名的原理"></a>iOS App 签名的原理</h1><ul>
+<li><a href="http://blog.cnbang.net/tech/3386/" target="_blank" rel="noopener">iOS App 签名的原理</a> （非常好，非常详细的文章）</li>
+</ul>
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>四种方式安装一个APP的方式</p>
+<ol>
+<li>从 AppStore 下载</li>
+<li>开发 App 时可以直接把开发中的应用安装进手机进行调试。</li>
+<li>In-House 企业内部分发，可以直接安装企业证书签名后的 APP。</li>
+<li>AD-Hoc 相当于企业分发的限制版，限制安装设备数量，较少用。</li>
+</ol>
+<p>区别：</p>
+<p>App Store 下载的是Apple后台用私钥A对其进行重签名，</p>
+<p>而其他的是用Xcode配置的对应该证书的本地私钥L对app进行签名。</p>
+<h2 id="一、App-Store-下载的签名机制（最简单的签名）"><a href="#一、App-Store-下载的签名机制（最简单的签名）" class="headerlink" title="一、App Store 下载的签名机制（最简单的签名）"></a>一、App Store 下载的签名机制（最简单的签名）</h2><p>当App 提交审核通过后，Apple会对App重签名，所以从App Store下载的app都是苹果的官方签名。</p>
+<p>流程如下：</p>
+<p><img src="/iOS/3必备知识架构/10其他/10其他2/APP签名机制/APP签名机制1.png" alt="APP签名机制1" style="zoom:50%;"></p>
+<p>1、Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A存在iOS设备</p>
+<p>2、app审核通过后，<strong>Apple后台用私钥A对其进行重签名</strong></p>
+<p>3、app下载到iOS设备后，iOS设备内置的公钥A会对app的签名进行验证</p>
+<p>4、如果验证通过，则可运行，否则不能</p>
+<p>当然除了这个方式，还有一下三种方式安装一个app：</p>
+<ol>
+<li>开发时，直接通过USB将应用安装到手机进行调试；</li>
+<li>In-House 企业内部分发，可直接安装企业证书签名的App；</li>
+<li>Ad-Hoc 相当于企业分发的限制版，限制安装设备数量。</li>
+</ol>
+<p>①、KeyChain 里的“从证书颁发机构请求证书”，<strong>本地生成一对公私钥</strong>。（其中：公钥L是保存的CertificateSigningRequest(CSR)，而私钥L保存在电脑本地，可以导出为p12）</p>
+<p>附：Apple 官方也有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+<blockquote>
+<p>（因为这里的这个私钥是本地Mac持有，所以团队开发时，可在KeyChain导出私钥，存为.p12文件，其他Mac即可导入这个私钥）</p>
+</blockquote>
+<p>2、在Member Center把CertificateSigningRequest上传到<strong>苹果后台生成证书</strong>（即上传之后Apple后台用Apple 官方自己固定的私钥A对我们上传的公钥L进行签名，将得到的<strong>签名+公钥L打包起来，称为证书</strong>），下载到本地。</p>
+<blockquote>
+<p>Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
+</blockquote>
+<p>3、在Member Center配置AppID、添加设备UUID／Entitlements, <strong>生成app对应的 Provisioning Profile 文件</strong>，并下载到本地<br>4、在XCode中配置好证书，打包编译时，<strong>用Xcode配置的对应该证书的本地私钥L对app进行签名，并把 Provisioning Profile 文件一起打包进App去(文件名为 embedded.mobileprovision)</strong>。这里对App的签名数据分两部分，Mach-O 可执行文件把签名直接写进这个文件，其他资源文件则保存在_CodeSignature目录下</p>
+<p>5、安装APP到手机上时，iOS设备内置的公钥A(指Apple官方自己固定的公钥)对embedded.mobileprovision的数字签名进行验证，同时对里面的证书的签名也会验证<br>如果验证通过，确保了embedded.mobileprovision的数据是苹果授权后，再取出里面数据做各种验证，包括公钥L对app签名进行验证，验证设备ID，AppID，权限开关。</p>
+<h1 id="iOS-常见三种加密（MD5、非对称加密，对称加密）"><a href="#iOS-常见三种加密（MD5、非对称加密，对称加密）" class="headerlink" title="iOS-常见三种加密（MD5、非对称加密，对称加密）"></a>iOS-常见三种加密（MD5、非对称加密，对称加密）</h1><ul>
+<li><a href="https://blog.csdn.net/ssy_1992/article/details/79094556" target="_blank" rel="noopener">iOS-常见三种加密（MD5、非对称加密，对称加密）</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/10其他2/" data-id="cm0b6c2e2014dstr4x5rhnt8g" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/类微信体验" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/类微信体验/" class="article-date">
+  <time datetime="2022-02-16T02:15:41.000Z" itemprop="datePublished">2022-02-16</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/类微信体验/">类微信体验</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="类微信体验"><a href="#类微信体验" class="headerlink" title="类微信体验"></a>类微信体验</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>微信：</p>
+<p>1、IM部分</p>
+<p>2、发现（如”看一看”功能）</p>
+<p>IM部分：</p>
+<p>数据库：从数据库中取+新记录保存到数据库中</p>
+<p>问题：</p>
+<p>1、给人同步的感觉</p>
+<p>2、不是每个调用失败，都要提示给用户</p>
+<p>错误的请求，不弹toast</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/类微信体验/" data-id="cm0b6bz47000ostr4rzhzt6cs" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/10与原生相关/Flutter 与原生相关" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/10与原生相关/Flutter 与原生相关/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-与原生相关"><a href="#Flutter-与原生相关" class="headerlink" title="Flutter 与原生相关"></a>Flutter 与原生相关</h1><h2 id="一、使用与原生有关的三方库的注意点"><a href="#一、使用与原生有关的三方库的注意点" class="headerlink" title="一、使用与原生有关的三方库的注意点"></a>一、使用与原生有关的三方库的注意点</h2><h3 id="1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type"><a href="#1、trying-to-create-a-view-with-an-unregistered-type-unregistered-view-type" class="headerlink" title="1、trying to create a view with an unregistered type, unregistered view type"></a>1、trying to create a view with an unregistered type, unregistered view type</h3><p>使用三方库的时候，如果该库与原生有关。如webview插件、百度地图插件等。如果直接使用，不对工程设置的话，则会报<code>trying to create a view with an unregistered type, unregistered view type:</code></p>
+<p>解决方案：在info.plist加入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;key&gt;io.flutter.embedded_views_preview&lt;/key&gt;</span><br></pre></td></tr></table></figure>
+<p>原因：</p>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/169370922" target="_blank" rel="noopener">浅析 Flutter 与 iOS 的视图桥梁 PlatformView</a></li>
+</ul>
+<h3 id="2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value"><a href="#2、启动的时候使用rootBundle-loadString加载本地配置json-百度地图，报错：Unhandled-Exception-Null-check-operator-used-on-a-null-value" class="headerlink" title="2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value"></a>2、启动的时候使用rootBundle.loadString加载本地配置json\百度地图，报错：Unhandled Exception: Null check operator used on a null value</h3><p>启动的时候使用rootBundle.loadString 加载本地配置json，但是直接加载会报错：<br>[ERROR:flutter/lib/ui/ui_dart_state.cc(199)] Unhandled Exception: Null check operator used on a null value </p>
+<p>解决办法：加载本地资源以前增加一行代码：</p>
+<p><code>WidgetsFlutterBinding.ensureInitialized();</code> //解决加载json错误</p>
+<p>例子:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">void main() async &#123;</span><br><span class="line">	WidgetsFlutterBinding.ensureInitialized(); //解决加载json错误</span><br><span class="line">	globals.config = jsonDecode(await rootBundle.loadString(‘assets/config.json’));</span><br><span class="line">	runApp(MyApp());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView"><a href="#二、浅析-Flutter-与-iOS-的视图桥梁-PlatformView" class="headerlink" title="二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView"></a>二、浅析 Flutter 与 iOS 的视图桥梁 PlatformView</h2><h2 id="三、百度地图"><a href="#三、百度地图" class="headerlink" title="三、百度地图"></a>三、百度地图</h2><h3 id="百度地图-Flutter插件"><a href="#百度地图-Flutter插件" class="headerlink" title="百度地图-Flutter插件"></a><a href="https://lbsyun.baidu.com/index.php?title=flutter/loc" target="_blank" rel="noopener">百度地图-Flutter插件</a></h3><p> 1)iOS权限问题可参照<a href="https://lbsyun.baidu.com/index.php?title=ios-locsdk/guide/create-project/manual-create" target="_blank" rel="noopener">iOS定位SDK手动部署说明</a>。<br>  2)iOS头文件错误：</p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios1.png" alt="ios1.png"></p>
+<p><img src="/Flutter/10与原生相关/Flutter 与原生相关/Flutter%20%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/ios2.png" alt="ios2.png"></p>
+<p>解决办法：Xcode-TARGETS-build settings-Allow Non-modular Includes In Famework Modules设置为YES。</p>
+<p>Allow Non-modular Includes In Famework Modules</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/10与原生相关/Flutter 与原生相关/" data-id="cm0b6c0cg00a1str4oxzqrohz" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-iOS-点击状态栏回到顶部"><a href="#Flutter-iOS-点击状态栏回到顶部" class="headerlink" title="Flutter iOS 点击状态栏回到顶部"></a>Flutter iOS 点击状态栏回到顶部</h1><h2 id="一、会回到顶部的原理"><a href="#一、会回到顶部的原理" class="headerlink" title="一、会回到顶部的原理"></a>一、会回到顶部的原理</h2><p>ios中一个常见的交互是：点击顶部栏时，自动将当前的滚动区滚到顶部。在flutter中，大部分时候这件事是“自然完成”的，但是也有时候会遇到这个行为失效的情况。要解决这个问题首先自然是要看这个feature是如何实现的。<br> 其实大部分都是Scaffold里面干的事：<br> Scaffold里有这样一段代码:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (themeData.platform) &#123;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.iOS:</span><br><span class="line">    _addIfNonNull(</span><br><span class="line">      children,</span><br><span class="line">      GestureDetector(</span><br><span class="line">        behavior: HitTestBehavior.opaque,</span><br><span class="line">        onTap: _handleStatusBarTap,</span><br><span class="line">        <span class="comment">// iOS accessibility automatically adds scroll-to-top to the clock in the status bar</span></span><br><span class="line">        excludeFromSemantics: <span class="literal">true</span>,</span><br><span class="line">      ),</span><br><span class="line">      _ScaffoldSlot.statusBar,</span><br><span class="line">      removeLeftPadding: <span class="literal">false</span>,</span><br><span class="line">      removeTopPadding: <span class="literal">true</span>,</span><br><span class="line">      removeRightPadding: <span class="literal">false</span>,</span><br><span class="line">      removeBottomPadding: <span class="literal">true</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.android:</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.fuchsia:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里命名很舒服，可以直接看出来在干什么：如果是ios的话，那就给Scaffold加一个在状态栏上的点击区，点击的话就会触发一个函数，这个函数干的事情如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">_handleStatusBarTap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (_primaryScrollController.hasClients) &#123;</span><br><span class="line">    _primaryScrollController.animateTo(</span><br><span class="line">      <span class="number">0.0</span>,</span><br><span class="line">      duration: <span class="function"><span class="keyword">const</span> <span class="title">Duration</span><span class="params">(milliseconds: <span class="number">300</span>)</span>,</span></span><br><span class="line"><span class="function">      curve: Curves.linear, <span class="comment">// TODO(ianh): Use a more appropriate curve.</span></span></span><br><span class="line"><span class="function">    )</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也就是，Scaffold会提供一个默认的ScrollController，而点击顶部栏会使得这个controller滚到顶部，在ScrollView的build函数中则会取这个controller:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line">Widget build(BuildContext context) &#123;</span><br><span class="line">  <span class="keyword">final</span> List&lt;Widget&gt; slivers = buildSlivers(context);</span><br><span class="line">  <span class="keyword">final</span> AxisDirection axisDirection = getDirection(context);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 注意，此处的primary不是传入的primary，</span></span><br><span class="line">  <span class="comment">// primary = primary ?? controller == null &amp;&amp; identical(scrollDirection, Axis.vertical)</span></span><br><span class="line">  <span class="keyword">final</span> ScrollController scrollController = primary</span><br><span class="line">    ? PrimaryScrollController.of(context)</span><br><span class="line">    : controller;</span><br><span class="line">  <span class="keyword">final</span> Scrollable scrollable = Scrollable(</span><br><span class="line">    dragStartBehavior: dragStartBehavior,</span><br><span class="line">    axisDirection: axisDirection,</span><br><span class="line">    controller: scrollController,</span><br><span class="line">    physics: physics,</span><br><span class="line">    semanticChildCount: semanticChildCount,</span><br><span class="line">    viewportBuilder: (BuildContext context, ViewportOffset offset) &#123;</span><br><span class="line">      <span class="keyword">return</span> buildViewport(context, offset, axisDirection, slivers);</span><br><span class="line">    &#125;,</span><br><span class="line">  );</span><br><span class="line">  <span class="keyword">return</span> primary &amp;&amp; scrollController != <span class="literal">null</span></span><br><span class="line">    ? PrimaryScrollController.none(child: scrollable)</span><br><span class="line">    : scrollable;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果指定controller的话，就不会使用PrimaryScrollview，如果不指定的话，则在primary为true时使用PrimaryController，而默认情况下controller为null，primary为true，因此一个裸体的ListView是会相应屏幕点击的。<br> 知道了原理，就很容易分析自己代码里出的问题是什么，常见的可能就是：<br> 1、没加Scaffold，这个其实并不常见（自相矛盾草），不过可以检查一下，一般总是会有Scaffold的<br> 2、真正常见的：指定了controller，如果自己创建了一个Controller丢给ScrollView，那必然是会失效的。但是使用controller又是一个很常见且重要的需求，怎么办呢？也很简单，就是不要自己创建新的ScrollController，而是直接取PrimaryScrollController.of(context)这个controller，对其进行自己要做的操作。<br> 3、相对不太常见且需要分析具体代码的：多个Scaffold导致的冲突。<br> 注意到其实flutter里的这个点击状态栏并不是真的点击了状态栏，而是点击了“Scaffold提供的位于状态栏的可点击区域”，也就是说，如果有多个Scaffold就会有多个这样的区域。实际情况是，只有最内部的Scaffold的状态栏会有响应，而如果ScrollView所处位置取到的和点击的Scaffold不一致，自然也就不会有滚动到顶部的feature</p>
+<h2 id="二、错误示例"><a href="#二、错误示例" class="headerlink" title="二、错误示例"></a>二、错误示例</h2><p>今天遇到ios点击状态栏无法回到顶部（原理在文章后）的问题。研究后发现，Scaffold组件虽然会自带这个功能。但使用时候，必须遵循指定规则才行。</p>
+<p>我们以点击 TapStatusNormalPage 上的状态栏返回顶部来举例。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// tap_status_normal_page.dart</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TapStatusNormalPage</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> TapStatusNormalPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;TapStatusNormalPage&gt; createState() =&gt; _TapStatusNormalPageState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_TapStatusNormalPageState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">TapStatusNormalPage</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold( <span class="comment">// 注意这个页面已经包了 Scaffold 了</span></span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: <span class="keyword">const</span> Text(<span class="string">'状态栏点击-Normal5'</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: ListView.builder(</span><br><span class="line">        itemCount: <span class="number">200</span>,</span><br><span class="line">        itemBuilder: (context, index) &#123;</span><br><span class="line">          <span class="keyword">return</span> Text(<span class="string">'<span class="subst">$index<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">        &#125;,</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">      ),</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    );</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<h3 id="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"><a href="#错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。" class="headerlink" title="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"></a>错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。</h3><p>失效示例1：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">HomePage</span> <span class="title">extends</span> <span class="title">StatelessWidget</span> &#123;</span><br><span class="line">  @<span class="keyword">override</span></span><br><span class="line">  <span class="function">Widget <span class="title">build</span>(<span class="params">BuildContext context</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: TapStatusNormalPage(), <span class="comment">// 失效原因：TapStatusNormalPage里已经有 Scaffold 了</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种情况，点击状态栏便不会回到顶部，我们需要保证的就是每个页面仅有一个Scaffold。</p>
+<h3 id="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"><a href="#错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部" class="headerlink" title="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"></a>错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</h3><p>失效示例2：</p>
+<p>虽然home里只有一个 Scaffold ，但app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ScreenUtilInit(</span><br><span class="line">    designSize: <span class="keyword">const</span> Size(<span class="number">375</span>, <span class="number">812</span>),</span><br><span class="line">    builder: () =&gt; MaterialApp(</span><br><span class="line">      navigatorKey: navigatorKey,</span><br><span class="line">      title: <span class="string">'wish'</span>,</span><br><span class="line">      home: TapStatusNormalPage(),</span><br><span class="line">      builder: EasyLoading.init(builder: (context, widget) &#123;</span><br><span class="line">        <span class="keyword">return</span> MediaQuery(</span><br><span class="line">          <span class="comment"><span class="markdown">///设置文字大小不随系统设置改变</span></span></span><br><span class="line">          data: MediaQuery.of(context).copyWith(textScaleFactor: <span class="number">1.0</span>),</span><br><span class="line">          <span class="comment">// child: Scaffold( // 注意：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</span></span><br><span class="line">          <span class="comment">//   resizeToAvoidBottomInset: false,</span></span><br><span class="line">          <span class="comment">//   body: widget,</span></span><br><span class="line">          <span class="comment">// ),</span></span><br><span class="line">          child: widget, <span class="comment">// OK</span></span><br><span class="line">        );</span><br><span class="line">      &#125;),</span><br><span class="line">    ),</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
+<h3 id="错误三：一说要滚动就自定义controller"><a href="#错误三：一说要滚动就自定义controller" class="headerlink" title="错误三：一说要滚动就自定义controller"></a>错误三：一说要滚动就自定义controller</h3><p>点击页面上的某个按钮，让页面上的列表滚动到顶部（不需要自定义controller）。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">PrimaryScrollController.of(context).jumpTo(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PrimaryScrollController.of(context).animateTo(</span><br><span class="line">            <span class="number">0</span>,</span><br><span class="line">            duration: <span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>),</span><br><span class="line">            curve: Curves.linear,</span><br><span class="line">          );</span><br></pre></td></tr></table></figure>
+<p>如果还要监听滚动</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> didChangeDependencies() &#123;</span><br><span class="line">   <span class="keyword">super</span>.didChangeDependencies();</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">if</span> (!_hasEverInitListener) &#123;</span><br><span class="line">     PrimaryScrollController.of(context).addListener(_handleScrollViewEvent);</span><br><span class="line">     _hasEverInitListener = <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> deactivate() &#123;</span><br><span class="line">   <span class="keyword">super</span>.deactivate();</span><br><span class="line">   PrimaryScrollController.of(context).removeListener(_handleScrollViewEvent);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">_handleScrollViewEvent() &#123;</span><br><span class="line">   <span class="comment">// 滚动距离</span></span><br><span class="line">   <span class="built_in">double</span> offsetY = PrimaryScrollController.of(context).offset;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views"><a href="#错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views" class="headerlink" title="错误四：Another exception was thrown: ScrollController attached to multiple scroll views."></a>错误四：Another exception was thrown: ScrollController attached to multiple scroll views.</h3><p>问题：</p>
+<p>flutter_swiper：Another exception was thrown: ScrollController attached to multiple scroll views</p>
+<p>翻译一下：引发了另一个异常：ScrollController连接到多个滚动视图。</p>
+<p>原因：</p>
+<p>Flutter Swiper是一个轮播图组件，内部包含一个Widget List，当这个Widget List数量大于1，就可能会有这种情况</p>
+<p>解决方案：给Swiper加一个Key即可解决</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">return</span> <span class="selector-tag">Container</span>(</span><br><span class="line">     <span class="attribute">child</span>: AspectRatio(</span><br><span class="line">       <span class="attribute">aspectRatio</span>: <span class="number">1.5</span> / <span class="number">1</span>, <span class="comment">// 宽高比450/300</span></span><br><span class="line">       <span class="attribute">child</span>: Swiper(</span><br><span class="line">         <span class="attribute">key</span>: UniqueKey(), <span class="comment">// 这个必须添加，代表唯一</span></span><br><span class="line">         <span class="attribute">itemBuilder</span>: (BuildContext context, int index) &#123;</span><br><span class="line">           return new Image.network(</span><br><span class="line">             imgList[index][<span class="string">'url'</span>],</span><br><span class="line">             <span class="attribute">fit</span>: BoxFit.fill,</span><br><span class="line">           );</span><br><span class="line">         &#125;,</span><br><span class="line">         <span class="attribute">itemCount</span>: imgList.length,</span><br><span class="line">         <span class="attribute">pagination</span>: new SwiperPagination(),</span><br><span class="line">         <span class="attribute">control</span>: new SwiperControl(),</span><br><span class="line">         <span class="attribute">autoplay</span>: true,</span><br><span class="line">       ),</span><br><span class="line">     ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="cm0b6c0sw00g2str4ctetls8g" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter 拖曳排序" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter 拖曳排序/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-拖曳排序"><a href="#Flutter-拖曳排序" class="headerlink" title="Flutter 拖曳排序"></a>Flutter 拖曳排序</h1><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/924428a31b6b" target="_blank" rel="noopener">Flutter使用Draggable实现可拖拽GridView</a></li>
+</ul>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 拖曳排序/" data-id="cm0b6c0tq00gbstr4vd2ciqqm" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter MaterialApp" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter MaterialApp/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-MaterialApp"><a href="#Flutter-MaterialApp" class="headerlink" title="Flutter MaterialApp"></a>Flutter MaterialApp</h1><h2 id="Flutter-MaterialApp的initialRoute属性和home属性的区别"><a href="#Flutter-MaterialApp的initialRoute属性和home属性的区别" class="headerlink" title="Flutter MaterialApp的initialRoute属性和home属性的区别"></a>Flutter MaterialApp的initialRoute属性和home属性的区别</h2><p>1、home 是应用程序默认的路由小部件，如果指定了 home，那么 route 中就不能包含 /，home 会取代 /。<br>2、除非指定了 initialRoute（会先执行home，再执行initialRoute，在initialRoute页返回会回到home页），否则应用程序会首先显示 home 对应的小部件，如果 initialRoute 不能正常显示，也会显示 home。<br>使用场景：<br>若APP启动时需要根据是否登录来决定首先显示的页面，可在路由监听中判断 token，若未登录，则 initialRoute 设置登录页对应的别名，则会打开登录页。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter MaterialApp/" data-id="cm0b6c0tz00gestr4cnwmpcl9" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter 最常出现的错误" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter 最常出现的错误/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-最常出现的错误"><a href="#Flutter-最常出现的错误" class="headerlink" title="Flutter 最常出现的错误"></a>Flutter 最常出现的错误</h1><h2 id="典型错误一：无法掌握的Future"><a href="#典型错误一：无法掌握的Future" class="headerlink" title="典型错误一：无法掌握的Future"></a>典型错误一：无法掌握的Future</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;markNeedsBuild&#39; was called on null.</code></p>
+<p>这个错误常出现在异步任务（Future）处理，比如某个页面请求一个网络API数据，根据数据刷新 Widget State。</p>
+<p>异步任务结束在页面被pop之后，但没有检查State 是否还是 <code>mounted</code>，继续调用 <code>setState</code> 就会出现这个错误。</p>
+<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>一段很常见的获取网络数据的代码，调用 <code>requestApi()</code>，等待Future从中获取<code>response</code>，进而<code>setState</code>刷新 Widget：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State&lt;AWidget&gt; &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    setState(()&#123;</span><br><span class="line">      this.data = response.data;</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>response</code> 的获取为<code>async-await</code>异步任务，完全有可能在<code>AWidgetState</code>被 <code>dispose</code>之后才等到返回，那时候和该<code>State</code> 绑定的 <code>Element</code> 已经不在了。故而在<code>setState</code>时需要容错。</p>
+<h3 id="解决办法：-setState之前检查是否-mounted"><a href="#解决办法：-setState之前检查是否-mounted" class="headerlink" title="解决办法： setState之前检查是否 mounted"></a>解决办法： <code>setState</code>之前检查是否 <code>mounted</code></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">      setState(()&#123;</span><br><span class="line">        this.data = response.data;</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个<code>mounted</code>检查很重要，其实只要涉及到异步还有各种回调(callback)，都不要忘了检查该值。</p>
+<p>比如，在 <code>FrameCallback</code>里执行一个动画(AnimationController)：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  WidgetsBinding.instance.addPostFrameCallback((_) &#123;</span><br><span class="line">    <span class="keyword">if</span> (mounted) _animationController.forward();</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>AnimationController</code>有可能随着 State 一起 <code>dispose</code>了，但是<code>FrameCallback</code>仍然会被执行，进而导致异常。</p>
+<p>又比如，在动画监听的回调里搞点事：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  _animationController.animation.addListener(_handleAnimationTick);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">void _handleAnimationTick() &#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) updateWidget(...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样的在<code>_handleAnimationTick</code>被回调前，State 也有可能已经被<code>dispose</code>了。</p>
+<p>如果你还不理解为什么，请仔细回味一下<code>Event loop</code> 还有复习一下 Dart 的线程模型。</p>
+<h2 id="典型错误二：Navigator-of-context-是个-null"><a href="#典型错误二：Navigator-of-context-是个-null" class="headerlink" title="典型错误二：Navigator.of(context) 是个 null"></a>典型错误二：Navigator.of(context) 是个 null</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;pop&#39; was called on null.</code></p>
+<p>常在 <code>showDialog</code> 后处理 dialog 的 pop() 出现。</p>
+<h3 id="示例代码-1"><a href="#示例代码-1" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个方法里获取网络数据，为了更好的提示用户，会先弹一个 loading 窗，之后再根据数据执行别的操作…</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// show loading dialog on request data</span></span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> Center(</span><br><span class="line">      child: CircularIndicator(),</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"><span class="comment">// got it, pop dialog</span></span><br><span class="line">Navigator.of(context).pop();</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析："><a href="#原因分析：" class="headerlink" title="原因分析："></a>原因分析：</h3><p>出错的原因在于—— Android 原生的返回键：虽然代码指定了<code>barrierDismissible: false</code>，用户不可以点半透明区域关闭弹窗，但当用户点击返回键时，Flutter 引擎代码会调用 <code>NavigationChannel.popRoute()</code>，最终这个 loading dialog 甚至包括页面也被关掉，进而导致<code>Navigator.of(context)</code>返回的是<code>null</code>，因为该<code>context</code>已经被<code>unmount</code>，从一个已经凋零的树叶上是找不到它的根的，于是错误出现。</p>
+<p>另外，代码里的<code>Navigator.of(context)</code> 所用的<code>context</code>也不是很正确，它其实是属于<code>showDialog</code>调用者的而非 dialog 所有，理论上应该用<code>builder</code>里传过来的<code>context</code>，沿着错误的树干虽然也能找到根，但实际上不是那么回事，特别是当你的APP里有<code>Navigator</code>嵌套时更应该注意。</p>
+<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>首先，确保 <code>Navigator.of(context)</code> 的 <code>context</code> 是 dialog 的<code>context</code>；其次，检查 <code>null</code>，以应对被手动关闭的情况。</p>
+<p><code>showDialog</code> 时传入 <code>GlobalKey</code>，通过 <code>GlobalKey</code>去获取正确的<code>context</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">GlobalKey key = GlobalKey();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> KeyedSubtree(</span><br><span class="line">      key: key,</span><br><span class="line">      child: Center(</span><br><span class="line">        child: CircularIndicator(),</span><br><span class="line">      )</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> (key.currentContext != null) &#123;</span><br><span class="line">  Navigator.of(key.currentContext)?.pop();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>key.currentContext</code> 为<code>null</code>意为着该 dialog 已经被<code>dispose</code>，亦即已经从 WidgetTree 中<code>unmount</code>。</p>
+<p>其实，类似的<code>XXX.of(context)</code>方法在 Flutter 代码里很常见，比如 <code>MediaQuery.of(context)</code>、<code>Theme.of(context)</code>、<code>DefaultTextStyle.of(context)</code>，<code>DefaultAssetBundle.of(context)</code>等等，都要注意传入的<code>context</code>是来自正确节点的，否则会有惊喜在等你。</p>
+<p>写 Flutter 代码时，脑海里一定要对<code>context</code>的树干脉络有清晰的认知，如果你还不是很理解<code>context</code>，可以看看 《深入理解BuildContext》 - Vadaski。</p>
+<h2 id="典型错误三：ScrollController-里薛定谔的-position"><a href="#典型错误三：ScrollController-里薛定谔的-position" class="headerlink" title="典型错误三：ScrollController 里薛定谔的 position"></a>典型错误三：ScrollController 里薛定谔的 position</h2><p>在获取<code>ScrollController</code>的<code>position</code>、<code>offset</code>，或者调用<code>jumpTo()</code>等方法时，常出现<code>StateError</code>错误。</p>
+<p>错误信息：<code>StateError Bad state: Too many elements</code>，<code>StateError Bad state: No element</code></p>
+<h3 id="示例代码-2"><a href="#示例代码-2" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个按钮点击后，通过<code>ScrollController</code> 控制<code>ListView</code>滚动到开头：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-1"><a href="#原因分析-1" class="headerlink" title="原因分析"></a>原因分析</h3><p>先看<code>ScrollController</code>的源码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  @protected</span><br><span class="line">  Iterable&lt;ScrollPosition&gt; get positions =&gt; _positions;</span><br><span class="line">  final List&lt;ScrollPosition&gt; _positions = &lt;ScrollPosition&gt;[];</span><br><span class="line"> </span><br><span class="line">  double get offset =&gt; position.pixels;</span><br><span class="line"> </span><br><span class="line">  ScrollPosition get position &#123;</span><br><span class="line">    assert(_positions.isNotEmpty, <span class="string">'ScrollController not attached to any scroll views.'</span>);</span><br><span class="line">    assert(_positions.length == <span class="number">1</span>, <span class="string">'ScrollController attached to multiple scroll views.'</span>);</span><br><span class="line">    <span class="keyword">return</span> _positions.single;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>很明显，<code>ScrollController</code> 的 <code>offest</code> 是从 <code>position</code> 中获得，而<code>position</code> 则是来自变量 <code>_positions</code>。</p>
+<p><code>StateError</code>错误，就是<code>_positions.single</code> 这一行抛出：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">abstract class Iterable&lt;E&gt; &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  E get single &#123;</span><br><span class="line">    Iterator&lt;E&gt; it = iterator;</span><br><span class="line">    <span class="keyword">if</span> (!it.moveNext()) throw IterableElementError.noElement();</span><br><span class="line">    E result = it.current;</span><br><span class="line">    <span class="keyword">if</span> (it.moveNext()) throw IterableElementError.tooMany();</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么问题来了，这个<code>_positions</code> 为什么忽而一滴不剩，忽而却嫌它给的太多了呢？ˊ_&gt;ˋ</p>
+<p>还是要回到 <code>ScrollController</code> 的源码里找找。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  void attach(ScrollPosition position) &#123;</span><br><span class="line">    assert(!_positions.contains(position));</span><br><span class="line">    _positions.add(position);</span><br><span class="line">    position.addListener(notifyListeners);</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  void detach(ScrollPosition position) &#123;</span><br><span class="line">    assert(_positions.contains(position));</span><br><span class="line">    position.removeListener(notifyListeners);</span><br><span class="line">    _positions.remove(position);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>为什么没有数据(No element)： <code>ScrollController</code>还没有 <code>attach</code> 一个 <code>position</code>。原因有两个：一个可能是还没被 mount 到树上(没有被<code>Scrollable</code>使用到)；另外一个就是已经被 <code>detach</code>了。</p>
+</li>
+<li><p>为什么多了(Too many elements)： <code>ScrollController</code>还没来得及 <code>detach</code>旧的 <code>position</code>，就又<code>attach</code>了一个新的。原因多半是因为<code>ScrollController</code>的用法不对，同一时间被多个 <code>Scrollable</code>关注到了。</p>
+</li>
+</ol>
+<h3 id="解决办法-1"><a href="#解决办法-1" class="headerlink" title="解决办法"></a>解决办法</h3><p>针对 No element 错误，只需判断一下 <code>_positions</code>是不是空的就行了，即<code>hasClients</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.hasClients &amp;&amp; _primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>针对 Too many elements 错误，确保<code>ScrollController</code>只会被一个 <code>Scrollable</code>绑定，别让它劈腿了，且被正确 <code>dispose()</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">class WidgetState extends State &#123;</span><br><span class="line">  final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> ListView.builder(</span><br><span class="line">      controller: _primaryScrollController,</span><br><span class="line">      itemCount: _itemCount,</span><br><span class="line">      itemBuilder: _buildItem,</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  <span class="keyword">int</span> get _itemCount =&gt; ...;</span><br><span class="line">  Widget _buildItem(context, index) =&gt; ...;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  void dispose() &#123;</span><br><span class="line">    super.dispose();</span><br><span class="line">    _primaryScrollController.dispose();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="典型错误四：四处碰壁-null"><a href="#典型错误四：四处碰壁-null" class="headerlink" title="典型错误四：四处碰壁 null"></a>典型错误四：四处碰壁 null</h2><p>Dart 这个语言可静可动，类型系统也独树一帜。万物都可以赋值<code>null</code>，就导致写惯了 Java 代码的同志们常常因为<code>bool</code> <code>int</code> <code>double</code>这种看起来是”primitive”的类型被<code>null</code>附体而头晕。</p>
+<p>典型错误信息：</p>
+<ul>
+<li><code>Failed assertion: boolean expression must not be null</code></li>
+<li><code>NoSuchMethodError: The method &#39;&gt;&#39; was called on null.</code></li>
+<li><code>NoSuchMethodError: The method &#39;+&#39; was called on null.</code></li>
+<li><code>NoSuchMethodError: The method &#39;*&#39; was called on null.</code></li>
+</ul>
+<h3 id="示例代码-3"><a href="#示例代码-3" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，较常发生在使用服务端返回的数据model时。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>],</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">StyleItem item = StyleItem.fromJson(jsonDecode(...));</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Widget build(StyleItem item) &#123;</span><br><span class="line">  <span class="keyword">if</span> (item.hasNew &amp;&amp; item.id &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> Text(item.name);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> SizedBox.shrink();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-2"><a href="#原因分析-2" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>StyleItem.fromJson()</code> 对数据没有容错处理，应当认为 map 里的value都有可能是 <code>null</code>。</p>
+<h3 id="解决办法：容错"><a href="#解决办法：容错" class="headerlink" title="解决办法：容错"></a>解决办法：容错</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="keyword">int</span> id;</span><br><span class="line">  final <span class="keyword">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">'name'</span>],</span><br><span class="line">    this.id = json[<span class="string">'id'</span>] ?? <span class="number">0</span>,</span><br><span class="line">    this.hasNew = json[<span class="string">'has_new'</span>] ?? <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一定要习惯 Dart 的类型系统，什么都有可能是<code>null</code>，比如下面一段代码，你细品有几处可能报错：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Test &#123;</span><br><span class="line">  double fraction(Rect boundsA, Rect boundsB) &#123;</span><br><span class="line">    double areaA = boundsA.width * boundsA.height;</span><br><span class="line">    double areaB = boundsB.width * boundsB.height;</span><br><span class="line">    <span class="keyword">return</span> areaA / areaB;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  void requestData(params, void onDone(data)) &#123;</span><br><span class="line">    _requestApi(params).then((response) =&gt; onDone(response.data));</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  Future&lt;dynamic&gt; _requestApi(params) =&gt; ...;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>小提示，<code>onDone()</code>也可以是<code>null</code> ＞﹏＜。</p>
+<p>在和原生用 <code>MethodChannel</code>传数据时更要特别注意，小心驶得万年船。</p>
+<h2 id="典型错误五：泛型里的-dynamic-一点也不-dynamic"><a href="#典型错误五：泛型里的-dynamic-一点也不-dynamic" class="headerlink" title="典型错误五：泛型里的 dynamic 一点也不 dynamic"></a>典型错误五：泛型里的 dynamic 一点也不 dynamic</h2><p>典型错误信息：</p>
+<ul>
+<li><code>type &#39;List&lt;dynamic&gt;&#39; is not a subtype of type &#39;List&lt;int&gt;&#39;</code></li>
+<li><code>type &#39;_InternalLinkedHashMap&lt;dynamic, dynamic&gt;&#39; is not a subtype of type &#39;Map&lt;String, String&gt;&#39;</code></li>
+</ul>
+<p>常发生在给某个List、Map 变量赋值时。</p>
+<h3 id="示例代码-4"><a href="#示例代码-4" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，也较常发生在使用服务端返回的数据model时。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = json[<span class="string">'ids'</span>],</span><br><span class="line">    this.ext= json[<span class="string">'ext'</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">var</span> json = jsonDecode(<span class="string">""</span><span class="string">"&#123;"</span>ids<span class="string">": [1,2,3], "</span>ext<span class="string">": &#123;"</span>key<span class="string">": "</span>value<span class="string">"&#125;&#125;"</span><span class="string">""</span>);</span><br><span class="line">Model m = Model.fromJson(json);</span><br></pre></td></tr></table></figure>
+<h3 id="原因分析-3"><a href="#原因分析-3" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>jsonDecode()</code>这个方法转换出来的map的泛型是<code>Map&lt;String, dynamic&gt;</code>，意为 value 可能是任何类型(dynamic)，当 value 是容器类型时，它其实是<code>List&lt;dynamic&gt;</code>或者<code>Map&lt;dynamic, dynamic&gt;</code>等等。</p>
+<p>而 Dart 的类型系统中，虽然<code>dynamic</code>可以代表所有类型，在赋值时，如果数据类型事实上匹配（运行时类型相等）是可以被自动转换，但泛型里 <code>dynamic</code> 是不可以自动转换的。可以认为 <code>List&lt;dynamic&gt;</code> 和 <code>List&lt;int&gt;</code>是两种运行时类型。</p>
+<h3 id="解决办法：使用-List-from-Map-from"><a href="#解决办法：使用-List-from-Map-from" class="headerlink" title="解决办法：使用 List.from, Map.from"></a>解决办法：使用 List.from, Map.from</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="keyword">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = List.from(json[<span class="string">'ids'</span>] ?? <span class="keyword">const</span> []),</span><br><span class="line">    this.ext= Map.from(json[<span class="string">'ext'</span>] ?? <span class="keyword">const</span> &#123;&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 最常出现的错误/" data-id="cm0b6c0uh00gkstr4ivmsy8jp" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/开发随笔/UI+App demo" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/开发随笔/UI+App demo/" class="article-date">
@@ -101,35 +486,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="cm0b6algm00fmq5r4gqtci7m7" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/开发随笔/Flutter MaterialApp" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/开发随笔/Flutter MaterialApp/" class="article-date">
-  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="Flutter-MaterialApp"><a href="#Flutter-MaterialApp" class="headerlink" title="Flutter MaterialApp"></a>Flutter MaterialApp</h1><h2 id="Flutter-MaterialApp的initialRoute属性和home属性的区别"><a href="#Flutter-MaterialApp的initialRoute属性和home属性的区别" class="headerlink" title="Flutter MaterialApp的initialRoute属性和home属性的区别"></a>Flutter MaterialApp的initialRoute属性和home属性的区别</h2><p>1、home 是应用程序默认的路由小部件，如果指定了 home，那么 route 中就不能包含 /，home 会取代 /。<br>2、除非指定了 initialRoute（会先执行home，再执行initialRoute，在initialRoute页返回会回到home页），否则应用程序会首先显示 home 对应的小部件，如果 initialRoute 不能正常显示，也会显示 home。<br>使用场景：<br>若APP启动时需要根据是否登录来决定首先显示的页面，可在路由监听中判断 token，若未登录，则 initialRoute 设置登录页对应的别名，则会打开登录页。</p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter MaterialApp/" data-id="cm0b6algv00fqq5r47lkz03gm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="cm0b6c0v000gqstr49eq1eise" class="article-share-link">Share</a>
       
       
     </footer>
@@ -263,7 +620,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="cm0b6alh400ftq5r4rxbewq7m" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="cm0b6c0vj00gwstr40rhajfp0" class="article-share-link">Share</a>
       
       
     </footer>
@@ -362,303 +719,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/Git-Flow/" data-id="cm0b6akz6006tq5r4pggfy3c8" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/旧电脑数据清理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/旧电脑数据清理/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.098Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="旧电脑-Mac-数据清理"><a href="#旧电脑-Mac-数据清理" class="headerlink" title="旧电脑(Mac)数据清理"></a>旧电脑(Mac)数据清理</h1><p>[TOC]</p>
-<h2 id="清理项"><a href="#清理项" class="headerlink" title="清理项"></a>清理项</h2><p>系统偏好设置-用户与群组，左下角解锁点击加号添加一个新的管理员账号 点击左上角苹果图标，注销登陆新账号 同一个位置选择之前的账号点击减号删除 删除的时候选择删除文件就可以了</p>
-<ul>
-<li><p>AppleID(涉及appstore)</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 系统设置里退出</li>
-<li style="list-style: none"><input type="checkbox"> appStore –&gt; 商店 –&gt; 退出登录</li>
-</ul>
-</li>
-<li><p>iCloud账号(涉及备忘录、提醒事项、Safari等)</p>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 设置 –&gt; iCloud</li>
-</ul>
-<ul>
-<li><p>邮件、备忘录、提醒事项 清理</p>
-<ul>
-<li><p>[ ] 清理系统邮箱内容</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">进入 ~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads</span><br><span class="line">请不要在终端用open命令，因为Mail Downloads这个有空格。</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 备忘录、提醒事项</li>
-</ul>
-<ul>
-<li>钥匙串</li>
-</ul>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 清除系统钥匙串中的密码等相关</li>
-</ul>
-<ul>
-<li><p>浏览器</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome账号&amp;密码</li>
-</ul>
-<blockquote>
-<p>附：<a href="https://jingyan.baidu.com/article/e3c78d649cfbdd3c4c85f5af.html" target="_blank" rel="noopener">Mac如何查看Safari保存的密码</a></p>
-</blockquote>
-<ul>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome浏览记录</li>
-<li style="list-style: none"><input type="checkbox"> Safari、Chrome个人收藏</li>
-</ul>
-</li>
-<li><p>微信记录<br>在输入框中输入 <code>~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/</code>，然后找到<code>com.tencent.xinWeChat</code>删除整个文件夹即可。</p>
-</li>
-<li><p>QQ记录<br>在输入框输入<code>~/Library/Containers/com.tencent.qq</code>，删除整个文件即可。</p>
-</li>
-<li><p>Keynote、Page等清除打开的文件记录</p>
-<ul>
-<li style="list-style: none"><input type="checkbox"> 打开软件 –&gt; 文件 –&gt; 打开最近使用 –&gt; 清除菜单</li>
-</ul>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>其他</p>
-<ul>
-<li><p>iPhone模拟器重置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">顶部 -&gt; Erase All Content And Setting</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-<li><p>应用软件删除</p>
-</li>
-<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
-</li>
-<li><p>文件夹删除(文稿、图片、下载内容等)</p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cm0b6ajv8003eq5r49dixjfqs" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/远程共享文件夹" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/远程共享文件夹/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
-<h2 id="一、MacBook-Pro-怎么设置smb共享文件夹"><a href="#一、MacBook-Pro-怎么设置smb共享文件夹" class="headerlink" title="一、MacBook Pro 怎么设置smb共享文件夹"></a>一、MacBook Pro 怎么设置smb共享文件夹</h2><p>在Mac要设置smb的共享文件夹，那么如何设置的好的呢？如何去设置一共享文件夹？</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/30601b6104a355e9acb59562d22ae3efe17868b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<h2 id="方法-步骤"><a href="#方法-步骤" class="headerlink" title="方法/步骤"></a>方法/步骤</h2><ol>
-<li><p>右键一个桌面新建文件夹，然后点击新建文件夹。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e1390a31dfb6326c607de47a89532f63228560b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/22c4fe36e29147e80cfb44c7b603bbea3f8658b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>把要共享文件，拖入新建文件夹，然后点击logo。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/6002c9d4483104ebbfbc22ba092b74ee1d324eb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/8db0c6a72633488499f83699ddee7b7f870e45b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>点击设置，点击共享。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/e4b5e2f5ee0d3acef4cc0fde87e265e7350fbbb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/1562a0b9763e21c2d3cd9c65e6e89a618725b1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>文件共享勾上，点击加。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/87645f93cee8b0042400acba79260d9a300ea9b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/304f0999e92abab83a5b174b4814f1c594eea1b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>然后点击桌面选择新建文件夹添加，右边默认的读权限，如果要写的，那么该为读写。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/f0848bee41c1b727d3487b3d1a2ca5cadde898b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/a48bc2e8904800fcf1ece5bbd42043715edb93b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>之后点击用户，点击锁。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/5e615d715fdb36203521b03cabc5260f89358db0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/2184380f8835dd8acbc538b203013870d44187b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-<li><p>输入密码解锁，然后把两个允许勾上。</p>
-<p><img src="https://exp-picture.cdn.bcebos.com/444696013870d541ad97dbbd2e0f94fc518c80b0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-<p><img src="https://exp-picture.cdn.bcebos.com/d400248ca608a50f0ee72d3910cec7f88b77ffb0.jpg?x-bce-process=image%2Fresize%2Cm_lfit%2Cw_500%2Climit_1%2Fquality%2Cq_80" alt="MacBook Pro 怎么设置smb共享文件夹"></p>
-</li>
-</ol>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="cm0b6ajvb003iq5r48qtesjqk" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-电脑使用/远程桌面连接" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/电脑使用/远程桌面连接/" class="article-date">
-  <time datetime="2021-12-17T14:19:20.096Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="远程连接"><a href="#远程连接" class="headerlink" title="远程连接"></a>远程连接</h1><p>[TOC]</p>
-<h2 id="一、mac被远程连接"><a href="#一、mac被远程连接" class="headerlink" title="一、mac被远程连接"></a>一、mac被远程连接</h2><p>1、先请在苹果 Mac 电脑上的“系统偏好设置”窗口中打开“共享”功能</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/dc54564e9258d109bcbb14d4df58ccbf6c814d7f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>2、接着在共享窗口中的左侧点击启用“屏幕共享”选项</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/55e736d12f2eb9387627c794db628535e5dd6f0a?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>3、当屏幕共享功能打开以后，请点击“电脑设置”按钮</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9345d688d43f87949e97f548dc1b0ef41bd53a6f?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>4、随后请勾选二个选项： VNC 显示程序可以使用密码控制屏幕，并且设置一个连接密码</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/50da81cb39dbb6fd173058400724ab18972b3768?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<p>5、随后会提示我们是否真的要连接此电脑，点击 Continue 按钮继续。</p>
-<p><a href="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974" target="_blank" rel="noopener"><img src="https://iknow-pic.cdn.bcebos.com/9922720e0cf3d7cad0928210fc1fbe096b63a974?x-bce-process%3Dimage%2Fresize%2Cm_lfit%2Cw_600%2Ch_800%2Climit_1%2Fquality%2Cq_85%2Fformat%2Cf_jpg" alt="img"></a></p>
-<h2 id="二、mac连接已设置允许远程连接的mac"><a href="#二、mac连接已设置允许远程连接的mac" class="headerlink" title="二、mac连接已设置允许远程连接的mac"></a>二、mac连接已设置允许远程连接的mac</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程桌面连接/" data-id="cm0b6ajvr003qq5r44h4avef0" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/npmjs/npm的命令" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/npmjs/npm的命令/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.970Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>参考文章：<a href="https://segmentfault.com/q/1010000017860880" target="_blank" rel="noopener">https://segmentfault.com/q/1010000017860880</a></p>
-<h2 id="安装类库"><a href="#安装类库" class="headerlink" title="安装类库"></a><code>安装类库</code></h2><p>某一语法：npm install [&lt;@scope&gt;/]<name>@<version><br>某些示例：<br>//安装某一指定版本<br>npm install <a href="mailto:test@0.0.2" target="_blank" rel="noopener">test@0.0.2</a><br>//安装指定范围版本<br>//安装指定范围版本（大于）<br>npm install test@”&gt;0.0.1”<br>//安装指定范围版本（小于）<br>npm install test@”&lt;0.0.1”<br>//安装指定范围版本（之间）<br>npm install test@”^0.0.2”<br>npm install test@”&gt;=0.0.2 &lt;0.0.3”</version></name></p>
-<h2 id="更新类库"><a href="#更新类库" class="headerlink" title="更新类库"></a><code>更新类库</code></h2><p>某一语法：npm update [-g] [<pkg>…]<br>某些示例：</pkg></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">//更新到最新版本</span><br><span class="line">npm update test</span><br><span class="line">//更新到某一版本</span><br><span class="line">npm update test@&quot;0.0.2&quot;</span><br><span class="line">//更新到某范围版</span><br><span class="line">npm update test@&quot;^0.0.2&quot; //即等于npm update test@&quot;&gt;=0.0.2 &lt;0.0.3&quot;</span><br></pre></td></tr></table></figure>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/npmjs/npm的命令/" data-id="cm0b6ao50018pq5r47gknw12j" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/CocoaPods" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/CocoaPods/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.965Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="CocoaPods"><a href="#CocoaPods" class="headerlink" title="CocoaPods"></a>CocoaPods</h1><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>最新ruby源<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gem sources --remove https://gems.ruby-china.org</span><br><span class="line">gem sources -l</span><br><span class="line">gem sources --add https://gems.ruby-china.com</span><br></pre></td></tr></table></figure></p>
-<h2 id="一、cocoapods-的安装和升级"><a href="#一、cocoapods-的安装和升级" class="headerlink" title="一、cocoapods 的安装和升级"></a>一、cocoapods 的安装和升级</h2><p>1、查看pod版本</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod --version</span><br></pre></td></tr></table></figure>
-<p>2、安装 CocoaPods</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo gem install -n /usr/local/bin cocoapods  # OS X 版本大于 10.11，使用此命令安装</span><br><span class="line">sudo gem install cocoapods # OS X 版本小于等于 10.11，使用此命令安装</span><br></pre></td></tr></table></figure>
-<p>其他参考：<a href="https://lbsyun.baidu.com/index.php?title=iossdk/guide/create-project/cocoapods" target="_blank" rel="noopener">百度地图中的CocoaPods文章</a></p>
-<p>3、升级</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">sudo gem update cocoapods</span><br><span class="line">// 以下该行命令可升级cocoapods</span><br><span class="line">gem install cocoapods</span><br><span class="line"></span><br><span class="line">// 移除现有pod</span><br><span class="line">rm -rf /usr/local/bin/pod</span><br><span class="line">// 重新下载pod</span><br><span class="line">sudo gem install cocoapods</span><br></pre></td></tr></table></figure>
-<h2 id="五、创建spec-repo"><a href="#五、创建spec-repo" class="headerlink" title="五、创建spec repo"></a>五、创建spec repo</h2><ul>
-<li><p>进入文件夹<code>cd ~/.cocoapods/repos</code>可以查看本地<code>spec repo</code></p>
-</li>
-<li><p>指定管理 <code>lib repo</code>的 <code>specs repo</code>的 <code>url</code><br><code>pod repo add dvlproad https://gitee.com/dvlproad/dvlproadSpecs.git</code><br>注意 此处地址是<code>spec</code>仓库地址</p>
-</li>
-</ul>
-<h4 id="End"><a href="#End" class="headerlink" title="End"></a>End</h4>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods/" data-id="cm0b6ao1q018bq5r4x1ny5ayy" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/Cocoapod常见问题" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/Cocoapod常见问题/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.965Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Cocoapod常见问题"><a href="#Cocoapod常见问题" class="headerlink" title="Cocoapod常见问题"></a>Cocoapod常见问题</h2><h2 id="iOS-Xcode-14-创建新项目Pod-init及Pod-install-报错"><a href="#iOS-Xcode-14-创建新项目Pod-init及Pod-install-报错" class="headerlink" title="iOS Xcode 14 创建新项目Pod init及Pod install 报错"></a>iOS Xcode 14 创建新项目Pod init及Pod install 报错</h2><blockquote>
-<p>in `initialize_from_file’: [Xcodeproj] Unknown object version (56). (RuntimeError)</p>
-</blockquote>
-<p>原因：Xcode与cocoapods不兼容。</p>
-<p>解决：修改<code>compatibilityVersion</code>，将<code>Project Format</code> 改为<code>Xcode 13.0-compatible</code></p>
-<ul>
-<li><a href="https://blog.csdn.net/weixin_36162680/article/details/126959349?csdn_share_tail=%7B%22type%22%3A%22blog%22%2C%22rType%22%3A%22article%22%2C%22rId%22%3A%22126959349%22%2C%22source%22%3A%22weixin_36162680%22%7D&amp;fromshare=blogdetail" target="_blank" rel="noopener">iOS Xcode 14 创建新项目Pod init及Pod install 报错</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/Cocoapod常见问题/" data-id="cm0b6ao2b018fq5r4dqyuwn6a" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/Git-Flow/" data-id="cm0b6c06x006mstr4lap4vtww" class="article-share-link">Share</a>
       
       
     </footer>
@@ -712,7 +773,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -729,19 +790,19 @@
           </li>
         
           <li>
+            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/">(no title)</a>
           </li>
         
       </ul>
