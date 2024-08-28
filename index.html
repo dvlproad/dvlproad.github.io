@@ -72,6 +72,932 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/监控相关/日志系统" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/监控相关/日志系统/" class="article-date">
+  <time datetime="2024-08-28T09:08:41.000Z" itemprop="datePublished">2024-08-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="前言：主要事项"><a href="#前言：主要事项" class="headerlink" title="前言：主要事项"></a>前言：主要事项</h2><p>1、异常数据的发现及补充、日志分类优化<br>2、日志数据的文件保存、滚动存储<br>3、日志文件上传<br>4、日志回捞</p>
+<h2 id="一、日志收集"><a href="#一、日志收集" class="headerlink" title="一、日志收集"></a>一、日志收集</h2><h3 id="1、日志分类"><a href="#1、日志分类" class="headerlink" title="1、日志分类"></a>1、日志分类</h3><h4 id="1-1、日志目标"><a href="#1-1、日志目标" class="headerlink" title="1.1、日志目标"></a>1.1、日志目标</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>目标(Target)</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>app</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>sdk</td>
+<td>三方库</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>h5</td>
+<td>网页</td>
+</tr>
+</tbody>
+</table>
+<p><a name="日志类型"></a></p>
+<h4 id="1-2、日志类型"><a href="#1-2、日志类型" class="headerlink" title="1.2、日志类型"></a>1.2、日志类型</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>类型</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>api_app</td>
+<td>app中的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>api_app_cache</td>
+<td>app中的网络请求的网络缓存请求</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>api_buriedPoint</td>
+<td>埋点的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>sdk_other</td>
+<td>sdk的各种事件(初始化等)</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>sdk_api</td>
+<td>sdk中的网络请求</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>dart</td>
+<td>语法</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>widget</td>
+<td>视图(布局像素越界等)</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>click_other</td>
+<td>点击、</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>click_share</td>
+<td>分享</td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>native_route</td>
+<td>路由/跳转</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>h5_route</td>
+<td>与网页跳转有关</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>h5_js</td>
+<td>js交互</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>monitor_network</td>
+<td>监控：网络类型变化</td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>monitor_lifecycle</td>
+<td>监控：生命周期变化</td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>buriedPoint_other</td>
+<td>埋点数据生成等</td>
+<td></td>
+</tr>
+<tr>
+<td>16</td>
+<td>im</td>
+<td>IM</td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>heartbeat</td>
+<td>心跳</td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td>other</td>
+<td>其他</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、日志等级"><a href="#2、日志等级" class="headerlink" title="2、日志等级"></a>2、日志等级</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>目标(Level)</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Normal</td>
+<td>正常信息(目前用于请求开始)</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Success</td>
+<td>成功信息(目前用于请求结束：成功)</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Warning</td>
+<td>警告信息(目前用于请求结束：报错)</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Error</td>
+<td>错误日志(目前用于请求结束：失败)</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Dangerous</td>
+<td>危险(处理白屏等)</td>
+<td>一般会<strong>进行额外的埋点</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a name="日志整合归类"></a></p>
+<h3 id="3、日志整合归类"><a href="#3、日志整合归类" class="headerlink" title="3、日志整合归类"></a>3、日志整合归类</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>列表</th>
+<th>标志</th>
+<th>包含</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>全部</td>
+<td>all</td>
+<td>所有</td>
+</tr>
+<tr>
+<td>2</td>
+<td>警告</td>
+<td>warning</td>
+<td>所有的警告</td>
+</tr>
+<tr>
+<td>3</td>
+<td>错误</td>
+<td>error</td>
+<td>所有的错误</td>
+</tr>
+<tr>
+<td>4</td>
+<td>接口</td>
+<td>api</td>
+<td>api_app、api_cache(不包括sdk_api、api_buriedPoint)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>点击</td>
+<td>click</td>
+<td>click_share、click_other、h5_js</td>
+</tr>
+<tr>
+<td>6</td>
+<td>路由</td>
+<td>route</td>
+<td>navite_route、h5_route</td>
+</tr>
+<tr>
+<td>7</td>
+<td>网页</td>
+<td>H5</td>
+<td>h5_route、h5_js</td>
+</tr>
+<tr>
+<td>8</td>
+<td>sdk</td>
+<td>sdk</td>
+<td>sdk_api、sdk_other</td>
+</tr>
+<tr>
+<td>9</td>
+<td>code</td>
+<td>code</td>
+<td>dart、widget</td>
+</tr>
+<tr>
+<td>10</td>
+<td>埋点</td>
+<td>buriedPoint</td>
+<td>api_buriedPoint、buriedPoint_other</td>
+</tr>
+<tr>
+<td>11</td>
+<td>监控</td>
+<td>monitor</td>
+<td>monitor_lifecycle、monitor_network</td>
+</tr>
+<tr>
+<td>12</td>
+<td>其他</td>
+<td>other</td>
+<td>other</td>
+</tr>
+<tr>
+<td>13</td>
+<td>api结果</td>
+<td>api_result</td>
+<td>type=api_app &amp; level != Normal</td>
+</tr>
+<tr>
+<td>14</td>
+<td>im</td>
+<td>im</td>
+<td>本地缓存消息、历史消息、收到的消息等</td>
+</tr>
+<tr>
+<td>15</td>
+<td>心跳</td>
+<td>heartbeat</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/Architecture架构/监控相关/日志系统/devtool_log_home_page.gif" alt="devtool_log_home_page" style="zoom:50%;"></p>
+<h3 id="4、日志的补充收集及其策略"><a href="#4、日志的补充收集及其策略" class="headerlink" title="4、日志的补充收集及其策略"></a>4、日志的补充收集及其策略</h3><p>要收集的数据已在上述《<a href="#日志类型">1.2、日志类型</a>》中说明。</p>
+<h4 id="4-1、页面跳转"><a href="#4-1、页面跳转" class="headerlink" title="4.1、页面跳转"></a>4.1、页面跳转</h4><p>详见上述 《<a href="#日志整合归类">3、日志整合归类</a>》中的”路由”</p>
+<h4 id="4-2、截断的收集"><a href="#4-2、截断的收集" class="headerlink" title="4.2、截断的收集"></a>4.2、截断的收集</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>关键字</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>break</td>
+<td>for 、 swtich</td>
+</tr>
+<tr>
+<td>2</td>
+<td>return</td>
+</tr>
+</tbody>
+</table>
+<h4 id="4-3、用户关键行为"><a href="#4-3、用户关键行为" class="headerlink" title="4.3、用户关键行为"></a>4.3、用户关键行为</h4><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>行为</th>
+<th>用途的场景说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>用户的资源选择</td>
+<td>判断选择的本地资源是否上传到错误的存储桶</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二、日志数据的文件保存、滚动存储"><a href="#二、日志数据的文件保存、滚动存储" class="headerlink" title="二、日志数据的文件保存、滚动存储"></a>二、日志数据的文件保存、滚动存储</h2><h3 id="1、数据的文件保存"><a href="#1、数据的文件保存" class="headerlink" title="1、数据的文件保存"></a>1、数据的文件保存</h3><p>写入xlog文件中。</p>
+<h3 id="2、数据的文件滚动存储"><a href="#2、数据的文件滚动存储" class="headerlink" title="2、数据的文件滚动存储"></a>2、数据的文件滚动存储</h3><h4 id="2-1、日志的过期清理"><a href="#2-1、日志的过期清理" class="headerlink" title="2.1、日志的过期清理"></a>2.1、日志的过期清理</h4><p>1、本地日志文件结构</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-- Document</span><br><span class="line">	-- log</span><br><span class="line">		-- 2020-10-01</span><br><span class="line">			-- xlog_2020-10-01_1.xlog</span><br><span class="line">			-- xlog_2020-10-01_2.xlog</span><br><span class="line">		-- 2020-10-18</span><br><span class="line">			-- xlog_2020-10-18_1.xlog</span><br></pre></td></tr></table></figure>
+<p>2、日志保留清理的配置信息(摘自/同 下文的日志接口中的《日志文件配置信息》)</p>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>最多保留几个天的日志目录</td>
+<td>maxDayDirCount</td>
+<td>7</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>最多每天保留几个文件</td>
+<td>maxDayFileCount</td>
+<td>10</td>
+</tr>
+<tr>
+<td>接口回值3</td>
+<td>每个日志文件超过多少后创建新文件</td>
+<td>perFileMaxMB</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>3、清理方案</p>
+<p><strong>清理时机：在切换前后台的时候，</strong></p>
+<ul>
+<li>日志配置信息的更新</li>
+<li>根据最新的日志配置信息，延迟10s后(避免影响启动)，进行清理判断及清理<ul>
+<li>遍历总日志目录 Document/log 下的所有日志文件夹</li>
+<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志<ul>
+<li>遍历天日志目录 Document/log/yyyy-MM-dd 下的所有日志文件夹</li>
+<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-2、日志文件的滚动写入"><a href="#2-2、日志文件的滚动写入" class="headerlink" title="2.2、日志文件的滚动写入"></a>2.2、日志文件的滚动写入</h4><p>要增加的日志记录，如果添加后会超过日志文件的大小，则使用新文件写入。</p>
+<p><strong>细节点</strong>：<br>1、日志文件的大小判断，不要每次都去读取文件，而是记录住大小变化<br>2、日志不要有一条写一条，而是使用写入缓冲区+定时器，5s尝试写入一次</p>
+<h3 id="3、数据的加密、解密"><a href="#3、数据的加密、解密" class="headerlink" title="3、数据的加密、解密"></a>3、数据的加密、解密</h3><p>1、加密：</p>
+<p>写入日志字符串时候，对编码后的字节数据，额外增加一个三位随机值。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// 使用 GZip 压缩算法将字符串进行压缩，并返回压缩后的字节数据（List&lt;int&gt; 类型）。</span></span><br><span class="line"><span class="built_in">List</span>&lt;<span class="built_in">int</span>&gt; _gzipCompressString(<span class="built_in">String</span> inputString) &#123;</span><br><span class="line">  <span class="keyword">final</span> codec = GZipCodec();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 将输入字符串 inputString 编码为 UTF-8 格式的字节数据</span></span><br><span class="line">  <span class="keyword">final</span> encoded = utf8.encode(inputString);</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 对编码后的字节数据进行压缩，并返回压缩后的字节数据。</span></span><br><span class="line">  <span class="keyword">final</span> compressedData = codec.encode(encoded);</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">return</span> compressedData;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// 加密日志字符串</span></span><br><span class="line"><span class="built_in">String</span> _encryptLogString(<span class="built_in">String</span> logString) &#123;</span><br><span class="line">  <span class="keyword">final</span> compressedData = _gzipCompressString(logString); <span class="comment">// 压缩字符串，并返回压缩后的字节数据（List&lt;int&gt; 类型）</span></span><br><span class="line">  <span class="keyword">final</span> randomNumber = Random().nextInt(<span class="number">800</span>) + <span class="number">100</span>;</span><br><span class="line">  <span class="keyword">final</span> confound = compressedData.toString().substring(<span class="number">0</span>, compressedData.toString().length - <span class="number">1</span>) + <span class="string">", <span class="subst">$randomNumber</span>]"</span>; <span class="comment">// 在压缩后的字符串尾部加上一个随机字符串</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> confound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>2、解密：</p>
+<p>使用python脚本对log文件进行解密</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> gzip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 读取.clog文件并解析数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parse_clog_file</span><span class="params">(input_file)</span>:</span></span><br><span class="line">    parsed_data = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(input_file, <span class="string">'r'</span>) <span class="keyword">as</span> clog_file:</span><br><span class="line">        current_data = <span class="string">""</span></span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> clog_file:</span><br><span class="line">            <span class="keyword">if</span> current_data:</span><br><span class="line">                parsed_data.append(current_data)</span><br><span class="line">            binary_data = line[:<span class="number">-6</span>] + <span class="string">']'</span> <span class="comment"># 去除加密时候额外添加的三位随机数</span></span><br><span class="line">            byte_data = bytes(eval(binary_data))</span><br><span class="line">            decompressed_data = gzip.decompress(byte_data)</span><br><span class="line">            <span class="comment"># current_data = byte_data.decode('utf-8')</span></span><br><span class="line">            print(decompressed_data)</span><br><span class="line">            current_data = decompressed_data.decode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 添加最后一个数据条目</span></span><br><span class="line">        <span class="keyword">if</span> current_data:</span><br><span class="line">            parsed_data.append(current_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> parsed_data</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">write_to_log_file</span><span class="params">(parsed_data, input_file)</span>:</span></span><br><span class="line">    base_name = os.path.splitext(input_file)[<span class="number">0</span>]</span><br><span class="line">    output_file = base_name + <span class="string">".log"</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(output_file, <span class="string">'w'</span>) <span class="keyword">as</span> log_file:</span><br><span class="line">        <span class="keyword">for</span> data <span class="keyword">in</span> parsed_data:</span><br><span class="line">            log_file.write(data + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"================================================================================================="</span> + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    <span class="keyword">if</span> len(sys.argv) != <span class="number">2</span>:</span><br><span class="line">        print(<span class="string">"Usage: python script.py &lt;clogFileName&gt;"</span>)</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    input_clog_file = sys.argv[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 解析.clog文件</span></span><br><span class="line">    parsed_data = parse_clog_file(input_clog_file)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line">    write_to_log_file(parsed_data, input_clog_file)</span><br><span class="line"></span><br><span class="line">    print(<span class="string">f"Log data parsed from <span class="subst">&#123;input_clog_file&#125;</span> and written to <span class="subst">&#123;input_clog_file&#125;</span>.log."</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="三、日志文件上传"><a href="#三、日志文件上传" class="headerlink" title="三、日志文件上传"></a>三、日志文件上传</h2><h3 id="1、日志文件命名及目录规范"><a href="#1、日志文件命名及目录规范" class="headerlink" title="1、日志文件命名及目录规范"></a>1、日志文件命名及目录规范</h3><p>以用户<code>1000001</code>在<code>2020-01</code>时候上传<code>声音文件 beautiful_scenery.aac</code>为例，其路径完整示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">https://media.xxx.com/app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</span></span><br></pre></td></tr></table></figure>
+<p>要上传的存储桶：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>参数</th>
+<th>约定值示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>存储桶region<br>regionGetFunction</td>
+<td>网络环境</td>
+<td>ap-shanghai</td>
+</tr>
+<tr>
+<td>2</td>
+<td>存储桶bucket<br>bucketGetFunction</td>
+<td>网络环境</td>
+<td>xxx-pro-image-1302324914</td>
+</tr>
+<tr>
+<td>3</td>
+<td>上传成功后，桶的映射路径值<br>cosFileUrlPrefixGetFunction</td>
+<td></td>
+<td>1、图片桶：<a href="https://images.xxx.com/" target="_blank" rel="noopener">https://images.xxx.com/</a><br>2、媒体桶：<a href="https://media.xxx.com/" target="_blank" rel="noopener">https://media.xxx.com/</a><br>3、日志桶：<a href="https://static.xxx.com/" target="_blank" rel="noopener">https://static.xxx.com/</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>要上传到桶的哪个相对路径下<br>cosFileRelativePathGetFunction<br>上传成功后完整路径=以上桶值+此相对路径<br></td>
+<td>见下文</td>
+<td>见下文<br>eg：app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</td>
+</tr>
+</tbody>
+</table>
+<p>《要上传到桶的哪个相对路径下 <strong>cosFileRelativePathGetFunction</strong> 》的文件路径分批说明：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>层次说明</th>
+<th>层次值算法</th>
+<th>层次值描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td>存储桶里相对路径的前缀</td>
+<td>app标志_环境标志<br>eg：app1_pro、app1_test1、app1_dev1</td>
+<td>文件区分</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>是否在存储桶里进行进一步路径区分(可选)</td>
+<td>根据场景决定是否对桶进行进一步分类。<br>if ( mediaType == xxx ) {<br>     if(mediaScene == yyy) {<br>     <br>     }<br>}</td>
+<td>如<br>1、都是图片，但自拍图片要求独立出来<br>2、都是多媒体，但音视频要区分开</td>
+</tr>
+<tr>
+<td>2.1</td>
+<td>用户1级</td>
+<td>int.parse(uid) % 1000; // 取余数</td>
+<td>用户名取余，有效减少同层上文件夹个数</td>
+</tr>
+<tr>
+<td>2.2</td>
+<td>用户2级</td>
+<td>uid</td>
+<td>用户名</td>
+</tr>
+<tr>
+<td>3</td>
+<td>年月</td>
+<td>DateTime.now().toString().substring(0, 7);</td>
+<td>年-月</td>
+</tr>
+<tr>
+<td>4</td>
+<td>文件名</td>
+<td>${fileOriginName}_<br>${DateTime.now().microsecondsSinceEpoch}<br>.$fileExtensionType</td>
+<td>文件名</td>
+</tr>
+</tbody>
+</table>
+<p>附1：MediaType 媒体类型</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>UploadMediaType 媒体类型</th>
+<th>描述</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>unkonw</td>
+<td>未知（默认值）</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>image</td>
+<td>图片</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>audio</td>
+<td>音频</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>video</td>
+<td>视频</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>xlog</td>
+<td>日志文件</td>
+</tr>
+</tbody>
+</table>
+<p>附2：MediaScene场景 说明</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>UploadMediaScene场景</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>unkonw</td>
+<td>未知（默认值）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>selfie</td>
+<td>自拍（安全等级较多）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>im</td>
+<td>会话聊天</td>
+</tr>
+<tr>
+<td>4</td>
+<td>live</td>
+<td>直播</td>
+</tr>
+</tbody>
+</table>
+<h2 id="四、日志接口"><a href="#四、日志接口" class="headerlink" title="四、日志接口"></a>四、日志接口</h2><h3 id="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"><a href="#1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）" class="headerlink" title="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"></a>1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）</h3><p>1、是否记录日志的开关及其配置信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>是否开启日志记录</td>
+<td>isLogOn</td>
+<td>1:开启、其他:关</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>要开启日志的用户(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
+<td>logUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置3</td>
+<td>要开启日志的设备(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>是否进行日志记录(灰度上线)</td>
+<td>needLog</td>
+<td>1:记录、其他:不记录</td>
+</tr>
+</tbody>
+</table>
+<p>2、不需要记录什么日志信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>不需要记录的日志类型</td>
+<td>ignoreLogLevel</td>
+<td>[“Normal”, “Success”]</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>不需要记录的日志等级</td>
+<td>ignoreLogType</td>
+<td>[“api_buriedPoint”, “buriedPoint_other”]</td>
+</tr>
+</tbody>
+</table>
+<p>3、日志文件配置信息</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口回值1</td>
+<td>最多保留几个天的日志目录</td>
+<td>maxDayDirCount</td>
+<td>7</td>
+</tr>
+<tr>
+<td>接口回值2</td>
+<td>最多每天保留几个文件</td>
+<td>maxDayFileCount</td>
+<td>10</td>
+</tr>
+<tr>
+<td>接口回值3</td>
+<td>每个日志文件超过多少后创建新文件</td>
+<td>perFileMaxMB</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p>4、日志文件问题回滚</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>强制删除什么时间前的日志</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个用户的日志</td>
+<td>removeUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个设备的日志</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>强制删除什么时间前的日志(不删除时空)</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31 或 空值</td>
+</tr>
+</tbody>
+</table>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerConfig(userid, deviceId)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"logConfig"</span>: &#123;</span><br><span class="line">		<span class="attr">"needLog"</span>: <span class="number">1</span>,</span><br><span class="line">		<span class="attr">"ignoreLogLevel"</span>: [<span class="string">"Normal"</span>, <span class="string">"Success"</span>],</span><br><span class="line">		<span class="attr">"ignoreLogType"</span>: [<span class="string">"api_buriedPoint"</span>, <span class="string">"buriedPoint_other"</span>],</span><br><span class="line">		<span class="attr">"maxDayDirCount"</span>: <span class="number">7</span>,</span><br><span class="line">		<span class="attr">"maxDayFileCount"</span>: <span class="number">10</span>,</span><br><span class="line">		<span class="attr">"perFileMaxMB"</span>: <span class="number">5</span></span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="attr">"logRevert"</span>: &#123;</span><br><span class="line">		<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2、日志回捞及问题回滚接口"><a href="#2、日志回捞及问题回滚接口" class="headerlink" title="2、日志回捞及问题回滚接口"></a>2、日志回捞及问题回滚接口</h3><p>1、日志回捞</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>要回捞日志的用户</td>
+<td>salvageUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>要回捞日志的设备</td>
+<td>salvageDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>网页配置3</td>
+<td>日志回捞的开始时间</td>
+<td>salvageStartDate</td>
+<td>2020-01-01</td>
+</tr>
+<tr>
+<td>网页配置4</td>
+<td>日志回捞的结束时间</td>
+<td>salvageEndDate</td>
+<td>2020-01-07</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>此用户此设备日志回捞的开始时间</td>
+<td>salvageStartDate</td>
+<td>2020-01-01</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>此用户此设备日志回捞的结束时间</td>
+<td>salvageEndDate</td>
+<td>2020-01-07</td>
+</tr>
+</tbody>
+</table>
+<p>2、日志文件问题回滚</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>说明</th>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网页配置1</td>
+<td>强制删除什么时间前的日志</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个用户的日志</td>
+<td>removeUserids</td>
+<td>[“101”, “102”]</td>
+</tr>
+<tr>
+<td>网页配置2</td>
+<td>强制删除哪个设备的日志</td>
+<td>logDeviceIds</td>
+<td>[“udid001”, “udid002”]</td>
+</tr>
+<tr>
+<td>接口回值1</td>
+<td>强制删除什么时间前的日志(不删除时空)</td>
+<td>removeLogBeforeDate</td>
+<td>2020-12-31 或 空值</td>
+</tr>
+</tbody>
+</table>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerSalvageAndRevert(salvageUserids, salvageDeviceIds)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"salvageId"</span>: <span class="string">"1001"</span>, </span><br><span class="line">	<span class="attr">"salvageStartDate"</span>: <span class="string">"2020-01-01"</span>,</span><br><span class="line">  <span class="attr">"salvageEndDate"</span>: <span class="string">"2020-01-07"</span>,</span><br><span class="line">	<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、日志文件上传到cos后同步给后台"><a href="#3、日志文件上传到cos后同步给后台" class="headerlink" title="3、日志文件上传到cos后同步给后台"></a>3、日志文件上传到cos后同步给后台</h3><p>用途：日志文件上传到cos后同步给后台，后台数据库记录每个用户，每个设备都捞到了什么数据。</p>
+<p>接口名定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function addLoggerFile(userid, deviceId)</span><br></pre></td></tr></table></figure>
+<p>接口结果的json示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、日志回捞"><a href="#四、日志回捞" class="headerlink" title="四、日志回捞"></a>四、日志回捞</h2><p>1、后台通过接口返回要回捞的信息。</p>
+<p>2、前端用户在下次使用，收到后台信息时候，进行本地日志的上传。在腾云存储桶能收到对应日志，即代表成功。</p>
+<h2 id="五、方案实施"><a href="#五、方案实施" class="headerlink" title="五、方案实施"></a>五、方案实施</h2><p>灰度方案：请参照 <a href="灰度系统">灰度系统 </a> 。（附：日志记录开关里目前已有灰度策略。）</p>
+<p>目的：避免功能异常，出现集体性问题。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/日志系统/" data-id="cm0e16zt6007nqlr4a1eb5rz0" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-电脑使用/旧电脑数据清理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/电脑使用/旧电脑数据清理/" class="article-date">
+  <time datetime="2024-08-27T09:03:10.752Z" itemprop="datePublished">2024-08-27</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="旧电脑-Mac-数据清理"><a href="#旧电脑-Mac-数据清理" class="headerlink" title="旧电脑(Mac)数据清理"></a>旧电脑(Mac)数据清理</h1><p>[TOC]</p>
+<h2 id="清理项"><a href="#清理项" class="headerlink" title="清理项"></a>清理项</h2><p>系统偏好设置-用户与群组，左下角解锁点击加号添加一个新的管理员账号 点击左上角苹果图标，注销登陆新账号 同一个位置选择之前的账号点击减号删除 删除的时候选择删除文件就可以了</p>
+<ul>
+<li><p>AppleID(涉及appstore)</p>
+<ul>
+<li style="list-style: none"><input type="checkbox"> 系统设置里退出</li>
+<li style="list-style: none"><input type="checkbox"> appStore –&gt; 商店 –&gt; 退出登录</li>
+</ul>
+</li>
+<li><p>iCloud账号(涉及备忘录、提醒事项、Safari等)</p>
+</li>
+</ul>
+<ul>
+<li style="list-style: none"><input type="checkbox"> 设置 –&gt; iCloud</li>
+</ul>
+<ul>
+<li><p>邮件、备忘录、提醒事项 清理</p>
+<ul>
+<li><p>[ ] 清理系统邮箱内容</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">进入 ~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads</span><br><span class="line">请不要在终端用open命令，因为Mail Downloads这个有空格。</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li style="list-style: none"><input type="checkbox"> 备忘录、提醒事项</li>
+</ul>
+<ul>
+<li>钥匙串</li>
+</ul>
+<ul>
+<li style="list-style: none"><input type="checkbox"> 清除系统钥匙串中的密码等相关</li>
+</ul>
+<ul>
+<li><p>浏览器</p>
+<ul>
+<li style="list-style: none"><input type="checkbox"> Safari、Chrome账号&amp;密码</li>
+</ul>
+<blockquote>
+<p>附：<a href="https://jingyan.baidu.com/article/e3c78d649cfbdd3c4c85f5af.html" target="_blank" rel="noopener">Mac如何查看Safari保存的密码</a></p>
+</blockquote>
+<ul>
+<li style="list-style: none"><input type="checkbox"> Safari、Chrome浏览记录</li>
+<li style="list-style: none"><input type="checkbox"> Safari、Chrome个人收藏</li>
+</ul>
+</li>
+<li><p>微信记录<br>在输入框中输入 <code>~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/</code>，然后找到<code>com.tencent.xinWeChat</code>删除整个文件夹即可。</p>
+</li>
+<li><p>QQ记录<br>在输入框输入<code>~/Library/Containers/com.tencent.qq</code>，删除整个文件即可。</p>
+</li>
+<li><p>Keynote、Page等清除打开的文件记录</p>
+<ul>
+<li style="list-style: none"><input type="checkbox"> 打开软件 –&gt; 文件 –&gt; 打开最近使用 –&gt; 清除菜单</li>
+</ul>
+</li>
+<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
+</li>
+<li><p>其他</p>
+<ul>
+<li><p>iPhone模拟器重置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">顶部 -&gt; Erase All Content And Setting</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>应用软件删除</p>
+</li>
+<li><p>应用软件账号删除(百度网盘、Evernote、SourceTree等)</p>
+</li>
+<li><p>文件夹删除(文稿、图片、下载内容等)</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cm0e16yoo003sqlr4vaatfn69" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-总目录" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/总目录/" class="article-date">
@@ -594,18 +1520,15 @@
 <li><a href="编程工具/UI2Code">UI2Code</a></li>
 <li><a href="编程工具/OnlineCoding在线编码">OnlineCoding在线编码</a></li>
 </ul>
-<h2 id="常见痛点"><a href="#常见痛点" class="headerlink" title="常见痛点"></a>常见痛点</h2><ul>
-<li><a href="管理相关/常见痛点">常见痛点</a></li>
-</ul>
+<p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
 <p>随笔</p>
 <p>专利申请</p>
-<p>自动化</p>
-<p>Architecture架构doing</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm0b7qxfm000782r47g9t3o0n" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm0e16ybz000cqlr4wz5ywlg2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -654,7 +1577,7 @@
 <p>上图和Https原理有点相像。</p>
 <h5 id="2-1-1、客户端密钥保存的安全问题"><a href="#2-1-1、客户端密钥保存的安全问题" class="headerlink" title="2.1.1、客户端密钥保存的安全问题"></a>2.1.1、客户端密钥保存的安全问题</h5><p>如果密钥是来源于客户端，那如何在客户端安全的保存密钥？请查看下文中的【<a href="#附2：如何在客户端安全的保存密钥AESKey">附2：如何在客户端安全的保存密钥AESKey</a>】</p>
 <h4 id="2-2、密钥来源于服务端（为了密钥能够像版本那样进行控制）"><a href="#2-2、密钥来源于服务端（为了密钥能够像版本那样进行控制）" class="headerlink" title="2.2、密钥来源于服务端（为了密钥能够像版本那样进行控制）"></a>2.2、密钥来源于服务端（为了密钥能够像版本那样进行控制）</h4><p>实际过程中，可能你的AESKey为了能够像版本那样进行控制，可能你的AESKey是由服务端分发的，则其过程可能如下：</p>
-<p><img src="/安全/网络加密/数据安全传输(AES+RSA" alt="数据安全传输(AES+RSA)">.jpg)</p>
+<p><img src="/安全/网络加密/数据安全传输_AES+RSA.jpg" alt="数据安全传输(AES+RSA)"></p>
 <p>空 ==&gt;  getServicePublicKey ==&gt;  servicePublicKey</p>
 <p>clientPublicKey(使用ServicePublicKey加密)  ==&gt;   sendClientPublicKey  ==&gt;  使用servicePrivateKey解密得到clientPublicKey</p>
 <p>空 ==&gt;   getServiceAESKey ==&gt;   aesKey(使用clientPublicKey加密)</p>
@@ -706,7 +1629,7 @@
 <h3 id="2、重放攻击-Replay-Attacks-的解决方案"><a href="#2、重放攻击-Replay-Attacks-的解决方案" class="headerlink" title="2、重放攻击(Replay Attacks)的解决方案"></a>2、重放攻击(Replay Attacks)的解决方案</h3><p><strong>防止重放攻击必须要保证请求仅一次有效</strong>。需要通过在请求体中携带当前请求的唯一标识，并且进行签名防止被篡改。所以，防止重放攻击需要建立在添加签名且防止签名被篡改的基础之上。</p>
 <h4 id="2-1、措施一：添加请求的时效性参数-Timestamp"><a href="#2-1、措施一：添加请求的时效性参数-Timestamp" class="headerlink" title="2.1、措施一：添加请求的时效性参数 Timestamp"></a>2.1、措施一：添加请求的时效性参数 Timestamp</h4><p>即某个请求，其请求时间戳<strong>Timestamp</strong>，和服务端的当前时间在规定时间内（如1分钟内）则为合法请求，反之，则视为无效请求。</p>
 <p>服务端时间戳的获取时机和服务端的RSA公钥一致，你可理解为网络库的初始化阶段（虽然这是真正初始化之后的请求的”二次初始化”）。</p>
-<p><img src="/安全/网络加密/image-20240723215212915.png" alt="image-20240723215212915" style="zoom:50%;"></p>
+<p><img src="/安全/网络加密/数据安全传输_防重放_1加timestamp.png" alt="数据安全传输_防重放_1加timestamp" style="zoom:50%;"></p>
 <p>客户端与服务端的时间戳差值 diff = 服务器返回的时间戳 - 客户端请求结束的时间戳</p>
 <p>校准服务端后的客户端的时间戳 = 当前客户端时间戳 + 客户端与服务端的时间戳差值 diff</p>
 <h4 id="2-2、措施二：添加一个唯一的随机数Nonce"><a href="#2-2、措施二：添加一个唯一的随机数Nonce" class="headerlink" title="2.2、措施二：添加一个唯一的随机数Nonce"></a>2.2、措施二：添加一个唯一的随机数Nonce</h4><h5 id="2-2-1、Nonce的核心思路："><a href="#2-2-1、Nonce的核心思路：" class="headerlink" title="2.2.1、Nonce的核心思路："></a>2.2.1、Nonce的核心思路：</h5><p>调用者每次调用时：</p>
@@ -758,11 +1681,11 @@
 </tbody>
 </table>
 <p>注意：非对称加密的安全性更高，但加密速度较慢。一般我们在项目中采用的是 <strong>”结合对称和非对称加密，数据加密采用AES，而把AES的加密秘钥用RSA加密，这样兼顾速度及安全性“</strong>。<a href="https://juejin.cn/post/7002058547395559438" target="_blank" rel="noopener">https://juejin.cn/post/7002058547395559438</a></p>
-<h3 id="1-1、对称加密"><a href="#1-1、对称加密" class="headerlink" title="1.1、对称加密"></a>1.1、对称加密</h3><p><img src="/安全/网络加密/image-20240704140036415.png" alt="image-20240704140036415" style="zoom: 33%;"></p>
+<h3 id="1-1、对称加密"><a href="#1-1、对称加密" class="headerlink" title="1.1、对称加密"></a>1.1、对称加密</h3><p><img src="/安全/网络加密/加密方式_对称.png" alt="加密方式_对称" style="zoom: 33%;"></p>
 <p>1、李雷想要给韩梅梅发送消息，他们约定使用对称加密的方式把消息进行加密</p>
 <p>2、李雷用密钥把消息加密然后发送给韩梅梅</p>
 <p>3、韩梅梅用同一个密钥解密，然后看到李雷发送给自己的消息</p>
-<h3 id="1-2、非对称加密"><a href="#1-2、非对称加密" class="headerlink" title="1.2、非对称加密"></a>1.2、非对称加密</h3><p><img src="/安全/网络加密/image-20240704140223911.png" alt="image-20240704140223911" style="zoom: 33%;"></p>
+<h3 id="1-2、非对称加密"><a href="#1-2、非对称加密" class="headerlink" title="1.2、非对称加密"></a>1.2、非对称加密</h3><p><img src="/安全/网络加密/加密方式_非对称.png" alt="加密方式_非对称" style="zoom: 33%;"></p>
 <p>1、李雷想要给韩梅梅发送消息，他们约定使用非对称加密的方式把消息进行加密</p>
 <p>2、李雷首先要得到韩梅梅的公钥</p>
 <p>2、李雷用韩梅梅的公钥把消息加密然后发送给韩梅梅</p>
@@ -834,7 +1757,7 @@
 </table>
 <blockquote>
 <p><strong><a href="https://www.cmd5.com/" target="_blank" rel="noopener">md5在线解密网站</a></strong></p>
-<p><img src="/安全/网络加密/image-20240722183855871.png" alt="image-20240722183855871" style="zoom:50%;"></p>
+<p><img src="/安全/网络加密/md5在线解密.png" alt="md5在线解密" style="zoom:50%;"></p>
 </blockquote>
 <p>因为已经有了类似彩虹表的破解方法，所以如果不<strong>‘加盐’</strong>，则当用户知道是 e19d5cd5af0378da05f63f891c7467af 时候，就很容易知道原值是 ‘abcd1234’了。</p>
 <p>所以Md5加密方式的进化之路小结：</p>
@@ -904,839 +1827,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm0b7qxuj003582r472hi1ufk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm0e16yp80051qlr4rw5w9a1a" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全/">安全</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/监控相关/日志系统" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/监控相关/日志系统/" class="article-date">
-  <time datetime="2024-05-31T09:08:41.000Z" itemprop="datePublished">2024-05-31</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/监控相关/日志系统/">日志系统</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="前言：主要事项"><a href="#前言：主要事项" class="headerlink" title="前言：主要事项"></a>前言：主要事项</h2><p>1、异常数据的发现及补充、日志分类优化<br>2、日志数据的文件保存、滚动存储<br>3、日志文件上传<br>4、日志回捞</p>
-<h2 id="一、日志收集"><a href="#一、日志收集" class="headerlink" title="一、日志收集"></a>一、日志收集</h2><h3 id="1、日志分类"><a href="#1、日志分类" class="headerlink" title="1、日志分类"></a>1、日志分类</h3><h4 id="1-1、日志目标"><a href="#1-1、日志目标" class="headerlink" title="1.1、日志目标"></a>1.1、日志目标</h4><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>目标(Target)</th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>app</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>sdk</td>
-<td>三方库</td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>h5</td>
-<td>网页</td>
-</tr>
-</tbody>
-</table>
-<p><a name="日志类型"></a></p>
-<h4 id="1-2、日志类型"><a href="#1-2、日志类型" class="headerlink" title="1.2、日志类型"></a>1.2、日志类型</h4><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>类型</th>
-<th>描述</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>api_app</td>
-<td>app中的网络请求</td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>api_app_cache</td>
-<td>app中的网络请求的网络缓存请求</td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>api_buriedPoint</td>
-<td>埋点的网络请求</td>
-<td></td>
-</tr>
-<tr>
-<td>4</td>
-<td>sdk_other</td>
-<td>sdk的各种事件(初始化等)</td>
-<td></td>
-</tr>
-<tr>
-<td>5</td>
-<td>sdk_api</td>
-<td>sdk中的网络请求</td>
-<td></td>
-</tr>
-<tr>
-<td>6</td>
-<td>dart</td>
-<td>语法</td>
-<td></td>
-</tr>
-<tr>
-<td>7</td>
-<td>widget</td>
-<td>视图(布局像素越界等)</td>
-<td></td>
-</tr>
-<tr>
-<td>8</td>
-<td>click_other</td>
-<td>点击、</td>
-<td></td>
-</tr>
-<tr>
-<td>9</td>
-<td>click_share</td>
-<td>分享</td>
-<td></td>
-</tr>
-<tr>
-<td>10</td>
-<td>native_route</td>
-<td>路由/跳转</td>
-<td></td>
-</tr>
-<tr>
-<td>11</td>
-<td>h5_route</td>
-<td>与网页跳转有关</td>
-<td></td>
-</tr>
-<tr>
-<td>12</td>
-<td>h5_js</td>
-<td>js交互</td>
-<td></td>
-</tr>
-<tr>
-<td>13</td>
-<td>monitor_network</td>
-<td>监控：网络类型变化</td>
-<td></td>
-</tr>
-<tr>
-<td>14</td>
-<td>monitor_lifecycle</td>
-<td>监控：生命周期变化</td>
-<td></td>
-</tr>
-<tr>
-<td>15</td>
-<td>buriedPoint_other</td>
-<td>埋点数据生成等</td>
-<td></td>
-</tr>
-<tr>
-<td>16</td>
-<td>im</td>
-<td>IM</td>
-<td></td>
-</tr>
-<tr>
-<td>17</td>
-<td>heartbeat</td>
-<td>心跳</td>
-<td></td>
-</tr>
-<tr>
-<td>18</td>
-<td>other</td>
-<td>其他</td>
-</tr>
-</tbody>
-</table>
-<h3 id="2、日志等级"><a href="#2、日志等级" class="headerlink" title="2、日志等级"></a>2、日志等级</h3><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>目标(Level)</th>
-<th>描述</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Normal</td>
-<td>正常信息(目前用于请求开始)</td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>Success</td>
-<td>成功信息(目前用于请求结束：成功)</td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>Warning</td>
-<td>警告信息(目前用于请求结束：报错)</td>
-<td></td>
-</tr>
-<tr>
-<td>4</td>
-<td>Error</td>
-<td>错误日志(目前用于请求结束：失败)</td>
-<td></td>
-</tr>
-<tr>
-<td>5</td>
-<td>Dangerous</td>
-<td>危险(处理白屏等)</td>
-<td>一般会<strong>进行额外的埋点</strong></td>
-</tr>
-</tbody>
-</table>
-<p><a name="日志整合归类"></a></p>
-<h3 id="3、日志整合归类"><a href="#3、日志整合归类" class="headerlink" title="3、日志整合归类"></a>3、日志整合归类</h3><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>列表</th>
-<th>标志</th>
-<th>包含</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>全部</td>
-<td>all</td>
-<td>所有</td>
-</tr>
-<tr>
-<td>2</td>
-<td>警告</td>
-<td>warning</td>
-<td>所有的警告</td>
-</tr>
-<tr>
-<td>3</td>
-<td>错误</td>
-<td>error</td>
-<td>所有的错误</td>
-</tr>
-<tr>
-<td>4</td>
-<td>接口</td>
-<td>api</td>
-<td>api_app、api_cache(不包括sdk_api、api_buriedPoint)</td>
-</tr>
-<tr>
-<td>5</td>
-<td>点击</td>
-<td>click</td>
-<td>click_share、click_other、h5_js</td>
-</tr>
-<tr>
-<td>6</td>
-<td>路由</td>
-<td>route</td>
-<td>navite_route、h5_route</td>
-</tr>
-<tr>
-<td>7</td>
-<td>网页</td>
-<td>H5</td>
-<td>h5_route、h5_js</td>
-</tr>
-<tr>
-<td>8</td>
-<td>sdk</td>
-<td>sdk</td>
-<td>sdk_api、sdk_other</td>
-</tr>
-<tr>
-<td>9</td>
-<td>code</td>
-<td>code</td>
-<td>dart、widget</td>
-</tr>
-<tr>
-<td>10</td>
-<td>埋点</td>
-<td>buriedPoint</td>
-<td>api_buriedPoint、buriedPoint_other</td>
-</tr>
-<tr>
-<td>11</td>
-<td>监控</td>
-<td>monitor</td>
-<td>monitor_lifecycle、monitor_network</td>
-</tr>
-<tr>
-<td>12</td>
-<td>其他</td>
-<td>other</td>
-<td>other</td>
-</tr>
-<tr>
-<td>13</td>
-<td>api结果</td>
-<td>api_result</td>
-<td>type=api_app &amp; level != Normal</td>
-</tr>
-<tr>
-<td>14</td>
-<td>im</td>
-<td>im</td>
-<td>本地缓存消息、历史消息、收到的消息等</td>
-</tr>
-<tr>
-<td>15</td>
-<td>心跳</td>
-<td>heartbeat</td>
-</tr>
-</tbody>
-</table>
-<p><img src="/Architecture架构/监控相关/日志系统/devtool_log_home_page.gif" alt="devtool_log_home_page" style="zoom:50%;"></p>
-<h3 id="4、日志的补充收集及其策略"><a href="#4、日志的补充收集及其策略" class="headerlink" title="4、日志的补充收集及其策略"></a>4、日志的补充收集及其策略</h3><p>要收集的数据已在上述《<a href="#日志类型">1.2、日志类型</a>》中说明。</p>
-<h4 id="4-1、页面跳转"><a href="#4-1、页面跳转" class="headerlink" title="4.1、页面跳转"></a>4.1、页面跳转</h4><p>详见上述 《<a href="#日志整合归类">3、日志整合归类</a>》中的”路由”</p>
-<h4 id="4-2、截断的收集"><a href="#4-2、截断的收集" class="headerlink" title="4.2、截断的收集"></a>4.2、截断的收集</h4><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>关键字</th>
-<th>场景</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>break</td>
-<td>for 、 swtich</td>
-</tr>
-<tr>
-<td>2</td>
-<td>return</td>
-</tr>
-</tbody>
-</table>
-<h4 id="4-3、用户关键行为"><a href="#4-3、用户关键行为" class="headerlink" title="4.3、用户关键行为"></a>4.3、用户关键行为</h4><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>行为</th>
-<th>用途的场景说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>用户的资源选择</td>
-<td>判断选择的本地资源是否上传到错误的存储桶</td>
-</tr>
-</tbody>
-</table>
-<h2 id="二、日志数据的文件保存、滚动存储"><a href="#二、日志数据的文件保存、滚动存储" class="headerlink" title="二、日志数据的文件保存、滚动存储"></a>二、日志数据的文件保存、滚动存储</h2><h3 id="1、数据的文件保存"><a href="#1、数据的文件保存" class="headerlink" title="1、数据的文件保存"></a>1、数据的文件保存</h3><p>写入xlog文件中。</p>
-<h3 id="2、数据的文件滚动存储"><a href="#2、数据的文件滚动存储" class="headerlink" title="2、数据的文件滚动存储"></a>2、数据的文件滚动存储</h3><h4 id="2-1、日志的过期清理"><a href="#2-1、日志的过期清理" class="headerlink" title="2.1、日志的过期清理"></a>2.1、日志的过期清理</h4><p>1、本地日志文件结构</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-- Document</span><br><span class="line">	-- log</span><br><span class="line">		-- 2020-10-01</span><br><span class="line">			-- xlog_2020-10-01_1.xlog</span><br><span class="line">			-- xlog_2020-10-01_2.xlog</span><br><span class="line">		-- 2020-10-18</span><br><span class="line">			-- xlog_2020-10-18_1.xlog</span><br></pre></td></tr></table></figure>
-<p>2、日志保留清理的配置信息(摘自/同 下文的日志接口中的《日志文件配置信息》)</p>
-<blockquote>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>接口回值1</td>
-<td>最多保留几个天的日志目录</td>
-<td>maxDayDirCount</td>
-<td>7</td>
-</tr>
-<tr>
-<td>接口回值2</td>
-<td>最多每天保留几个文件</td>
-<td>maxDayFileCount</td>
-<td>10</td>
-</tr>
-<tr>
-<td>接口回值3</td>
-<td>每个日志文件超过多少后创建新文件</td>
-<td>perFileMaxMB</td>
-<td>5</td>
-</tr>
-</tbody>
-</table>
-</blockquote>
-<p>3、清理方案</p>
-<p><strong>清理时机：在切换前后台的时候，</strong></p>
-<ul>
-<li>日志配置信息的更新</li>
-<li>根据最新的日志配置信息，延迟10s后(避免影响启动)，进行清理判断及清理<ul>
-<li>遍历总日志目录 Document/log 下的所有日志文件夹</li>
-<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志<ul>
-<li>遍历天日志目录 Document/log/yyyy-MM-dd 下的所有日志文件夹</li>
-<li>如果天日志文件夹<strong>个数</strong>超过保留个数（避免是用保留时间，导致保留时间内只有一个日志，也被删掉），则按顺序删除早期日志</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h4 id="2-2、日志文件的滚动写入"><a href="#2-2、日志文件的滚动写入" class="headerlink" title="2.2、日志文件的滚动写入"></a>2.2、日志文件的滚动写入</h4><p>要增加的日志记录，如果添加后会超过日志文件的大小，则使用新文件写入。</p>
-<p><strong>细节点</strong>：<br>1、日志文件的大小判断，不要每次都去读取文件，而是记录住大小变化<br>2、日志不要有一条写一条，而是使用写入缓冲区+定时器，5s尝试写入一次</p>
-<h3 id="3、数据的加密、解密"><a href="#3、数据的加密、解密" class="headerlink" title="3、数据的加密、解密"></a>3、数据的加密、解密</h3><p>1、加密：</p>
-<p>写入日志字符串时候，对编码后的字节数据，额外增加一个三位随机值。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="markdown">/// 使用 GZip 压缩算法将字符串进行压缩，并返回压缩后的字节数据（List&lt;int&gt; 类型）。</span></span></span><br><span class="line"><span class="built_in">List</span>&lt;<span class="built_in">int</span>&gt; _gzipCompressString(<span class="built_in">String</span> inputString) &#123;</span><br><span class="line">  <span class="keyword">final</span> codec = GZipCodec();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 将输入字符串 inputString 编码为 UTF-8 格式的字节数据</span></span><br><span class="line">  <span class="keyword">final</span> encoded = utf8.encode(inputString);</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 对编码后的字节数据进行压缩，并返回压缩后的字节数据。</span></span><br><span class="line">  <span class="keyword">final</span> compressedData = codec.encode(encoded);</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">return</span> compressedData;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">/// 加密日志字符串</span></span></span><br><span class="line"><span class="built_in">String</span> _encryptLogString(<span class="built_in">String</span> logString) &#123;</span><br><span class="line">  <span class="keyword">final</span> compressedData = _gzipCompressString(logString); <span class="comment">// 压缩字符串，并返回压缩后的字节数据（List&lt;int&gt; 类型）</span></span><br><span class="line">  <span class="keyword">final</span> randomNumber = Random().nextInt(<span class="number">800</span>) + <span class="number">100</span>;</span><br><span class="line">  <span class="keyword">final</span> confound = compressedData.toString().substring(<span class="number">0</span>, compressedData.toString().length - <span class="number">1</span>) + <span class="string">", <span class="subst">$randomNumber</span>]"</span>; <span class="comment">// 在压缩后的字符串尾部加上一个随机字符串</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> confound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>2、解密：</p>
-<p>使用python脚本对log文件进行解密</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> gzip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 读取.clog文件并解析数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parse_clog_file</span><span class="params">(input_file)</span>:</span></span><br><span class="line">    parsed_data = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(input_file, <span class="string">'r'</span>) <span class="keyword">as</span> clog_file:</span><br><span class="line">        current_data = <span class="string">""</span></span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> clog_file:</span><br><span class="line">            <span class="keyword">if</span> current_data:</span><br><span class="line">                parsed_data.append(current_data)</span><br><span class="line">            binary_data = line[:<span class="number">-6</span>] + <span class="string">']'</span> <span class="comment"># 去除加密时候额外添加的三位随机数</span></span><br><span class="line">            byte_data = bytes(eval(binary_data))</span><br><span class="line">            decompressed_data = gzip.decompress(byte_data)</span><br><span class="line">            <span class="comment"># current_data = byte_data.decode('utf-8')</span></span><br><span class="line">            print(decompressed_data)</span><br><span class="line">            current_data = decompressed_data.decode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 添加最后一个数据条目</span></span><br><span class="line">        <span class="keyword">if</span> current_data:</span><br><span class="line">            parsed_data.append(current_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> parsed_data</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">write_to_log_file</span><span class="params">(parsed_data, input_file)</span>:</span></span><br><span class="line">    base_name = os.path.splitext(input_file)[<span class="number">0</span>]</span><br><span class="line">    output_file = base_name + <span class="string">".log"</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> open(output_file, <span class="string">'w'</span>) <span class="keyword">as</span> log_file:</span><br><span class="line">        <span class="keyword">for</span> data <span class="keyword">in</span> parsed_data:</span><br><span class="line">            log_file.write(data + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"================================================================================================="</span> + <span class="string">"\n"</span>)</span><br><span class="line">            log_file.write(<span class="string">"\n"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    <span class="keyword">if</span> len(sys.argv) != <span class="number">2</span>:</span><br><span class="line">        print(<span class="string">"Usage: python script.py &lt;clogFileName&gt;"</span>)</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    input_clog_file = sys.argv[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 解析.clog文件</span></span><br><span class="line">    parsed_data = parse_clog_file(input_clog_file)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 将解析后的数据写入与输入文件同名的.log文件</span></span><br><span class="line">    write_to_log_file(parsed_data, input_clog_file)</span><br><span class="line"></span><br><span class="line">    print(<span class="string">f"Log data parsed from <span class="subst">&#123;input_clog_file&#125;</span> and written to <span class="subst">&#123;input_clog_file&#125;</span>.log."</span>)</span><br></pre></td></tr></table></figure>
-<h2 id="三、日志文件上传"><a href="#三、日志文件上传" class="headerlink" title="三、日志文件上传"></a>三、日志文件上传</h2><h3 id="1、日志文件命名及目录规范"><a href="#1、日志文件命名及目录规范" class="headerlink" title="1、日志文件命名及目录规范"></a>1、日志文件命名及目录规范</h3><p>以用户<code>1000001</code>在<code>2020-01</code>时候上传<code>声音文件 beautiful_scenery.aac</code>为例，其路径完整示例如下：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">https://media.xxx.com/app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</span></span><br></pre></td></tr></table></figure>
-<p>要上传的存储桶：</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>参数</th>
-<th>约定值示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>存储桶region<br>regionGetFunction</td>
-<td>网络环境</td>
-<td>ap-shanghai</td>
-</tr>
-<tr>
-<td>2</td>
-<td>存储桶bucket<br>bucketGetFunction</td>
-<td>网络环境</td>
-<td>xxx-pro-image-1302324914</td>
-</tr>
-<tr>
-<td>3</td>
-<td>上传成功后，桶的映射路径值<br>cosFileUrlPrefixGetFunction</td>
-<td></td>
-<td>1、图片桶：<a href="https://images.xxx.com/" target="_blank" rel="noopener">https://images.xxx.com/</a><br>2、媒体桶：<a href="https://media.xxx.com/" target="_blank" rel="noopener">https://media.xxx.com/</a><br>3、日志桶：<a href="https://static.xxx.com/" target="_blank" rel="noopener">https://static.xxx.com/</a></td>
-</tr>
-<tr>
-<td>4</td>
-<td>要上传到桶的哪个相对路径下<br>cosFileRelativePathGetFunction<br>上传成功后完整路径=以上桶值+此相对路径<br></td>
-<td>见下文</td>
-<td>见下文<br>eg：app1_test1/audio/1/1000001/2020-01/beautiful_scenery.aac</td>
-</tr>
-</tbody>
-</table>
-<p>《要上传到桶的哪个相对路径下 <strong>cosFileRelativePathGetFunction</strong> 》的文件路径分批说明：</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>层次说明</th>
-<th>层次值算法</th>
-<th>层次值描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1.1</td>
-<td>存储桶里相对路径的前缀</td>
-<td>app标志_环境标志<br>eg：app1_pro、app1_test1、app1_dev1</td>
-<td>文件区分</td>
-</tr>
-<tr>
-<td>1.2</td>
-<td>是否在存储桶里进行进一步路径区分(可选)</td>
-<td>根据场景决定是否对桶进行进一步分类。<br>if ( mediaType == xxx ) {<br>     if(mediaScene == yyy) {<br>     <br>     }<br>}</td>
-<td>如<br>1、都是图片，但自拍图片要求独立出来<br>2、都是多媒体，但音视频要区分开</td>
-</tr>
-<tr>
-<td>2.1</td>
-<td>用户1级</td>
-<td>int.parse(uid) % 1000; // 取余数</td>
-<td>用户名取余，有效减少同层上文件夹个数</td>
-</tr>
-<tr>
-<td>2.2</td>
-<td>用户2级</td>
-<td>uid</td>
-<td>用户名</td>
-</tr>
-<tr>
-<td>3</td>
-<td>年月</td>
-<td>DateTime.now().toString().substring(0, 7);</td>
-<td>年-月</td>
-</tr>
-<tr>
-<td>4</td>
-<td>文件名</td>
-<td>${fileOriginName}_<br>${DateTime.now().microsecondsSinceEpoch}<br>.$fileExtensionType</td>
-<td>文件名</td>
-</tr>
-</tbody>
-</table>
-<p>附1：MediaType 媒体类型</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>UploadMediaType 媒体类型</th>
-<th>描述</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>unkonw</td>
-<td>未知（默认值）</td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>image</td>
-<td>图片</td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>audio</td>
-<td>音频</td>
-<td></td>
-</tr>
-<tr>
-<td>4</td>
-<td>video</td>
-<td>视频</td>
-<td></td>
-</tr>
-<tr>
-<td>5</td>
-<td>xlog</td>
-<td>日志文件</td>
-</tr>
-</tbody>
-</table>
-<p>附2：MediaScene场景 说明</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>UploadMediaScene场景</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>unkonw</td>
-<td>未知（默认值）</td>
-</tr>
-<tr>
-<td>2</td>
-<td>selfie</td>
-<td>自拍（安全等级较多）</td>
-</tr>
-<tr>
-<td>3</td>
-<td>im</td>
-<td>会话聊天</td>
-</tr>
-<tr>
-<td>4</td>
-<td>live</td>
-<td>直播</td>
-</tr>
-</tbody>
-</table>
-<h2 id="四、日志接口"><a href="#四、日志接口" class="headerlink" title="四、日志接口"></a>四、日志接口</h2><h3 id="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"><a href="#1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）" class="headerlink" title="1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）"></a>1、日志记录接口（区别于回捞接口，需要在回捞前就有日志信息）</h3><p>1、是否记录日志的开关及其配置信息</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>网页配置1</td>
-<td>是否开启日志记录</td>
-<td>isLogOn</td>
-<td>1:开启、其他:关</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>要开启日志的用户(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
-<td>logUserids</td>
-<td>[“101”, “102”]</td>
-</tr>
-<tr>
-<td>网页配置3</td>
-<td>要开启日志的设备(灰度上线)<br>(当且仅当开启上述日志记录时有效)<br>📢：未配置但开关为开时为全记录</td>
-<td>logDeviceIds</td>
-<td>[“udid001”, “udid002”]</td>
-</tr>
-<tr>
-<td>接口回值1</td>
-<td>是否进行日志记录(灰度上线)</td>
-<td>needLog</td>
-<td>1:记录、其他:不记录</td>
-</tr>
-</tbody>
-</table>
-<p>2、不需要记录什么日志信息</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>接口回值1</td>
-<td>不需要记录的日志类型</td>
-<td>ignoreLogLevel</td>
-<td>[“Normal”, “Success”]</td>
-</tr>
-<tr>
-<td>接口回值2</td>
-<td>不需要记录的日志等级</td>
-<td>ignoreLogType</td>
-<td>[“api_buriedPoint”, “buriedPoint_other”]</td>
-</tr>
-</tbody>
-</table>
-<p>3、日志文件配置信息</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>接口回值1</td>
-<td>最多保留几个天的日志目录</td>
-<td>maxDayDirCount</td>
-<td>7</td>
-</tr>
-<tr>
-<td>接口回值2</td>
-<td>最多每天保留几个文件</td>
-<td>maxDayFileCount</td>
-<td>10</td>
-</tr>
-<tr>
-<td>接口回值3</td>
-<td>每个日志文件超过多少后创建新文件</td>
-<td>perFileMaxMB</td>
-<td>5</td>
-</tr>
-</tbody>
-</table>
-<p>4、日志文件问题回滚</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>网页配置1</td>
-<td>强制删除什么时间前的日志</td>
-<td>removeLogBeforeDate</td>
-<td>2020-12-31</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>强制删除哪个用户的日志</td>
-<td>removeUserids</td>
-<td>[“101”, “102”]</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>强制删除哪个设备的日志</td>
-<td>logDeviceIds</td>
-<td>[“udid001”, “udid002”]</td>
-</tr>
-<tr>
-<td>接口回值1</td>
-<td>强制删除什么时间前的日志(不删除时空)</td>
-<td>removeLogBeforeDate</td>
-<td>2020-12-31 或 空值</td>
-</tr>
-</tbody>
-</table>
-<p>接口名定义：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerConfig(userid, deviceId)</span><br></pre></td></tr></table></figure>
-<p>接口结果的json示例如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"logConfig"</span>: &#123;</span><br><span class="line">		<span class="attr">"needLog"</span>: <span class="number">1</span>,</span><br><span class="line">		<span class="attr">"ignoreLogLevel"</span>: [<span class="string">"Normal"</span>, <span class="string">"Success"</span>],</span><br><span class="line">		<span class="attr">"ignoreLogType"</span>: [<span class="string">"api_buriedPoint"</span>, <span class="string">"buriedPoint_other"</span>],</span><br><span class="line">		<span class="attr">"maxDayDirCount"</span>: <span class="number">7</span>,</span><br><span class="line">		<span class="attr">"maxDayFileCount"</span>: <span class="number">10</span>,</span><br><span class="line">		<span class="attr">"perFileMaxMB"</span>: <span class="number">5</span></span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="attr">"logRevert"</span>: &#123;</span><br><span class="line">		<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="2、日志回捞及问题回滚接口"><a href="#2、日志回捞及问题回滚接口" class="headerlink" title="2、日志回捞及问题回滚接口"></a>2、日志回捞及问题回滚接口</h3><p>1、日志回捞</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>网页配置1</td>
-<td>要回捞日志的用户</td>
-<td>salvageUserids</td>
-<td>[“101”, “102”]</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>要回捞日志的设备</td>
-<td>salvageDeviceIds</td>
-<td>[“udid001”, “udid002”]</td>
-</tr>
-<tr>
-<td>网页配置3</td>
-<td>日志回捞的开始时间</td>
-<td>salvageStartDate</td>
-<td>2020-01-01</td>
-</tr>
-<tr>
-<td>网页配置4</td>
-<td>日志回捞的结束时间</td>
-<td>salvageEndDate</td>
-<td>2020-01-07</td>
-</tr>
-<tr>
-<td>接口回值1</td>
-<td>此用户此设备日志回捞的开始时间</td>
-<td>salvageStartDate</td>
-<td>2020-01-01</td>
-</tr>
-<tr>
-<td>接口回值1</td>
-<td>此用户此设备日志回捞的结束时间</td>
-<td>salvageEndDate</td>
-<td>2020-01-07</td>
-</tr>
-</tbody>
-</table>
-<p>2、日志文件问题回滚</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>说明</th>
-<th>字段</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>网页配置1</td>
-<td>强制删除什么时间前的日志</td>
-<td>removeLogBeforeDate</td>
-<td>2020-12-31</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>强制删除哪个用户的日志</td>
-<td>removeUserids</td>
-<td>[“101”, “102”]</td>
-</tr>
-<tr>
-<td>网页配置2</td>
-<td>强制删除哪个设备的日志</td>
-<td>logDeviceIds</td>
-<td>[“udid001”, “udid002”]</td>
-</tr>
-<tr>
-<td>接口回值1</td>
-<td>强制删除什么时间前的日志(不删除时空)</td>
-<td>removeLogBeforeDate</td>
-<td>2020-12-31 或 空值</td>
-</tr>
-</tbody>
-</table>
-<p>接口名定义：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function getLoggerSalvageAndRevert(salvageUserids, salvageDeviceIds)</span><br></pre></td></tr></table></figure>
-<p>接口结果的json示例如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"salvageId"</span>: <span class="string">"1001"</span>, </span><br><span class="line">	<span class="attr">"salvageStartDate"</span>: <span class="string">"2020-01-01"</span>,</span><br><span class="line">  <span class="attr">"salvageEndDate"</span>: <span class="string">"2020-01-07"</span>,</span><br><span class="line">	<span class="attr">"removeLogBeforeDate"</span>: <span class="string">"2020-12-31"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="3、日志文件上传到cos后同步给后台"><a href="#3、日志文件上传到cos后同步给后台" class="headerlink" title="3、日志文件上传到cos后同步给后台"></a>3、日志文件上传到cos后同步给后台</h3><p>用途：日志文件上传到cos后同步给后台，后台数据库记录每个用户，每个设备都捞到了什么数据。</p>
-<p>接口名定义：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">function addLoggerFile(userid, deviceId)</span><br></pre></td></tr></table></figure>
-<p>接口结果的json示例如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="四、日志回捞"><a href="#四、日志回捞" class="headerlink" title="四、日志回捞"></a>四、日志回捞</h2><p>1、后台通过接口返回要回捞的信息。</p>
-<p>2、前端用户在下次使用，收到后台信息时候，进行本地日志的上传。在腾云存储桶能收到对应日志，即代表成功。</p>
-<h2 id="五、方案实施"><a href="#五、方案实施" class="headerlink" title="五、方案实施"></a>五、方案实施</h2><p>灰度方案：请参照 <a href="灰度系统">灰度系统 </a> 。（附：日志记录开关里目前已有灰度策略。）</p>
-<p>目的：避免功能异常，出现集体性问题。</p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/日志系统/" data-id="cm0b7qyru00fh82r4ot4llwv7" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
 
     </footer>
   </div>
@@ -1818,7 +1912,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/灰度系统/" data-id="cm0b7qyso00fr82r4zfyl7flt" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/灰度系统/" data-id="cm0e16zti0084qlr4cnxldj53" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1846,7 +1940,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm0b7r4du018q82r43r8jn4jx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm0e175zw019qqlr43i1ktrcd" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1872,7 +1966,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm0b7r4hx018x82r4utazxbkm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm0e1762v019vqlr4axpx5k0l" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1898,7 +1992,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/" data-id="cm0b7r4d6018p82r45rccd3mi" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_crack/" data-id="cm0e175y3019nqlr44hscq3cw" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1924,7 +2018,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/" data-id="cm0b7r4gr018v82r45gd2gfr9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_share/" data-id="cm0e1762a019uqlr4q3qbhb32" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1950,33 +2044,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_ui/" data-id="cm0b7r4ij018y82r42uede5lz" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_route" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_route/" class="article-date">
-  <time datetime="2024-05-17T07:26:58.275Z" itemprop="datePublished">2024-05-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        [{"sectionTitle":"跳转到app指定页面--路由方式","sectionDatas":[{"h5CallBridgeActionDes":"跳转到app指定页面_Url_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl_v10000","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=imChatPage&conversationID=126191&imUserId=1602856363702501376&showName=用户1&type=1&dialogSubjectId=1506196208391966720"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url无参可不编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl_v10000","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&url=https://farm-game.yuanwangwu.com/index.html&shouldHideNavBar=true"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Url_网页游戏(url带参必须编码)","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageUrl_v10000","h5CallBridgeSendMessage":{"url":"yuanwangwu://openpage?pageName=webNavPage&shouldHideNavBar=true&navigatorBackgroundColor=0xffffff00&statusBarColor=light&url=https%3A%2F%2Ffarm-game.yuanwangwu.com%2Findex.html%26toUserId%3D111"}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_原生页面","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName_v10000","h5CallBridgeSendMessage":{"pageName":"imChatPage","pageParams":{"conversationID":"126191","imUserId":"1602856363702501376","showName":"用户1","type":1,"dialogSubjectId":"1506196208391966720"}}},{"h5CallBridgeActionDes":"跳转到app指定页面_Name_网页游戏","h5CallBridgeActionName":"h5CallBridgeAction_jumpAppPageName_v10000","h5CallBridgeSendMessage":{"pageName":"webNavPage","pageParams":{"shouldHideNavBar":true,"navigatorBackgroundColor":"0xffffff00","statusBarColor":"light","url":"https://farm-game.yuanwangwu.com/index.html&toUserId=111"}}}]},{"sectionTitle":"调起三方应用","sectionDatas":[{"h5CallBridgeActionDes":"调起微信小程序(执行支付等)","h5CallBridgeActionName":"h5CallBridgeAction_callWechatMP_v10000","h5CallBridgeSendMessage":{"path":"xxx","callbackMethod":"bridgeCallH5Action_showCallbackJsonString"},"h5CallBridgeDescription":{"path":"微信小程序的路径","callbackMethod":"获取到的数值在h5上用哪个方法来接口"},"appCallbackDemo_ValueAndDescription":{"isSuccess":true}}]},{"sectionTitle":"跳转到app具体指定页面--非路由方式","sectionDatas":[{"h5CallBridgeActionDes":"回到app的第几个一级页","h5CallBridgeActionName":"h5CallBridgeAction_backToHomeIndex_v10000","h5CallBridgeSendMessage":{"homeIndex":0}},{"h5CallBridgeActionDes":"登出、跳到重新登录页","h5CallBridgeActionName":"h5CallBridgeAction_logout_v10000","h5CallBridgeSendMessage":{"userId":"159054"}}]},{"sectionTitle":"检查更新","sectionDatas":[{"h5CallBridgeActionDes":"调起检查更新","h5CallBridgeActionName":"h5CallBridgeAction_checkVersion_v10000","h5CallBridgeSendMessage":{"isManualCheck":true,"callOwner":"h5game"}}]}]
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_route/" data-id="cm0b7r4g7018u82r4el1t47q5" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_ui/" data-id="cm0e1763h019wqlr4c7pc0c6f" class="article-share-link">Share</a>
       
       
     </footer>
@@ -2021,7 +2089,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 19.17px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 10px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 11.67px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 19.17px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -2043,6 +2111,14 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/总目录/">总目录</a>
           </li>
         
@@ -2051,15 +2127,7 @@
           </li>
         
           <li>
-            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
           </li>
         
       </ul>

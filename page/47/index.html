@@ -72,6 +72,728 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/监控相关/性能监控/异常与崩溃" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/监控相关/性能监控/异常与崩溃/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/监控相关/性能监控/异常与崩溃/">异常与崩溃</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="异常与崩溃"><a href="#异常与崩溃" class="headerlink" title="异常与崩溃"></a>异常与崩溃</h1><h2 id="一、异常捕获"><a href="#一、异常捕获" class="headerlink" title="一、异常捕获"></a>一、异常捕获</h2><p>通过三方捕获的方式，可以选择 Buly 友盟 等。想起不展开，下面我们只讲底层自己进行异常捕获。</p>
+<h3 id="1、iOS异常捕获"><a href="#1、iOS异常捕获" class="headerlink" title="1、iOS异常捕获"></a>1、iOS异常捕获</h3><p><a href="https://juejin.cn/post/6878102352709025800" target="_blank" rel="noopener">iOS异常捕获</a></p>
+<blockquote>
+<p>开发iOS应用，解决Crash问题始终是一个难题。Crash分为两种，</p>
+<p>一种是由EXC_BAD_ACCESS引起的，原因是访问了不属于本进程的内存地址，有可能是访问已被释放的内存；</p>
+<p>另一种是未被捕获的Objective-C异常（NSException），导致程序向自身发送了SIGABRT信号而崩溃。其实对于未捕获的Objective-C异常，我们是有办法将它记录下来的，如果日志记录得当，能够解决绝大部分崩溃的问题。</p>
+</blockquote>
+<p>UncaughtExceptionHandler</p>
+<h3 id="2、Flutter异常捕获"><a href="#2、Flutter异常捕获" class="headerlink" title="2、Flutter异常捕获"></a>2、Flutter异常捕获</h3><p>runZoned 中 handleUncaughtError 拦截未处理的异步错误</p>
+<p>文档：《<a href="https://book.flutterchina.club/chapter2/thread_model_and_error_report.html#_2-8-2-flutter%E5%BC%82%E5%B8%B8%E6%8D%95%E8%8E%B7" target="_blank" rel="noopener">Flutter实战第二版：Flutter异常捕获：最终的错误上报代码</a>》</p>
+<p><a href="https://pub.dev/packages/flutter_error_catch" target="_blank" rel="noopener">flutter_error_catch</a></p>
+<blockquote>
+<p><a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/blob/master/flutter_error_catch/lib/src/app_catch_error.dart" target="_blank" rel="noopener">点击查看源码</a></p>
+</blockquote>
+<h3 id="如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？"><a href="#如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？" class="headerlink" title="如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？"></a>如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 程序被手动杀死。即将终止，可以在这里执行一些必要的清理工作</span><br><span class="line">- (void)applicationWillTerminate:(UIApplication *)application &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>applicationWillTerminate:</code>这个方法并不总是可靠的，因为它的调用取决于多种因素，包括用户如何退出应用（例如，通过按 Home 键或通过系统设置）和系统状态。相比之下，<code>RunLoop Observer</code> 提供了一种更为可靠的方法来监听应用生命周期的特定阶段。通过在 RunLoop 的退出阶段添加一个 Observer，你可以确保在 RunLoop 即将退出时执行一些操作，这通常意味着应用即将进入后台或者终止。(还未亲自验证！！！)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// 在 AppDelegate.m 文件中</span><br><span class="line">- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions &#123;</span><br><span class="line">    // 创建 RunLoop Observer，并将 Observer 添加到主线程的 RunLoop</span><br><span class="line">    CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopExit, TRUE, 0,&amp;exitRunLoopCallback);</span><br><span class="line">    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);</span><br><span class="line">    // 由于这是一个全局的 Observer，我们不需要在这里释放它。它会在应用退出时自动释放。</span><br><span class="line"></span><br><span class="line">    // 其他初始化代码...</span><br><span class="line">    return YES;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Observer 的回调函数</span><br><span class="line">void exitRunLoopCallback(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) &#123;</span><br><span class="line">    if (activity == kCFRunLoopExit) &#123;</span><br><span class="line">        // 执行清理工作</span><br><span class="line">        NSLog(@&quot;Performing cleanup work before the application exits.&quot;);</span><br><span class="line">        </span><br><span class="line">        // 这里添加你的清理代码</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、如何追踪app"><a href="#二、如何追踪app" class="headerlink" title="二、如何追踪app"></a>二、如何追踪app</h2><p><a href="https://blog.csdn.net/sunjie886/article/details/53024843?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-53024843-blog-54617137.235^v43^pc_blog_bottom_relevance_base3&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">iOS 如何追踪app</a></p>
+<h2 id="三、起死回生-回光返照"><a href="#三、起死回生-回光返照" class="headerlink" title="三、起死回生/回光返照"></a>三、起死回生/回光返照</h2><h3 id="1、iOS-使用Runloop实现起死回生-回光返照"><a href="#1、iOS-使用Runloop实现起死回生-回光返照" class="headerlink" title="1、iOS 使用Runloop实现起死回生/回光返照"></a>1、iOS 使用Runloop实现起死回生/回光返照</h3><p>核心：创建一个<code>Runloop</code>，将主线程的所有<code>Runmode</code>都拿过来跑，作为应用程序主Runloop的替代。</p>
+<p>但是：这样固然可以实现我们想要做的事情，但是会带来一个问题：因为我们为了继续执行程序而没有将控制权返回给导致崩溃的调用函数，并且我们启动了自己的<code>Runloop</code>，所以永远不会返回到原始的<code>Runloop</code>中去了，这将意味着导致异常的线程使用的<code>堆栈内存</code>将永久泄漏。因此这种类型的方法应被视为调试工具或最后手段，所以，不要在Debug以外的环境使用它。本段摘自：<a href="https://shevakuilin.com/ios-crashprotection/" target="_blank" rel="noopener">线程保活提醒</a></p>
+<p>视频：<a href="https://pan.baidu.com/s/1hjkz3CHKhj7Nwaxd1IAbRg?pwd=zfjr" target="_blank" rel="noopener">“Runloop起死回生/回光返照” 见 00:57:55–01:03:00 的视频 2021-08-21_Crash分析.wmv </a></p>
+<p>文档：<a href="https://cloud.tencent.com/developer/article/1192474" target="_blank" rel="noopener">RunLoop总结：RunLoop的应用场景（五）阻止App崩溃一次</a></p>
+<blockquote>
+<p>示例代码：<a href="https://github.com/Haley-Wong/RunLoopDemos" target="_blank" rel="noopener">https://github.com/Haley-Wong/RunLoopDemos</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/性能监控/异常与崩溃/" data-id="cm0e171um0145qlr4v7aw0n1a" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/">页面加载时长-1需求规划</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载时长-1需求规划"><a href="#页面加载时长-1需求规划" class="headerlink" title="页面加载时长-1需求规划"></a>页面加载时长-1需求规划</h1><p>其他：</p>
+<ul>
+<li><a href="https://juejin.cn/post/6844904036831854600" target="_blank" rel="noopener">iOS 性能监控（三）—— 方法耗时监控</a></li>
+<li><a href="https://www.jianshu.com/p/4c2aeaa98a0b" target="_blank" rel="noopener">iOS App启动优化（三）—— 自己做一个工具监控App的启动耗时</a></li>
+</ul>
+<h2 id="一、需求一期"><a href="#一、需求一期" class="headerlink" title="一、需求一期"></a>一、需求一期</h2><h3 id="1、新增原生页面的-异常Type、TTI"><a href="#1、新增原生页面的-异常Type、TTI" class="headerlink" title="1、新增原生页面的 异常Type、TTI"></a>1、新增原生页面的 异常Type、TTI</h3><p>1、改造火山添加<strong>FP、FCP、FMP</strong>主要的时长数据。</p>
+<p>①？？？页面时长支持从 <strong>跳转</strong> 或 <strong>init</strong> 开始；</p>
+<p>②新增 <strong>FMP_TYPE</strong> 类型，当类型异常时候，不进行时长上报，避免弱网等异常环境下对主数据的平均统计的干扰。</p>
+<p>Type类型的说明如下：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>标识</th>
+<th>描述</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Success</td>
+<td>成功</td>
+<td>用户进来放着等待到完成加载完，数据量少，但是是准确的时长</td>
+</tr>
+<tr>
+<td>2</td>
+<td>PointDown</td>
+<td>用户点击</td>
+<td>用户进来可能马上滑动或跳转到下一页，时间快</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TimeOut</td>
+<td>超时</td>
+<td>弱网超时等，时间长</td>
+</tr>
+</tbody>
+</table>
+<p>处理后，提供的数据表示例如下：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>页面描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>FMP_TYPE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>作品首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>2</td>
+<td>商城首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>3</td>
+<td>发布页面</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>4</td>
+<td>消息首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>5</td>
+<td>我的首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+</tbody>
+</table>
+<p>2、设计并新增<strong>TTI</strong>功能，及其数据类型。</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>页面描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>TTI</th>
+<th>FMP_TYPE</th>
+<th>TTI_TYPE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>作品首页</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>2</td>
+<td>商城首页</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>3</td>
+<td>发布页面</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>4</td>
+<td>消息首页</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>5</td>
+<td>我的首页</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二、需求二期"><a href="#二、需求二期" class="headerlink" title="二、需求二期"></a>二、需求二期</h2><h3 id="1、原生视图–路由页内的标签页"><a href="#1、原生视图–路由页内的标签页" class="headerlink" title="1、原生视图–路由页内的标签页"></a>1、原生视图–路由页内的标签页</h3><p>路由页内的标签页，需要集成基类，统一在基类的<code>init</code>中开启记录，<code>dispose</code>的时候结束记录。</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>页面描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>TTI</th>
+<th>FMP_TYPE</th>
+<th>TTI_TYPE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>🆕作品–推荐</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>2</td>
+<td>🆕作品–同城</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>3</td>
+<td>🆕作品–热单</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>4</td>
+<td>🆕作品–关注</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、非原生页面–H5"><a href="#2、非原生页面–H5" class="headerlink" title="2、非原生页面–H5"></a>2、非原生页面–H5</h3><p>新增游戏等H5（非原生页面）的时长数据</p>
+<table>
+<thead>
+<tr>
+<th>描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>TTI</th>
+<th>FMP_TYPE</th>
+<th>TTI_TYPE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🆕H5-游戏</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>🆕H5-用户协议</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>🆕H5-隐私政策</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>🆕H5-证件信息</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+<tr>
+<td>🆕H5-活动页</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三、需求三期"><a href="#三、需求三期" class="headerlink" title="三、需求三期"></a>三、需求三期</h2><h3 id="1、新增网络加载时长数据。"><a href="#1、新增网络加载时长数据。" class="headerlink" title="1、新增网络加载时长数据。"></a>1、新增网络加载时长数据。</h3><p>作用：当网络加载时长异常时，查看整个页面完整显示前的整条网络链路的耗时。</p>
+<p>附：因为必须每个页面改动到业务逻辑代码，所以对改动顺序做以下优先级排序。</p>
+<p>①优先以非主要页面切入，当系统稳定再进行后续核心页面的处理；</p>
+<p>②在网络耗时功能测试稳定后，优先覆盖一级和二级的主要页面，继而再处理其他页面；</p>
+<p>③处理其他页面；</p>
+<table>
+<thead>
+<tr>
+<th>描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>网络加载时长</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一级页面</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td></td>
+</tr>
+<tr>
+<td>二级页面</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+</tr>
+</tbody>
+</table>
+<h2 id="四、需求四期-单条记录表"><a href="#四、需求四期-单条记录表" class="headerlink" title="四、需求四期(单条记录表)"></a>四、需求四期(单条记录表)</h2><h3 id="1、新增异常的的资源链接收集"><a href="#1、新增异常的的资源链接收集" class="headerlink" title="1、新增异常的的资源链接收集"></a>1、新增<strong>异常的的资源链接</strong>收集</h3><p>新增<strong>异常的的资源链接</strong>收集，并上报到我们自己的后台。</p>
+<p>作用：当网络加载时长异常时，通过上报的后台数据，查看并分析异常原因，</p>
+<p>以《商品详情的FMP时长》异常为例：</p>
+<p>1、筛选后台数据库，查看 </p>
+<p>①page == 商品详情页</p>
+<p>②type != success</p>
+<p>得到 商品详情的FMP时长 异常的所有数据记录</p>
+<table>
+<thead>
+<tr>
+<th>描述</th>
+<th>FP</th>
+<th>FCP</th>
+<th>FMP</th>
+<th>网络加载时长</th>
+<th>失败的图片/视频链接</th>
+<th>超时的图片/视频链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H5-游戏</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>H5-用户协议</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>H5-其他</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>—-</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="五、需求五期（网络耗时"><a href="#五、需求五期（网络耗时" class="headerlink" title="五、需求五期（网络耗时)"></a>五、需求五期（网络耗时)</h2><p>本需求已独立为<a href="./页面加载-2网络时长-1需求规划">《页面加载-2网络时长-1需求规划》</a></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" data-id="cm0e171uo0148qlr4vad45srt" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/">页面加载-1整体时长-2数据分析</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载-1整体时长-2数据分析"><a href="#页面加载-1整体时长-2数据分析" class="headerlink" title="页面加载-1整体时长-2数据分析"></a>页面加载-1整体时长-2数据分析</h1><h2 id="五、数据分析"><a href="#五、数据分析" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><h3 id="1、需求一期"><a href="#1、需求一期" class="headerlink" title="1、需求一期"></a>1、需求一期</h3><h4 id="1、原始数据整理"><a href="#1、原始数据整理" class="headerlink" title="1、原始数据整理"></a>1、原始数据整理</h4><p>按版本整理数据，整理频率为常态下的下个版本提审时，统计上个版本。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=3vyl41" target="_blank" rel="noopener">页面各时长数据：sheet_原始数据</a></p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ori1.png" alt="page_load_data_ori1" style="zoom: 40%;"></p>
+<h4 id="2、原始数据分析1–异常数据"><a href="#2、原始数据分析1–异常数据" class="headerlink" title="2、原始数据分析1–异常数据"></a>2、原始数据分析1–异常数据</h4><p>1、制定时长异常的参考标准。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=BB08J2" target="_blank" rel="noopener">页面各时长数据：sheet_ref</a></p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_ref1.png" alt="image-20231102162146321" style="zoom:50%;"></p>
+<p>2、单独看每条记录，按异常程度，列出”超标”数据，并分析异常原因。</p>
+<p>示例：</p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_oversize1.png" alt="image-20231102161544919" style="zoom: 40%;"></p>
+<p>3、合并看前后版本记录，比较版本差异数据</p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ver1.png" alt="image-20231102162759893" style="zoom:40%;"></p>
+<h3 id="2、需求二期"><a href="#2、需求二期" class="headerlink" title="2、需求二期"></a>2、需求二期</h3><p>需求：页面时长变化趋势，不区分版本。绘制excel变化曲线图。</p>
+<h2 id="五、数据分析-1"><a href="#五、数据分析-1" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><p>前端APP/游戏，核心页面、核心接口的（首页4个tab，内容详情，商品详情，商城，订单，我的；主态农场，客态农场、下一家，排行榜，消息，收豆，抢羊，福利榜）。 TTI时间，游戏的加载时长，按照TP90/95统计数据，按天出数据。如何从大数据日志里抓数据，做成grafana监控大盘</p>
+<p>核心页面数据分析，按周</p>
+<p>核心页面控制在1s内，按90分位整理</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" data-id="cm0e171v7014bqlr43ktnlye8" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/">页面加载网络时长-1需求规划</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载网络时长-1需求规划"><a href="#页面加载网络时长-1需求规划" class="headerlink" title="页面加载网络时长-1需求规划"></a>页面加载网络时长-1需求规划</h1><h2 id="一、需求一期"><a href="#一、需求一期" class="headerlink" title="一、需求一期"></a>一、需求一期</h2><p>需求：核心页面的网络耗时统计</p>
+<p>描述：统计所有影响页面加载的网络接口的访问时长，关联到页面数据上，并上报到后台；</p>
+<p>目的：分析网络访问在页面加载时长中的占比。</p>
+<p>背景：为了分析页面加载时长中各种事件（当前需求里仅指网络请求耗时）的时间分布。</p>
+<p>结果示例：</p>
+<table>
+<thead>
+<tr>
+<th>描述</th>
+<th>接口加载时长</th>
+<th>接口加载【刚开始】时刻</th>
+<th>接口加载【都结束】时刻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>内容首页（推荐、同城、关注、热单）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>内容详情（图文、视频）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>商城首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>商品详情</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>订单首页（我收到的、我送出的）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>订单详情</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>我的首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+</tbody>
+</table>
+<p>方案：需要增加页面加载过程必须进行的所有网络请求的总耗时。</p>
+<p>预算结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"page_duration"</span>: <span class="number">8000</span>,</span><br><span class="line">	<span class="attr">"api"</span>: &#123;</span><br><span class="line">    	<span class="attr">"total_duration"</span>: &#123;</span><br><span class="line">        <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">        <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">        <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">      &#125;,</span><br><span class="line">    	<span class="attr">"apis"</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api1"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api2"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>步骤：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>问题</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>一个页面加载过程必须进行的所有网络请求有哪些</td>
+<td>8</td>
+<td>梳理页面接口，建立并管理【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表</td>
+</tr>
+<tr>
+<td></td>
+<td>请求与页面加载的绑定：请求是哪个页面哪次进入发起的</td>
+<td></td>
+<td>基于梳理的页面接口，在请求时候</td>
+</tr>
+<tr>
+<td></td>
+<td>请求接口的开始和结束的记录及网络库对该数据的对外提供处理</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>请求接口的开始和结束的日志记录及展示处理</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面请求管理器（UnfinishPageApiManager）：计算一个页面加载过程执行完所有必须的网络请求的耗时</td>
+<td>4</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面绘制所需请求耗时信息的管理(AllPageTimeManager)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面绘制各耗时信息总管理器（事件间等待，总完成的上报时机优化）</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<p>1、梳理页面接口，建立【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表管理器（静态、变更时需自己更新维护)</p>
+<p>①梳理优先处理的核心页面</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// allneedPage_ApiManager.dart</span><br><span class="line">class AllNeedPageApiManager &#123;</span><br><span class="line">  static Map&lt;String, dynamic&gt; allNeedPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"ContentHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"ContentDetailPage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallDetailPage"</span>: [api1, api2],</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>增加Type，区分一个页面不同业务使用。如订单列表中，我送出的和我收到的，同属于一个页面。</p>
+<p>却通过type</p>
+<p>2、网络库接口中，</p>
+<ul>
+<li><p>请求是哪个页面哪次进入发起的：</p>
+<p>为请求创建页面key：每次进入页面，创建页面唯一key，避免等下网络请求时候，不晓得是哪个页面哪个进入发起的。</p>
+</li>
+<li><p>记录请求进行表</p>
+</li>
+</ul>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// unfinishPage_ApiManager.dart</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UnfinishPageApiManager</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 所有页面的所有请求</span></span><br><span class="line">	<span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps = &#123;&#125;; </span><br><span class="line">  <span class="comment">// 示例</span></span><br><span class="line">  <span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="string">"ContentHomePage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="string">"ContentDetailPage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求开始</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> startApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 添加新请求</span></span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; newApiInfoMap = &#123;</span><br><span class="line">      apiUrl: api,</span><br><span class="line">      apiStart: apiStart,</span><br><span class="line">    &#125;;</span><br><span class="line">    pageRequestingApiMaps.add(newApiInfoMap);</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求结束</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> finishApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表,及其个数</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 找到此请求的开始信息,并补充上此请求的结束信息</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      item.addAll(&#123;<span class="string">"apiEnd"</span>: apiEnd&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> hasFinishCount = pageRequestingApiMaps.length;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取指定页面原本应该有几个请求</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageNeedApiMaps = PageApiManager.allNeedPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="built_in">int</span> needCount = pageNeedApiMaps.length;</span><br><span class="line">   	</span><br><span class="line">    <span class="comment">// 判断是否是最后一个请求，是的话上报本次页面的所有所需结束</span></span><br><span class="line">    <span class="keyword">if</span> (hasFinishCount &gt;= needCount) &#123;</span><br><span class="line">      _notifyToPage(pageRequestingApiMaps);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 通知页面请求完成</span></span><br><span class="line">  <span class="keyword">static</span> _notifyToPage(<span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps) &#123;</span><br><span class="line">    <span class="built_in">int</span> minStart;</span><br><span class="line">    <span class="built_in">int</span> maxEnd;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      <span class="built_in">int</span> itemStart = item[<span class="string">"apiStart"</span>];</span><br><span class="line">      <span class="built_in">int</span> itemEnd = item[<span class="string">"apiEnd"</span>];</span><br><span class="line">      <span class="keyword">if</span> (minStart == <span class="keyword">null</span>) &#123;</span><br><span class="line">        minStart = itemStart;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        minStart = min(minStart, itemStart);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">        maxEnd = itemEnd;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        maxEnd = max(maxEnd, itemEnd);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (minStart == <span class="keyword">null</span> || maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">      debugPrint(<span class="string">"发生错误了"</span>);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> pageApiTotalDuration = maxEnd - minStart;</span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = &#123;</span><br><span class="line">      <span class="string">"page_duration"</span>: pageApiTotalDuration,</span><br><span class="line">      <span class="string">"api"</span>: &#123;</span><br><span class="line">        <span class="string">"total_duration"</span>: &#123;</span><br><span class="line">          <span class="string">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="string">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="string">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">"apis"</span>: pageRequestingApiMaps</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    eventBus.fire(PageFinishLoadRequest(pageApiMap: pageApiMap));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>页面接收</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AllPageTimeManager</span> </span>&#123;</span><br><span class="line">		pageRequestEvent = eventBus.on&lt;PageFinishLoadRequest&gt;().listen((event) &#123;</span><br><span class="line">      <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = event.pageApiMap;</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    _uploadToSevice(&#123;required <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; uploadPageInfo&#125;) &#123;</span><br><span class="line">    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" data-id="cm0e171vq014eqlr436ur4c2a" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/2内存/高磁盘占用的排查与优化" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" class="article-date">
@@ -319,7 +1041,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm0b7r0rs015b82r45au8u8hp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm0e172gt016rqlr4om7268w8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -358,7 +1080,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm0b7qxv7003k82r43go5rohk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm0e16yob003iqlr4kiyfjpst" class="article-share-link">Share</a>
       
       
     </footer>
@@ -462,7 +1184,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm0b7qz0p00ra82r4vce5hw51" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm0e170ft00qnqlr41ravs6vi" class="article-share-link">Share</a>
       
       
     </footer>
@@ -528,7 +1250,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm0b7qyre00fa82r4b1e8zkb3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm0e16zsg0077qlr4klfpt86q" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -592,7 +1314,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm0b7qz0n00qx82r4y6tucxz6" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm0e170g100rvqlr44ewc7v1k" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -1013,214 +1735,9 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/随笔/游戏随笔/" data-id="cm0b7qxy4005j82r4v9x2vwx2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/随笔/游戏随笔/" data-id="cm0e16yoy004aqlr4udqc6rh6" class="article-share-link">Share</a>
       
       
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/库管理/CocoaPods/CocoaPods库部署" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/库管理/CocoaPods/CocoaPods库部署/" class="article-date">
-  <time datetime="2014-12-24T06:25:36.000Z" itemprop="datePublished">2014-12-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/代码管理/库管理/CocoaPods/CocoaPods库部署/">CocoaPods库部署</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h3 id="搜索库pod-search"><a href="#搜索库pod-search" class="headerlink" title="搜索库pod search"></a>搜索库<code>pod search</code></h3><p>如果你在终端执行<code>pod search xxx</code>，未得到上面的结果，是因为cocoaPods的本地search_index.json文件有问题，<br>方法①：请前往<code>~/Library/Caches/CocoaPods/search_index.json</code>将该文件删除，<br>方法②：或者直接在终端输入：<code>rm ~/Library/Caches/CocoaPods/search_index.json</code>，<br>删除后，再重新执行命令即可。</p>
-<h2 id="一、远程库"><a href="#一、远程库" class="headerlink" title="一、远程库"></a>一、远程库</h2><h3 id="1、添加库的版本"><a href="#1、添加库的版本" class="headerlink" title="1、添加库的版本"></a>1、添加库的版本</h3><h4 id="1-1、添加公有库的版本"><a href="#1-1、添加公有库的版本" class="headerlink" title="1.1、添加公有库的版本"></a>1.1、添加公有库的版本</h4><h4 id="1-2、添加私有库的版本"><a href="#1-2、添加私有库的版本" class="headerlink" title="1.2、添加私有库的版本"></a>1.2、添加私有库的版本</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"> #</span><span class="bash">验证方法1：</span></span><br><span class="line"> pod lib lint CQBaseUIKit.podspec --sources='https://github.com/CocoaPods/Specs.git,https://gitee.com/dvlproad/dvlproadSpecs' --allow-warnings --use-libraries --verbose</span><br><span class="line"><span class="meta">#</span><span class="bash">验证方法2：</span></span><br><span class="line">pod lib lint CQBaseUIKit.podspec --sources=master,dvlproad --allow-warnings --use-libraries --verbose</span><br><span class="line"><span class="meta">#</span><span class="bash">提交方法： </span></span><br><span class="line">pod repo push dvlproad CQBaseUIKit.podspec --sources=master,dvlproad --allow-warnings --use-libraries --verbose</span><br></pre></td></tr></table></figure>
-<p>不需要过多验证的话，简洁版：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod repo push dvlproad CQThemeUIKit.podspec --allow-warnings</span><br></pre></td></tr></table></figure>
-<h3 id="2、删除库的某个版本"><a href="#2、删除库的某个版本" class="headerlink" title="2、删除库的某个版本"></a>2、删除库的某个版本</h3><h4 id="2-1、删除公有库的某个版本"><a href="#2-1、删除公有库的某个版本" class="headerlink" title="2.1、删除公有库的某个版本"></a>2.1、删除公有库的某个版本</h4><h4 id="2-2、删除私有库的某个版本"><a href="#2-2、删除私有库的某个版本" class="headerlink" title="2.2、删除私有库的某个版本"></a>2.2、删除私有库的某个版本</h4><p>CocoaPods创建公有Pod库后删除特定版本来纠正意外推送</p>
-<p>可以删除一个POD的特定版本来纠正意外推送。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod trunk delete PODNAME VERSION</span><br></pre></td></tr></table></figure>
-<h3 id="3、放弃整个库"><a href="#3、放弃整个库" class="headerlink" title="3、放弃整个库"></a>3、放弃整个库</h3><p>你也可以放弃整个POD和所有版本。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod trunk deprecate PODNAME</span><br></pre></td></tr></table></figure>
-<p>确认时，请回复一个”y”(小写字母 y)</p>
-<h2 id="二、本地库"><a href="#二、本地库" class="headerlink" title="二、本地库"></a>二、本地库</h2><h3 id="1、库的本地位置"><a href="#1、库的本地位置" class="headerlink" title="1、库的本地位置"></a>1、库的本地位置</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 库目录</span></span><br><span class="line">~/.cocoapods/repos/dvlproad</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods库部署/" data-id="cm0b7r19u016y82r43q4cq9bo" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/Git/Git Log" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/Git/Git Log/" class="article-date">
-  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/代码管理/Git/Git Log/">Git Log</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Git-log"><a href="#Git-log" class="headerlink" title="Git log"></a>Git log</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git log --merges --after="2022-10-13" --oneline --decorate</span><br><span class="line">git log --after="2022-10-13" --oneline --decorate</span><br><span class="line"></span><br><span class="line">git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)&lt;%an&gt;%Creset' --abbrev-commit --date=relative --all --after '10-13-2022' --merges</span><br></pre></td></tr></table></figure>
-<p>查看历史版本记录–指定显示条数</p>
-<p>同时，与git log相同的是，git reflog也提供了控制显示条数的选项：</p>
-<p>命令：git reflog -n </p>
-<h2 id="1、获取本分支合入指定分支的commitId"><a href="#1、获取本分支合入指定分支的commitId" class="headerlink" title="1、获取本分支合入指定分支的commitId"></a>1、获取本分支合入指定分支的commitId</h2><p>有些时候需要解析分支，tag，或者其他对于提交的间接引用。对于这种情况，你可以使用<code>git rev-parse</code>命令。下面的命令返回指向<code>development</code>分支的提交哈希串。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git rev-parse development</span><br></pre></td></tr></table></figure>
-<p>这对于编写只接受提交ID作为参数的自定义脚本非常有用。你可以使用<code>git rev-parse</code>命令来标准化脚本的输入，进而进入对于提交的统一处理。这就避免了脚本用户需要手动解析提交的引用。</p>
-<h2 id="二、获取commitId的信息"><a href="#二、获取commitId的信息" class="headerlink" title="二、获取commitId的信息"></a>二、获取commitId的信息</h2><h3 id="1、获取commitId的提交信息"><a href="#1、获取commitId的提交信息" class="headerlink" title="1、获取commitId的提交信息"></a>1、获取commitId的提交信息</h3><p>想要将此哈希串作为参数传递给其他Git命令，只需要提供足够长度的字符串就可以了。比如说，你可以通过下面的命令来传入上面的哈希串，以便使用<code>git show</code>命令查看那次提交的具体内容。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git show 0c708f</span><br><span class="line"></span><br><span class="line">git show -s --oneline 3d21461a7ef205ed0cee0baf45e95e782f4e84af</span><br></pre></td></tr></table></figure>
-<h3 id="2、获取commitId的根源远程分支"><a href="#2、获取commitId的根源远程分支" class="headerlink" title="2、获取commitId的根源远程分支"></a>2、获取commitId的根源远程分支</h3><h4 id="①、获取有哪些远程分支里已经合入了commitId"><a href="#①、获取有哪些远程分支里已经合入了commitId" class="headerlink" title="①、获取有哪些远程分支里已经合入了commitId"></a>①、获取有哪些远程分支里已经合入了commitId</h4><ul>
-<li><a href="https://www.jianshu.com/p/6ad6981f8ec5" target="_blank" rel="noopener">git获取某次commit是在哪个分支提交的</a></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git branch --contains eb0633b76925041f84b592a2e261e0b8537953f7 -r # -r标识远程分支</span><br></pre></td></tr></table></figure>
-<h4 id="②、第一个合入commitId的远程分支，即为commitId的根源分支"><a href="#②、第一个合入commitId的远程分支，即为commitId的根源分支" class="headerlink" title="②、第一个合入commitId的远程分支，即为commitId的根源分支"></a>②、第一个合入commitId的远程分支，即为commitId的根源分支</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">branchResultForFisrtCommit=$(git branch --contains "$&#123;firstCommitId&#125;" -r)</span><br><span class="line">echo "$&#123;branchResultForFisrtCommit&#125;"</span><br><span class="line"></span><br><span class="line">branchArrayForFisrtCommit=($&#123;branchResultForFisrtCommit&#125;)</span><br><span class="line">branchCountForFisrtCommit=$&#123;#branchArrayForFisrtCommit[@]&#125;</span><br><span class="line"><span class="meta">#</span><span class="bash"><span class="built_in">echo</span> <span class="string">"branchCountForFisrtCommit=<span class="variable">$branchCountForFisrtCommit</span>"</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"><span class="keyword">for</span> ((i=0;i&lt;branchCountForFisrtCommit;i+=1))</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">    branchName=<span class="variable">$&#123;branchArrayForFisrtCommit[i]&#125;</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash">    <span class="built_in">echo</span> <span class="string">"branchName=<span class="variable">$&#123;branchName&#125;</span>"</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#125;</span></span><br><span class="line"></span><br><span class="line">echo "\n------下面开始获取firstCommitId:$&#123;firstCommitId&#125;的提交所属的根源远程功能分支名------"</span><br><span class="line">sourceBranchForFisrtCommit=$&#123;branchArrayForFisrtCommit[$&#123;branchCountForFisrtCommit&#125;-1]&#125;</span><br><span class="line">echo "sourceBranchForFisrtCommit=$&#123;sourceBranchForFisrtCommit&#125;"</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Log/" data-id="cm0b7qz0200on82r4twm4v780" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/Git/Git Rebase" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/Git/Git Rebase/" class="article-date">
-  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/代码管理/Git/Git Rebase/">Git Rebase</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Git-Rebase"><a href="#Git-Rebase" class="headerlink" title="Git Rebase"></a>Git Rebase</h2><h3 id="【Git系列】git-rebase详解"><a href="#【Git系列】git-rebase详解" class="headerlink" title="【Git系列】git rebase详解"></a>【Git系列】git rebase详解</h3><p><a href="https://www.jianshu.com/p/4a8f4af4e803" target="_blank" rel="noopener">【Git】rebase 用法小结</a><br><a href="https://www.cnblogs.com/pinefantasy/articles/6287147.html" target="_blank" rel="noopener">【Git系列】git rebase详解</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Rebase/" data-id="cm0b7qz0800ov82r4dmijtrai" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/Git/Git Search" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/Git/Git Search/" class="article-date">
-  <time datetime="2013-01-07T02:51:37.000Z" itemprop="datePublished">2013-01-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/代码管理/">代码管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/代码管理/Git/Git Search/">Git Search</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="Git查看分支从哪个分支创建的"><a href="#Git查看分支从哪个分支创建的" class="headerlink" title="Git查看分支从哪个分支创建的"></a>Git查看分支从哪个分支创建的</h2><p>查看分支创建时间</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git reflog show --date=iso &lt;branch name&gt;</span><br></pre></td></tr></table></figure>
-<p>举例如图：</p>
-<p><img src="/代码管理/Git/Git Search/查看Git分支从哪创建.png" alt="查看Git分支从哪创建"></p>
-<p>最老的那条记录即可以看出是从哪创建出来的。</p>
-<p>但有时候记录太多，滑动太长，可以直接使用如下命令，直接查看</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git reflog dev_environment | grep "Created from"</span><br></pre></td></tr></table></figure>
-<p>如果是feature分支 </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git reflog show --date=iso feature/设备小程序</span><br></pre></td></tr></table></figure>
-<p><img src="/代码管理/Git/Git Search/Git Feature/image-20220301145230642.png" alt="image-20220301145230642"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Search/" data-id="cm0b7qz0900oy82r48vmm158k" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
-
     </footer>
   </div>
   
@@ -1263,7 +1780,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 19.17px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 10px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 20px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 11.67px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 19.17px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -1285,6 +1802,14 @@
       <ul>
         
           <li>
+            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
+          </li>
+        
+          <li>
+            <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/总目录/">总目录</a>
           </li>
         
@@ -1293,15 +1818,7 @@
           </li>
         
           <li>
-            <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
-          </li>
-        
-          <li>
             <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/">(no title)</a>
           </li>
         
       </ul>
