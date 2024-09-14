@@ -72,249 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"><a href="#必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"></a>必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题</h1><p>[Toc]</p>
-<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>后台图片内容换了，但是<code>url</code>还是老的，手机就用了缓存，没有从后台更新图片。</p>
-<p>主要问题表现在哪里呢？<br>很多app都有用户的概念，用户一般都会有头像，基本上都上传到服务器上，而服务器往往也支持在pc端更新头像（比如微博、QQ等）。<br>如果你的头像使用SDWebImage设置的，那么你会发现，pc端更新头像后，客户端可能（往往）不会自动更新！！！</p>
-<h2 id="二、解决"><a href="#二、解决" class="headerlink" title="二、解决"></a>二、解决</h2><p>问：使用<code>SDWebImage</code>如何加载url不变，但图片已经变化的图片。</p>
-<p>答：解决方法可以有如下几种：</p>
-<ol>
-<li><p>让服务器更新url，也就是说服务器端如果更新了头像，那么就生成新的url(推荐)</p>
-<blockquote>
-<p>后台给的<code>url</code>中增加字段，表示图片是否更新，比如增加一个<code>timestamp</code>字段.图片更新了，就更新下这个字段；<br>对客户端来说，只要这个<code>timestamp</code>字段变了，整个<code>url</code>就不一样了，就会从网络取图片。比如<code>http://xxx/xx? timestamp=xxx</code><br>也可以添加图片文件的<code>md5</code>来表示文件是否更新，比如<code>http://xxx/xx? md5=xxx</code>。并且<code>md5</code>比时间戳要好，这是强校验。时间戳在服务器回滚或者服务器重启的时候会有特殊的逻辑。不过大多数时候时间戳也够用了。<br>====这个方案客户端不用改，后台改动也不会太大。====强烈推荐</p>
-</blockquote>
-</li>
-<li><p>客户端只使用内存缓存，不使用磁盘缓存，那么下次启动时候就会重新下载，从而得到最新的了。(缺点：本次使用过程中没能看到最新图片。且即使之后下载到最新图片了，由于只使用内存缓存，不使用磁盘缓存。导致程序关闭又打开之后，缓存就没了，需要访问网络，重新加载图片)</p>
-<blockquote>
-<p><code>SDWebImageCacheMemoryOnly</code>这个参数对解决这个问题有帮助，只用内存缓存，不用磁盘缓存，<code>App</code>关了再开，肯定会重新下载，不会出现服务器和手机缓存图片不一致的情况。</p>
-</blockquote>
-</li>
-<li><p>客户端使用SDWebImageRefreshCached，同时让服务器端支持cache-control。</p>
-<blockquote>
-<p><code>SDWebImageRefreshCached</code>，这个参数就是为了解决url没变但是服务器图片改变的问题，很适合当前的场景。方案就是磁盘缓存不自己实现了，直接使用<code>NSURLCache</code>。记得<code>AFNetworking</code>的大神<code>Matt</code>就曾经嘲笑过<code>SDWebImage</code>的缓存是多此一举，还不如系统的<code>NSURLCache</code>好用。</p>
-<h4 id="SDWebImageRefreshCached参数设置之后，会怎么样？"><a href="#SDWebImageRefreshCached参数设置之后，会怎么样？" class="headerlink" title="SDWebImageRefreshCached参数设置之后，会怎么样？"></a><code>SDWebImageRefreshCached</code>参数设置之后，会怎么样？</h4><ul>
-<li><p>不使用<code>SDWebImage</code>提供的内存缓存和硬盘缓存</p>
-</li>
-<li><p>采用<code>NSURLCache</code>提供的缓存，默认情况下有效时间只有5秒</p>
-</li>
-<li><p>图片不一致的问题是解决了，不过效果跟不使用缓存差别不大。个人建议这个参数还是不要用为好，为了一个小特性，丢掉了<code>SDWebImage</code>最核心的特色。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt;   [imageview sd_setImageWithURL:[NSURL URLWithString:url]	</span><br><span class="line">&gt;    						 placeholderImage:nil</span><br><span class="line">&gt;    											options:SDWebImageRefreshCached];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-</li>
-<li><p>不使用SDWebImage，自己控制缓存，用系统API实现（NSURLCache）实现。（缺点还是和3一样，得服务端配合更改。）</p>
-<blockquote>
-<p>主要也是和使用<code>SDWebImageRefreshCached</code>时候一样，会涉及到<code>Cache-Control(设定缓存有效时间，默认是5s)</code>、<code>Last-Modified/If-Modified-Since(时间戳)</code>、<code>Etag/If-None-Match(标签，一般用MD5值)</code>。</p>
-</blockquote>
-</li>
-</ol>
-<p>附：其他options</p>
-<p><code>SDWebImageRetryFailed</code>表示就算下载失败也会再次尝试（不把下载失败的的<code>url</code>加入黑名单）</p>
-<p>参考文章：</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/8cc494e77507" target="_blank" rel="noopener">SDWebImage如何加载url不变，但图片已经变化的图片</a></li>
-<li><a href="https://www.jianshu.com/p/145ffa299eff" target="_blank" rel="noopener">SDWebImage：缓存不更新问题</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="cm0e172my017fqlr4kg9vnu2o" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/">第三方库SDWebImage②请求-①简介</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImage②请求-①简介"><a href="#必备知识架构-第三方库SDWebImage②请求-①简介" class="headerlink" title="必备知识架构-第三方库SDWebImage②请求-①简介"></a>必备知识架构-第三方库SDWebImage②请求-①简介</h1><p>[toc]</p>
-<h3 id="2、SDWebImageDownloader-异步的图片下载器"><a href="#2、SDWebImageDownloader-异步的图片下载器" class="headerlink" title="2、SDWebImageDownloader 异步的图片下载器"></a>2、SDWebImageDownloader 异步的图片下载器</h3><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。如果需要的话，我们可以通过SDWebImageDownloader类的maxConcurrentDownloads属性来修改。其声明如下：</p>
-<h3 id="3、SDWebImageDownloaderOperation-下载操作"><a href="#3、SDWebImageDownloaderOperation-下载操作" class="headerlink" title="3、SDWebImageDownloaderOperation 下载操作"></a>3、SDWebImageDownloaderOperation 下载操作</h3><p>下面我们来说一说SDWebImage的下载操作SDWebImageDownloaderOperation。该类继承自NSOperation，并且采用了 <code>SDWebImageDownloaderOperationInterface</code>, <code>SDWebImageOperation</code>, <code>NSURLSessionTaskDelegate</code>, <code>NSURLSessionDataDelegate</code> 四个协议方法。</p>
-<p>①、SDWebImageDownloaderOperation的下载请求</p>
-<p>先通过URL等生成NSURLRequest，并设置给operation属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">声明：</span><br><span class="line">@property (strong, nonatomic, readonly, nullable) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line">定义：</span><br><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url</span><br><span class="line">                                               							cachePolicy:cachePolicy</span><br><span class="line">                                												timeoutInterval:timeoutInterval];</span><br></pre></td></tr></table></figure>
-<p>有时候下我们希望它支持后台下载。所以在operation的start方法中，如果支持后台<code>shouldContinueWhenAppEntersBackground</code>，则将当前请求添加到后台任务中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Class UIApplicationClass = NSClassFromString(@&quot;UIApplication&quot;);</span><br><span class="line">BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];</span><br><span class="line">if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) &#123;</span><br><span class="line">    __weak __typeof__ (self) wself = self;</span><br><span class="line">    UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</span><br><span class="line">    self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^&#123;</span><br><span class="line">        __strong __typeof (wself) sself = wself;</span><br><span class="line"></span><br><span class="line">        if (sself) &#123;</span><br><span class="line">            [sself cancel];</span><br><span class="line"></span><br><span class="line">            [app endBackgroundTask:sself.backgroundTaskId];</span><br><span class="line">            sself.backgroundTaskId = UIBackgroundTaskInvalid;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对于图片的下载，SDWebImageDownloaderOperation的下载使用<code>NSURLSession</code>类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">self.dataTask = [session dataTaskWithRequest:self.request];</span><br></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">if (self.dataTask) &#123;</span><br><span class="line">    [self.dataTask resume];</span><br><span class="line">			</span><br><span class="line">	......</span><br><span class="line">	// 任务开始后，会在主线程抛出下载开始通知</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cm0e172nl017iqlr42zqk1jzc" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/">第三方库SDWebImag②请求-①避免重复请求问题</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题"><a href="#必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题" class="headerlink" title="必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题"></a>必备知识架构-第三方库SDWebImag②请求-①避免重复请求问题</h1><p>[toc]</p>
-<h2 id="iOS-如何避免在短时间内频繁发出相同的网络请求？"><a href="#iOS-如何避免在短时间内频繁发出相同的网络请求？" class="headerlink" title="iOS 如何避免在短时间内频繁发出相同的网络请求？"></a>iOS 如何避免在短时间内频繁发出相同的网络请求？</h2><ul>
-<li><p><a href="https://www.jianshu.com/p/85cfc47276d5" target="_blank" rel="noopener">iOS 如何避免在短时间内频繁发出相同的网络请求？</a></p>
-</li>
-<li><p><a href="https://cloud.tencent.com/developer/article/1492729" target="_blank" rel="noopener">iOS多个线程发起相同请求，避免重复</a></p>
-</li>
-<li><p><a href="https://blog.csdn.net/lipengfei_1993/article/details/84872511" target="_blank" rel="noopener">iOS客户端防止发送重复点击发请求</a></p>
-<blockquote>
-<p>1、利用遮罩等控件阻止一个请求后，下一个重复请求的发出。<br>众所周知MBProgressHud或者SVProgresHud经常被利用在项目中，主要是在网络请求发起到网络相应收到的这段时间在客户端形成一个遮罩，可以用来阻止用户点击UI进行操作，防止某些意外的请求产生。</p>
-<p>2、利用运行时设置相应按钮点击间隔<br>①对UIControl进行扩展<br>②对UIButton进行扩展</p>
-<p>3、客户端网络请求方法中过滤</p>
-<p>4、交给服务器解决</p>
-</blockquote>
-</li>
-<li><p><a href="https://www.jianshu.com/p/149a871fd7f1" target="_blank" rel="noopener">SDWebImage 同一时间请求相同URL时，只进行一次网络请求</a></p>
-</li>
-</ul>
-<h2 id="SDWebImage框架特征"><a href="#SDWebImage框架特征" class="headerlink" title="SDWebImage框架特征"></a>SDWebImage框架特征</h2><ul>
-<li>类别UIImageView，UIButton，MKAnnotationView- - 添加Web图像和高速缓存管理</li>
-<li>异步图像下载器</li>
-<li>具有自动缓存到期处理的异步内存+磁盘映像缓存</li>
-<li>背景图像解压缩</li>
-<li>保证相同的URL不会被下载多次</li>
-<li>保证虚假网址不会重复重试</li>
-<li>保证主线程永远不会被阻止</li>
-<li>使用GCD和ARC</li>
-</ul>
-<h2 id="一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？"><a href="#一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？" class="headerlink" title="一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？"></a>一、SDWebImage是如何避免在短时间内频繁发出相同的网络请求？</h2><p>SDWebImage是如何避免在短时间内频繁发出相同的网络请求？</p>
-<p>设想：一个列表所有的图片请求都是同一个url。</p>
-<p>答：</p>
-<h3 id="1、如何确保不生成重复的网络请求"><a href="#1、如何确保不生成重复的网络请求" class="headerlink" title="1、如何确保不生成重复的网络请求"></a>1、如何确保不生成重复的网络请求</h3><p>图片下载的回调信息存储在SDWebImageDownloader类的URLOperations属性中，该属性是一个字典，key是图片的URL地址，value则是一个SDWebImageDownloaderOperation对象，包含每个图片的多组回调信息。由于我们允许多个图片同时下载，因此可能会有多个线程同时操作URLOperations属性。需要保证URLOperations操作（添加、删除）的线程安全性。</p>
-<p><strong>为了避免同一个URL在被多次任务请求的时候，进行多次的重复网络下载。</strong></p>
-<p><strong>1、将下载地址URL与其对应的网络下载请求，通过下载管理器SDWebImageDownloader的URLOperations属性管理起来。（该属性是一个字典，key是图片的URL地址，value是operation）</strong></p>
-<p><strong>2、我们并不会对每次操作一进来就进行创建请求任务，而是先通过之前缓存的下载任务URLOperations，通过URL寻找是否有该操作了，①如果有则不创建，而是直接取出来使用；②如果没有才创建operation来使用，并添加到URLOperations中。以备后续有同样URL请求的时候，能会从URLOperations中得到operation，就不会导致重复创建和添加到队列中了。（通过URLOperations，我们以此保证一个URL同时在被请求多次的情况下，生成/取到的是同一个，也只有一个SDWebImageDownloaderOperation，从而也就只会被下载一次。）。</strong></p>
-<p>在SDWebImage版本5.8.1中的相关代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">SD_LOCK(self.operationsLock);	// 6、加锁，防止添加过程中，又有数据需要添加，保证线程安全</span><br><span class="line">id downloadOperationCancelToken;</span><br><span class="line">  NSOperation&lt;SDWebImageDownloaderOperation&gt; *operation = [self.URLOperations objectForKey:url]; // 1、从进行中的 URLOperations 获取</span><br><span class="line">  if (!operation || operation.isFinished || operation.isCancelled) &#123;</span><br><span class="line">      operation = [self createDownloaderOperationWithUrl:url options:options context:context]; // 2、如果之前没有下载操作，则创建，并加入到 URLOperations 中</span><br><span class="line">      // ....省略一堆代码</span><br><span class="line">      @weakify(self);</span><br><span class="line">      operation.completionBlock = ^&#123;</span><br><span class="line">          @strongify(self);</span><br><span class="line">          if (!self) &#123;</span><br><span class="line">              return;</span><br><span class="line">          &#125;</span><br><span class="line">          SD_LOCK(self.operationsLock);</span><br><span class="line">          [self.URLOperations removeObjectForKey:url];	// 3、下载完成后，记得删除操作</span><br><span class="line">          SD_UNLOCK(self.operationsLock);</span><br><span class="line">      &#125;;</span><br><span class="line">      self.URLOperations[url] = operation;					// 4、保存到 URLOperations 中，用于判断</span><br><span class="line">    	downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">      [self.downloadQueue addOperation:operation];	// 4、添加操作</span><br><span class="line">    </span><br><span class="line">  &#125; else &#123;</span><br><span class="line">      // ....省略一堆代码</span><br><span class="line">    	@synchronized (operation) &#123;</span><br><span class="line">        	// 5、如果之前有下载操作，则不用创建操作，但是仍然需要保存回调，不然其他位置的图片的请求就丢失了(虽然说它们是同一张图片)</span><br><span class="line">          downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  SD_UNLOCK(self.operationsLock);	// 6、解锁</span><br></pre></td></tr></table></figure>
-<p>3、问：重复的url请求，没有创建operation了，那operation的回调怎么办？</p>
-<p>答：虽然重复的URL只有一个SDWebImageDownloaderOperation。但是这个opeartion的<code>callbackBlocks</code>是个数组，所有的回调都用这个数组保存起来的，所以不会丢失的（这里<code>callbackBlocks</code>数组里存放字典，对应进行时候的ProgressCallback回调和结束时候的CompletedCallback回调）。</p>
-<p>4、问：对同一个operation的<code>callbackBlocks</code>数组操作，有什么要注意的？</p>
-<p>答：因为不管同个url不管有没有新的operation生成，我们都会有一个当前任务对应<code>downloadOperationCancelToken</code>生成，来给这个operation添加回调。即同一个url所对应opeartion里的callbackBlocks数组，在有多次图片任务时候，就会有多次操作callbackBlocks的情况。所以对callbackBlocks的操作，也要保证线程安全。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">- (nullable SDWebImageDownloadToken *)downloadImageWithURL:(nullable NSURL *)url</span><br><span class="line">                                                   options:(SDWebImageDownloaderOptions)options</span><br><span class="line">                                                   context:(nullable SDWebImageContext *)context</span><br><span class="line">                                                  progress:(nullable SDWebImageDownloaderProgressBlock)progressBlock</span><br><span class="line">                                                 completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock &#123;</span><br><span class="line">    // ....省略一堆代码</span><br><span class="line">                                                   </span><br><span class="line">    SD_LOCK(self.operationsLock);</span><br><span class="line">    id downloadOperationCancelToken;</span><br><span class="line">    NSOperation&lt;SDWebImageDownloaderOperation&gt; *operation = [self.URLOperations objectForKey:url];</span><br><span class="line">    if (!operation || operation.isFinished || operation.isCancelled) &#123;</span><br><span class="line">       	// ....省略一堆代码</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // When we reuse the download operation to attach more callbacks, there may be thread safe issue because the getter of callbacks may in another queue (decoding queue or delegate queue)</span><br><span class="line">        // So we lock the operation here, and in `SDWebImageDownloaderOperation`, we use `@synchonzied (self)`, to ensure the thread safe between these two classes.</span><br><span class="line">        @synchronized (operation) &#123;</span><br><span class="line">            downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];</span><br><span class="line">        &#125;</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">    &#125;</span><br><span class="line">    SD_UNLOCK(self.operationsLock);</span><br><span class="line">    </span><br><span class="line">    // 虽然重复的URL只有一个SDWebImageDownloaderOperation。但是SDWebImageDownloadToken是每个URL都会有一个的，只是他们的SDWebImageDownloaderOperation是同一个。</span><br><span class="line">    SDWebImageDownloadToken *token = [[SDWebImageDownloadToken alloc] initWithDownloadOperation:operation];</span><br><span class="line">    token.url = url;</span><br><span class="line">    token.request = operation.request;</span><br><span class="line">    token.downloadOperationCancelToken = downloadOperationCancelToken;</span><br><span class="line">    </span><br><span class="line">    return token;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对callbackBlocks的操作，也要保证线程安全，代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloaderOperation.m</span><br><span class="line"></span><br><span class="line">@property (strong, nonatomic, nonnull) NSMutableArray&lt;SDCallbacksDictionary *&gt; *callbackBlocks;</span><br><span class="line"></span><br><span class="line">- (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock</span><br><span class="line">                            completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock &#123;</span><br><span class="line">    SDCallbacksDictionary *callbacks = [NSMutableDictionary new];</span><br><span class="line">    if (progressBlock) callbacks[kProgressCallbackKey] = [progressBlock copy];</span><br><span class="line">    if (completedBlock) callbacks[kCompletedCallbackKey] = [completedBlock copy];</span><br><span class="line">    @synchronized (self) &#123;</span><br><span class="line">        [self.callbackBlocks addObject:callbacks];</span><br><span class="line">    &#125;</span><br><span class="line">    return callbacks;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="2、它是如何保证请求管理的线程安全"><a href="#2、它是如何保证请求管理的线程安全" class="headerlink" title="2、它是如何保证请求管理的线程安全"></a>2、它是如何保证请求管理的线程安全</h3><p>说明：由于我们允许多个任务同时进行，也就造成了会有多个线程同时操作<code>URLOperations</code>属性。为了保证URLOperations操作(添加、删除)的线程安全性，我们添加了一个锁，且考虑到各种具备锁功能的性能问题，这里我们使用信号量semaphore。所以，<strong>我们控制线程安全的锁是使用信号量实现的<code>operationsLock</code>，且其初始值为1，用它来确保同一时间只有一个线程操作URLOperations属性</strong>。</p>
-<p>在SDWebImage版本5.8.1中的相关代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)init &#123;</span><br><span class="line">    return [self initWithConfig:SDWebImageDownloaderConfig.defaultDownloaderConfig];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (instancetype)initWithConfig:(SDWebImageDownloaderConfig *)config &#123;</span><br><span class="line">    self = [super init];</span><br><span class="line">    if (self) &#123;</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">        _downloadQueue = [NSOperationQueue new];</span><br><span class="line">        _downloadQueue.maxConcurrentOperationCount = _config.maxConcurrentDownloads;</span><br><span class="line">        _downloadQueue.name = @&quot;com.hackemist.SDWebImageDownloader&quot;;</span><br><span class="line">        _URLOperations = [NSMutableDictionary new];</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">        _operationsLock = dispatch_semaphore_create(1);</span><br><span class="line">        // ....省略一堆代码</span><br><span class="line">    &#125;</span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="3、其它知识说明"><a href="#3、其它知识说明" class="headerlink" title="3、其它知识说明"></a>3、其它知识说明</h3><h4 id="3-1、SDWebImageDownloader-是什么？-异步的图片下载器"><a href="#3-1、SDWebImageDownloader-是什么？-异步的图片下载器" class="headerlink" title="3.1、SDWebImageDownloader 是什么？(异步的图片下载器)"></a>3.1、SDWebImageDownloader 是什么？(异步的图片下载器)</h4><p>SDWebImageDownloader是一个异步的图片下载器，它是一个单例类，主要负责图片的下载操作的管理。</p>
-<p>图片的下载是放在一个NSOperationQueue操作队列中来完成的，默认情况下，队列最大并发数是6。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// SDWebImageDownloader.m</span><br><span class="line">@property (strong, nonatomic, nonnull) NSOperationQueue *downloadQueue;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">				_downloadQueue = [NSOperationQueue new];</span><br><span class="line">        _downloadQueue.maxConcurrentOperationCount = _config.maxConcurrentDownloads;</span><br><span class="line"></span><br><span class="line">// SDWebImageDownloaderConfig.h</span><br><span class="line">/**</span><br><span class="line"> * The maximum number of concurrent downloads.</span><br><span class="line"> * Defaults to 6.</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, assign) NSInteger maxConcurrentDownloads;</span><br></pre></td></tr></table></figure>
-<p>如果需要的话，我们可以通过修改maxConcurrentDownloads属性来修改并发下载数。</p>
-<h2 id="二、其他版本的SDWebImage的代码解析"><a href="#二、其他版本的SDWebImage的代码解析" class="headerlink" title="二、其他版本的SDWebImage的代码解析"></a>二、其他版本的SDWebImage的代码解析</h2><h3 id="1、SDWebImageDownloader-是什么？-异步的图片下载器"><a href="#1、SDWebImageDownloader-是什么？-异步的图片下载器" class="headerlink" title="1、SDWebImageDownloader 是什么？(异步的图片下载器)"></a>1、SDWebImageDownloader 是什么？(异步的图片下载器)</h3><p>其声明及定义如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">//SDWebImageDownloader.m</span><br><span class="line"></span><br><span class="line">@property (SDDispatchQueueSetterSementics, nonatomic) dispatch_queue_t barrierQueue;</span><br><span class="line"></span><br><span class="line">- (id)init &#123;</span><br><span class="line">    if ((self = [super init])) &#123;</span><br><span class="line">        ...</span><br><span class="line">        _barrierQueue = dispatch_queue_create(&quot;com.hackemist.SDWebImageDownloaderBarrierQueue&quot;, DISPATCH_QUEUE_CONCURRENT);	// 并发队列</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>每有一个图片下载请求，SDWebImageDownloader图片下载管理器就会生成一个继承自NSOperation的下载操作SDWebImageDownloaderOperation，并添加到下载队列downloadQueue中。</p>
-<p><code>[sself.downloadQueue addOperation:operation];</code></p>
-<p>该队列允许修改最大并发数。</p>
-<p>1、由于我们允许多个任务同时进行，也就造成了会有多个线程同时操作<code>URLOperations</code>属性。为了保证URLOperations操作(添加、删除)的线程安全性，我们添加了线程操作的<strong>信号量<code>operationsLock</code>，其初始值为1，来确保同一时间只有一个线程操作URLOperations属性</strong>，我们以添加操作为例，如下代码所示：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">LOCK(self.operationsLock);</span><br><span class="line">SDWebImageDownloaderOperation *operation = [self.URLOperations objectForKey:url];</span><br><span class="line">if (!operation) &#123;</span><br><span class="line">    operation = createCallback();</span><br><span class="line">    __weak typeof(self) wself = self;</span><br><span class="line">    operation.completionBlock = ^&#123;</span><br><span class="line">        __strong typeof(wself) sself = wself;</span><br><span class="line">        if (!sself) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">        LOCK(sself.operationsLock);</span><br><span class="line">        [sself.URLOperations removeObjectForKey:url];</span><br><span class="line">        UNLOCK(sself.operationsLock);</span><br><span class="line">    &#125;;</span><br><span class="line">    [self.URLOperations setObject:operation forKey:url];</span><br><span class="line">&#125;</span><br><span class="line">UNLOCK(self.operationsLock);</span><br></pre></td></tr></table></figure>
-<p>2、同样由于为了避免同一个URL的图片被下载多次，所以我们并不会对每次操作一进来就进行创建请求任务，而是先通过之前缓存的下载任务URLOperations中通过URL寻找是否有该操作了，如果有则不创建，如果没有才创建。因此，这里就会有一个URL同时在被请求多次的情况下，生成/取到的是同一个SDWebImageDownloaderOperation。</p>
-<h2 id="三、其他"><a href="#三、其他" class="headerlink" title="三、其他"></a>三、其他</h2><p>对于下载任务的执行，SDWebImage还允许我们设置是默认的先进先出还是后进先出。该功能的实现，其自然是通过队列操作的依赖来完成的(其中lastAddedOperation指的是上一次的操作)。源代码如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[sself.downloadQueue addOperation:operation];</span><br><span class="line">if (sself.executionOrder == SDWebImageDownloaderLIFOExecutionOrder) &#123;</span><br><span class="line">    // Emulate LIFO execution order by systematically adding new operations as last operation&apos;s dependency</span><br><span class="line">    [sself.lastAddedOperation addDependency:operation];</span><br><span class="line">    sself.lastAddedOperation = operation;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="其他参考文章"><a href="#其他参考文章" class="headerlink" title="其他参考文章"></a>其他参考文章</h2><ul>
-<li><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></li>
-</ul>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cm0e172oq017oqlr40pqdhcfr" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
@@ -349,7 +106,148 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm0e172pb017rqlr4golz6dmo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm121y3gm019bqar44lj20b24" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
+<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
+<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
+<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
+<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
+<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>queue inDatabase:的本质如下：</p>
+<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
+<p>_queue的初始化为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
+<p>FMDB是怎么处理线程安全的？</p>
+<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
+<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
+<p>FMDB是支持数据库事务的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
+<p>表结构</p>
+<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cm121y3hp019hqar4c0ep0woz" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
+<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
+<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
+</ul>
+<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
+<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
+</ul>
+<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
+<p><strong>B.一个请求一条线程</strong></p>
+<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
+<p><strong>C.一条常驻线程</strong></p>
+<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
+<p>线程保活的代码</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
+<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
+<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
+<ol>
+<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
+<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
+</ol>
+<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
+<p>其中</p>
+<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
+<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
+<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
+<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cm121y3j0019nqar4uucqpzdm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -395,7 +293,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm0e16yot003zqlr4gigpgvf6" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm121xzj3002hqar4s4uh6yhu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -580,7 +478,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm0e170el00maqlr40vf29ocv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm121y17w00oiqar4me62fz46" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -637,7 +535,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm0e170ep00n1qlr4664po6ff" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm121y17x00opqar46uhx7nae" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -721,10 +619,56 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm0e170et00nlqlr4pwfe7kt0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm121y17z00owqar425biwtf7" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
+  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
+<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm121y18m00rnqar4kgwifbvh" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
     </footer>
   </div>
@@ -790,7 +734,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cm0e170fx00r8qlr49dj5u95o" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cm121y18n00rrqar40nhmq3iv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -802,9 +746,9 @@
 
 
   
-    <article id="post-实用工具/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-实用工具/Jenkins/Jenkins使用问题常见" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins参数化构建/" class="article-date">
+    <a href="/实用工具/Jenkins/Jenkins使用问题常见/" class="article-date">
   <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
 </a>
     
@@ -820,7 +764,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins参数化构建/">第4节、Jenkins使用问题常见</a>
+      <a class="article-title" href="/实用工具/Jenkins/Jenkins使用问题常见/">第4节、Jenkins使用问题常见</a>
     </h1>
   
 
@@ -828,15 +772,95 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>[TOC]</p>
-<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf" target="_blank" rel="noopener">Jenkins自定义构建参数使用</a></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
-<p><img src="/实用工具/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+        <p><img src="/实用工具/Jenkins/Jenkins使用问题常见/Jenkins icon.png" alt="Jenkins"></p>
+<p>[TOC]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>天啊，没遇到问题之前，你永远不知道我下面要讲的这些点是多么多么的重要。你只要稍微不注意，就会导致你所有的正确操作都变成错误。</p>
+<h2 id="Jenkins管理员密码忘记的解决办法"><a href="#Jenkins管理员密码忘记的解决办法" class="headerlink" title="Jenkins管理员密码忘记的解决办法"></a>Jenkins管理员密码忘记的解决办法</h2><p>首先明确，不管是初始密码，还是找回管理员密码都是从<code>共享--Jenkins--Home</code>中处理，目录结果如下：<br><img src="/实用工具/Jenkins/Jenkins使用问题常见/jenkins_Home.png" alt="jenkins_Home"></p>
+<blockquote>
+<p>admin密码更改忘记情况</p>
+<p>1.删除Jenkins目录下config.xml文件中下面代码，并保存文件。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;useSecurity&gt;true&lt;/useSecurity&gt;</span><br><span class="line">&lt;authorizationStrategy class=&quot;hudson.security.FullControlOnceLoggedInAuthorizationStrategy&quot;&gt;</span><br><span class="line">  &lt;denyAnonymousReadAccess&gt;true&lt;/denyAnonymousReadAccess&gt;</span><br><span class="line">&lt;/authorizationStrategy&gt;</span><br><span class="line">&lt;securityRealm class=&quot;hudson.security.HudsonPrivateSecurityRealm&quot;&gt;</span><br><span class="line">  &lt;disableSignup&gt;true&lt;/disableSignup&gt;</span><br><span class="line">  &lt;enableCaptcha&gt;false&lt;/enableCaptcha&gt;</span><br><span class="line">&lt;/securityRealm&gt;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>2.重启Jenkins服务 <a href="http://localhost:8080/restart" target="_blank" rel="noopener">http://localhost:8080/restart</a></p>
+</blockquote>
+<p> 附：重新加载配置信息 <a href="http://localhost:8080/reload" target="_blank" rel="noopener">http://localhost:8080/reload</a></p>
+<blockquote>
+<p>3.进入首页&gt;“系统管理”&gt;“Configure Global Security”；</p>
+<p>4.勾选“启用安全”；</p>
+<p>5.点选“Jenkins专有用户数据库”，并点击“保存”；</p>
+<p>6.重新点击首页&gt;“系统管理”,发现此时出现“管理用户”；</p>
+<p>7.点击进入展示“用户列表”；</p>
+<p>8.点击右侧进入修改密码页面，修改后即可重新登录。</p>
+</blockquote>
+<p>参考：<a href="http://blog.csdn.net/jlminghui/article/details/54952148" target="_blank" rel="noopener">忘记Jenkins管理员密码的解决办法</a></p>
+<h2 id="一、文件路径问题"><a href="#一、文件路径问题" class="headerlink" title="一、文件路径问题"></a>一、文件路径问题</h2><p>Jenkins脚本中，不能使用桌面路径：</p>
+<p>本地cd目录注意：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 错误<span class="built_in">cd</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">cd</span> /Users/lichaoqian/Desktop/TestScript		<span class="comment"># 不能使用桌面路径，执行构建时候Jenkins会提示  `cd: /Users/lichaoqian/Desktop/TestScript: Not a directory`</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 正确<span class="built_in">cd</span></span></span><br><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br></pre></td></tr></table></figure>
+<h2 id="二、权限问题"><a href="#二、权限问题" class="headerlink" title="二、权限问题"></a>二、权限问题</h2><h3 id="1、问题例子"><a href="#1、问题例子" class="headerlink" title="1、问题例子"></a>1、问题例子</h3><p>将在终端中已验证通过的如下脚本，放到Jenkins上执行。</p>
+<h5 id="问题例子1：文件修改"><a href="#问题例子1：文件修改" class="headerlink" title="问题例子1：文件修改"></a>问题例子1：文件修改</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /Users/lichaoqian/Project/Test/TestScript</span><br><span class="line">chmod -R 777 ./0000.txt</span><br></pre></td></tr></table></figure>
+<p>执行后，Jenkins的log如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_1.png" alt="Jenkins权限问题log"></p>
+<p>很显然这是个权限问题。</p>
+<h5 id="问题例子2：钥匙串Keychain解锁"><a href="#问题例子2：钥匙串Keychain解锁" class="headerlink" title="问题例子2：钥匙串Keychain解锁"></a>问题例子2：钥匙串Keychain解锁</h5><p>同理的当你执行钥匙串Keychain的时候也会有权限问题</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">security unlock-keychain -p "lichaoqian" "/Users/lichaoqian/Library/Keychains/login.keychain"</span><br></pre></td></tr></table></figure>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsScript.png" alt="unlock-keychain_1_JenkinsScript"></p>
+<p>执行后，Jenkins的log如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_1_JenkinsErrorLog.png" alt="unlock-keychain_1_JenkinsErrorLog.png"></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[TestScript] $ /bin/sh -xe /Users/Shared/Jenkins/tmp/jenkins2455609193418764900.sh</span><br><span class="line">+ security unlock-keychain -p lichaoqian /Users/lichaoqian/Library/Keychains/login.keychain</span><br><span class="line">security: SecKeychainUnlock /Users/lichaoqian/Library/Keychains/login.keychain: Write permissions error.</span><br><span class="line">Build step '执行 shell' marked build as failure</span><br><span class="line">Finished: FAILURE</span><br></pre></td></tr></table></figure>
+<p>很显然这也是个权限问题。</p>
+<h3 id="2、权限问题分析"><a href="#2、权限问题分析" class="headerlink" title="2、权限问题分析"></a>2、权限问题分析</h3><p>参考文章：<a href="https://www.jianshu.com/p/69b544d2a9d1" target="_blank" rel="noopener">iOS开发-自动化打包Jenkins集成</a>的文章开头就有讲到。</p>
+<p>原因：<strong>Jenkins打开姿势不对！</strong></p>
+<p>如果你构建的工程，是在<strong>/Users/Shared/Jenkins</strong>工作目录下，那么就会有权限问题。</p>
+<p>如果你构建的工程，是在<strong>/Users/[user name]/.jenkins</strong>工作目录下，才不会有权限问题。</p>
+<ul>
+<li>错误的：有权限问题的Jenkins workspace目录</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_2.png" alt="有权限问题的Jenkins workspace目录"></p>
+<ul>
+<li>正确的：无权限问题的Jenkins workspace目录</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_3.png" alt="无权限问题的Jenkins workspace目录"></p>
+<ul>
+<li><p>如何验证你当前项目点击构建后的工作目录是哪里呢？</p>
+<p>答：直接构建，然后去查看你的项目显示在哪里啊。</p>
+</li>
+</ul>
+<h3 id="3、权限问题解决-正确的启动Jenkins姿势"><a href="#3、权限问题解决-正确的启动Jenkins姿势" class="headerlink" title="3、权限问题解决(正确的启动Jenkins姿势)"></a>3、权限问题解决(正确的启动Jenkins姿势)</h3><p>在使用正确的启动Jenkins之前，我们先来认识下下面的这个<code>org.jenkins-ci.plist</code>文件。它的位置 <em><code>/Library/LaunchDaemons/org.jenkins-ci.plist</code></em> 如下：</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_4.png" alt="正确的启动Jenkins姿势"></p>
+<p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
+<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
+<h3 id="4、解决后的结果显示"><a href="#4、解决后的结果显示" class="headerlink" title="4、解决后的结果显示"></a>4、解决后的结果显示</h3><ul>
+<li>4.1、脚本内容</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_5.png" alt="脚本内容"></p>
+<ul>
+<li>4.2、脚本执行结果</li>
+</ul>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/JenkinsPermission_6.png" alt="脚本执行结果"></p>
+<p>至此，你的权限问题已完美解决。</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/分割图1.jpg" alt="休息一下"></p>
+<h2 id="三、其他权限问题"><a href="#三、其他权限问题" class="headerlink" title="三、其他权限问题"></a>三、其他权限问题</h2><ul>
+<li>Jenkins问题解决方案：</li>
+</ul>
+<p>解决：进入mac 系统偏好设置 — 用户与群组 — 其他用户 — jenkins ，勾选允许用户管理这台电脑</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_Write%20permissions%20error.png" alt="unlock-keychain_Write permissions error"></p>
+<p>勾选选项。</p>
+<p><img src="/实用工具/Jenkins/Jenkins使用问题常见/unlock-keychain_3_JenkinsSolve.png" alt="unlock-keychain_3_JenkinsSolve"></p>
+<h2 id="四、Jenkins权限问题其他解决方法-未实践"><a href="#四、Jenkins权限问题其他解决方法-未实践" class="headerlink" title="四、Jenkins权限问题其他解决方法(未实践)"></a>四、Jenkins权限问题其他解决方法(未实践)</h2><ul>
+<li>未实践方式1(都未实践)：</li>
+</ul>
+<p><a href="https://www.jianshu.com/p/fa546f723724" target="_blank" rel="noopener">Jenkins执行脚本提示没有权限的解决办法</a> 未实践，因为已经通过上述正确的启动Jenkins来解决了。所以这里没去实践。不过看内容应该是可行的。后续有时间再补充。</p>
+<ul>
+<li>未实践方式2(看了应该无效)：</li>
+</ul>
+<p>提高Jenkins用户权限，详见《Terminal -&gt; 终端命令使用.md》中的用户相关操作。应该无效</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm0e170fz00rkqlr4cvtvsxjg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cm121y18p00s2qar49huup9gu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -892,7 +916,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -905,23 +929,23 @@
       <ul>
         
           <li>
+            <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
           </li>
         
           <li>
             <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/总目录/">总目录</a>
-          </li>
-        
-          <li>
-            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
           </li>
         
       </ul>

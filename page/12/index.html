@@ -72,9 +72,140 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/3必备知识架构/2内存/2内存-②循环引用" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/3必备知识架构/2内存/2内存-②循环引用Timer" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/" class="article-date">
+    <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.597Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-内存-②循环引用Timer"><a href="#必备知识架构-内存-②循环引用Timer" class="headerlink" title="必备知识架构-内存-②循环引用Timer"></a>必备知识架构-内存-②循环引用Timer</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><a href="#NSTimer">九、NSTimer</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">1、NSTimer和NSRunLoop的关系？</span><br><span class="line">2、NSTimer使用细节</span><br><span class="line">3、NSTimer的创建</span><br><span class="line">4、NSTimer的循环引用</span><br><span class="line">5、NSTimer使用的优化</span><br><span class="line">&gt;</span><br><span class="line">6、NSTimer的销毁问题</span><br><span class="line">(1)、子线程中NSTimer的创建和销毁问题</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p></p><p id="NSTimer"></p><p></p>
+<h2 id="九、NSTimer"><a href="#九、NSTimer" class="headerlink" title="九、NSTimer"></a>九、NSTimer</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+<h3 id="1、NSTimer的创建"><a href="#1、NSTimer的创建" class="headerlink" title="1、NSTimer的创建"></a>1、NSTimer的创建</h3><p>NSTimer的创建通常有两种方式，尽管都是类方法，一种是timerWithXXX，另一种scheduedTimerWithXXX。</p>
+<p>二者最大的区别就是后者除了创建一个定时器外会自动以NSDefaultRunLoopModeMode添加到当前线程RunLoop中，不添加到RunLoop中的NSTimer是无法正常工作的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">@interface ViewController1 ()</span><br><span class="line">@property (nonatomic, weak) NSTimer *timer1;</span><br><span class="line">@property (nonatomic, weak) NSTimer *timer2;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@implementation ViewController1</span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    </span><br><span class="line">    self.timer1 = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(timeInterval1:) userInfo:nil repeats:YES];</span><br><span class="line">    </span><br><span class="line">    /*</span><br><span class="line">    错误做法：</span><br><span class="line">    self.timer2 = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timeInterval2:) userInfo:nil repeats:YES];</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:self.timer2 forMode:NSDefaultRunLoopMode];</span><br><span class="line">    */</span><br><span class="line">    </span><br><span class="line">    //正确做法：</span><br><span class="line">    //特别注意：timer2创建时并没直接赋值给timer2。</span><br><span class="line">    //原因是timer2是weak属性，如果直接赋值给timer2会被立即释放。</span><br><span class="line">    //因为timerWithXXX方法创建的NSTimer默认并没有加入RunLoop，只有后面加入RunLoop以后才可以将引用指向timer2。从而导致执行到addTimer:forMode的时候，访问了野指针而发生EXC_BAD_ACCESS，崩溃。</span><br><span class="line">    NSTimer *tempTimer = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timeInterval2:) userInfo:nil repeats:YES];</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:tempTimer forMode:NSDefaultRunLoopMode];</span><br><span class="line">    self.timer2 = tempTimer;</span><br><span class="line">    。。。。。</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)timeInterval1:(id)object &#123;</span><br><span class="line">    NSLog(@&quot;111&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)timeInterval2:(id)object &#123;</span><br><span class="line">    NSLog(@&quot;222&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、NSTimer的修饰符"><a href="#2、NSTimer的修饰符" class="headerlink" title="2、NSTimer的修饰符"></a>2、NSTimer的修饰符</h3><p><strong>runloop强制持有timer(runloop-&gt;timer),timer会强制持有其target，未处理的情况下一般都是self(timer-&gt;self)，导致self无法释放。</strong><br>虽然设置timer为weak属性时候，self未强制持有timer,没构成循环应用，但还是导致了self无法释放的问题，dealloc无法执行。</p>
+<h3 id="2、NSTimer的循环引用"><a href="#2、NSTimer的循环引用" class="headerlink" title="2、NSTimer的循环引用"></a>2、NSTimer的循环引用</h3><p>关于循环引用，我们先看一个例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">@interface ViewController1 ()</span><br><span class="line">@property (nonatomic, strong) NSTimer *timer;//注意这里的属性不是为weak,从而很容易引起循环引用</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@implementation ViewController1</span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    // 代码标记1 (产生timer与self之前的强引用，如下图中的L3强引用线)</span><br><span class="line">    NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate date] interval:1 target:self selector:@selector(timerFire) userInfo:nil repeats:YES];</span><br><span class="line">    // 代码标记2 (产生RunLoop与timer之间的强引用，如下图中的L4强引用线)</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];</span><br><span class="line">    // 代码标记3 (产生self与timer之间的强引用，，如下图中的L2强引用线)</span><br><span class="line">    self.timer = timer;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)timerFire &#123;</span><br><span class="line">    NSLog(@&quot;timer fire&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>假设代码中的视图控制器由UINavigationController管理，由于self.timer是strong类型，则强引用可以表示如下：</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/2内存-②循环引用/NSTimer循环引用例子1.png" alt="NSTimer循环引用例子1"></p>
+</blockquote>
+<p>由于，很容易看出来，由于timer本身在创建时候已经与self发生了强引用（<strong>不管target使用<code>weak</code>还是<code>strong</code>修饰，timer都会对target强引用。</strong>）。而赋值时候又由于timer是被设为strong的，而导致self与timer之间也发生了强引用，最终这两个强引用，就形成了循环引用。</p>
+<p>所以，</p>
+<p>①、首先，我们先解决循环引用，为了解决timer的循环应用问题，我们上面的timer属性应该使用weak。设置成weak后，L2就消失了。</p>
+<p>②、但是<strong>即使使用了弱引用，上面的代码中ViewController1在pop退出的时候也无法正常释放，原因是在创建NSTimer时指定了target为self，这样一来造成了timer对ViewController1有一个强引用</strong>。从而导致，timer没释放的时候，viewController也是不会被释放的。<strong>为了让timer能够释放，我们就需要调用NSTimer的invalidate方法</strong>（注意：无论是重复执行的定时器还是一次性的定时器只要调用invalidate方法则会变得无效，只是一次性的定时器执行完操作后会自动调用invalidate方法）。所以，假设在viewController pop回去前，我们通过一个按钮来让timer调用invalidate方法，那么viewController在pop回去时候，就能够被释放了。</p>
+<p>问题是我们一般不会有这个按钮操作，那么这时候让timer调用invalidate方法的操作，应该写在哪里呢。这时候，你可能会想到那就写在viewDidDisappear中呗。但是一旦在viewWillDisappear中写<code>[timer invalidate]; timer = nil;</code>那么你也得把timer的创建放在viewWillAppear中。因为我们可能执行的是push跳到下一页,再返回来的操作。然而显然将timer的创建放在viewWillAppear中这样的方式，显然会是导致当timer可能需要频繁添加。所以，我们放弃此方法，还是把timer的创建放在viewDidLoad中，然后考虑其他方法。</p>
+<p>所以，我们最后<strong>为了让ViewController1在pop退出的时候不会因为timer的强引用，而导致无法正常释放。我们选择转移timer中的target</strong>。这样就能确保，viewController在pop退出的时候能够正常释放，从而调用viewController的dealloc方法。</p>
+<blockquote>
+<p>附：转移timer中的target的方法通常有两种：</p>
+</blockquote>
+<p>一种是将target分离出来独立成一个对象（在这个对象中创建NSTimer并将对象本身作为NSTimer的target），控制器通过这个对象间接使用NSTimer；</p>
+<blockquote>
+</blockquote>
+<p>另一种方式的思路仍然是转移target，只是可以直接增加NSTimer扩展（分类），让NSTimer自身做为target，同时可以将操作selector封装到block中。</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/2内存-②循环引用/NSTimer转移target方法二.jpg" alt="NSTimer转移target方法二"><br>图中参考<a href="https://github.com/mBrissman/NSTimer-Block" target="_blank" rel="noopener">NSTimer+Block</a></p>
+</blockquote>
+<p>后者相对优雅，也是目前使用较多的方案。显然Apple也认识到了这个问题，如果你可以确保代码只在iOS 10下运行就可以使用iOS 10新增的系统级block方案（上面的代码中已经贴出这种方法）。</p>
+<p>③、如果不做②中的转移timer的target的话，那么viewController就会无法释放，造成内存泄露。<br>但是，我们发现<strong>通过转移timer的target后，虽然解决了UIViewController1因为被timer强引用而导致的在pop回来的时候无法释放的问题。</strong>我们的计时器，却在UIViewController1 pop退出被释放后，两个定时器仍然在运行，也就是它还没被释放。所以，我们还需要解决timer的释放。那怎么让timer释放呢？答：<strong>如果要让timer释放掉的话，需要调用NSTimer的invalidate方法</strong>（注意：无论是重复执行的定时器还是一次性的定时器只要调用invalidate方法则会变得无效，只是一次性的定时器执行完操作后会自动调用invalidate方法）。<br><strong>invalidate方法有2个功能：一是将timer从runloop中移除，那么图中的L4就消失，二是timer本身也会释放它持有资源，比如它的target、userinfo、block等，因为这里的target是self，所以强引用L3也就消失。</strong><br>所以，最终当viewController在pop退出的时候，其正常释放并调用了dealloc放。我们只需要在dealloc方法中，添加上timer调用invalidate的方法，即可以解决viewController被释放了，但timer没被释放的问题。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (void)dealloc &#123;</span><br><span class="line">    [self.timer invalidate];</span><br><span class="line">    NSLog(@&quot;ViewController1 dealloc...&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以，一个完整的timer过程，代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">略</span><br></pre></td></tr></table></figure>
+<h3 id="3、NSTimer和NSRunLoop的关系？"><a href="#3、NSTimer和NSRunLoop的关系？" class="headerlink" title="3、NSTimer和NSRunLoop的关系？"></a>3、NSTimer和NSRunLoop的关系？</h3><p>只要出现NSTimer必须要有NSRunLoop，NSTimer必须依赖NSRunLoop才能执行 。NSTimer其实也是一种资源，如果看过多线程编程指引文档的话，我们会发现所有的source如果要起作用，就得加到runloop中去。同理timer这种资源要想起作用，那肯定也需要加到runloop中才会生效喽。如果一个runloop里面不包含任何资源的话，运行该runloop时会立马退出。</p>
+<p>NSRunLoop与timer有关方法为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">- (void)addTimer:(NSTimer *)timer forMode:(NSString *)mode; //在run loop上注册timer</span><br></pre></td></tr></table></figure>
+<p>注意事项:</p>
+<blockquote>
+<p>我们通常在主线程中使用NSTimer，有个实际遇到的问题需要注意。当滑动界面时，系统为了更好地处理UI事件和滚动显示，主线程runloop会暂时停止处理一些其它事件，这时主线程中运行的NSTimer就会被暂停。解决办法就是改变NSTimer运行的mode（mode可以看成事件类型），不使用缺省的NSDefaultRunLoopMode，而是改用NSRunLoopCommonModes，这样主线程就会继续处理NSTimer事件了。具体代码如下：</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSTimer *timer = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timer:) userInfo:nil repeats:YES];</span><br><span class="line">[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];</span><br></pre></td></tr></table></figure>
+<h3 id="4、NSTimer使用细节："><a href="#4、NSTimer使用细节：" class="headerlink" title="4、NSTimer使用细节："></a>4、NSTimer使用细节：</h3><p>NSTimer上的定时任务是在创建NSTimer的线程上执行的。NSTimer的销毁和创建必须在同一个线程上操作<br>NSTimer要被添加到当前线程的 Runloop 里面且 Runloop 被启动，定时任务（selector或者invocation）才会触发。</p>
+<p>以下内容摘自：<a href="https://www.cnblogs.com/mddblog/p/6517377.html" target="_blank" rel="noopener">NSTimer定时器进阶——详细介绍，循环引用分析与解决</a></p>
+<ol>
+<li>它需要被添加到runloop，否则不会运行，当然添加的runloop不存在也不会运行；</li>
+<li>还要指定添加到的runloop的哪个模式，而且还可以指定添加到runloop的多个模式，模式不对也是不会运行的</li>
+<li><strong>runloop会对timer有强引用，timer会对目标对象进行强引用(是否隐约的感觉到坑了。。。)</strong></li>
+<li>timer的执行时间并不准确，系统繁忙的话，还会被跳过去。(具体的两种不准时，请查看原文)</li>
+<li>invalidate调用后，timer停止运行后，就一定能从runloop中消除吗，资源？？？？invalidate方法的调用必须在timer添加到的runloop所在的线程，如果不在的话：由于调用invalidate 方法后，timer本身会释放掉它自己持有的资源比如target、userinfo、block，图中的L3会消失。但是runloop不会释放timer，即图中的L4不会消失，假设，self被pop了–&gt;L1无效–&gt;self引用计数为0,self释放–&gt;L2也消失。此时就剩runloop、timer、L4，timer也就永远不会释放了，造成内存泄露。</li>
+</ol>
+<p>NSTimer的强引用问题举例:</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/2内存-②循环引用/NSTimer的强引用问题举例.png" alt="NSTimer的强引用问题举例"></p>
+</blockquote>
+<h4 id="5、NSTimer使用的优化"><a href="#5、NSTimer使用的优化" class="headerlink" title="5、NSTimer使用的优化"></a>5、NSTimer使用的优化</h4><p>问：为什么要在非主线程创建NSTimer？</p>
+<ul>
+<li>将 timer 添加到主线程的Runloop里面本身会增加线程负荷；</li>
+<li>如果主线程因为某些原因阻塞卡顿了，timer 定时任务触发的时间精度肯定也会受到影响；</li>
+<li>有些定时任务不是UI相关的，本来就没必要在主线程执行，给主线程增加不必要的负担。当然也可以在定时任务执行时，手动将任务指派到非主线程上，但这也是有额外开销的。</li>
+</ul>
+<h4 id="6、NSTimer的销毁问题"><a href="#6、NSTimer的销毁问题" class="headerlink" title="6、NSTimer的销毁问题"></a>6、NSTimer的销毁问题</h4><p>前面我们已经简单讲过要让NSTimer销毁释放的时候，只能通过调用其invalidate来达到销毁目的。关于invalidate的第一个作用以及它在哪个线程调用的问题，我的理解如下：</p>
+<p>invalidate方法的第一个作用将timer从runloop中移除。这里的runLoop指的应该是当前的runLoop，而不是timer被添加到的runLoop，这个纯属个人理解，未验证，因为如果是其添加的runLoop的话，那子线程timer的销毁，就不会有人说还要和timer所在的线程一致了。所以，这里的个人理解有如下：</p>
+<p><em>为了销毁timer和去除runloop与timer之间的强引用</em>，我们调用了timer的invalidate方法。</p>
+<blockquote>
+<p>1、对于invalidate方法的调用是写在必须在timer所添加到的runloop所在的线程（如主线程）的时候，invalidate方法会将timer从runloop中移除，并且释放它持有资源。即上面的L4和L3都消失。</p>
+<p>2、对于invalidate方法的调用不是写在必须在timer所添加到的runloop所在的线程的时候（如子线程中添加timer，在主线程中调用该timer的invalidate），虽然timer本身会释放掉它自己持有的资源比如target、userinfo、block，图中的L3会消失。但是runloop不会释放timer，即图中的L4不会消失，假设，self被pop了–&gt;L1无效–&gt;self引用计数为0,self释放–&gt;L2也消失。此时就剩runloop、timer、L4，timer也就永远不会释放了，造成内存泄露。</p>
+<p>如果invalidate方法的调用的位置不更改的话，这时候要让L4消失的方法，</p>
+<p>方法①手动销毁runloop。比如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">    //[[NSRunLoop currentRunLoop] run]; //将原本的方法注释掉</span><br><span class="line">    NSDate *date = [NSDate dateWithTimeIntervalSinceNow:5.f];</span><br><span class="line">    [[NSRunLoop currentRunLoop] runUntilDate:date]; //让runloop在5s后销毁</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>这种方式，只适用于销毁时间确定的情况。那如果销毁时间不确定怎么办？</p>
+<p>方法②：因为<strong>当某个线程销毁时，其runloop也随之销毁</strong>，所以方法二即为通过销毁timer所在的线程，来达到销毁runloop的目的。如果是在主线程，线程一直存在，我们没法让主线程销毁。</p>
+</blockquote>
+<p>所以，下面我们讨论的是<em>在子线程中添加timer的时候，<strong>如果</strong>该timer的invalidate方法的调用位置不是写在对应子线程，而是写在主线程的时候，我们该怎么通过销毁子线程，来销毁runLoop。从而接触该runloop对timerd的强引用？</em></p>
+<h5 id="6-1子线程中NSTimer的创建和销毁问题"><a href="#6-1子线程中NSTimer的创建和销毁问题" class="headerlink" title="6.1子线程中NSTimer的创建和销毁问题"></a>6.1子线程中NSTimer的创建和销毁问题</h5><p>我们按上诉2中②的讨论描述的：子线程中添加timer的时候，如果该timer的invalidate方法的调用位置不是写在对应子线程，而是写在主线程的时候，写出的对应代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">@property (nonatomic, weak) NSTimer *threadTimer; //子线程timer</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    </span><br><span class="line">    // 开辟子线程</span><br><span class="line">    NSThread *thread = [[NSThread alloc] initWithTarget:self selector:@selector(newThread) object:nil];</span><br><span class="line">    [thread start];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)newThread &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        NSThread *currentThread = [NSThread currentThread];</span><br><span class="line">        [currentThread setName:@&quot;这是子线程&quot;];</span><br><span class="line">        </span><br><span class="line">        self.threadTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(threadTimerAction) userInfo:nil repeats:YES];</span><br><span class="line">        [[NSRunLoop currentRunLoop] run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)threadTimerAction &#123;</span><br><span class="line">    static NSInteger counter = 0;</span><br><span class="line">    </span><br><span class="line">    NSString *isMainThreadDescription = [NSThread isMainThread] ? @&quot;YES&quot; : @&quot;NO&quot;;</span><br><span class="line">    NSLog(@&quot;当前方法执行的线程：%@, 它是否是主线程:%@, counter = %@&quot;, [NSThread currentThread], isMainThreadDescription, @(counter++));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这时候，我们该怎么通过销毁子线程，来销毁runLoop。从而接触该runloop对timerd的强引用？即怎么销毁线程？</p>
+<p>乍看当在子线程开启runloop后，timer会一直在子线程中运行，所以子线程不会销毁，runloop也就无法停止，runloop也就没法销毁，runloop与timer之间的强引用则还是被保留着，这似乎又是个死循环。但实际上，<em>由于上述代码runloop的mode item只有Timer，所以只要销毁timer，runloop就会退出。</em>所以，上述的代码是没问题的，不存在内存泄露问题。</p>
+<p>附：NSTimer上的定时任务是在创建NSTimer的线程上执行的。</p>
+<p>–</p>
+<p>附：以上NSTimer的内容，有空的话还可参考<a href="https://www.imooc.com/article/22331" target="_blank" rel="noopener">NSTimer,NSRunLoop,autoreleasepool,多线程的爱恨情仇</a>，它那边讲的，和这边自己理解的基本是一样的。只是对于有些点的介绍详细不一定一样而已。</p>
+<p>其他有空可看<a href="http://www.cocoachina.com/ios/20150710/12444.html" target="_blank" rel="noopener">iOS 中的 NSTimer</a></p>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/" data-id="cm121y2zu017cqar48lpyqis9" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/2内存/2内存-②Block" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/2内存/2内存-②Block/" class="article-date">
   <time datetime="2022-03-16T05:35:04.594Z" itemprop="datePublished">2022-03-16</time>
 </a>
     
@@ -84,122 +215,73 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-内存-②循环引用"><a href="#必备知识架构-内存-②循环引用" class="headerlink" title="必备知识架构-内存-②循环引用"></a>必备知识架构-内存-②循环引用</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><p><a href="#循环引用原因">一、循环引用原因</a></p>
-</li>
-<li><p><a href="#NSTimer的循环引用">二、NSTimer的循环引用</a></p>
-</li>
-<li><p><a href="#委托delegate的循环引用">三、委托delegate的循环引用</a></p>
-</li>
-<li><p><a href="#block的循环引用">四、block的循环引用</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">1、Objective-C中block为何得用copy修饰，能否用其他</span><br><span class="line">2、block的循环引用</span><br><span class="line">3、block循环引用的解决</span><br><span class="line">4、判断该block是否会发生循环引用</span><br><span class="line">5、为什么masonry的block里引用self不需要weak？</span><br><span class="line">6、是否所有的Block中，使用self 都会导致循环引用？</span><br><span class="line">7、block修改外部局部变量</span><br><span class="line">(1)、在block中无法直接修改外部变量的原因</span><br><span class="line">(2)、解决如何在 block 中修改外部变量</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
+        <h1 id="必备知识架构-内存-②Block"><a href="#必备知识架构-内存-②Block" class="headerlink" title="必备知识架构-内存-②Block"></a>必备知识架构-内存-②Block</h1><p>[toc]</p>
+<h2 id="iOS-Block本质"><a href="#iOS-Block本质" class="headerlink" title="iOS-Block本质"></a>iOS-Block本质</h2><p><a href="https://www.jianshu.com/p/4e79e9a0dd82" target="_blank" rel="noopener">iOS-Block本质</a></p>
+<p>block本质上也是一个OC对象，它内部也有个isa指针，最终继承NSObject。</p>
+<p>如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NSGlobalBlock &lt;--__NSGlobalBlock &lt;--NSBlock &lt;-- NSObject</span><br></pre></td></tr></table></figure>
+<h4 id="Q：block有哪几种类型-及-各类型的block在内存中如何分配的？"><a href="#Q：block有哪几种类型-及-各类型的block在内存中如何分配的？" class="headerlink" title="Q：block有哪几种类型 及 各类型的block在内存中如何分配的？"></a>Q：block有哪几种类型 及 各类型的block在内存中如何分配的？</h4><p>block的类型，取决于isa指针，可以通过调用class方法或者isa指针查看具体类型，最终都是继承自NSBlock类型。</p>
+<p><strong>堆</strong>：动态分配内存，需要程序员自己申请，程序员自己管理</p>
+<p><strong>栈</strong>：自动分配内存，自动销毁，先入后出，栈上的内容存在自动销毁的情况</p>
 <ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+<li><p><strong>NSGlobalBlock </strong> 在数据区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">void (^block1)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block1&quot;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 </li>
-<li><p><a href="#END">END</a></p>
+<li><p><strong>NSMallocBlock </strong> 在堆区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age1 = 1;</span><br><span class="line">void (^block2)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block2:%d&quot;, age1);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 </li>
-</ul>
-<p></p><p id="循环引用原因"></p><p></p>
-<h2 id="一、循环引用原因"><a href="#一、循环引用原因" class="headerlink" title="一、循环引用原因"></a>一、循环引用原因</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>导致iOS对象无法按预期释放的一个无形杀手是——循环引用。循环引用可以简单理解为A引用了B，而B又引用了A，双方都同时保持对方的一个引用，导致任何时候引用计数都不为0，始终无法释放。若当前对象是一个ViewController，则在dismiss或者pop之后其dealloc无法被调用，在频繁的push或者present之后内存暴增，然后APP就duang地挂了。</p>
-<p><strong>循环引用会导致内存泄露，因为循环应用会导致，有些对象没办法在已经不会再使用的时候被释放掉</strong></p>
-<p>下面列举我们变成中比较容易碰到的三种循环引用的情形：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">（1）计时器NSTimer</span><br><span class="line">（2）block</span><br><span class="line">（3）委托delegate</span><br></pre></td></tr></table></figure>
-<p></p><p id="NSTimer的循环引用"></p><p></p>
-<h2 id="二、NSTimer的循环引用"><a href="#二、NSTimer的循环引用" class="headerlink" title="二、NSTimer的循环引用"></a>二、NSTimer的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>NSTimer的循环引用详情，我们放在下面讲解NSTimer(前面已经提过NSTimer 其实就是RunLoop中的CFRunLoopTimerRef，一个基于时间的触发器)的时候介绍。</p>
-<p>解决方法：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">@interface HWWeakTimerTarget : NSObject</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id target;			// 注意是 weak</span><br><span class="line">@property (nonatomic, assign) SEL selector; // assign</span><br><span class="line">@property (nonatomic, weak) NSTimer* timer;	// 注意是 weak</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">@implementation HWWeakTimerTarget</span><br><span class="line"></span><br><span class="line">- (void) fire:(NSTimer *)timer &#123;</span><br><span class="line">    if(self.target) &#123;</span><br><span class="line">#pragma clang diagnostic push</span><br><span class="line">#pragma clang diagnostic ignored &quot;-Warc-performSelector-leaks&quot;</span><br><span class="line">        [self.target performSelector:self.selector withObject:timer.userInfo afterDelay:0.0f];</span><br><span class="line">#pragma clang diagnostic pop</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        [self.timer invalidate];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation HWWeakTimer</span><br><span class="line"></span><br><span class="line">+ (NSTimer *) scheduledTimerWithTimeInterval:(NSTimeInterval)interval</span><br><span class="line">                                      target:(id)aTarget</span><br><span class="line">                                    selector:(SEL)aSelector</span><br><span class="line">                                    userInfo:(id)userInfo</span><br><span class="line">                                     repeats:(BOOL)repeats &#123;</span><br><span class="line">    HWWeakTimerTarget* timerTarget = [[HWWeakTimerTarget alloc] init];</span><br><span class="line">    timerTarget.target = aTarget;</span><br><span class="line">    timerTarget.selector = aSelector;</span><br><span class="line">    timerTarget.timer = [NSTimer scheduledTimerWithTimeInterval:interval</span><br><span class="line">                                                         target:timerTarget</span><br><span class="line">                                                       selector:@selector(fire:)</span><br><span class="line">                                                       userInfo:userInfo</span><br><span class="line">                                                        repeats:repeats];</span><br><span class="line">    return timerTarget.timer;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p></p><p id="委托delegate的循环引用"></p><p></p>
-<h2 id="三、委托delegate的循环引用"><a href="#三、委托delegate的循环引用" class="headerlink" title="三、委托delegate的循环引用"></a>三、委托delegate的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>在委托问题上出现循环引用问题已经是老生常谈了，声明delegate时请用weak(ARC)，如果是MRC则用assign。千万别手贱。</p>
-<p></p><p id="block的循环引用"></p><p></p>
-<h2 id="四、block的循环引用"><a href="#四、block的循环引用" class="headerlink" title="四、block的循环引用"></a>四、block的循环引用</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h5 id="1、Objective-C中block为何得用copy修饰，能否用其他"><a href="#1、Objective-C中block为何得用copy修饰，能否用其他" class="headerlink" title="1、Objective-C中block为何得用copy修饰，能否用其他"></a>1、Objective-C中block为何得用copy修饰，能否用其他</h5><blockquote>
-<p>答：因为<strong>block在创建的时候，它的内存是分配在栈(stack)上，而不是在堆(heap)上。他本身的作于域是属于创建时候的作用域，一旦在创建时候的作用域外面调用block将导致程序崩溃。所以，为了能够在block的声明域外也能够使用block，我们需要将block拷贝到堆上，所以使用copy属性。</strong>对于堆中的block，也就是copy修饰的block。他的生命周期是随着对象的销毁而结束的。只要对象不销毁，我们就可以调用的到在堆中的block。</p>
-</blockquote>
-<h5 id="2、block的循环引用"><a href="#2、block的循环引用" class="headerlink" title="2、block的循环引用"></a>2、block的循环引用</h5><p><strong>由于block在copy时都会对block内部用到的对象进行强引用(ARC)或者retainCount增1(非ARC)。所以，不管是在ARC还是非ARC环境下对block使用不当都会引起循环引用问题</strong></p>
-<p>一般表现为，某个类将block作为自己的属性变量(则该类就对block强引用了)，然后该类在block的方法体里面又使用了该类本身。即当对象（比如self）拥有一个block属性的时候，在block属性中又引用了对象的其他成员变量或者调用了对象的其他方法。形成你中有我，我中有你，谁都无法将谁释放的困局。形如：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">self.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line"> &#125;;</span><br><span class="line"> </span><br><span class="line">又或者</span><br><span class="line"></span><br><span class="line">ClassA* objA = [[ClassA alloc] init];</span><br><span class="line">objA.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line">&#125;;</span><br><span class="line">self.objA = objA;</span><br></pre></td></tr></table></figure>
-<p>block的这种循环引用会被编译器捕捉到并及时提醒。</p>
-<p>以上参考自：<a href="http://www.jianshu.com/p/b79bac09177e" target="_blank" rel="noopener">Block的循环引用</a></p>
-<h5 id="3、block循环引用的解决"><a href="#3、block循环引用的解决" class="headerlink" title="3、block循环引用的解决"></a>3、block循环引用的解决</h5><h6 id="1-、常规简单解法"><a href="#1-、常规简单解法" class="headerlink" title="(1)、常规简单解法"></a>(1)、常规简单解法</h6><p>解决方法,就一句话的事情：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof (self) weakSelf = self; </span><br><span class="line">self.myBlock = ^&#123;</span><br><span class="line">    [weakSelf doSomething];</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  附1：如果是non-ARC环境下就将__weak替换为__block即可。non-ARC情况下，__block变量的含义是在Block中引入一个新的结构体成员变量指向这个__block变量，那么__block typeof(self) weakSelf = self;就表示Block别再对self对象retain啦，这就打破了循环引用。</span><br><span class="line">  </span><br><span class="line">  附2：__weak 是 iOS 5.0 推出的，_weak 相当于 weak，不会做强引用，如果对象被释放，执行的地址，会指向 nil</span><br></pre></td></tr></table></figure>
-<h6 id="2-、block中使用-weak–strong-dance-技术避免循环引用"><a href="#2-、block中使用-weak–strong-dance-技术避免循环引用" class="headerlink" title="(2)、block中使用 weak–strong dance 技术避免循环引用"></a>(2)、block中使用 weak–strong dance 技术避免循环引用</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof(self)weakSelf = self;</span><br><span class="line">  [header setTapHandle:^&#123;</span><br><span class="line">  		__strong __typeof(weakSelf)strongSelf = weakSelf;</span><br><span class="line">  		if (strongSelf) &#123;</span><br><span class="line">     		NSLog(@&quot;strongSelf = %@&quot;, strongSelf);</span><br><span class="line">  		&#125;</span><br><span class="line"> 	[weakSelf headerAction:header];</span><br><span class="line">	&#125;];</span><br></pre></td></tr></table></figure>
-<p><strong>精髓2：①在 block 之前定义对 self 的一个弱引用weakSelf，因为是弱引用，所以当 self 被释放时weakSelf会变为nil；② 在 block 中引用该弱应用，考虑到多线程情况，通过使用强引用 strongSelf 来引用该弱引用，这时如果 self 不为 nil 就会 retain self，以防止在后面的使用过程中 self 被释放;③在之后的 block 块中使用该强引用 bself，注意在使用前要对 bSelf 进行了 nil 检测，因为多线程环境下在用弱引用weakSelf对强引用strongSelf赋值时，弱引用weakSelf可能已经为nil了。通过这种手法，block 就不会持有 self 的引用，从而打破了循环引用。</strong></p>
-<h4 id="iOS开发中在block中为什么要weak和strong配合使用"><a href="#iOS开发中在block中为什么要weak和strong配合使用" class="headerlink" title="iOS开发中在block中为什么要weak和strong配合使用"></a><a href="https://www.jianshu.com/p/0b87b4e7da2c" target="_blank" rel="noopener">iOS开发中在block中为什么要<strong>weak和</strong>strong配合使用</a></h4><blockquote>
-<p>答：<strong>weak是为了解决循环引用。</strong>strong是为了防止block持有的对象提前释放。</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> - (void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">  [self dismissViewControllerAnimated:YES completion:nil];</span><br><span class="line"></span><br><span class="line">  __weak typeof(self) weakSelf = self;</span><br><span class="line">  self.block = ^&#123;</span><br><span class="line">      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">          NSLog(@&quot;%@&quot;, weakSelf);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;;</span><br><span class="line">  self.block();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>点击屏幕，当前控制器消失，同时被销毁掉，5秒后打印的weakSelf就是一个(null)。<br>而我们如果在block内使用__strong后就能保证再打印完strongSelf之后再释放当前控制器。</p>
-</blockquote>
-<h5 id="4、判断该block是否会发生循环引用"><a href="#4、判断该block是否会发生循环引用" class="headerlink" title="4、判断该block是否会发生循环引用"></a>4、判断该block是否会发生循环引用</h5><p><a href="http://www.cocoachina.com/ios/20170122/18601.html" target="_blank" rel="noopener">判断该block是否会发生循环引用例子</a></p>
-<h5 id="5、为什么masonry的block里引用self不需要weak？"><a href="#5、为什么masonry的block里引用self不需要weak？" class="headerlink" title="5、为什么masonry的block里引用self不需要weak？"></a>5、为什么masonry的block里引用self不需要weak？</h5><p>这个就和网络请求里面使用self道理是一样的。因为UIView未强持有block，所以这个block只是个栈block，而且构不成循环引用的条件。栈block有个特性就是它执行完毕之后就出栈，出栈了就会被释放掉。看mas_makexxx的方法实现会发现这个block很快就被调用了，完事儿就出栈销毁，构不成循环引用，所以可以直接放心的使用self。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (NSArray *)mas_makeConstraints:(void(^)(MASConstraintMaker *))block &#123;</span><br><span class="line">    self.translatesAutoresizingMaskIntoConstraints = NO;</span><br><span class="line">    MASConstraintMaker *constraintMaker = [[MASConstraintMaker alloc] initWithView:self];</span><br><span class="line">    block(constraintMaker);</span><br><span class="line">    return [constraintMaker install];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">如果要强引用，block应该是masnory的一个属性，即被masnory对象持有。且是copy修饰符</span><br></pre></td></tr></table></figure>
-<h4 id="6、是否所有的Block中，使用self-都会导致循环引用？"><a href="#6、是否所有的Block中，使用self-都会导致循环引用？" class="headerlink" title="6、是否所有的Block中，使用self 都会导致循环引用？"></a>6、是否所有的Block中，使用self 都会导致循环引用？</h4><h4 id="7、block修改外部局部变量"><a href="#7、block修改外部局部变量" class="headerlink" title="7、block修改外部局部变量"></a>7、block修改外部局部变量</h4><p>如果是全局变量呢？</p>
-<h6 id="1-、在block中无法直接修改外部变量的原因"><a href="#1-、在block中无法直接修改外部变量的原因" class="headerlink" title="(1)、在block中无法直接修改外部变量的原因"></a>(1)、在block中无法直接修改外部变量的原因</h6><p>错误示例：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//声明一个局部整型变量 </span><br><span class="line">int intValue = 3; //漏掉了__block修饰符</span><br><span class="line"></span><br><span class="line">//声明一个返回值为int,一个int参数的block变量</span><br><span class="line">int (^block)(int) = ^(int m)&#123;</span><br><span class="line">    intValue++;</span><br><span class="line">    return m * intValue;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">//调用block变量,5作为参数之后的结果</span><br><span class="line">NSLog(@&quot;block(5) = %d&quot;,block(5));</span><br></pre></td></tr></table></figure>
-<p>在上面的例子中,我们编译程序后发现编译器会有红色错误,错误提示为<br>Variable is not assignable (missing __block type specifier)</p>
-<p>为什么会出现不能被赋值的错误提示呢？</p>
-<p>block在实现时就会对它引用到的它所在方法中定义的栈变量进行一次只读拷贝，在 block 块内使用该只读拷贝。<br>那为了避免上述错误，就要<strong>精髓1：使用__block修饰符来修饰外部变量,用来通知编译器该外部变量intValue与block中的intValue指的是同一块儿内存地址，而不需要内存拷贝。</strong></p>
-<h6 id="2-、解决如何在-block-中修改外部变量"><a href="#2-、解决如何在-block-中修改外部变量" class="headerlink" title="(2)、解决如何在 block 中修改外部变量"></a>(2)、解决如何在 block 中修改外部变量</h6><ul>
-<li><p>有必要了解：<a href="http://www.jianshu.com/p/404ff9d3cd42" target="_blank" rel="noopener">iOS中__block 关键字的底层实现原理</a></p>
-</li>
-<li><p>结论：<code>block可以访问外部变量，但是无法修改外部变量的值，如果要修改外部变量的值，需要对外部变量加上__block作为该变量的修饰</code></p>
-<p>来源：<a href="http://bbs.itheima.com/thread-248328-1-1.html" target="_blank" rel="noopener">OC学习笔记之block访问外部变量【重点面试】</a></p>
+<li><p><strong>NSStackBlock </strong> 在栈区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age2 = 2;</span><br><span class="line">NSLog(@&quot;%@&quot;, [^&#123;</span><br><span class="line">        NSLog(@&quot;block3:%d&quot;, age2);</span><br><span class="line">    &#125; class]);</span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<ul>
-<li>问题： <a href="http://blog.csdn.net/huyisu/article/details/40543291" target="_blank" rel="noopener">如何在 block 中修改外部变量</a></li>
+<p>附：打印block类型<code>NSLog(@&quot;%@&quot;, [block1 class]);</code></p>
+<h2 id="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"><a href="#问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？" class="headerlink" title="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"></a>问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？</h2><p>有Person类如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;Person.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation Person</span><br><span class="line"></span><br><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;Person dealloc&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>了解解题的基础知识：</p>
+<h4 id="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block"><a href="#1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block" class="headerlink" title="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)"></a>1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)</h4><ul>
+<li>如果block在<code>栈</code>空间，不管外部变量是强引用还是弱引用，block都会弱引用访问对象</li>
+<li>如果block在<code>堆</code>空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</li>
 </ul>
-<p>有两种办法<br>① 第一种是可以修改 static 全局变量；<br>② 第二种是可以修改用新关键字 __block 修饰的变量。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__block int blockLocal  = 100;</span><br><span class="line">static int staticLocal  = 100;</span><br><span class="line"></span><br><span class="line">void (^aBlock)(void) = ^(void)&#123; </span><br><span class="line">    NSLog(@&quot; &gt;&gt; Sum: %d\n&quot;, global + staticLocal);</span><br><span class="line">    </span><br><span class="line">    global++;</span><br><span class="line">    blockLocal++;</span><br><span class="line">    staticLocal++;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">aBlock();</span><br></pre></td></tr></table></figure>
-<p><code>附：静态变量 和 全局变量   在加和不加  __block 都会直接引用变量地址。也就意味着静态变量和全局变量的修改可以直接修改，不需要作添加__block的步骤。</code></p>
-<h4 id="在ARC下获取对象的引用计数值"><a href="#在ARC下获取对象的引用计数值" class="headerlink" title="在ARC下获取对象的引用计数值"></a>在ARC下获取对象的引用计数值</h4><p>在ARC下获取对象的引用计数值，可以使用CFGetRetainCount。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">对于Core Foundation对象：</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;,  CFGetRetainCount(aCFString));</span><br><span class="line"></span><br><span class="line">对于Foundation对象</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;, CFGetRetainCount((__bridge CFTypeRef)aNNstring));</span><br><span class="line"></span><br><span class="line">NSLog(@&quot;%@ CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br></pre></td></tr></table></figure>
-<p>以下获取引用计数的方法错了，但是不知道正确的应该怎么用。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;%@ dealloc&quot;, NSStringFromClass([self class]));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewWillDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewWillDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewWillDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewDidDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewDidDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewDidDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>几篇文章：</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/bcc0bcaadd6c" target="_blank" rel="noopener">iOS杂谈：影响控制器正常释放的常见问题</a></li>
-<li><a href="https://www.cnblogs.com/songliquan/p/4970505.html" target="_blank" rel="noopener">iOS中控制器的释放问题</a></li>
-<li><a href="https://blog.csdn.net/u014222687/article/details/51767685" target="_blank" rel="noopener">Block与Self的循环引用</a></li>
-<li><p><a href="http://www.cocoachina.com/ios/20170122/18601.html" target="_blank" rel="noopener">ARC下用块（block）的循环引用问题样例探究</a></p>
+<p>2、GCD API的方法参数block，在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上。</p>
+<h4 id="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"><a href="#附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？" class="headerlink" title="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"></a>附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？</h4><ul>
+<li><p>1.block作为函数返回值时</p>
 </li>
-<li><p><a href="https://blog.csdn.net/y_csdnblog_xx/article/details/51483111" target="_blank" rel="noopener">ReactiveCocoa之RAC内存管理（十二）</a></p>
+<li><p>2.将block赋值给__strong指针时</p>
 </li>
-<li><a href="https://www.jianshu.com/p/16b78d72dc95" target="_blank" rel="noopener">ReactiveCocoa入门教程——第二部分</a></li>
-<li><a href="https://www.jianshu.com/p/16e8e2e5773c" target="_blank" rel="noopener">subscribenext 循环引用</a></li>
+<li><p>3.block作为Cocoa API中方法名含有usingBlock的方法参数时</p>
+</li>
+<li><p>4.block作为GCD API的方法参数时</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        </span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+</li>
 </ul>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h6 id="block和weak修饰符的区别是什么？"><a href="#block和weak修饰符的区别是什么？" class="headerlink" title="block和weak修饰符的区别是什么？"></a><strong>block和</strong>weak修饰符的区别是什么？</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1，在MRC时代，__block修饰，可以避免循环引用；ARC时代，__block修饰，同样会引起循环引用问题；</span><br><span class="line">2，__block不管是ARC还是MRC模式下都可以使用，可以修饰对象，还可以修饰基本数据类型；</span><br><span class="line">3，__weak只能在ARC模式下使用，也只能修饰对象，不能修饰基本数据类型；</span><br><span class="line">4，__block对象可以在block中被重新赋值，__weak不可以；</span><br></pre></td></tr></table></figure>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-
+<h3 id="1、问：-下列代码中的Person的对象什么时候才销毁？"><a href="#1、问：-下列代码中的Person的对象什么时候才销毁？" class="headerlink" title="1、问： 下列代码中的Person的对象什么时候才销毁？"></a>1、问： 下列代码中的Person的对象什么时候才销毁？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;age:%d&quot;, person.age);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：方法代码执行完就person就销毁了</p>
+<h3 id="2、问：以下gcd的block中引用-Person的对象什么时候才销毁？"><a href="#2、问：以下gcd的block中引用-Person的对象什么时候才销毁？" class="headerlink" title="2、问：以下gcd的block中引用 Person的对象什么时候才销毁？"></a>2、问：以下gcd的block中引用 Person的对象什么时候才销毁？</h3><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">-(<span class="keyword">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = <span class="number">10</span>;</span><br><span class="line">    </span><br><span class="line">  	<span class="comment">// 不使用__weak修饰</span></span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2.0</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        <span class="built_in">NSLog</span>(<span class="string">@"age:%d"</span>, person.age);	<span class="comment">// 堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。</span></span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"touchesBegan"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：</p>
+<p>1、gcd的block默认会做copy操作，即dispatch_after的block是堆block。</p>
+<p>2、我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。</p>
+<p>所以这里外部的Person没有声明为__weak，所以堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。(如果没有gcd)</p>
+<h3 id="3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？"><a href="#3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？" class="headerlink" title="3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？"></a>3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？</h3><p>续答：此时上述的代码会变为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">  	// 不使用__weak修饰</span><br><span class="line">    __weak Person *weakPerson = person;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;person:%p&quot;, weakPerson);	// 当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。所以此处person 是 nil，打印的%p地址，是0x0。</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;touchesBegan&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样，还是我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。所以当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。即上述的输出结果是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">person 是 nil，打印的%p地址，是0x0。</span><br></pre></td></tr></table></figure>
+<h3 id="4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放"><a href="#4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放" class="headerlink" title="4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放"></a>4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放</h3><h4 id="Q：block的属性修饰词为什么是copy？"><a href="#Q：block的属性修饰词为什么是copy？" class="headerlink" title="Q：block的属性修饰词为什么是copy？"></a>Q：block的属性修饰词为什么是copy？</h4><p>block一旦没有进行copy操作，就不会在堆上<br>block在堆上，程序员就可以对block做内存管理等操作，可以控制block的生命周期</p>
+<h4 id="Q：当block被copy到堆时，对-block修饰的变量做了什么？"><a href="#Q：当block被copy到堆时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block被copy到堆时，对__block修饰的变量做了什么？"></a>Q：当block被copy到堆时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的copy函数</li>
+<li>copy函数内部会调用_Block_object_assign函数</li>
+<li>_Block_object_assign函数会对__block变量形成强引用（retain）</li>
+<li>对于__block 修饰的变量 assign函数对其强引用；对于外部对象 assign函数根据外部如何引用而引用</li>
+</ul>
+<h4 id="Q：当block从堆中移除时，对-block修饰的变量做了什么？"><a href="#Q：当block从堆中移除时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block从堆中移除时，对__block修饰的变量做了什么？"></a>Q：当block从堆中移除时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的dispose函数</li>
+<li>dispose函数内部会调用_Block_object_dispose函数</li>
+<li>_Block_object_dispose函数会自动释放引用的__block变量（release）</li>
+</ul>
+<h2 id="二、-block修饰符"><a href="#二、-block修饰符" class="headerlink" title="二、__block修饰符"></a>二、__block修饰符</h2><h4 id="Q：-block-int-age-10，系统做了哪些？"><a href="#Q：-block-int-age-10，系统做了哪些？" class="headerlink" title="Q：__block int age = 10，系统做了哪些？"></a>Q：<code>__block</code> int age = 10，系统做了哪些？</h4><h4 id="Q：-block-修饰符作用？"><a href="#Q：-block-修饰符作用？" class="headerlink" title="Q：__block 修饰符作用？"></a>Q：__block 修饰符作用？</h4>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cm0e172f5016oqlr4xg0wuioz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②Block/" data-id="cm121y2yv0178qar4t17wm8nh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -244,12 +326,12 @@
 <h4 id="1-、copy到底是深拷贝还是浅拷贝？"><a href="#1-、copy到底是深拷贝还是浅拷贝？" class="headerlink" title="(1)、copy到底是深拷贝还是浅拷贝？"></a>(1)、copy到底是深拷贝还是浅拷贝？</h4><p>当我们对一个不可变对象（NSString类型）使用copy关键字的时候，系统是不会产生一个新对象，因为原来的对象是不能修改的，拷贝出来的对象也是不能修改的，那么既然两个都不可以修改，所以这两个对象永远也不会影响到另一个对象（符合我们说的“修改新（旧）对象，不影响旧（新）对象”原则），系统为了节省内存，所以就不会产生一个新的对象了。那么问题来了，<strong>copy到底是深拷贝还是浅拷贝？答：是否是深浅拷贝，是否创建新的对象，是由程序运行的环境所造成的，并不是一概而论。</strong></p>
 <h4 id="2-、这个写法会出什么问题-property-nonatomic-copy-NSMutableArray-mutableArray"><a href="#2-、这个写法会出什么问题-property-nonatomic-copy-NSMutableArray-mutableArray" class="headerlink" title="(2)、这个写法会出什么问题@property (nonatomic, copy) NSMutableArray *mutableArray;"></a>(2)、这个写法会出什么问题<code>@property (nonatomic, copy) NSMutableArray *mutableArray;</code></h4><blockquote>
 <p>添加，删除，修改数组内元素的时候，程序会因为找不到对应的方法而崩溃。原因：</p>
-<p>self.mutableArray = xxx；在copy的修饰下执行的是 self.mutableArray = [xxx copy]；进行了浅拷贝，导致在运行的时候，其实mutableArray是NSArray类。从而在添加，删除，修改数组内元素的时候，程序会因为找不到对应的方法而崩溃。</p>
+<p>self.mutableArray = xxx；在copy的修饰下执行的是 self.mutableArray = [xxx copy]；进行了浅拷贝，得到的是一个xxx的副本，且该副本是一个不可变的数组。导致在运行的时候，其实你的mutableArray已经是NSArray类了。从而在添加，删除，修改数组内元素的时候，程序会因为找不到对应的方法而崩溃。</p>
 </blockquote>
 <h3 id="3、为什么NSArray用copy修饰、NSMutableArray用strong修饰"><a href="#3、为什么NSArray用copy修饰、NSMutableArray用strong修饰" class="headerlink" title="3、为什么NSArray用copy修饰、NSMutableArray用strong修饰"></a>3、为什么NSArray用copy修饰、NSMutableArray用strong修饰</h3><blockquote>
 <p>把NSMutableArray用copy修饰有时就会crash，因为copy后的数组变成了不可变数组NSArray.当你对不可变数组NSArray进行增删改操作的时候就会crash，<br>举例如下：</p>
 </blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">①NSMutableArray用copy属性造成的crash：</span><br><span class="line">@property (nonatomic, copy) NSMutableArray *aArray;</span><br><span class="line">@property (nonatomic, strong) NSMutableArray *bArray;</span><br><span class="line"></span><br><span class="line">NSMutableArray *mArray = [NSMutableArray array];</span><br><span class="line">self.aArray = mArray;		// 此时得到的aArray，是通过[mArray copy]进行的深拷贝得到的一个不可变新对象，即类型在执行时候变为了 NSArray了。所以，如果相对归属为NSArray了的aArray执行NSMutableArray才有的如removeAllObjects的方法时，就会崩溃。</span><br><span class="line">self.bArray = mArray;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">①NSMutableArray用copy属性造成的crash：</span><br><span class="line">@property (nonatomic, copy) NSMutableArray *mutableArray1; // 会崩溃</span><br><span class="line">@property (nonatomic, strong) NSMutableArray *mutableArray2; // 正确</span><br><span class="line"></span><br><span class="line">NSMutableArray *array = [NSMutableArray arrayWithArray:@[[Model1 new], [Model1 new]]];</span><br><span class="line">self.mutableArray1 = array; // copy： mutableArray1是array的副本，且通过打印验证是浅拷贝。且此时aArray的值mArray的一个副本，该副本是通过[mArray copy]进行的浅拷贝得到的一个不可变新对象，即类型在执行时候变为了 NSArray了。所以，如果对归属为NSArray了的aArray执行NSMutableArray才有的如removeAllObjects的方法时，就会崩溃。</span><br><span class="line">self.mutableArray2 = array; // strong:mutableArray1是array自身</span><br></pre></td></tr></table></figure>
 <p><strong>当修饰可变类型的属性时，如NSMutableArray、NSMutableDictionary、NSMutableString，用strong。</strong></p>
 <p><strong>当修饰不可变类型的属性时，如NSArray、NSDictionary、NSString，用copy。</strong></p>
 <h3 id="4、模型数组深拷贝"><a href="#4、模型数组深拷贝" class="headerlink" title="4、模型数组深拷贝"></a>4、模型数组深拷贝</h3><p>通常需要实现对模型的拷贝都需要先实现<code>NSCopying、 NSMutableCopying</code>协议。注意：如果是数组使用拷贝操作是不会对数组内实现copy协议的对象进行深拷贝的。</p>
@@ -317,7 +399,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①修饰词/" data-id="cm0e172cz016hqlr49vwf1q1x" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①修饰词/" data-id="cm121y2yd0176qar477cxdahp" class="article-share-link">Share</a>
       
       
     </footer>
@@ -498,7 +580,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cm0e172di016jqlr4pnn7nr4r" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cm121y2zc017aqar4g1yvxucz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -607,7 +689,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①AutoRelease/" data-id="cm0e172by016dqlr4mkw1udhs" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①AutoRelease/" data-id="cm121y2xe0171qar4rd16oeck" class="article-share-link">Share</a>
       
       
     </footer>
@@ -673,7 +755,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Common/" data-id="cm0e172070155qlr411fk9nrs" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Common/" data-id="cm121y2v9016pqar4y854wu6b" class="article-share-link">Share</a>
       
       
     </footer>
@@ -711,7 +793,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Swift/" data-id="cm0e1720r0158qlr49r30mha2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Swift/" data-id="cm121y2w9016vqar4bdahw3sp" class="article-share-link">Share</a>
       
       
     </footer>
@@ -750,7 +832,87 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/Runtime/" data-id="cm0e1721u015eqlr49l2rhedx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/Runtime/" data-id="cm121y2ww016yqar4lb5yb85p" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言-消息转发" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-消息转发/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-消息转发"><a href="#必备知识架构-①语言-消息转发" class="headerlink" title="必备知识架构-①语言-消息转发"></a>必备知识架构-①语言-消息转发</h1><p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJBaseHelper/CJBaseHelper/HookCJHelper" target="_blank" rel="noopener">CJBaseHelper/HookCJHelper</a>》</p>
+<blockquote>
+<p>pod search CJBaseHelper</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165215629.png" alt="image-20240822165215629"></p>
+<blockquote>
+<p>库的使用方法，见我简书中的以下文章：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/5013d7bcddb5" target="_blank" rel="noopener">iOS 获取当前正在显示的视图控制器ViewController(最全)</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/cc715c5b594c" target="_blank" rel="noopener">iOS 拦截篇(一)：拦截H5通过<input>标签选取的图片</a></p>
+</li>
+</ul>
+</blockquote>
+</blockquote>
+<p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJHook" target="_blank" rel="noopener">CJHook</a>》</p>
+<blockquote>
+<p>pod search CJHook</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165517533.png" alt="image-20240822165517533"></p>
+</blockquote>
+<h2 id="在调用原始方法之前插入额外的执行逻辑"><a href="#在调用原始方法之前插入额外的执行逻辑" class="headerlink" title="在调用原始方法之前插入额外的执行逻辑"></a>在调用原始方法之前插入额外的执行逻辑</h2><h3 id="1、使用场景"><a href="#1、使用场景" class="headerlink" title="1、使用场景"></a>1、使用场景</h3><ol>
+<li><p><strong>日志记录与监控</strong>： 在方法执行前后添加日志记录，可以帮助开发者监控应用的行为，特别是在调试和性能分析时。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)swizzleMethod:(Class)class withSelector:(SEL)selector &#123;</span><br><span class="line">    Method originalMethod = class_getInstanceMethod(class, selector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(id self) &#123;</span><br><span class="line">         NSLog(@&quot;Before method execution&quot;);</span><br><span class="line">         ((void(*)(id, SEL))originalIMP)(self, selector);</span><br><span class="line">         NSLog(@&quot;After method execution&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="2、调用"><a href="#2、调用" class="headerlink" title="2、调用"></a>2、调用</h3><p>以在<strong>进入个人主页前，需要先判断是否登录</strong>为例</p>
+<p>常规：使用<strong>Util式、使用宏</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">    // 在调用原始方法之前执行的代码（进入个人主页前，需要先判断是否登录）</span><br><span class="line">    bool canPush = [LoginCheckerUtil checkLogin];</span><br><span class="line">  	if (!canPush) return;</span><br><span class="line">    </span><br><span class="line">    MineHomeViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[self.navigationController pushViewController:viewController animated:YES];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>改进(改进后发现，其实可读性不高，所以还不如不这么改）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">// LoginCheckUtil.m</span><br><span class="line">#define NeedLoginAnnotation(Class originalSelOwnerClass, SEL originalSelector) \</span><br><span class="line">HookCJHelper_addPreExecutionToClassMethod(originalSelOwnerClass, originalSelector, [LoginCheckUtil class], @selector(loginCheckMethod));</span><br><span class="line">class LoginCheckUtil: NSObject &#123;</span><br><span class="line">	+ (bool)loginCheckMethod &#123;</span><br><span class="line">	  if (UserManager.isLogin) &#123;</span><br><span class="line">      return YES;</span><br><span class="line">    &#125;</span><br><span class="line">    LoginViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[topVC pushViewController:viewController animated:YES];</span><br><span class="line">    return NO;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// HomeViewController.m</span><br><span class="line">+ (void) initialize &#123;</span><br><span class="line">	@NeedLoginAnnotation([self class], @selector(goMineHomePage))	// 在 + (void) initialize 中调用</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、内部核心代码"><a href="#3、内部核心代码" class="headerlink" title="3、内部核心代码"></a>3、内部核心代码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">// 在调用原始方法之前插入额外的执行逻辑</span><br><span class="line">bool HookCJHelper_addPreExecutionToClassMethod(Class originalSelOwnerClass, SEL originalSelector, Class preExecSelOwnerClass, SEL preExecutionSelector) &#123;</span><br><span class="line">  	// 原始方法检查</span><br><span class="line">    if (!originalSelOwnerClass || !class_getClassMethod(originalSelOwnerClass, originalSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    Method originalMethod = class_getClassMethod(originalSelOwnerClass, originalSelector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    if (!originalIMP) &#123;</span><br><span class="line">    		return false;</span><br><span class="line">   	&#125;</span><br><span class="line">    </span><br><span class="line">  	// 要插入的方法</span><br><span class="line">    if (!preExecSelOwnerClass || !class_getClassMethod(preExecSelOwnerClass, preExecutionSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 创建新的方法实现</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(Class self) &#123;</span><br><span class="line">      // 调用额外的逻辑（预执行类方法）</span><br><span class="line">      ((void(*)(Class, SEL))objc_msgSend)(preExecSelOwnerClass, preExecutionSelector);</span><br><span class="line">      // 调用原始的类方法</span><br><span class="line">      ((void(*)(Class, SEL))originalIMP)(self, originalSelector);</span><br><span class="line">  	&#125;);</span><br><span class="line"></span><br><span class="line">    // 替换原始方法的实现为新的实现</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line"></span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>什么时候会报<code>unrecognized selector</code>的异常</li>
+</ol>
+<ul>
+<li><p>当调用该对象上某个方法，而该对象上没有实现这个方法的时候。可以通过<code>消息转发</code>进行解决，流程见下图</p>
+<p><img src="https:////upload-images.jianshu.io/upload_images/1948913-f236e31f679fe683.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/597" alt="img"></p>
+<p>image</p>
+</li>
+<li><p><code>OC</code>在向一个对象发送消息时，<code>runtime</code>库会根据对象的<code>isa</code>指针找到该对象实际所属的类，然后<strong>在该类中的方法列表以及其父类方法列表中寻找方法运行，如果在最顶层的父类中依然找不到相应的方法时，程序在运行时会挂掉并抛出异常<code>unrecognized selector sent to XXX</code></strong><br><strong>但是在这之前，OC的运行时会给出三次拯救程序崩溃的机会</strong></p>
+</li>
+<li><p>Method resolution（<strong>消息动态解析</strong>）<br><code>OC</code>运行时会调用<code>+resolveInstanceMethod:</code>或者<code>+resolveClassMethod:</code>，让你有机会提供一个函数实现。如果你添加了函数，那运行时系统就会重新启动一次消息发送的过程，否则，运行时就会移到下一步，消息转发（<code>Message Forwarding</code>）</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重写 resolveInstanceMethod: 添加对象方法实现</span></span><br><span class="line">+ (<span class="built_in">BOOL</span>)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">    <span class="comment">// 如果是执行 run 函数，就动态解析，指定新的 IMP</span></span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// class: 给哪个类添加方法</span></span><br><span class="line">        <span class="comment">// SEL: 添加哪个方法</span></span><br><span class="line">        <span class="comment">// IMP: 方法实现 =&gt; 函数 =&gt; 函数入口 =&gt; 函数名</span></span><br><span class="line">        <span class="comment">// type: 方法类型：void用v来表示，id参数用@来表示，SEL用:来表示</span></span><br><span class="line">        class_addMethod(<span class="keyword">self</span>, sel, (IMP)runMethod, <span class="string">"v@:@"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//新的 run 函数</span></span><br><span class="line"><span class="keyword">void</span> runMethod(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd, <span class="built_in">NSNumber</span> *meter) &#123;</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"跑了%@"</span>, meter);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ul>
+<li><p>Fast forwarding（<strong>消息接受者重定向</strong>）<br>  如果目标对象实现了<code>-forwardingTargetForSelector:</code>，<code>Runtime</code>这时就会调用这个方法，给你把这个消息<strong>转发给其他对象</strong>的机会。只要这个方法返回的不是<code>nil</code>和<code>self</code>，整个消息发送的过程就会被重启，当然发送的对象会变成你返回的那个对象。否则，就会继续<code>Normal Fowarding</code>。 这里叫<code>Fast</code>，只是为了区别下一步的转发机制。因为这一步不会创建任何新的对象，但下一步转发会创建一个<code>NSInvocation</code>对象，所以相对更快点</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 消息接受者重定向</span></span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector&#123;</span><br><span class="line">    <span class="keyword">if</span> (aSelector == <span class="meta">@selector(run:)</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> [[Person alloc] <span class="keyword">init</span>];</span><br><span class="line">        <span class="comment">// 返回 Person 对象，让 Person 对象接收这个消息</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> forwardingTargetForSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Normal forwarding（<strong>消息重定向</strong>）<br>这一步是<code>Runtime</code>最后一次给你挽救的机会。首先它会发送<code>-methodSignatureForSelector:</code>消息获得函数的参数和返回值类型。如果<code>-methodSignatureForSelector:</code>返回<code>nil</code>，<code>Runtime</code>则会发出<code>-doesNotRecognizeSelector:</code>消息，程序这时也就挂掉了。如果返回了一个函数签名，<code>Runtime</code>就会创建一个<code>NSInvocation</code>对象并发送<code>-forwardInvocation:</code>消息给目标对象</li>
+</ul>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取函数的参数和返回值类型，返回签名</span></span><br><span class="line">- (<span class="built_in">NSMethodSignature</span> *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">    <span class="keyword">if</span> ([<span class="built_in">NSStringFromSelector</span>(aSelector) isEqualToString:<span class="string">@"run:"</span>]) &#123;</span><br><span class="line">        <span class="keyword">return</span> [<span class="built_in">NSMethodSignature</span> signatureWithObjCTypes:<span class="string">"v@:@"</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> methodSignatureForSelector:aSelector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 消息重定向</span></span><br><span class="line">- (<span class="keyword">void</span>)forwardInvocation:(<span class="built_in">NSInvocation</span> *)anInvocation &#123;</span><br><span class="line">    <span class="comment">// 从 anInvocation 中获取消息</span></span><br><span class="line">    SEL sel = anInvocation.selector;</span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// 1\. 指定当前类的一个方法作为IMP</span></span><br><span class="line">        <span class="comment">// anInvocation.selector = @selector(readBook:);</span></span><br><span class="line">        <span class="comment">// [anInvocation invoke];</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 2\. 指定其他类来执行这个IMP</span></span><br><span class="line">        Person *p = [[Person alloc] init];</span><br><span class="line">        <span class="comment">// 判断 Person 对象方法是否可以响应 sel</span></span><br><span class="line">        <span class="keyword">if</span>([p respondsToSelector:sel]) &#123;</span><br><span class="line">            <span class="comment">// 若可以响应，则将消息转发给其他对象处理</span></span><br><span class="line">            [anInvocation invokeWithTarget:p];</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 若仍然无法响应，则报错：找不到响应方法</span></span><br><span class="line">            [<span class="keyword">self</span> doesNotRecognizeSelector:sel];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        [<span class="keyword">super</span> forwardInvocation:anInvocation];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)doesNotRecognizeSelector:(SEL)aSelector &#123;</span><br><span class="line">    [<span class="keyword">super</span> doesNotRecognizeSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>既然<code>-forwardingTargetForSelector:</code>和<code>-forwardInvocation:</code>都可以将消息转发给其他对象处理，那么两者的区别在哪？</strong><br>区别就在于<code>-forwardingTargetForSelector:</code>只能将消息转发给一个对象。而<code>-forwardInvocation:</code>可以把消息存储，在你觉得合适的时机转发出去，或者不处理这个消息。修改消息的target，selector，参数等。将消息转发给多个对象</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发/" data-id="cm121y2ua016jqar4j2ov8rgp" class="article-share-link">Share</a>
       
       
     </footer>
@@ -801,286 +963,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cm0e171y0014tqlr4ci0vdqsp" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-①语言-请求拦截NSURLProtocol"><a href="#必备知识架构-①语言-请求拦截NSURLProtocol" class="headerlink" title="必备知识架构-①语言-请求拦截NSURLProtocol"></a>必备知识架构-①语言-请求拦截NSURLProtocol</h1><p>[toc]</p>
-<h2 id="一、NSURLProtocol"><a href="#一、NSURLProtocol" class="headerlink" title="一、NSURLProtocol"></a>一、NSURLProtocol</h2><p>如果开发者自定义的一个 NSURLProtocol 并且注册到 app 中，那么在这个自定义的 NSURLProtocol 中我们可以拦截所有的请求(（注意，不只是webView内的请求，而是整个app内的所有请求）)，进行修改，或者修改 response。即NSURLProtocol这个东西的作用可以让我们在app的内部拦截一切url请求。</p>
-<p><strong>「或者这么说吧： NSURLProtocol 就是一个苹果允许的中间人攻击。」</strong></p>
-<p>注意事项：</p>
-<p>如果我们顺序注册 A B C 三个 Protocol，那么一个 connection 在发送的时候，处理的顺序是 C B A，而且最多只有一个 Protocol 会触发处理。</p>
-<p>拦截 UIWebview 的请求，会有被拒的风险。</p>
-<p>附：</p>
-<blockquote>
-<p>iOS的Foundation框架提供了 URL Loading System 这个库(后面简写为ULS)，所有基于URL（例如http://，https:// ,ftp://这些应用层的传输协议)的协议都可以通过ULS提供的基础类和协议来实现。而ULS库里提供了一个强有力的武器 NSURLProtocol。</p>
-</blockquote>
-<h2 id="NSURLProtocol能做什么？"><a href="#NSURLProtocol能做什么？" class="headerlink" title="NSURLProtocol能做什么？"></a>NSURLProtocol能做什么？</h2><p>举几个例子：</p>
-<ul>
-<li>全局网络请求设置：我们的APP内的所有请求都需要增加公共的头，像这种我们就可以直接通过NSURLProtocol来实现，当然实现的方式有很多种</li>
-<li>自定义 Response （过滤敏感信息）</li>
-<li>再比如我们需要将APP某个API进行一些访问的统计</li>
-<li>再比如我们需要统计APP内的网络请求失败率</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cm0e171ym014wqlr4e1eecmj4" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/1语言/1语言" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/1语言/1语言/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-①语言"><a href="#必备知识架构-①语言" class="headerlink" title="必备知识架构-①语言"></a>必备知识架构-①语言</h1><p>[Toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
-<li><a href="#Objective-C">一、为什么说Objective-C是一门动态的语言？</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">1、为什么说Objective-C是一门动态的语言</span><br><span class="line">①、概念介绍</span><br><span class="line">②、Objective-c的动态性</span><br><span class="line">Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言。</span><br><span class="line">ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">Objective-C的动态性，主要体现在3个方面：动态类型、动态绑定、动态载入。</span><br><span class="line">&gt;</span><br><span class="line">2、消息转发</span><br><span class="line">3、为什么说 Objective-C 没有真正的私有方法和私有变量</span><br><span class="line">4、消息结构</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><a href="#Runtime">二、Runtime</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、浅谈runtime运行时机制</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="KVC与KVO">三、KVC与KVO</a></p>
-</li>
-<li><p><a href="Objective-C与C++">四、Objective-C与C++</a></p>
-</li>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、#import、#include、@class](#import、#include、@class</span><br><span class="line">2、const 与define使用的区别</span><br><span class="line">3、==、 isEqualToString、isEqual区别</span><br><span class="line">4、字符串的比较</span><br><span class="line">5、isMemberOfClass 和 isKindOfClass 的联系和区别</span><br><span class="line">6、nil, Nil,NULL 与 NSNull 的区别</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p></p><p id="Objective-C"></p><p></p>
-<h2 id="一、为什么说Objective-C是一门动态的语言？"><a href="#一、为什么说Objective-C是一门动态的语言？" class="headerlink" title="一、为什么说Objective-C是一门动态的语言？"></a>一、为什么说Objective-C是一门动态的语言？</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="问：我们说的OC是动态运行时语言是什么意思？"><a href="#问：我们说的OC是动态运行时语言是什么意思？" class="headerlink" title="问：我们说的OC是动态运行时语言是什么意思？"></a>问：我们说的OC是动态运行时语言是什么意思？</h4><blockquote>
-<p>1、之所以叫做动态，是因为必须到运行时(run time)才会做一些事情。主要是将数据类型的确定由编译时，【推迟到了运行时】。简单来说, 运行时机制使我们直到运行时才去决定一个对象的类别,以及调用该类别对象指定方法。</p>
-<p><code>所以说NSString *obj = [[NSData alloc] init] 在编译时是NSString类型，在运行时是NSData类型。</code></p>
-<p>2、另外，OC还可以通过Runtime 这个运行时机制，在运行时【动态的添加】变量、方法、类等。</p>
-</blockquote>
-<h4 id="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"><a href="#1、Objective-C是一门”动态”的语言，动态语言是什么意思？" class="headerlink" title="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"></a>1、Objective-C是一门”动态”的语言，动态语言是什么意思？</h4><p>OC中的对象，都是用指针表示<br>OC中方法的调用，是基于消息机制实现</p>
-<h6 id="①、”动态”概念介绍"><a href="#①、”动态”概念介绍" class="headerlink" title="①、”动态”概念介绍"></a>①、”动态”概念介绍</h6><blockquote>
-<p>（1）动态类型语言：动态类型语言是指<strong>在运行期间才去做数据类型检查</strong>的语言，Python和Ruby就是一种典型的动态类型语言，其他的各种脚本语言如VBScript也多少属于动态类型语言。（自己概括为动态语言指的是不需要在编译时确定所有的东西，在运行时还可以动态的添加变量、方法和类，而<strong>Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言</strong>）</p>
-<p>（2）静态类型语言：静态类型语言与动态类型语言刚好相反，它的数据类型是在编译其间检查的，也就是说在写程序时要声明所有变量的数据类型，C/C++是静态类型语言的典型代表，其他的静态类型语言还有C#、JAVA等。</p>
-<figure class="highlight plain"><figcaption><span>*obj </span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">###### ②、Objective-c的动态性</span><br><span class="line">Objective-C的动态性，让程序在运行时判断其该有的行为，而不是像c等静态语言在编译构建时就确定下来。**Objective-C的动态性主要体现在3个方面：动态类型、动态绑定、动态载入**。</span><br><span class="line"></span><br><span class="line">&gt; 以下内容来自：[OC是动态运行时语言是什么意思？什么是动态识别，动态绑定？](https://www.cnblogs.com/dxb123456/p/5525343.html)</span><br><span class="line">&gt; </span><br><span class="line">* 1.动态类型：如id类型。</span><br><span class="line">  &gt;</span><br><span class="line">  简单点的如id类型在编译器编译的时候是不能被识别的，要等到运行时(run time)，即程序运行的时候才会根据语境来识别。</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>  id obj = someInstance;<br>  if ([obj isKindOfClass:someClass]) {<br>    someClass <em>classSpecifiedInstance = (someClass </em>)obj;<br>  }<br>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">* 2.动态绑定：</span><br><span class="line">  &gt;在OC中，其实是没有函数的概念的，我们叫“消息机制”，所谓的函数调用就是给对象发送一条消息。</span><br><span class="line">  **OC可以先跳过编译，在运行时才决定要调用什么方法，需要传什么参数进去，这就是动态绑定**。要实现他就必须用SEL变量绑定一个方法。最终形成的这个SEL变量就代表一个方法的引用。(这里要注意一点：SEL并不是C里面的函数指针，虽然很像，但真心不是函数指针。SEL变量只是一个整数，他是该方法的ID，@selector()就是取类方法的编号。以前的函数调用，是根据函数名，也就是 字符串去查找函数体。但现在，我们是根据一个ID整数来查找方法，整数的查找字自然要比字符串的查找快得多！所以，动态绑定的特定不仅方便，而且效率更高。)</span><br><span class="line"></span><br><span class="line">* 3.动态载入。</span><br><span class="line">  </span><br><span class="line">  &gt;根据需求加载所需要的资源，这点很容易理解，对于iOS开发来说，基本就是根据不同的机型做适配。最经典的例子就是在Retina设备上加载@2x的图片，而在老一些的普通屏设备上加载原图。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">笔试题：对于语句`NSString *obj = [[NSData alloc] init];` obj在编译时和运行时分别是什么类型的对象?</span><br><span class="line"></span><br><span class="line">  &gt; 答:编译时是NSString的类型；运行时是NSData类型的对象。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#### 2、怎么理解Objective-C&quot;运行时&quot;</span><br><span class="line"></span><br><span class="line">基于Runtime的消息传递机制</span><br><span class="line"></span><br><span class="line">**ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">什么是消息传递？消息传递不就和C语言的函数调用一个意思么?**</span><br><span class="line"></span><br><span class="line">&gt;在C语言中，我们调用函数时，必须先声明函数（或者自上而下），而实际上，声明函数就是获取函数地址，调用函数就是直接跳到地址执行，代码在被编译器解析、优化后，便是成为一堆汇编代码，然后连接各种库，完了生成可执行的代码（即是静态的）。</span><br><span class="line">&gt;</span><br><span class="line">&gt;在ObjC中，首先要搞清楚为什么不用Function Call 而用 Messaging 呢？一般调用函数（方法），讲的就是object对象，</span><br><span class="line">&gt;</span><br><span class="line">&gt;事情证明，在编译阶段，oc可以调用任何函数，即使这个函数并未实现，只要申明过就不会报错，而c语言在编译阶段或报错</span><br><span class="line"></span><br><span class="line">###### </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 1，给分类添加属性</span><br><span class="line"></span><br><span class="line">OC分类不能添加属性，如果你在分类中添加了属性，编译器就会报警告。（记得导入 #import &lt;objc/runtime.h&gt;）</span><br><span class="line"></span><br><span class="line">// UIButton+CJMoreProperty.h</span><br><span class="line"></span><br><span class="line">![runtime添加属性](1语言/runtime_add1.png)</span><br><span class="line"></span><br><span class="line">//  UIButton+CJMoreProperty.m</span><br><span class="line">![runtime添加属性](1语言/runtime_add2.png)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">为分类添加属性，就用运用到OC的运行时来解决。</span><br><span class="line"></span><br><span class="line">```csharp</span><br><span class="line">// 设置关联</span><br><span class="line">objc_setAssociatedObject(id _Nonnull object, const void * _Nonnull key,</span><br><span class="line">                         id _Nullable value, objc_AssociationPolicy policy)</span><br><span class="line">// 通过关联获取属性</span><br><span class="line">objc_getAssociatedObject(id _Nonnull object, const void * _Nonnull key)</span><br><span class="line">    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);</span><br></pre></td></tr></table></figure></p>
-<p><img src="/iOS/3必备知识架构/1语言/1语言/runtime_add3.png" alt="runtime添加属性"></p>
-<h4 id="2、消息转发"><a href="#2、消息转发" class="headerlink" title="2、消息转发"></a>2、消息转发</h4><p><strong>ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制</strong></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Runtime的特性主要是消息(方法)传递，如果消息(方法)在对象中找不到，就进行转发。</span><br><span class="line">1.1系统首先找到消息的接收对象，然后通过对象的isa找到它的类。</span><br><span class="line">1.2在它的类中查找method_list，是否有selector方法。</span><br><span class="line">1.3没有则查找父类的method_list。</span><br><span class="line">1.4找到对应的method，执行它的IMP。</span><br><span class="line">1.5转发IMP的return值。</span><br><span class="line"></span><br><span class="line">如果找遍了父类，仍没找到方法，则报错。当然我们也可以通过消息转发，去其他类中寻找。</span><br></pre></td></tr></table></figure>
-<p>延展：消息转发机制</p>
-<blockquote>
-<p><strong>因为在运行期还可以继续向类中添加方法，所以编译器在编译时还无法确定类中是否有某个方法的实现。对于类无法处理一个消息就会触发消息转发机制。</strong></p>
-</blockquote>
-<p>消息转发步骤(如果前一套方案实现后一套方法就不会执行)</p>
-<blockquote>
-<p>内容来自：<a href="http://www.cocoachina.com/ios/20150604/12013.html" target="_blank" rel="noopener">轻松学习之 Objective-C消息转发</a></p>
-<p>方案一：首先，系统会调用resolveInstanceMethod(当然，如果这个方法是一个类方法，就会调用resolveClassMethod)让你自己为这个方法增加实现</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (BOOL)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">	if (sel == @selector(run)) &#123;</span><br><span class="line">		class_addMethod(self, sel, (IMP)run, @&quot;v@:&quot;);</span><br><span class="line">		return YES;</span><br><span class="line">	&#125;</span><br><span class="line">	return [super resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (BOOL)resolveClassMethod:(SEL)sel</span><br></pre></td></tr></table></figure>
-<blockquote>
-</blockquote>
-<p>方案二：如果不去对方案一的resolveInstanceMethod做任何处理，直接调用父类方法。可以看到，系统已经来到了forwardingTargetForSelector方法，这个方法返回你需要转发消息的对象。</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//返回你需要转发消息的对象</span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector &#123;</span><br><span class="line">	return [[Car alloc] init];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-</blockquote>
-<p>方案三：如果如果我们也不实现forwardingTargetForSelector，系统就会调用方案三的两个方法methodSignatureForSelector和forwardInvocation。其中methodSignatureForSelector用来生成方法签名，这个签名就是给forwardInvocation中的参数NSInvocation调用的。</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">//生成方法签名</span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">	NSString *sel = NSStringFromSelector(selector);</span><br><span class="line">	//判断你要转发的SEL</span><br><span class="line">	if ([sel isEqualToString:@&quot;run&quot;]) &#123;</span><br><span class="line">		//为你的转发方法手动生成签名</span><br><span class="line">		return [NSMethodSignature signatureWithObjCType:@&quot;v@:&quot;];</span><br><span class="line">	&#125;</span><br><span class="line">	return [super methodSignatureForSelector:selector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 附：关于生成签名的类型&quot;v@:&quot;解释一下。每一个方法会默认隐藏两个参数，self、_cmd，self代表方法调用者，_cmd代表这个方法的SEL，签名类型就是用来描述这个方法的返回值、参数的，v代表返回值为void，@表示self，:表示_cmd。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation &#123;</span><br><span class="line">	SEL selector = [anInvocation selector];</span><br><span class="line">	//新建需要转发消息的对象</span><br><span class="line">	Car *car = [[Car alloc] init];</span><br><span class="line">	if ([car respondsToSelector:selector]) &#123;</span><br><span class="line">		//唤醒这个方法</span><br><span class="line">		[invocation invokeWithTarget:car];</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>消息转发分为两大阶段：</p>
-<blockquote>
-<p>“动态方法解析”：先征询接收者，所属的类，能否动态添加方法，来处理这个消息，若可以则结束，如不能则继续往下走 </p>
-<p>“完整的消息转发机制”：<br>请接收者看看有没其他对象能处理这条消息，若有，就把这个消息转发给那个对象然后结束<br>运行时系统会把与消息有关细节全部封装到NSInvocation 对象中，再给对象最后一次机会，令其设法解决当前还未处理的这条消息</p>
-</blockquote>
-<p>其他文章：<a href="https://blog.csdn.net/onlyou930/article/details/7449102" target="_blank" rel="noopener">NSInvocation简单使用</a></p>
-<blockquote>
-<p>在 iOS中可以直接调用 某个对象的消息 方式有2中<br>一种是performSelector:withObject:<br>再一种就是NSInvocation<br>第一种方式比较简单，能完成简单的调用。但是对于&gt;2个的参数或者有返回值的处理，那就需要做些额外工作才能搞定。那么在这种情况下，我们就可以使用NSInvocation来进行这些相对复杂的操作。<br>NSInvocation可以处理参数、返回值。会java的人都知道凡是操作，其实NSInvocation就相当于反射操作。</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//如果此消息有参数需要传入，那么就需要按照如下方法进行参数设置，需要注意的是，atIndex的下标必须从2开始。原因为：0 1 两个参数已经被target 和selector占用</span><br><span class="line">if (strcmp(retType, @encode(BOOL)) == 0) &#123;</span><br><span class="line">        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSig];</span><br><span class="line">        [invocation setArgument:&amp;params atIndex:2];</span><br><span class="line">        [invocation setSelector:action];</span><br><span class="line">        [invocation setTarget:target];</span><br><span class="line">        [invocation invoke];</span><br><span class="line">        BOOL result = 0;</span><br><span class="line">        [invocation getReturnValue:&amp;result];</span><br><span class="line">        return @(result);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<h4 id="3、为什么说-Objective-C-没有真正的私有方法和私有变量"><a href="#3、为什么说-Objective-C-没有真正的私有方法和私有变量" class="headerlink" title="3、为什么说 Objective-C 没有真正的私有方法和私有变量"></a>3、为什么说 Objective-C 没有真正的私有方法和私有变量</h4><blockquote>
-<p>以下内容摘自：<a href="https://www.jianshu.com/p/ef25a31e3112" target="_blank" rel="noopener">为什么说 Objective-C 没有真正的私有方法和私有变量</a></p>
-<p>私有的定义：私有是指只能够在本类内部使用或访问，但是不能在类的外部被访问。</p>
-<p><strong>在 Objective-C 中，对象调用方法是以发送消息的形式实现的</strong>。所有方法的调用最终都会转化为发送消息的形式，原型如下：</p>
-<p>id objc_msgSend(id self, SEL op, …)</p>
-<p>Objective-C 为什么能够实现访问「私有方法」呢？其实这跟 Objective-C 语言的动态特性有密切的关系，对象在运行的时候才会去查找方法。Objective-C 对象有一个 isa 指针指向其父类，在向该实例发送消息的时候，若它自己不能识别回到父类中去查找该消息。</p>
-<p>综上，OC中其实并无真正意义上的的私有方法和私有属性。但是在实际使用中，我们应遵守规则，不能调用的方法，不调用。</p>
-</blockquote>
-<h4 id="4、消息结构"><a href="#4、消息结构" class="headerlink" title="4、消息结构"></a>4、消息结构</h4><p>Objective-C 使用的是 “消息结构” 并非 “函数调用”。（使用消息结构的的语言，其运行时所应执行的代码由运行期决定；而使用函数调用的语言，则由编译器决定）</p>
-<blockquote>
-<p>以下内容摘自：<a href="https://blog.csdn.net/dan_163/article/details/38268957" target="_blank" rel="noopener">OC消息机制和动态运行时</a></p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">struct objc_class</span><br><span class="line">&#123;</span><br><span class="line">    Class isa;</span><br><span class="line">    Class super_class;     //父类</span><br><span class="line">    const char* name;    //类名</span><br><span class="line">    long version;            //版本信息</span><br><span class="line">    long info;                 //类信息</span><br><span class="line">    long instance_size;                                    //实例大小</span><br><span class="line">    struct objc_ivar_list *ivars;                        //实例参数链表</span><br><span class="line">    struct objc_method_list *methodLists;     //方法链表</span><br><span class="line">    struct objc_cache *cache;                         //方法缓存</span><br><span class="line">    struct objc_protocol_list *protocols;        //协议链表</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p></p><p id="Runtime"></p><p></p>
-<h2 id="二、Runtime"><a href="#二、Runtime" class="headerlink" title="二、Runtime"></a>二、Runtime</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>Runtime 4种用法</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1)替换系统方法,[数组越界苹果就会直接crash](http://blog.csdn.net/u012103785/article/details/50817876)</span><br><span class="line">2)字典转model,</span><br><span class="line">3)归档, </span><br><span class="line">4)万能控制器跳转</span><br></pre></td></tr></table></figure>
-<p><a href="https://blog.csdn.net/zzzzzdddddxxxxx/article/details/53542441" target="_blank" rel="noopener">你会遇到的runtime面试题（详）</a></p>
-<h6 id="OBJC-ASSOCIATION-ASSIGN造成的崩溃"><a href="#OBJC-ASSOCIATION-ASSIGN造成的崩溃" class="headerlink" title="OBJC_ASSOCIATION_ASSIGN造成的崩溃"></a>OBJC_ASSOCIATION_ASSIGN造成的崩溃</h6><p>objc_setAssociatedObject 关联对象的学习<br>为<code>CJKeyboardAvoidingTableView</code>增加<code>cjKeyboardAvoidingOffset</code>属性的时候，使用OBJC_ASSOCIATION_ASSIGN而造成崩溃，参考FDTemplateLayoutCell源码，改成使用OBJC_ASSOCIATION_RETAIN，问题解决。原因是</p>
-<p>详情查询：<a href="https://www.cnblogs.com/someonelikeyou/p/7162613.html" target="_blank" rel="noopener">objc_setAssociatedObject 关联对象的学习</a></p>
-<h4 id="1、浅谈runtime运行时机制"><a href="#1、浅谈runtime运行时机制" class="headerlink" title="1、浅谈runtime运行时机制"></a>1、浅谈runtime运行时机制</h4><p><a href="http://www.cnblogs.com/guoxiao/p/3583432.html" target="_blank" rel="noopener">浅谈runtime运行时机制02-runtime简单使用</a></p>
-<p>OC是运行时语言，只有在程序运行时，才会去确定对象的类型，并调用类与对象相应的方法。利用runtime机制让我们可以在程序运行时动态修改类、对象中的所有属性、方法。</p>
-<p><a href="http://blog.csdn.net/liujinlongxa/article/details/46293705" target="_blank" rel="noopener">iOS运行时初探-使用运行时机制向Category中添加属性</a></p>
-<p>在一般情况下，我们是不能向Category中添加属性的，只能添加方法，但有些情况向，我们确实需要向Category中添加属性。而且很多系统的API也有一些在Category添加属性的情况，例如我们属性的UITableView的section和row属性，就是定义在一个名为NSIndexPath的分类里的，如下：<br><img src="http://img.blog.csdn.net/20150531230308155" alt="使用运行时机制向Category中添加属性"><br>那这到底是怎么实现的呢？</p>
-<h1 id="load-initialize的区别"><a href="#load-initialize的区别" class="headerlink" title="+load +initialize的区别"></a>+load +initialize的区别</h1><p> \1. load方法只会调用一次</p>
-<p> \2. +(void)load方法:程序一运行就会把所有的类加载进内存,调用这个方法</p>
-<p>   (表叙:只要程序一运行,就会调用类的load方法,目的:把这个类加载进内存)</p>
-<p> \3. <strong>load是只要类所在文件被引用就会被调用,而initialize是在类或者其子类的第一个方法被调用前调用,所以没有被引用进项目,就不会调用load方法,但即使类文件只被引用进来,而没有使用,那么initialize也不会被调用</strong></p>
-<ul>
-<li><p>+load方法的调用是在main() 函数之前。load 方法内部一般用来实现 Method Swizzle（面向切面AOP变成）</p>
-<blockquote>
-<p>调用main() 函数之前的什么时候？答：+load方法会再这个类或者其分类被添加到运行时的时候调用。</p>
-<p>附：所有类的 load 方法都会被调用，先调用父类、再调用子类，多个分类会按照Compile Sources 顺序加载。</p>
-</blockquote>
-</li>
-<li><p>initialize一般在main()函数之后。Initialize方法一般用来初始化全局变量或者静态变量。</p>
-<blockquote>
-<p>问是在main() 函数之后的什么时候？答：在第一次主动使用当前类的时候。</p>
-<p>附：initialize一般在main()函数之后的情况是什么？A类的 load 方法中调用 B 类的类方法，导致在调用A的Load 方法之前，会先调用一下B类的initialize 方法，但是B类的load 方法还是按照 Compile Source 顺序进行加载</p>
-<p>附2：Initialize 方法会被覆盖，子类父类分类中只会执行一个</p>
-</blockquote>
-</li>
-<li><p>load和initialize都不能主动调用。</p>
-</li>
-<li><p>initialize不是init，initialize在程序运行过程中，它会在你程序中每个类调用仅一次initialize。这个调用的时间发生在你的类接收到消息之前，但是在它的父类接收到initialize之后。<br>init则是你手动初始化几次就调用几次，和普通方法一样</p>
-</li>
-</ul>
-<p></p><p id="KVC与KVO"></p><p></p>
-<h2 id="三、KVC与KVO"><a href="#三、KVC与KVO" class="headerlink" title="三、KVC与KVO"></a>三、KVC与KVO</h2><h3 id="1、KVO"><a href="#1、KVO" class="headerlink" title="1、KVO"></a>1、KVO</h3><p><a href="http://blog.csdn.net/yuquan0821/article/details/6646400/" target="_blank" rel="noopener">KVO的概述与使用</a>内容如下</p>
-<p>一、概述</p>
-<p>KVO,即键值观察者（key-value-observing），它提供一种观察者的机制，当指定的对象的属性被修改后，则对象就会接受到通知。简单的说就是每次指定的被观察的对象的属性被修改后，KVO就会自动通知相应的观察者了。</p>
-<p>二、KVO原理</p>
-<p>　　当某个类的对象第一次被观察时，系统在运行时会创建该类的派生类，该派生类中重写了该对象的setter方法，并且在setter方法中实现了通知的机制。派生类重写了class方法，以“欺骗”外部调用者他就是原先那个类。系统将这个类的isa指针指向新的派生类，因此改对象也就是新的派生类的对象了。因而该对象调用setter就会调用重写的setter，从而激活键值通知机制。此外派生类还重写了delloc方法来释放资源。</p>
-<p>三、使用方法</p>
-<p>系统框架已经支持KVO，所以程序员在使用的时候非常简单。</p>
-<ol>
-<li>注册，指定被观察者的属性，</li>
-<li>实现回调方法</li>
-<li>移除观察</li>
-</ol>
-<p>四，实例:</p>
-<p>假设一个场景,股票的价格显示在当前屏幕上，当股票价格更改的时候，实时显示更新其价格。</p>
-<h3 id="2、KVC"><a href="#2、KVC" class="headerlink" title="2、KVC"></a>2、KVC</h3><p> KVC 就是键值编码（key-value-coding)</p>
-<p>KVC 的主要作用：</p>
-<p>（1）通过键值路径为对象的属性赋值。主要是可以为私有的属性赋值。</p>
-<p>（2）通过键值路径获取属性的值。主要是可以通过key获得私有属性的值。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// valueForKeyPath:（多级访问，不仅可以对当前对象属性进行赋值，也可以对“深层”对象的属性进行取值）</span><br><span class="line">	Person *person1 = [[Person alloc] init];</span><br><span class="line">	person1.name = @&quot;李四&quot;;</span><br><span class="line">	person1.car.name = @&quot;BMW&quot;;</span><br><span class="line">	NSString *carName = [person valueForKeyPath:@&quot;car.name&quot;];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 当集合中元素类型一致，可以通过KVC的getter方法valueForKeyPath：来获取所有集合元素中的属性，生成一个新的元素属性集合。（这里的集合一般为NSArray，NSSet，不包括NSDictionary）</span><br><span class="line">  NSArray *personArray = [NSArray arrayWithObjects:person1, nil];</span><br><span class="line"></span><br><span class="line">	NSArray *personNameArray = [personArray valueForKeyPath:@&quot;name&quot;];</span><br><span class="line">	NSArray *carNameArray = [personArray valueForKeyPath:@&quot;car.name&quot;];</span><br></pre></td></tr></table></figure>
-<p>其他参考资料：</p>
-<ul>
-<li><a href="https://www.cnblogs.com/huadeng/p/7064382.html" target="_blank" rel="noopener">KVC与KVO</a></li>
-<li><a href="https://www.jianshu.com/p/45cbd324ea65" target="_blank" rel="noopener">KVC是怎么寻找Key的</a></li>
-</ul>
-<p></p><p id="Objective-C与C++"></p><p></p>
-<h2 id="四、Objective-C和C"><a href="#四、Objective-C和C" class="headerlink" title="四、Objective-C和C++"></a>四、Objective-C和C++</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="1、Objective-C与C-之间的差异"><a href="#1、Objective-C与C-之间的差异" class="headerlink" title="1、Objective-C与C++之间的差异"></a>1、Objective-C与C++之间的差异</h4><blockquote>
-<p>最大的区别就是Objective C的成员函数调用是基于动态绑定的，类本身并没有限制对象可以有什么函数。相对于C++类会规定好成员有什么函数。这使得Objective C的灵活性很大，但是执行效率也很低。</p>
-</blockquote>
-<h4 id="2、Object-c的类可以多重继承么"><a href="#2、Object-c的类可以多重继承么" class="headerlink" title="2、Object-c的类可以多重继承么?"></a>2、Object-c的类可以多重继承么?</h4><p>答: Object-c的类不可以多重继承；</p>
-<p>面向对象(OOP)</p>
-<p>面向对象的三个特性：封装、继承和多态(没有继承就没有多态)。</p>
-<blockquote>
-<p>所谓封装，也就是把客观事物封装成抽象的类；</p>
-<p>所谓多态就是指一个类实例的相同方法在不同情形有不同表现形式。多态机制使具有不同内部结构的对象可以共享相同的外部接口。</p>
-</blockquote>
-<p>没有继承就没有多态。代码的体现：父类类型的指针指向子类对象。</p>
-<p>没使用多态前：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)printWithBlack:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line">- (<span class="keyword">void</span>)printWithColor:(Printer *)printer &#123;</span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[person printWithBlack:blackPrint]; <span class="comment">//调用黑白打印机  </span></span><br><span class="line">[person printWithColor:colorPrint]; <span class="comment">//调用彩色打印机</span></span><br></pre></td></tr></table></figure>
-<p>使用多态后：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)print:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用时候：</span></span><br><span class="line">Printer *p1 = [[ColorPrinter alloc] init];  </span><br><span class="line">Printer *p2 = [[BlackPrinter alloc] init];  </span><br><span class="line"></span><br><span class="line">[person doPrint:p1];  </span><br><span class="line">[person doPrint:p2];</span><br></pre></td></tr></table></figure>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h4 id="1、-import、-include、-class"><a href="#1、-import、-include、-class" class="headerlink" title="1、#import、#include、@class"></a>1、#import、#include、@class</h4><p>可参考：<a href="http://www.jianshu.com/p/7e0dee7f84b2" target="_blank" rel="noopener">#import、#include、@class、#import&lt;&gt;和#import””的区别</a></p>
-<p>1、<code>#import</code>介绍：<br>In the C language, the #include pre-compile directive always causes a file’s contents to be inserted into the source. at that point, Objective-C has the equivalent #import directive except each file is included only once per compilation unit, obviating（去除） the need for include guards.</p>
-<p>即在C语言中，<code>#include</code>预编译指令经常引起一个文件的被重复引用。基于这一点，OC有一个等价的预编译指令<code>#import</code>来防止文件重复导入。所以OC给出来的新的预处理指令import是防止重复导入，避免程序员去书写头文件卫士，降低程序员的负担。</p>
-<p>2、#import和#include的异同点：</p>
-<p>①#include是C语言中的，需要条件编译语句控制重复包含问题。</p>
-<p>②在Objective-C中，#import是OC中对#include的改进版本，#import使得我们不需要写条件编译语句就可以确保引用的文件只会被包含一次，不会陷入递归版包含的问题。即<strong>import与#include比较的优点：会自动防止重复导入，使得不会引起交叉编译</strong></p>
-<pre><code>#import不会引起交叉编译的问题。因为在Objective-C中会存在C/C++和Object-C混编的问题，如果用#include引入头文件，会导致交叉编译。
-</code></pre><p>举例：三个文件①文件A.h、②文件B.h、③文件C.h。其中文件C.h需要引入A.h、B.h,而文件B.h也需要引入文件A.h,这样在C.h中就重复引用了A.h两次，使用#import可以进行优化</p>
-<p>3、#import和#include的相同点：</p>
-<p>①都可以用在OC程序中起到导入文件的作用</p>
-<p>②同样的 包含系统文件都是&lt;&gt;，是包本地文件都用””<br>例如：系统文件#import&lt;Foundation/Foundation.h&gt;, #include&lt;stdio.h&gt;<br>​     本地文件#import”test.h”, #include”test.h”</p>
-<p>到底该如何选择使用呢<br>一般来说，你包含的是C语言中的文件就用#include，你用的是OC中的文件就用#import</p>
-<p>4、<strong>#import与@class二者的区别</strong></p>
-<blockquote>
-<p>#import会链入该头文件的全部信息，包括实体变量和方法等；而@class只是告诉编译器，其后面声明的名称是类的名称，至于这些类是如何定义的，暂时不用考虑。在头文件中， 一般只需要知道被引用的类的名称就可以了。不需要知道其内部的实体变量和方法，所以在头文件中一般使用@class来声明这个名称是类的名称。 而在实现类里面，因为会用到这个引用类的内部的实体变量和方法，所以需要使用#import来包含这个被引用类的头文件。</p>
-</blockquote>
-<p>附：@class能解决循环包含的问题：当两个类文件有循环依赖关系 (A引用B,B引用A)时，需要用@class</p>
-<p>5、<strong>import&lt;&gt; 和 import””</strong><br>①&lt;&gt; : 引用系统文件，它用于对系统自带的头文件的引用，编译器会在系统文件目录下去查找该文件.</p>
-<p>②””: 用户自定义的文件用双引号引用，编译器首先会在用户目录下查找，然后到安装目录中查</p>
-<h4 id="4、字符串的比较"><a href="#4、字符串的比较" class="headerlink" title="4、字符串的比较"></a>4、字符串的比较</h4><blockquote>
-<p><img src="/iOS/3必备知识架构/1语言/1语言/字符串compare.png" alt="字符串compare">;<br>字符串compare的比较是一个字符串一个字符串比较的，所以才会出现1814比860小的错误情况。</p>
-</blockquote>
-<h4 id="5、isMemberOfClass-和-isKindOfClass-的联系和区别"><a href="#5、isMemberOfClass-和-isKindOfClass-的联系和区别" class="headerlink" title="5、isMemberOfClass 和 isKindOfClass 的联系和区别"></a>5、isMemberOfClass 和 isKindOfClass 的联系和区别</h4><ul>
-<li><p>联系:两者都能检测一个对象是不是某个类的成员</p>
-</li>
-<li><p>区别:isKindOfClass不仅能确定一个对象是不是某个类(即不算父类)的成员,也能确定一个对象是否是派生自该类的类的成员,而isMemberOfClass只能做到前者.</p>
-</li>
-</ul>
-<p>a.为什么基本类型和C数据类型的修饰用assign？</p>
-<p>因为基本数据类型不是对象，不需要引用计数，所以使用assign（附：在内存中创建和使用后，在一个方法体结束后就被删除。）。</p>
-<h2 id="iOS-NS-CG-CF前缀代表什么意思"><a href="#iOS-NS-CG-CF前缀代表什么意思" class="headerlink" title="iOS NS/CG/CF前缀代表什么意思"></a>iOS NS/CG/CF前缀代表什么意思</h2><p>NS/CG/CF前缀代表什么意思。</p>
-<p>回答：NS是前缀，代表它是来自Cocoa Foundation框架，这个框架是OC的基础库</p>
-<blockquote>
-<p>UI—UIKit框架，UI库<br>CF—Core Foundation框架<br>NS—Cocoa Foundation框架，OC的基础库。<br>CG—CoreGraphics.frameworks框架，用于渲染的库。<br>CA—CoreAnimation.frameworks框架</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言/" data-id="cm0e171zo0152qlr4kb0mv0gp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cm121y2ur016mqar41qra3euh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1134,7 +1017,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -1147,23 +1030,23 @@
       <ul>
         
           <li>
+            <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
           </li>
         
           <li>
             <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/总目录/">总目录</a>
-          </li>
-        
-          <li>
-            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
           </li>
         
       </ul>

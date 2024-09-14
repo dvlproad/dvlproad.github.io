@@ -72,248 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage③解码" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/" class="article-date">
-  <time datetime="2020-08-30T15:18:33.000Z" itemprop="datePublished">2020-08-30</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/">SDWebImage③解码</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="SDWebImage③解码"><a href="#SDWebImage③解码" class="headerlink" title="SDWebImage③解码"></a>SDWebImage③解码</h1><h2 id="一、为什么图像在显示到屏幕上之前要进行解码"><a href="#一、为什么图像在显示到屏幕上之前要进行解码" class="headerlink" title="一、为什么图像在显示到屏幕上之前要进行解码"></a>一、为什么图像在显示到屏幕上之前要进行解码</h2><p>我们知道，一般我们都是使用形如以下方式加载图片:</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)imageNamed:(<span class="built_in">NSString</span> *)name;      <span class="comment">// load from main bundle // 通过图片的文件名从bundle 获取这个图片，注意该图片已经导入到工程中</span></span><br><span class="line">+ (<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)imageWithContentsOfFile:(<span class="built_in">NSString</span> *)path; <span class="comment">// 通过文件加载指定路径下的文件内容创建图片</span></span><br></pre></td></tr></table></figure>
-<h3 id="问1：不自己解码，直接使用上面的方式进行图片的加载显示可以吗？"><a href="#问1：不自己解码，直接使用上面的方式进行图片的加载显示可以吗？" class="headerlink" title="问1：不自己解码，直接使用上面的方式进行图片的加载显示可以吗？"></a>问1：不自己解码，直接使用上面的方式进行图片的加载显示可以吗？</h3><p>答案是：可以，而且大概我们编码都是使用上面的两种方式直接在主线程加载图片，然后显示在UIImageView上，并且并没有发现什么问题。所以其实我们自己不解码图片我们也是可以直接使用的，但那是因为系统会为我们进行解码的操作。所以，解码图片的工作比不可少。</p>
-<h3 id="问2：系统是在什么时候为我们进行图片的解码操作的？图片加载的工作流？"><a href="#问2：系统是在什么时候为我们进行图片的解码操作的？图片加载的工作流？" class="headerlink" title="问2：系统是在什么时候为我们进行图片的解码操作的？图片加载的工作流？"></a>问2：系统是在什么时候为我们进行图片的解码操作的？图片加载的工作流？</h3><p>当你用 UIImage 或 CGImageSource 的那几个方法创建图片时，图片数据并不会立刻解码。图片设置到 UIImageView 或者 CALayer.contents 中去，并且 CALayer 被提交到 GPU 前，CGImage 中的数据才会得到解码。这一步是发生在主线程的，并且不可避免。</p>
-<p>概括来说，从磁盘中加载一张图片，并将它显示到屏幕上，中间的<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fgithub.com%2Fpath%2FFastImageCache%23the-problem" target="_blank" rel="noopener">主要工作流/图片加载的工作流</a>如下：</p>
-<ol>
-<li>假设我们使用 +imageWithContentsOfFile: 方法从磁盘中加载一张图片，这个时候的图片并没有解压缩；</li>
-<li>然后将生成的 UIImage 赋值给 UIImageView ；</li>
-<li>接着一个隐式的 CATransaction 捕获到了 UIImageView 图层树的变化；</li>
-<li>在主线程的下一个 run loop 到来时，Core Animation 提交了这个隐式的 transaction ，这个过程可能会对图片进行 copy 操作，而受图片是否字节对齐等因素的影响，这个 copy 操作可能会涉及以下部分或全部步骤：</li>
-<li><ol>
-<li>分配内存缓冲区用于管理文件 IO 和解压缩操作；</li>
-<li>将文件数据从磁盘读到内存中；</li>
-<li>将压缩的图片数据解码成未压缩的位图形式，这是一个非常耗时的 CPU 操作；</li>
-<li>最后 Core Animation 使用未压缩的位图数据渲染 UIImageView 的图层。</li>
-</ol>
-</li>
-</ol>
-<h3 id="问3：那解码是个啥，为啥即使是系统也要自己解码图片？"><a href="#问3：那解码是个啥，为啥即使是系统也要自己解码图片？" class="headerlink" title="问3：那解码是个啥，为啥即使是系统也要自己解码图片？"></a>问3：那解码是个啥，为啥即使是系统也要自己解码图片？</h3><p>答：那是因为一般下载的图片或者我们手动拖进主bundle 的图片都是PNG 或者JPG 其他格式的图片，这些图片都是经过编码压缩后的图片数据，并不是控件可以直接显示的位图。所以需要先将它解码转成位图数据，然后才能把位图渲染到屏幕上。这就是解码！（附：图像可以分为矢量图和位图，我们通常使用的图像为位图格式）</p>
-<p><a href="https://honglu.me/2016/09/02/一张图片引发的深思/" target="_blank" rel="noopener">一张图片引发的深思</a></p>
-<h3 id="问4：使用系统解码有什么问题？或者说SDWebImage还要对图片进行解码是为了什么？"><a href="#问4：使用系统解码有什么问题？或者说SDWebImage还要对图片进行解码是为了什么？" class="headerlink" title="问4：使用系统解码有什么问题？或者说SDWebImage还要对图片进行解码是为了什么？"></a>问4：使用系统解码有什么问题？或者说SDWebImage还要对图片进行解码是为了什么？</h3><h4 id="①、使用系统解码有什么问题？"><a href="#①、使用系统解码有什么问题？" class="headerlink" title="①、使用系统解码有什么问题？"></a>①、使用系统解码有什么问题？</h4><p>答：如果我们直接使用 <code>+ (nullable UIImage *)imageNamed:(NSString *)name</code> 来加载图片，系统默认会在主线程立即进行图片的解码工作，这个过程就是把图片数据解码成可供控件直接显示的位图数据。<strong>由于这个解码/解压缩操作是一个比较耗时的CPU操作，并且默认是在主线程进行的。所以当在主线程调用了大量的 <code>+ (nullable UIImage *)imageNamed:(NSString *)name</code> 方法后就会产生卡顿，尤其是在快速滑动的列表上，这个问题会表现得更加突出。</strong></p>
-<h4 id="②、SDWebImage还要对图片进行解码的目的是"><a href="#②、SDWebImage还要对图片进行解码的目的是" class="headerlink" title="②、SDWebImage还要对图片进行解码的目的是"></a>②、SDWebImage还要对图片进行解码的目的是</h4><p>优化1：默认是在主线程解码，SDWebImage将解码这个过程放到子线程。</p>
-<p>图片解码是耗时的，而且iOS系统默认是在主线程执行解码，所以业界通常有一种做法是，异步强制解压，也就是在异步线程主动将二进制图片数据解压成位图数据，使用CGBitmapContextCreate(…)系列方法就能实现。<br>该处理方式在众多图片处理框架下都有体现。</p>
-<p>所以<strong>SDWebImage 为了提高图片的加载效率，会提前去进行解码图片到内存，即把图片数据解码成可供控件直接显示的位图数据。同时由于位图体积较大，所以在磁盘缓存中不会直接缓存位图数据，而是编码压缩过的PNG 或者JPG 数据。</strong></p>
-<p>在我们使用 UIImage 的时候，创建的图片通常不会直接加载到内存，而是在渲染的时候再进行解压并加载到内存。这就会导致 UIImage 在渲染的时候效率上不是那么高效。为了提高效率通过 <code>decodedImageWithImage</code>方法把图片提前解压加载到内存，这样这张新图片就不再需要重复解压了，提高了渲染效率。这是一种空间换时间的做法。</p>
-<h3 id="问5：SDWebImage解压的策略是怎样的？"><a href="#问5：SDWebImage解压的策略是怎样的？" class="headerlink" title="问5：SDWebImage解压的策略是怎样的？"></a>问5：SDWebImage解压的策略是怎样的？</h3><p>SDWebImage中使用以下策略：</p>
-<ol>
-<li>当图片从网络中获取到的时候就进行解压缩。</li>
-<li>当图片从磁盘缓存中获取到的时候立即解压缩。</li>
-</ol>
-<h2 id="二、SDWebImage是怎么进行图片Decoder解码的UIImage-ForceDecode-h"><a href="#二、SDWebImage是怎么进行图片Decoder解码的UIImage-ForceDecode-h" class="headerlink" title="二、SDWebImage是怎么进行图片Decoder解码的UIImage+ForceDecode.h"></a>二、SDWebImage是怎么进行图片Decoder解码的<code>UIImage+ForceDecode.h</code></h2><h3 id="1、UIImage-ForceDecode-h-的-sd-decodedImageWithImage"><a href="#1、UIImage-ForceDecode-h-的-sd-decodedImageWithImage" class="headerlink" title="1、UIImage+ForceDecode.h 的 sd_decodedImageWithImage:"></a>1、UIImage+ForceDecode.h 的 sd_decodedImageWithImage:</h3><p>下面首先看解码的方法，UIImage+ForceDecode.h</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)sd_decodedImageWithImage:(<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)image;</span><br><span class="line">+ (<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)sd_decodedAndScaledDownImageWithImage:(<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)image limitBytes:(<span class="built_in">NSUInteger</span>)bytes;</span><br></pre></td></tr></table></figure>
-<p><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/image-20211201013634575.png" alt="image-20211201013634575" style="zoom:50%;"></p>
-<p>其实现为：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)sd_decodedImageWithImage:(<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)image &#123;</span><br><span class="line">    <span class="keyword">if</span> (!image) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [SDImageCoderHelper decodedImageWithImage:image];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="2、-SDImageCoderHelper-decodedImageWithImage-image"><a href="#2、-SDImageCoderHelper-decodedImageWithImage-image" class="headerlink" title="2、[SDImageCoderHelper decodedImageWithImage:image]"></a>2、[SDImageCoderHelper decodedImageWithImage:image]</h3><p>SDImageCoderHelper中的实现代码：</p>
-<p><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/image-20211201014559478.png" alt="image-20211201014559478"></p>
-<p>这个方法传入一副图片对该图片进行<strong>解码</strong>，解码结果是另一幅图片。</p>
-<h4 id="2-1、-SDImageCoderHelper-shouldDecodeImage-image"><a href="#2-1、-SDImageCoderHelper-shouldDecodeImage-image" class="headerlink" title="2.1、[SDImageCoderHelper shouldDecodeImage:image]"></a>2.1、[SDImageCoderHelper shouldDecodeImage:image]</h4><p><code>[SDImageCoderHelper shouldDecodeImage:image]</code>用来判断要不要解码，并不是所有的image 都要解码。其函数实现如下：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#pragma mark - Helper Function</span></span><br><span class="line">+ (<span class="built_in">BOOL</span>)shouldDecodeImage:(<span class="keyword">nullable</span> <span class="built_in">UIImage</span> *)image &#123;</span><br><span class="line">    <span class="comment">// Prevent "CGBitmapContextCreateImage: invalid context 0x0" error</span></span><br><span class="line">    <span class="keyword">if</span> (image == <span class="literal">nil</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Avoid extra decode</span></span><br><span class="line">    <span class="keyword">if</span> (image.sd_isDecoded) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// do not decode animated images</span></span><br><span class="line">    <span class="keyword">if</span> (image.sd_isAnimated) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// do not decode vector images</span></span><br><span class="line">    <span class="keyword">if</span> (image.sd_isVector) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>1.如果 image 等于 nil，返回 NO。 // 防止 “CGBitmapContextCreateImage: invalid context 0X0” 的错误</p>
-<p>2.如果已经解码过，返回NO。</p>
-<p>3.如果 image 是动效图片，返回 NO。// 不要解码动画图像</p>
-<p>4.如果sd_isVector，返回NO。</p>
-<h4 id="2-2、-SDImageCoderHelper-CGImageCreateDecoded-cgImage"><a href="#2-2、-SDImageCoderHelper-CGImageCreateDecoded-cgImage" class="headerlink" title="2.2、[SDImageCoderHelper CGImageCreateDecoded:cgImage]"></a>2.2、[SDImageCoderHelper CGImageCreateDecoded:cgImage]</h4><p>其中<code>+ (CGImageRef)CGImageCreateDecoded:(CGImageRef)cgImage</code>的实现如下：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="built_in">CGImageRef</span>)<span class="built_in">CGImageCreateDecoded</span>:(<span class="built_in">CGImageRef</span>)cgImage &#123;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">self</span> <span class="built_in">CGImageCreateDecoded</span>:cgImage orientation:kCGImagePropertyOrientationUp];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (<span class="built_in">CGImageRef</span>)<span class="built_in">CGImageCreateDecoded</span>:(<span class="built_in">CGImageRef</span>)cgImage orientation:(<span class="built_in">CGImagePropertyOrientation</span>)orientation &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cgImage) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    size_t width = <span class="built_in">CGImageGetWidth</span>(cgImage);</span><br><span class="line">    size_t height = <span class="built_in">CGImageGetHeight</span>(cgImage);</span><br><span class="line">    <span class="keyword">if</span> (width == <span class="number">0</span> || height == <span class="number">0</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    size_t newWidth;</span><br><span class="line">    size_t newHeight;</span><br><span class="line">    <span class="keyword">switch</span> (orientation) &#123;</span><br><span class="line">        <span class="keyword">case</span> kCGImagePropertyOrientationLeft:</span><br><span class="line">        <span class="keyword">case</span> kCGImagePropertyOrientationLeftMirrored:</span><br><span class="line">        <span class="keyword">case</span> kCGImagePropertyOrientationRight:</span><br><span class="line">        <span class="keyword">case</span> kCGImagePropertyOrientationRightMirrored: &#123;</span><br><span class="line">            <span class="comment">// These orientation should swap width &amp; height</span></span><br><span class="line">            newWidth = height;</span><br><span class="line">            newHeight = width;</span><br><span class="line">        &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>: &#123;</span><br><span class="line">            newWidth = width;</span><br><span class="line">            newHeight = height;</span><br><span class="line">        &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">BOOL</span> hasAlpha = [<span class="keyword">self</span> <span class="built_in">CGImageContainsAlpha</span>:cgImage];</span><br><span class="line">    <span class="comment">// iOS prefer BGRA8888 (premultiplied) or BGRX8888 bitmapInfo for screen rendering, which is same as `UIGraphicsBeginImageContext()` or `- [CALayer drawInContext:]`</span></span><br><span class="line">    <span class="comment">// Though you can use any supported bitmapInfo (see: https://developer.apple.com/library/content/documentation/GraphicsImaging/Conceptual/drawingwithquartz2d/dq_context/dq_context.html#//apple_ref/doc/uid/TP30001066-CH203-BCIBHHBB ) and let Core Graphics reorder it when you call `CGContextDrawImage`</span></span><br><span class="line">    <span class="comment">// But since our build-in coders use this bitmapInfo, this can have a little performance benefit</span></span><br><span class="line">    <span class="built_in">CGBitmapInfo</span> bitmapInfo = kCGBitmapByteOrder32Host;</span><br><span class="line">    bitmapInfo |= hasAlpha ? kCGImageAlphaPremultipliedFirst : kCGImageAlphaNoneSkipFirst;</span><br><span class="line">    <span class="built_in">CGContextRef</span> context = <span class="built_in">CGBitmapContextCreate</span>(<span class="literal">NULL</span>, newWidth, newHeight, <span class="number">8</span>, <span class="number">0</span>, [<span class="keyword">self</span> colorSpaceGetDeviceRGB], bitmapInfo);</span><br><span class="line">    <span class="keyword">if</span> (!context) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Apply transform</span></span><br><span class="line">    <span class="built_in">CGAffineTransform</span> transform = SDCGContextTransformFromOrientation(orientation, <span class="built_in">CGSizeMake</span>(newWidth, newHeight));</span><br><span class="line">    <span class="built_in">CGContextConcatCTM</span>(context, transform);</span><br><span class="line">    <span class="built_in">CGContextDrawImage</span>(context, <span class="built_in">CGRectMake</span>(<span class="number">0</span>, <span class="number">0</span>, width, height), cgImage); <span class="comment">// The rect is bounding box of CGImage, don't swap width &amp; height</span></span><br><span class="line">    <span class="built_in">CGImageRef</span> newImageRef = <span class="built_in">CGBitmapContextCreateImage</span>(context);</span><br><span class="line">    <span class="built_in">CGContextRelease</span>(context);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> newImageRef;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="2-3、解码的核心代码"><a href="#2-3、解码的核心代码" class="headerlink" title="2.3、解码的核心代码"></a>2.3、解码的核心代码</h4><p><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/image-20211201023244869.png" alt="image-20211201023244869"></p>
-<ul>
-<li><p>使用<code>CGBitmapContextCreate()</code>创建图片上下文</p>
-</li>
-<li><p>使用<code>CGContextDrawImage()</code>将图片绘制到上下文中</p>
-</li>
-<li><p>使用<code>CGBitmapContextCreateImage()</code>通过上下文生成图片</p>
-<p>其他参考：<a href="https://www.jianshu.com/p/4dc2154254fc" target="_blank" rel="noopener">SDWebImage 中的图片解码</a></p>
-</li>
-</ul>
-<h3 id="3、其他"><a href="#3、其他" class="headerlink" title="3、其他"></a>3、其他</h3><h4 id="3-1、两个静态不可变的类型是-size-t-的变量"><a href="#3-1、两个静态不可变的类型是-size-t-的变量" class="headerlink" title="3.1、两个静态不可变的类型是 size_t 的变量"></a>3.1、两个静态不可变的类型是 size_t 的变量</h4><h5 id="①、kBytesPerPixel：每个像素占内存多少字节（Byte），赋值为4，表示每个像素占4个字节。"><a href="#①、kBytesPerPixel：每个像素占内存多少字节（Byte），赋值为4，表示每个像素占4个字节。" class="headerlink" title="①、kBytesPerPixel：每个像素占内存多少字节（Byte），赋值为4，表示每个像素占4个字节。"></a>①、kBytesPerPixel：每个像素占内存多少字节（Byte），赋值为4，表示每个像素占4个字节。</h5><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> size_t kBytesPerPixel = <span class="number">4</span>;</span><br></pre></td></tr></table></figure>
-<p>（图像在iOS 设备上是以像素为单位显示的）</p>
-<h5 id="②、kBitsPerComponent：每个组件占多少位（Bit），赋值为8"><a href="#②、kBitsPerComponent：每个组件占多少位（Bit），赋值为8" class="headerlink" title="②、kBitsPerComponent：每个组件占多少位（Bit），赋值为8"></a>②、kBitsPerComponent：每个组件占多少位（Bit），赋值为8</h5><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> size_t kBitsPerComponent = <span class="number">8</span>;</span><br></pre></td></tr></table></figure>
-<p>kBitsPerComponent：每个组件占多少位（Bit），这个不好理解，举个例子，比如RGBA，其中 R （红色）G（绿色）B（蓝色）A（透明度）总共4个组件，每个像素由这4个组件组成，且该变量被赋值为8，所以一个 RGBA 像素就是8 ＊ 4 ＝ 32 Bits。</p>
-<p>知道了 kBitsPerComponent 和每个像素有多少组件组成就能计算 kBytesPerPixel 了。计算公式是: （bitsPerComponent * number of components + 7）/ 8。</p>
-<h4 id="3-2、其他"><a href="#3-2、其他" class="headerlink" title="3.2、其他"></a>3.2、其他</h4><p><a href="https://www.cnblogs.com/chmhml/p/6817383.html" target="_blank" rel="noopener">SDWebImage源码阅读(四)Decoder</a>，有点抽象</p>
-<h2 id="三、其他参考文章"><a href="#三、其他参考文章" class="headerlink" title="三、其他参考文章"></a>三、其他参考文章</h2><p><a href="https://www.cnblogs.com/chmhml/p/6738180.html" target="_blank" rel="noopener">SDWebImage源码阅读前的准备(三)UIImage.h</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/" data-id="cm0e172o6017lqlr440rcv1x0" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter项目环境切换" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter项目环境切换/" class="article-date">
-  <time datetime="2020-08-24T06:26:12.000Z" itemprop="datePublished">2020-08-24</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter项目环境切换/">Flutter项目环境切换</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<p>见我的另一篇文章：《<a href=".,/../../../Architecture架构/开发工具.md">开发工具.md</a>》</p>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>如图，长按”Hello”所在的文字区域，进入环境切换界面，进行你想要的环境切换即可。<br><img src="/Flutter/项目实践/Flutter项目环境切换/APP环境切换入口.png" alt="APP环境切换入口" style="zoom:50%;"><img src="/Flutter/项目实践/Flutter项目环境切换/App环境切换界面.png" alt="App环境切换界面" style="zoom:50%;"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter项目环境切换/" data-id="cm0e170dn00gkqlr4zh1nadz7" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Android/1入门/JDK相关" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Android/1入门/JDK相关/" class="article-date">
-  <time datetime="2020-08-21T17:29:23.000Z" itemprop="datePublished">2020-08-22</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Android/1入门/JDK相关/">JDK相关--多JDK版本</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="JDK相关–多JDK版本"><a href="#JDK相关–多JDK版本" class="headerlink" title="JDK相关–多JDK版本"></a>JDK相关–多JDK版本</h2><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>某些时候，我们执行java命令，可能会有版本要求。</p>
-<p>如，我们在<strong>使用新版的bugly符号表上传脚本的时候，发现其要求我们使用jdk8。而我们打包apk的时候需要使用jdk11。</strong></p>
-<p>问：此时我们怎么处理？</p>
-<p>解决：使用多jdk，并灵活切换。</p>
-<h2 id="二、查看当前使用的java版本"><a href="#二、查看当前使用的java版本" class="headerlink" title="二、查看当前使用的java版本"></a>二、查看当前使用的java版本</h2><h3 id="1、查看当前使用的java版本"><a href="#1、查看当前使用的java版本" class="headerlink" title="1、查看当前使用的java版本"></a>1、查看当前使用的java版本</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
-<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522013119037.png" alt="image-20230522013119037"></p>
-<h3 id="2、查看本地所有已安装的jdk"><a href="#2、查看本地所有已安装的jdk" class="headerlink" title="2、查看本地所有已安装的jdk"></a>2、查看本地所有已安装的jdk</h3><h4 id="2-1、jdk-常见的存放位置"><a href="#2-1、jdk-常见的存放位置" class="headerlink" title="2.1、jdk 常见的存放位置"></a>2.1、jdk 常见的存放位置</h4><table>
-<thead>
-<tr>
-<th style="text-align:center">序号</th>
-<th>描述</th>
-<th>路径</th>
-<th>其他</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">1</td>
-<td>系统本地 JDK Home</td>
-<td>/Library/Java/JavaVirtualMachines</td>
-<td></td>
-</tr>
-<tr>
-<td style="text-align:center">2</td>
-<td>Android Studio的 JDK Home</td>
-<td>/Applications/Android\ Studio.app/Contents/jbr/Contents/Home</td>
-<td></td>
-</tr>
-<tr>
-<td style="text-align:center">3</td>
-<td>自定义的 JDK 目录</td>
-<td>依自定义</td>
-</tr>
-</tbody>
-</table>
-<h4 id="2-2、jdk-各个位置的查看"><a href="#2-2、jdk-各个位置的查看" class="headerlink" title="2.2、jdk 各个位置的查看"></a>2.2、jdk 各个位置的查看</h4><h5 id="2-2-1、查看【系统-JDK-Home】已安装的jdk"><a href="#2-2-1、查看【系统-JDK-Home】已安装的jdk" class="headerlink" title="2.2.1、查看【系统 JDK Home】已安装的jdk"></a>2.2.1、查看【系统 JDK Home】已安装的jdk</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 方法1：</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">cd</span> /Library/Java/JavaVirtualMachines</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> ls -al</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 方法2：</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> /usr/libexec/java_home -V</span></span><br></pre></td></tr></table></figure>
-<p>方法1的结果如下：</p>
-<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522013520673.png" alt="image-20230522013520673" style="zoom:50%;"></p>
-<p>方法2的结果如下：</p>
-<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615184042643.png" alt="image-20230615184042643"> </p>
-<p>经查看我们已经在系统jdk home下安装了jdK17和jdk1.8了。</p>
-<h5 id="2-2-2、查看【Android-Studio的-JDK-Home】已安装的jdk"><a href="#2-2-2、查看【Android-Studio的-JDK-Home】已安装的jdk" class="headerlink" title="2.2.2、查看【Android Studio的 JDK Home】已安装的jdk"></a>2.2.2、查看【Android Studio的 JDK Home】已安装的jdk</h5><p>但是上述的方法并不代表着检查到了本地所有的jdk版本。比如通过Android Studio 下载的，默认是放在</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> open /Applications/Android\ Studio.app/Contents/jbr/Contents/Home <span class="comment"># 空格需要通过反斜杠\来转义</span></span></span><br></pre></td></tr></table></figure>
-<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615185217226.png" alt="image-20230615185217226"></p>
-<h2 id="三、下载想要安装的其他jdk"><a href="#三、下载想要安装的其他jdk" class="headerlink" title="三、下载想要安装的其他jdk"></a>三、下载想要安装的其他jdk</h2><p>如果已安装请忽略此步。</p>
-<h3 id="1、【系统-JDK-Home】下jdk的安装"><a href="#1、【系统-JDK-Home】下jdk的安装" class="headerlink" title="1、【系统 JDK Home】下jdk的安装"></a>1、【系统 JDK Home】下jdk的安装</h3><p>以安装jdk1.8为例，请进入其相应的下载地址：<a href="https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html" target="_blank" rel="noopener">javase8u211-later-archive-downloads.html</a></p>
-<h3 id="2、【Android-Studio的-JDK-Home】下jdk的安装"><a href="#2、【Android-Studio的-JDK-Home】下jdk的安装" class="headerlink" title="2、【Android Studio的 JDK Home】下jdk的安装"></a>2、【Android Studio的 JDK Home】下jdk的安装</h3><p>安装方法如上述《查看【Android Studio的 JDK Home】已安装的jdk》中的截图中点击+号即可。</p>
-<p>下载安装后，按照下文的jdk切换方式，即可使用想要的jdk版本（如执行<code>java -version</code>）。</p>
-<h2 id="四、切换-jdk"><a href="#四、切换-jdk" class="headerlink" title="四、切换 jdk"></a>四、切换 jdk</h2><h3 id="1、配置切换jdk版本的环境变量"><a href="#1、配置切换jdk版本的环境变量" class="headerlink" title="1、配置切换jdk版本的环境变量"></a>1、配置切换jdk版本的环境变量</h3><p>①打开你的环境变量文件</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 苹果的intel芯片(x86)，使用如下命令</span></span><br><span class="line">open ~/.bash_profile</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 苹果的arm芯片(m1或者m2)，使用如下命令</span></span><br><span class="line">open ~/.zshrc</span><br></pre></td></tr></table></figure>
-<p>②在其中添加以下内容</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">添加下面的代码</span></span><br><span class="line">export JAVA_8_HOME="$(/usr/libexec/java_home -v 1.8)"</span><br><span class="line">export JAVA_17_HOME="$(/usr/libexec/java_home -v 17)"</span><br><span class="line">export JAVA_11_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home</span><br><span class="line">alias jdk8='export JAVA_HOME=$JAVA_8_HOME'</span><br><span class="line">alias jdk11='export JAVA_HOME=$JAVA_11_HOME'</span><br><span class="line">alias jdk17='export JAVA_HOME=$JAVA_17_HOME'</span><br><span class="line">export JAVA_HOME=$JAVA_8_HOME</span><br></pre></td></tr></table></figure>
-<p>在上述代码中，我们设置两个 JAVA_8_HOME 、 JAVA_11_HOME 、  JAVA_17_HOME 三个环境变量。并让 JAVA_HOME 默认等于 JAVA_8_HOME。</p>
-<p>同时我们使用<a href="http://c.biancheng.net/linux/alias.html" target="_blank" rel="noopener">alias命令：给命令定义别名</a>，从而得到<code>jdk8</code>、<code>jdk11</code>和<code>jdk17</code>三个终端命令。其使得当我们在终端输入<code>jdk8</code>的时候，我们的JAVA_HOME 会变成1.8的版本，从而执行的java也就变成了1.8。</p>
-<p>③生效环境变量</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 苹果的intel芯片(x86)，使用如下命令</span></span><br><span class="line">source ~/.bash_profile</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 苹果的arm芯片(m1或者m2)，使用如下命令</span></span><br><span class="line">source ~/.zshrc</span><br></pre></td></tr></table></figure>
-<p>④在终端执行刚生成的命令，正式切换java版本</p>
-<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522015426032.png" alt="image-20230522015426032" style="zoom:50%;"></p>
-<h2 id="五、Android-Studio-中的-jdk-截图"><a href="#五、Android-Studio-中的-jdk-截图" class="headerlink" title="五、Android Studio 中的 jdk 截图"></a>五、Android Studio 中的 jdk 截图</h2><p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615185843914.png" alt="image-20230615185843914"></p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>感谢浏览。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Android/1入门/JDK相关/" data-id="cm0e16zvn0099qlr4wp6oalk5" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-Android/1入门/Android开发环境搭建与运行" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Android/1入门/Android开发环境搭建与运行/" class="article-date">
@@ -430,7 +188,104 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Android/1入门/Android开发环境搭建与运行/" data-id="cm0e16zvt009cqlr4spse6pyb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Android/1入门/Android开发环境搭建与运行/" data-id="cm121y0j1005vqar46xo44hp4" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Android/1入门/JDK相关" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Android/1入门/JDK相关/" class="article-date">
+  <time datetime="2020-08-21T17:29:23.000Z" itemprop="datePublished">2020-08-22</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Android/1入门/JDK相关/">JDK相关--多JDK版本</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="JDK相关–多JDK版本"><a href="#JDK相关–多JDK版本" class="headerlink" title="JDK相关–多JDK版本"></a>JDK相关–多JDK版本</h2><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>某些时候，我们执行java命令，可能会有版本要求。</p>
+<p>如，我们在<strong>使用新版的bugly符号表上传脚本的时候，发现其要求我们使用jdk8。而我们打包apk的时候需要使用jdk11。</strong></p>
+<p>问：此时我们怎么处理？</p>
+<p>解决：使用多jdk，并灵活切换。</p>
+<h2 id="二、查看当前使用的java版本"><a href="#二、查看当前使用的java版本" class="headerlink" title="二、查看当前使用的java版本"></a>二、查看当前使用的java版本</h2><h3 id="1、查看当前使用的java版本"><a href="#1、查看当前使用的java版本" class="headerlink" title="1、查看当前使用的java版本"></a>1、查看当前使用的java版本</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
+<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522013119037.png" alt="image-20230522013119037"></p>
+<h3 id="2、查看本地所有已安装的jdk"><a href="#2、查看本地所有已安装的jdk" class="headerlink" title="2、查看本地所有已安装的jdk"></a>2、查看本地所有已安装的jdk</h3><h4 id="2-1、jdk-常见的存放位置"><a href="#2-1、jdk-常见的存放位置" class="headerlink" title="2.1、jdk 常见的存放位置"></a>2.1、jdk 常见的存放位置</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">序号</th>
+<th>描述</th>
+<th>路径</th>
+<th>其他</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">1</td>
+<td>系统本地 JDK Home</td>
+<td>/Library/Java/JavaVirtualMachines</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td>Android Studio的 JDK Home</td>
+<td>/Applications/Android\ Studio.app/Contents/jbr/Contents/Home</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td>自定义的 JDK 目录</td>
+<td>依自定义</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2-2、jdk-各个位置的查看"><a href="#2-2、jdk-各个位置的查看" class="headerlink" title="2.2、jdk 各个位置的查看"></a>2.2、jdk 各个位置的查看</h4><h5 id="2-2-1、查看【系统-JDK-Home】已安装的jdk"><a href="#2-2-1、查看【系统-JDK-Home】已安装的jdk" class="headerlink" title="2.2.1、查看【系统 JDK Home】已安装的jdk"></a>2.2.1、查看【系统 JDK Home】已安装的jdk</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 方法1：</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">cd</span> /Library/Java/JavaVirtualMachines</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> ls -al</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 方法2：</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> /usr/libexec/java_home -V</span></span><br></pre></td></tr></table></figure>
+<p>方法1的结果如下：</p>
+<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522013520673.png" alt="image-20230522013520673" style="zoom:50%;"></p>
+<p>方法2的结果如下：</p>
+<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615184042643.png" alt="image-20230615184042643"> </p>
+<p>经查看我们已经在系统jdk home下安装了jdK17和jdk1.8了。</p>
+<h5 id="2-2-2、查看【Android-Studio的-JDK-Home】已安装的jdk"><a href="#2-2-2、查看【Android-Studio的-JDK-Home】已安装的jdk" class="headerlink" title="2.2.2、查看【Android Studio的 JDK Home】已安装的jdk"></a>2.2.2、查看【Android Studio的 JDK Home】已安装的jdk</h5><p>但是上述的方法并不代表着检查到了本地所有的jdk版本。比如通过Android Studio 下载的，默认是放在</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> open /Applications/Android\ Studio.app/Contents/jbr/Contents/Home <span class="comment"># 空格需要通过反斜杠\来转义</span></span></span><br></pre></td></tr></table></figure>
+<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615185217226.png" alt="image-20230615185217226"></p>
+<h2 id="三、下载想要安装的其他jdk"><a href="#三、下载想要安装的其他jdk" class="headerlink" title="三、下载想要安装的其他jdk"></a>三、下载想要安装的其他jdk</h2><p>如果已安装请忽略此步。</p>
+<h3 id="1、【系统-JDK-Home】下jdk的安装"><a href="#1、【系统-JDK-Home】下jdk的安装" class="headerlink" title="1、【系统 JDK Home】下jdk的安装"></a>1、【系统 JDK Home】下jdk的安装</h3><p>以安装jdk1.8为例，请进入其相应的下载地址：<a href="https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html" target="_blank" rel="noopener">javase8u211-later-archive-downloads.html</a></p>
+<h3 id="2、【Android-Studio的-JDK-Home】下jdk的安装"><a href="#2、【Android-Studio的-JDK-Home】下jdk的安装" class="headerlink" title="2、【Android Studio的 JDK Home】下jdk的安装"></a>2、【Android Studio的 JDK Home】下jdk的安装</h3><p>安装方法如上述《查看【Android Studio的 JDK Home】已安装的jdk》中的截图中点击+号即可。</p>
+<p>下载安装后，按照下文的jdk切换方式，即可使用想要的jdk版本（如执行<code>java -version</code>）。</p>
+<h2 id="四、切换-jdk"><a href="#四、切换-jdk" class="headerlink" title="四、切换 jdk"></a>四、切换 jdk</h2><h3 id="1、配置切换jdk版本的环境变量"><a href="#1、配置切换jdk版本的环境变量" class="headerlink" title="1、配置切换jdk版本的环境变量"></a>1、配置切换jdk版本的环境变量</h3><p>①打开你的环境变量文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 苹果的intel芯片(x86)，使用如下命令</span></span><br><span class="line">open ~/.bash_profile</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 苹果的arm芯片(m1或者m2)，使用如下命令</span></span><br><span class="line">open ~/.zshrc</span><br></pre></td></tr></table></figure>
+<p>②在其中添加以下内容</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">添加下面的代码</span></span><br><span class="line">export JAVA_8_HOME="$(/usr/libexec/java_home -v 1.8)"</span><br><span class="line">export JAVA_17_HOME="$(/usr/libexec/java_home -v 17)"</span><br><span class="line">export JAVA_11_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home</span><br><span class="line">alias jdk8='export JAVA_HOME=$JAVA_8_HOME'</span><br><span class="line">alias jdk11='export JAVA_HOME=$JAVA_11_HOME'</span><br><span class="line">alias jdk17='export JAVA_HOME=$JAVA_17_HOME'</span><br><span class="line">export JAVA_HOME=$JAVA_8_HOME</span><br></pre></td></tr></table></figure>
+<p>在上述代码中，我们设置两个 JAVA_8_HOME 、 JAVA_11_HOME 、  JAVA_17_HOME 三个环境变量。并让 JAVA_HOME 默认等于 JAVA_8_HOME。</p>
+<p>同时我们使用<a href="http://c.biancheng.net/linux/alias.html" target="_blank" rel="noopener">alias命令：给命令定义别名</a>，从而得到<code>jdk8</code>、<code>jdk11</code>和<code>jdk17</code>三个终端命令。其使得当我们在终端输入<code>jdk8</code>的时候，我们的JAVA_HOME 会变成1.8的版本，从而执行的java也就变成了1.8。</p>
+<p>③生效环境变量</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 苹果的intel芯片(x86)，使用如下命令</span></span><br><span class="line">source ~/.bash_profile</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 苹果的arm芯片(m1或者m2)，使用如下命令</span></span><br><span class="line">source ~/.zshrc</span><br></pre></td></tr></table></figure>
+<p>④在终端执行刚生成的命令，正式切换java版本</p>
+<p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230522015426032.png" alt="image-20230522015426032" style="zoom:50%;"></p>
+<h2 id="五、Android-Studio-中的-jdk-截图"><a href="#五、Android-Studio-中的-jdk-截图" class="headerlink" title="五、Android Studio 中的 jdk 截图"></a>五、Android Studio 中的 jdk 截图</h2><p><img src="/Android/1入门/JDK相关/JDK%E7%9B%B8%E5%85%B3/image-20230615185843914.png" alt="image-20230615185843914"></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>感谢浏览。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Android/1入门/JDK相关/" data-id="cm121y0j6005xqar4xl0ruk4a" class="article-share-link">Share</a>
       
       
     </footer>
@@ -501,7 +356,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/8状态管理/状态管理1Provider/" data-id="cm0e1707c00eeqlr4ppjt26u3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/8状态管理/状态管理1Provider/" data-id="cm121y0wq00doqar4b1jjcpkz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
@@ -642,7 +497,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/开发工具/" data-id="cm0e16ymd000fqlr4s76kzgzq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/开发工具/" data-id="cm121xzhe000fqar43whnayao" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -726,7 +581,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter工程实践小结/" data-id="cm0e170bm00frqlr4cdktpmwh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter工程实践小结/" data-id="cm121y12h00g0qar4nz9j9iwn" class="article-share-link">Share</a>
       
       
     </footer>
@@ -796,7 +651,56 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter控件与布局相关/" data-id="cm0e170c200fvqlr4cxwnmcev" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter控件与布局相关/" data-id="cm121y12q00g4qar4q0a1gja1" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/项目实践/Flutter数据传值" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/项目实践/Flutter数据传值/" class="article-date">
+  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/项目实践/Flutter数据传值/">实践小结</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="传值"><a href="#传值" class="headerlink" title="传值"></a>传值</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">数据传输一般处理方式：自上而下的一层一层传递数据。</span><br><span class="line"></span><br><span class="line">场景： WidgetB数据改变后，WidgetA也随之作出响应。</span><br><span class="line"></span><br><span class="line">解决方案1： 参考Flutter知识点: InheritedWidget</span><br><span class="line"></span><br><span class="line">解决方案2：Notification，子节点状态变更，发送通知上报。</span><br></pre></td></tr></table></figure>
+<h2 id="一、父传给子"><a href="#一、父传给子" class="headerlink" title="一、父传给子"></a>一、父传给子</h2><h3 id="1、直接传"><a href="#1、直接传" class="headerlink" title="1、直接传"></a>1、直接传</h3><p><a href="https://www.jianshu.com/p/08f448b7a8aa" target="_blank" rel="noopener">Flutter中界面之间参数的传递与接收</a></p>
+<h2 id="二、子传给父"><a href="#二、子传给父" class="headerlink" title="二、子传给父"></a>二、子传给父</h2><h3 id="1、Callback-子传给父"><a href="#1、Callback-子传给父" class="headerlink" title="1、Callback(子传给父)"></a>1、Callback(子传给父)</h3><p>大家都知道回调方法在父子Widget之间传值是非常有用的,特别是用于子Widget向父Widget传值,接。</p>
+<p>定义一个回调函数类型</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> clickCallback = <span class="keyword">void</span> <span class="built_in">Function</span>(<span class="built_in">String</span> value);</span><br></pre></td></tr></table></figure>
+<p>将回调函数透出子Widget</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> clickCallback onClick;</span><br><span class="line"></span><br><span class="line">TestWidget(&#123;</span><br><span class="line">   Key key,</span><br><span class="line">   <span class="keyword">this</span>. onClick,</span><br><span class="line"> &#125;):<span class="keyword">super</span>(key:key);</span><br></pre></td></tr></table></figure>
+<h2 id="三、传给其它-给父或给其它"><a href="#三、传给其它-给父或给其它" class="headerlink" title="三、传给其它(给父或给其它)"></a>三、传给其它(给父或给其它)</h2><h3 id="1、Notification-给其它"><a href="#1、Notification-给其它" class="headerlink" title="1、Notification(给其它)"></a>1、Notification(给其它)</h3><p>1.自定义notification</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestNotification</span> <span class="keyword">extends</span> <span class="title">Notification</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">int</span> count;</span><br><span class="line">  </span><br><span class="line">  TestNotification(&#123;</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.count,</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>2.子节点发送通知</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> RaisedButton(</span><br><span class="line">  textColor: Colors.black,</span><br><span class="line">  child: <span class="keyword">new</span> Center(</span><br><span class="line">    child: <span class="keyword">new</span> Text(<span class="string">'点击传递随机数给上层Widget'</span>),</span><br><span class="line">  ),</span><br><span class="line">  onPressed: () &#123;</span><br><span class="line">    <span class="keyword">new</span> TestNotification(count: <span class="keyword">new</span> Random().nextInt(<span class="number">100</span>)).dispatch(key.currentContext);</span><br><span class="line">  &#125;,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>3.父节点使用NotificationListener进行监听子节点发出的通知，并作出响应</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> NotificationListener(</span><br><span class="line">  onNotification: (TestNotification n) &#123;</span><br><span class="line">    scaffoldStateKey.currentState.showSnackBar(<span class="keyword">new</span> SnackBar(content: <span class="keyword">new</span> Text(<span class="string">'随机数：<span class="subst">$&#123;n.count&#125;</span>'</span>)));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;,</span><br><span class="line">  child: <span class="keyword">new</span> TestAPage(</span><br><span class="line">    key: key,</span><br><span class="line">  ),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter数据传值/" data-id="cm121y12z00g7qar4kduzv9ly" class="article-share-link">Share</a>
       
       
     </footer>
@@ -856,7 +760,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter数据和状态管理/" data-id="cm0e170cc00fyqlr42iwp7ag9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter数据和状态管理/" data-id="cm121y13800gaqar42tv2sqbz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -918,9 +822,173 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter生命周期与路由/" data-id="cm0e170ck00g2qlr485nis7bh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter生命周期与路由/" data-id="cm121y13i00geqar4cw9kjykk" class="article-share-link">Share</a>
       
       
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" class="article-date">
+  <time datetime="2020-07-08T09:08:41.000Z" itemprop="datePublished">2020-07-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/">一个不用重加载的WebView</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="一个不用重加载的WebView"><a href="#一个不用重加载的WebView" class="headerlink" title="一个不用重加载的WebView"></a>一个不用重加载的WebView</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><ul>
+<li>一个基于WebView的Cocos2d游戏，因为启动加载引擎会有3-5秒的加载时长。为了更好的游戏体验，希望启动后重新进入不用重新加载。</li>
+</ul>
+<h2 id="二、webView的方案汇总"><a href="#二、webView的方案汇总" class="headerlink" title="二、webView的方案汇总"></a>二、webView的方案汇总</h2><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>描述</th>
+<th>方式</th>
+<th>方案</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>传统方法</td>
+<td>页面</td>
+<td>APage + AWebView + AWebControl</td>
+<td>重进重载</td>
+</tr>
+<tr>
+<td>2</td>
+<td>单例WebControl</td>
+<td>页面</td>
+<td>APage + AWebView + ShareWebControl</td>
+<td>暂未发现</td>
+</tr>
+<tr>
+<td>3</td>
+<td>单例WebView</td>
+<td>页面</td>
+<td>APage + ShareWebView</td>
+<td>Flutter因无法插入视图直接不适用</td>
+</tr>
+<tr>
+<td>4</td>
+<td>全局WebView 用法1</td>
+<td>弹窗</td>
+<td>ShareWebView</td>
+<td>页面返回</td>
+</tr>
+<tr>
+<td>5</td>
+<td>全局WebView 用法2</td>
+<td>假页面</td>
+<td>AWebPlaceholderPage+ShareWebView</td>
+<td>页面返回</td>
+</tr>
+</tbody>
+</table>
+<p>重新梳理各方案特性：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>传统方法<br>页面</th>
+<th>单例WebControl<br>页面</th>
+<th>单例WebView<br>页面</th>
+<th>全局WebView <br>弹窗</th>
+<th>全局WebView<br>假页面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>附着物</td>
+<td>页面</td>
+<td>页面</td>
+<td>页面</td>
+<td>视图</td>
+<td>视图</td>
+</tr>
+<tr>
+<td>语言适用性</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>进出可系统控制</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>侧滑返回系统控制</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌Flutter因无法插入视图直接不适用</td>
+<td>❌</td>
+<td>🚗侧滑会先看到白屏</td>
+</tr>
+<tr>
+<td>重进可免重加载</td>
+<td>❌重进重载</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>下面我们按WebView的存在形式，对WebView的方案进行各自的详细说明。</p>
+<h2 id="三、WebView方案之是单页面"><a href="#三、WebView方案之是单页面" class="headerlink" title="三、WebView方案之是单页面"></a>三、WebView方案之是单页面</h2><h3 id="1、传统：APage-AWebView-AControl"><a href="#1、传统：APage-AWebView-AControl" class="headerlink" title="1、传统：APage + AWebView + AControl"></a>1、传统：APage + AWebView + AControl</h3><p>✅进出</p>
+<p>✅侧滑返回</p>
+<p>❌重进入游戏加载重复</p>
+<h3 id="2、webView视图”单例”—Flutter无效"><a href="#2、webView视图”单例”—Flutter无效" class="headerlink" title="2、webView视图”单例”—Flutter无效"></a>2、webView视图”单例”—Flutter无效</h3><p><strong>🚗：Flutter因无法对视图树进行视图插入直接不适用。</strong></p>
+<p>不同地方共用一个webView视图（）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">APage.addSubView(shareWebView);</span><br><span class="line">BPage.addSubView(shareWebView);</span><br><span class="line">CPage.addSubView(shareWebView);</span><br></pre></td></tr></table></figure>
+<p>区别：全局webView：所有地方都使用同一个地方的webview。</p>
+<h3 id="3、webViewControl-单例"><a href="#3、webViewControl-单例" class="headerlink" title="3、webViewControl 单例"></a>3、webViewControl 单例</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类似 player 的 control()</span></span><br><span class="line">webView1.control = shareControl;</span><br><span class="line">APage.addSubView(webView1);</span><br><span class="line"></span><br><span class="line">webView2.control = shareControl;</span><br><span class="line">BPage.addSubView(webView2);</span><br><span class="line"></span><br><span class="line">webView3.control = shareControl;</span><br><span class="line">CPage.addSubView(webView3)</span><br><span class="line"> </span><br><span class="line">  </span><br><span class="line">build() &#123;</span><br><span class="line">  <span class="comment">//return shareWebView(); // ❌</span></span><br><span class="line">	<span class="keyword">return</span> webViewWidget(control: shareControl)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、WebView方案之是全局"><a href="#四、WebView方案之是全局" class="headerlink" title="四、WebView方案之是全局"></a>四、WebView方案之是全局</h2><h3 id="1、直接弹窗"><a href="#1、直接弹窗" class="headerlink" title="1、直接弹窗"></a>1、直接弹窗</h3><p>在Flutter上，以Overlay的方式进行全局WebView的显示时候，底部页面仍会进行相应渲染事项，即仍占用CPU、GPU。</p>
+<p>原因：轮播图、gif动画的渲染在弹出弹窗后，并未停止。</p>
+<p>🚄优化：显示游戏时候，轮播图停止、gif动画停止（类似隐藏游戏的时候，游戏定时器及渲染关闭）。</p>
+<h3 id="2、新页面-弹窗"><a href="#2、新页面-弹窗" class="headerlink" title="2、新页面+弹窗"></a>2、新页面+弹窗</h3><p>目的：通过新页面来作为路由页。</p>
+<h4 id="2-1、显示方式：先显示全局webView视图，再弹出新页面"><a href="#2-1、显示方式：先显示全局webView视图，再弹出新页面" class="headerlink" title="2.1、显示方式：先显示全局webView视图，再弹出新页面"></a>2.1、显示方式：先显示全局webView视图，再弹出新页面</h4><p>若先弹出新页面再显示全局webView视图，页面会有新页面的假白屏问题。所以，应该是先显示再弹出。</p>
+<h4 id="2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"><a href="#2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图" class="headerlink" title="2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"></a>2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图</h4><p>同理若先隐藏全局webView视图再关闭新页面，页面会有新页面的假白屏问题。所以，应该是先关闭再隐藏。</p>
+<h4 id="2-3、隐藏之进入新页面：直接进入新页面。"><a href="#2-3、隐藏之进入新页面：直接进入新页面。" class="headerlink" title="2.3、隐藏之进入新页面：直接进入新页面。"></a>2.3、隐藏之进入新页面：直接进入新页面。</h4><p>以从全局webView视图进入一个app页面。若进入新页面是先关闭全局webView视图，再进入新页面，则从新页面返回的时候，返回位置会错乱（如果为了不错乱，则你必须自己判断返回到哪）。所以应该直接进入新页面。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" data-id="cm121y2pw0156qar4hvj3e0fm" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li></ul>
+
     </footer>
   </div>
   
@@ -972,7 +1040,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -985,23 +1053,23 @@
       <ul>
         
           <li>
+            <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/">(no title)</a>
+          </li>
+        
+          <li>
             <a href="/Architecture架构/监控相关/日志系统/">日志系统</a>
           </li>
         
           <li>
             <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/总目录/">总目录</a>
-          </li>
-        
-          <li>
-            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
           </li>
         
       </ul>
