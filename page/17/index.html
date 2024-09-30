@@ -72,6 +72,91 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/性能相关/编译优化-hmap" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/性能相关/编译优化-hmap/" class="article-date">
+  <time datetime="2021-11-24T01:27:20.000Z" itemprop="datePublished">2021-11-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/性能相关/编译优化-hmap/">编译优化hmap</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="编译优化hmap"><a href="#编译优化hmap" class="headerlink" title="编译优化hmap"></a>编译优化hmap</h1><p>[toc]</p>
+<h2 id="一、查看编译时间"><a href="#一、查看编译时间" class="headerlink" title="一、查看编译时间"></a>一、查看编译时间</h2><p>Clean后，执行Command+B，查看编译时间为24.0seconds</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124154515792.png" alt="image-20211124154515792" style="zoom: 33%;"></p>
+<p>而如果编译后，不Clean，继续执行编译，即使用之前的编译缓存，得到的新的编译时间为0.6seconds</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124154752653.png" alt="image-20211124154752653"></p>
+<h2 id="二、hmap优化的结果"><a href="#二、hmap优化的结果" class="headerlink" title="二、hmap优化的结果"></a>二、hmap优化的结果</h2><p>系统的Pods中Headers里有Public和Private目录：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124155017822.png" alt="image-20211124155017822"></p>
+<p>使用 plugin ‘cocoapods-hmap-prebuilt’ 后</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124155617317.png" alt="image-20211124155617317" style="zoom: 50%;"></p>
+<p>在Pods中Headers里会多出一个HMap目录，里面的文件为hamp，如下截图所示：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124155527016.png" alt="image-20211124155527016"></p>
+<p>此时，我们重新Clean，然后编译，得到的优化后的编译时间为16.8seconds</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124155414548.png" alt="image-20211124155414548"></p>
+<p>如果编译后，不Clean，继续执行编译，得到的时间为0.5seconds，也比之前的0.6seconds短</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124155945171.png" alt="image-20211124155945171"></p>
+<h2 id="三、hmap优化怎么使用"><a href="#三、hmap优化怎么使用" class="headerlink" title="三、hmap优化怎么使用"></a>三、hmap优化怎么使用</h2><p>我们直接使用 <a href="https://rubygems.org/gems/cocoapods-hmap-prebuilt/" target="_blank" rel="noopener">cocoapods-hmap-prebuilt</a></p>
+<h3 id="1、cocoapods-hmap-prebuilt的使用方法"><a href="#1、cocoapods-hmap-prebuilt的使用方法" class="headerlink" title="1、cocoapods-hmap-prebuilt的使用方法"></a>1、cocoapods-hmap-prebuilt的使用方法</h3><p>直接在你的Podfile中，添加以下一行代码就行</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># this is part of Podfile</span></span><br><span class="line">target <span class="string">'XXX'</span> <span class="keyword">do</span></span><br><span class="line">  plugin <span class="string">'cocoapods-hmap-prebuilt'</span>	<span class="comment"># 添加此行代码就行</span></span><br><span class="line">  pod <span class="string">'XXX'</span></span><br><span class="line">  ...</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+<p>之后，你和平时一样执行pod install就行。</p>
+<h3 id="2、安装cocoapods-hmap-prebuilt"><a href="#2、安装cocoapods-hmap-prebuilt" class="headerlink" title="2、安装cocoapods-hmap-prebuilt"></a>2、安装cocoapods-hmap-prebuilt</h3><p>如果你没安装<code>cocoapods-hmap-prebuilt</code>，则会在执行pod install的时候，发生如下错误：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124161907639.png" alt="image-20211124161907639"></p>
+<p>所以请先安装，安装方法如下：</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gem install cocoapods-hmap-prebuilt</span><br></pre></td></tr></table></figure>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124162055386.png" alt="image-20211124162055386"></p>
+<p>之后，你和平时一样执行pod install就行，执行过程中，会多出如下输出：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124165627186.png" alt="image-20211124165627186"></p>
+<h3 id="三、coapods-hmap-prebuilt介绍"><a href="#三、coapods-hmap-prebuilt介绍" class="headerlink" title="三、coapods-hmap-prebuilt介绍"></a>三、coapods-hmap-prebuilt介绍</h3><p>以下内容摘自：<a href="https://tech.meituan.com/2021/02/25/cocoapods-hmap-prebuilt.html" target="_blank" rel="noopener">一款可以让大型iOS工程编译速度提升50%的工具</a></p>
+<blockquote>
+<p>cocoapods-hmap-prebuilt 是美团平台迭代组自研的一款 cocoapods 插件，以 <a href="https://clang.llvm.org/doxygen/classclang_1_1HeaderMap.html" target="_blank" rel="noopener">Header Map 技术</a> 为基础，进一步提升代码的编译速度，完善头文件的搜索机制。</p>
+</blockquote>
+<h2 id="四、Header-Map-是个啥？"><a href="#四、Header-Map-是个啥？" class="headerlink" title="四、Header Map 是个啥？"></a>四、Header Map 是个啥？</h2><p><strong>Header Map是二进制文件，其包含头文件和头文件路径的映射表。</strong></p>
+<p><strong>其核心功能是让编译器能够找到相应的头文件的位置，相较于使用header search path提供的路径查找会快很多</strong></p>
+<h3 id="1、Hmap在编译后的文件路径"><a href="#1、Hmap在编译后的文件路径" class="headerlink" title="1、Hmap在编译后的文件路径"></a>1、Hmap在编译后的文件路径</h3><p>我们编译后，通过Products，找到生成的app的目录，如下图：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124165159982.png" alt="image-20211124165159982"></p>
+<p>在其中，我们找到<strong>Intermediates.noindex目录</strong>下的<strong>Pod.build</strong></p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124165909673.png" alt="image-20211124165909673"></p>
+<h3 id="2、hmap查看工具"><a href="#2、hmap查看工具" class="headerlink" title="2、hmap查看工具"></a>2、hmap查看工具</h3><p>我们通过<a href="https://github.com/milend/hmap" target="_blank" rel="noopener">hmap查看工具</a>来输出下hmap文件的内容。</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hmap print Masonry-all-target-headers.hmap</span><br></pre></td></tr></table></figure>
+<p>输出内容如下：</p>
+<p><img src="/iOS/性能相关/编译优化-hmap/image-20211124170212021.png" alt="image-20211124170212021"></p>
+<p>附：该hmap工具的安装方法，如其github上的How to use一样，使用如下一行命令，在终端中执行即可。</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install milend/taps/hmap</span><br></pre></td></tr></table></figure>
+<h2 id="五、Xcode-编译的其他相关知识"><a href="#五、Xcode-编译的其他相关知识" class="headerlink" title="五、Xcode 编译的其他相关知识"></a>五、Xcode 编译的其他相关知识</h2><p><a href="http://events.jianshu.io/p/4e0a5a18f150" target="_blank" rel="noopener">Xcode 编译相关</a></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/性能相关/编译优化-hmap/" data-id="cm1p7o80q00m4xsr4eigsxo77" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/功能性技术/iOS功能-Transform" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/功能性技术/iOS功能-Transform/" class="article-date">
@@ -103,7 +188,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/功能性技术/iOS功能-Transform/" data-id="cm121y17100lnqar4sya3by5p" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/功能性技术/iOS功能-Transform/" data-id="cm1p7o80k00l4xsr4vv5pkw4h" class="article-share-link">Share</a>
       
       
     </footer>
@@ -161,7 +246,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Commit规范/" data-id="cm121y18600paqar4awcdp15i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/代码管理/Git/Git Commit规范/" data-id="cm1p7o81800o9xsr4yktzckjm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Git/">Git</a></li></ul>
@@ -256,7 +341,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/iconFont/iconFont/" data-id="cm121y19200t7qar4iown8qfv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/iconFont/iconFont/" data-id="cm1p7o82900s7xsr4mgztvjtu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/文档管理/">文档管理</a></li></ul>
@@ -400,7 +485,128 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/Mock基础知识/" data-id="cm121y19400thqar4gsebxclc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/Mock基础知识/" data-id="cm1p7o82400rxxsr491386x0p" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/yapi/yapi的使用之入门篇" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/yapi/yapi的使用之入门篇/" class="article-date">
+  <time datetime="2020-11-02T01:03:27.000Z" itemprop="datePublished">2020-11-02</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/yapi/yapi的使用之入门篇/">yapi的使用之入门篇</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="yapi的使用之入门篇"><a href="#yapi的使用之入门篇" class="headerlink" title="yapi的使用之入门篇"></a>yapi的使用之入门篇</h1><h2 id="一、模拟接口"><a href="#一、模拟接口" class="headerlink" title="一、模拟接口"></a>一、模拟接口</h2><p>如果你已在<a href="http://121.41.91.92:3000/" target="_blank" rel="noopener">http://121.41.91.92:3000/</a>上创建了对应接口，直接在接口path后，添加<code>.toSimulateApi()</code>实现，你重新请求的时候调用的是你模拟的api。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">"/account/wallet/virtualAsset/page"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toSimulateApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">"/account/wallet/virtualAsset/page"</span>.toSimulateApi();</span><br></pre></td></tr></table></figure>
+<p>如果你未创建过接口，请查看如下接口的创建方法</p>
+<h2 id="二、新建接口"><a href="#二、新建接口" class="headerlink" title="二、新建接口"></a>二、新建接口</h2><ul>
+<li>点击左侧接口分组右侧的菜单按钮，选择 <code>添加接口</code>，或者点击接口列表右上角的 <code>添加接口</code>。</li>
+</ul>
+<p><img src="https://hellosean1025.github.io/yapi/documents/images/usage/api_add_btn.png" alt="img"></p>
+<ul>
+<li>选择接口分类，输入接口名称和接口路径，点击 <code>提交</code>。</li>
+</ul>
+<p><img src="https://hellosean1025.github.io/yapi/documents/images/usage/api_add_panel.png" alt="img"></p>
+<ul>
+<li>恭喜你！创建了第一个YApi的接口，你可以看到在左侧看到接口名称，右侧有该接口的信息预览。</li>
+</ul>
+<h2 id="三、注册"><a href="#三、注册" class="headerlink" title="三、注册"></a>三、注册</h2><p>登录<a href="http://121.41.91.92:3000/" target="_blank" rel="noopener">http://121.41.91.92:3000/</a>进行注册，注册成功，管理员添加项目权限后，即可查看对应接口列表。如：</p>
+<p><img src="/实用工具/yapi/yapi的使用之入门篇/yapi的使用之入门/image-20211222151919051.png" alt="image-20211222151919051"></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之入门篇/" data-id="cm1p7o82500s4xsr4q5i29gc0" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/yapi/yapi的使用之Mock篇" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/yapi/yapi的使用之Mock篇/" class="article-date">
+  <time datetime="2020-11-02T01:03:27.000Z" itemprop="datePublished">2020-11-02</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/yapi/yapi的使用之Mock篇/">yapi的使用之Mock篇</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="yapi的使用之Mock篇"><a href="#yapi的使用之Mock篇" class="headerlink" title="yapi的使用之Mock篇"></a>yapi的使用之Mock篇</h1><p>参考文章：</p>
+<ul>
+<li><a href="https://blog.csdn.net/qmhball/article/details/86719671" target="_blank" rel="noopener">yapi中使用json-schema mock数据</a></li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Mock基础知识请查看<a href="./Mock基础知识.md">本网站中的Mock知识篇</a></p>
+<p>更多mock语法：请查看<a href="http://mockjs.com/examples.html#Text" target="_blank" rel="noopener">官网mock.js中的示例</a></p>
+<h2 id="一、Mock数据个数"><a href="#一、Mock数据个数" class="headerlink" title="一、Mock数据个数"></a>一、Mock数据个数</h2><p>指定数组返回的最小和最大个数：</p>
+<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_arraycount1.png" alt="yapi_mock_arraycount1" style="zoom: 33%;"></p>
+<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_arraycount2.png" alt="yapi_mock_arraycount2" style="zoom:33%;"></p>
+<h2 id="二、Mock值"><a href="#二、Mock值" class="headerlink" title="二、Mock值"></a>二、Mock值</h2><h3 id="1、名字"><a href="#1、名字" class="headerlink" title="1、名字"></a>1、名字</h3><p>定义如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 中文名</span></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">    cjtsName: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> Random.cname();</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">或者直接 @cname</span><br></pre></td></tr></table></figure>
+<h3 id="2、Type-Mock"><a href="#2、Type-Mock" class="headerlink" title="2、Type Mock"></a>2、Type Mock</h3><p>定义如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重要日子的信息内容</span></span><br><span class="line"><span class="keyword">var</span> allFestival =</span><br><span class="line">        <span class="string">'1.1元旦、1.23春节、2.14情人节、3.8 妇女节、5.1 劳动节、5.4青年节、6.1儿童节、7.1建党节、8.1建军节、9.10教师节、10.1国庆节、12.25圣诞节'</span>;</span><br><span class="line"><span class="keyword">var</span> festivals = allFestival.split(<span class="string">'、'</span>);</span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">  	<span class="comment">// 重要日子的信息内容</span></span><br><span class="line">    cjtsFestivaDateMessage: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(festivals)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> allImportantDay =</span><br><span class="line">        <span class="string">'1.1元旦、7天后生日、1.23春节、2.14情人节、3.8 妇女节、5.1 劳动节、5.4青年节、6.1儿童节、7.1建党节、8.1建军节、9.10教师节、10.1国庆节、12.25圣诞节'</span>;</span><br></pre></td></tr></table></figure>
+<p>常规：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 性别类型</span></span><br><span class="line"><span class="keyword">var</span> sexTypes = [</span><br><span class="line">    <span class="number">0</span>, <span class="comment">// 未知/未设置</span></span><br><span class="line">    <span class="number">1</span>, <span class="comment">// 男</span></span><br><span class="line">    <span class="number">2</span>, <span class="comment">// 女</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 订单状态</span></span><br><span class="line"><span class="keyword">var</span> orderTypes = [</span><br><span class="line">    <span class="number">10</span>, <span class="comment">// 待付款(取消订单+付款)</span></span><br><span class="line">    <span class="number">11</span>, <span class="comment">// 待送达(取消订单)</span></span><br><span class="line">    <span class="number">12</span>, <span class="comment">// 待送出(取消订单+催一下)</span></span><br><span class="line">    <span class="number">13</span>, <span class="comment">// 好礼在途(好礼进度)</span></span><br><span class="line">    <span class="number">14</span>, <span class="comment">// 好礼在途(好礼进度)</span></span><br><span class="line">  	<span class="number">15</span>, <span class="comment">// 好礼送达(申请售后+晒单)</span></span><br><span class="line">  	<span class="number">16</span>, <span class="comment">// 交易关闭(删除订单)</span></span><br><span class="line">    <span class="number">17</span>, <span class="comment">// 好礼送达(申请售后+晒单)</span></span><br><span class="line">  	<span class="number">18</span>, <span class="comment">// 交易关闭(删除订单)</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 关注方向</span></span><br><span class="line"><span class="keyword">var</span> friendshipeTypes = [</span><br><span class="line">    <span class="number">0</span>, <span class="comment">// 未关注</span></span><br><span class="line">    <span class="number">1</span>, <span class="comment">// 已关注</span></span><br><span class="line">    <span class="number">2</span>, <span class="comment">// 互相关注</span></span><br><span class="line">    <span class="number">3</span>, <span class="comment">// 悄悄关注</span></span><br><span class="line">];</span><br><span class="line"><span class="comment">// 重要日子类型</span></span><br><span class="line"><span class="keyword">var</span> importantDateTypes = [</span><br><span class="line">  <span class="string">'marry'</span>, <span class="comment">// 结婚</span></span><br><span class="line">  <span class="string">'birthday'</span>, <span class="comment">//生日</span></span><br><span class="line">  <span class="string">'festival'</span>, <span class="comment">//节日</span></span><br><span class="line">  <span class="string">'anniversaryDay'</span>, <span class="comment">//纪念日</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 商品类型</span></span><br><span class="line"><span class="keyword">var</span> goodBusinessTypes = [</span><br><span class="line">    <span class="string">'goods'</span>, <span class="comment">// 正常的商品</span></span><br><span class="line">    <span class="string">'wish'</span>, <span class="comment">// 许愿商品</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">  	<span class="comment">// 性别类型</span></span><br><span class="line">    cjtsSexType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(sexTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 订单状态</span></span><br><span class="line">    cjtsOrderType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(orderTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  	<span class="comment">// 商品类型</span></span><br><span class="line">    goodBusinessType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(goodBusinessTypes)</span><br><span class="line">    &#125;,</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 好友关系</span></span><br><span class="line">  	cjtsFriendshipeType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(friendshipeTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  	<span class="comment">// 重要日子类型关系</span></span><br><span class="line">  	cjtsImportantDateType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(importantDateTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 价格(string或float):60.111/88.12345</span></span><br><span class="line">    cjtsIPrice: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">      	<span class="comment">// Random.float( min, max, dmin, dmax )</span></span><br><span class="line">        <span class="keyword">return</span> Random.float(<span class="number">60</span>, <span class="number">100</span>, <span class="number">3</span>, <span class="number">5</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 数量(string或float):0-100000</span></span><br><span class="line">    cjtsICount: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">      	<span class="comment">// Random.integer( min, max )</span></span><br><span class="line">        <span class="keyword">return</span> Random.integer(<span class="number">0</span>, <span class="number">100000</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h3 id="3、图片Mock"><a href="#3、图片Mock" class="headerlink" title="3、图片Mock"></a>3、图片Mock</h3><p>定义如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> imageUrls = [</span><br><span class="line">    <span class="string">"https://cdn3-banquan.ituchong.com/weili/l/903088213443084399.jpeg"</span>,</span><br><span class="line">    <span class="string">"https://cdn3-banquan.ituchong.com/weili/l/902924454934609986.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/914495302984269898.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/1113166746308968471.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1113170740519632955.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn3-banquan.ituchong.com/weili/l/1068890057315319833.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1016768155267367042.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1026741765014028478.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/967833239214751792.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/966827220441759777.jpeg"</span>,</span><br><span class="line">  	</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/919795258271596547.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=355970603,3245667099&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn3-banquan.ituchong.com/weili/l/1073188615191658529.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/57461353849430061.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/1017308169985458197.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/0a/3c/373880000.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/76/d4/324995286.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1892357736,3979425284&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/bd/f0/241894345.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/41/4f/134317211.jpg"</span>,</span><br><span class="line">  	</span><br><span class="line">  	<span class="string">"https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=3155622504,3922873140&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/5b/9c/824812856.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/5a/8d/381503287.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/b6/22/164126642.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/df/26/271782228.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://alifei04.cfp.cn/creative/vcg/veer/800water/veer-163722653.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://alifei01.cfp.cn/creative/vcg/veer/800water/veer-132426620.jpg"</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">    cjtsImageUrl: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// return "http://1.jpg"</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(imageUrls)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p><strong>特别注意，不能有下划线等特殊符号，如定义为cjts_imageUrl，使用@cjts_imageUrl，则不能够正确使用到。应该为定义为cjtsImageUrl，使用@cjtsImageUrl。</strong></p>
+<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_imageUrl.png" alt="image-20201121190315325"></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之Mock篇/" data-id="cm1p7o82a00saxsr4qrwsjya4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -775,128 +981,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之Mock篇2-类型修改/" data-id="cm121y19500tlqar4tg9tp1oh" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/yapi/yapi的使用之Mock篇" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/yapi/yapi的使用之Mock篇/" class="article-date">
-  <time datetime="2020-11-02T01:03:27.000Z" itemprop="datePublished">2020-11-02</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/yapi/yapi的使用之Mock篇/">yapi的使用之Mock篇</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="yapi的使用之Mock篇"><a href="#yapi的使用之Mock篇" class="headerlink" title="yapi的使用之Mock篇"></a>yapi的使用之Mock篇</h1><p>参考文章：</p>
-<ul>
-<li><a href="https://blog.csdn.net/qmhball/article/details/86719671" target="_blank" rel="noopener">yapi中使用json-schema mock数据</a></li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Mock基础知识请查看<a href="./Mock基础知识.md">本网站中的Mock知识篇</a></p>
-<p>更多mock语法：请查看<a href="http://mockjs.com/examples.html#Text" target="_blank" rel="noopener">官网mock.js中的示例</a></p>
-<h2 id="一、Mock数据个数"><a href="#一、Mock数据个数" class="headerlink" title="一、Mock数据个数"></a>一、Mock数据个数</h2><p>指定数组返回的最小和最大个数：</p>
-<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_arraycount1.png" alt="yapi_mock_arraycount1" style="zoom: 33%;"></p>
-<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_arraycount2.png" alt="yapi_mock_arraycount2" style="zoom:33%;"></p>
-<h2 id="二、Mock值"><a href="#二、Mock值" class="headerlink" title="二、Mock值"></a>二、Mock值</h2><h3 id="1、名字"><a href="#1、名字" class="headerlink" title="1、名字"></a>1、名字</h3><p>定义如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 中文名</span></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">    cjtsName: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> Random.cname();</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">或者直接 @cname</span><br></pre></td></tr></table></figure>
-<h3 id="2、Type-Mock"><a href="#2、Type-Mock" class="headerlink" title="2、Type Mock"></a>2、Type Mock</h3><p>定义如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重要日子的信息内容</span></span><br><span class="line"><span class="keyword">var</span> allFestival =</span><br><span class="line">        <span class="string">'1.1元旦、1.23春节、2.14情人节、3.8 妇女节、5.1 劳动节、5.4青年节、6.1儿童节、7.1建党节、8.1建军节、9.10教师节、10.1国庆节、12.25圣诞节'</span>;</span><br><span class="line"><span class="keyword">var</span> festivals = allFestival.split(<span class="string">'、'</span>);</span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">  	<span class="comment">// 重要日子的信息内容</span></span><br><span class="line">    cjtsFestivaDateMessage: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(festivals)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> allImportantDay =</span><br><span class="line">        <span class="string">'1.1元旦、7天后生日、1.23春节、2.14情人节、3.8 妇女节、5.1 劳动节、5.4青年节、6.1儿童节、7.1建党节、8.1建军节、9.10教师节、10.1国庆节、12.25圣诞节'</span>;</span><br></pre></td></tr></table></figure>
-<p>常规：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 性别类型</span></span><br><span class="line"><span class="keyword">var</span> sexTypes = [</span><br><span class="line">    <span class="number">0</span>, <span class="comment">// 未知/未设置</span></span><br><span class="line">    <span class="number">1</span>, <span class="comment">// 男</span></span><br><span class="line">    <span class="number">2</span>, <span class="comment">// 女</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 订单状态</span></span><br><span class="line"><span class="keyword">var</span> orderTypes = [</span><br><span class="line">    <span class="number">10</span>, <span class="comment">// 待付款(取消订单+付款)</span></span><br><span class="line">    <span class="number">11</span>, <span class="comment">// 待送达(取消订单)</span></span><br><span class="line">    <span class="number">12</span>, <span class="comment">// 待送出(取消订单+催一下)</span></span><br><span class="line">    <span class="number">13</span>, <span class="comment">// 好礼在途(好礼进度)</span></span><br><span class="line">    <span class="number">14</span>, <span class="comment">// 好礼在途(好礼进度)</span></span><br><span class="line">  	<span class="number">15</span>, <span class="comment">// 好礼送达(申请售后+晒单)</span></span><br><span class="line">  	<span class="number">16</span>, <span class="comment">// 交易关闭(删除订单)</span></span><br><span class="line">    <span class="number">17</span>, <span class="comment">// 好礼送达(申请售后+晒单)</span></span><br><span class="line">  	<span class="number">18</span>, <span class="comment">// 交易关闭(删除订单)</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 关注方向</span></span><br><span class="line"><span class="keyword">var</span> friendshipeTypes = [</span><br><span class="line">    <span class="number">0</span>, <span class="comment">// 未关注</span></span><br><span class="line">    <span class="number">1</span>, <span class="comment">// 已关注</span></span><br><span class="line">    <span class="number">2</span>, <span class="comment">// 互相关注</span></span><br><span class="line">    <span class="number">3</span>, <span class="comment">// 悄悄关注</span></span><br><span class="line">];</span><br><span class="line"><span class="comment">// 重要日子类型</span></span><br><span class="line"><span class="keyword">var</span> importantDateTypes = [</span><br><span class="line">  <span class="string">'marry'</span>, <span class="comment">// 结婚</span></span><br><span class="line">  <span class="string">'birthday'</span>, <span class="comment">//生日</span></span><br><span class="line">  <span class="string">'festival'</span>, <span class="comment">//节日</span></span><br><span class="line">  <span class="string">'anniversaryDay'</span>, <span class="comment">//纪念日</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 商品类型</span></span><br><span class="line"><span class="keyword">var</span> goodBusinessTypes = [</span><br><span class="line">    <span class="string">'goods'</span>, <span class="comment">// 正常的商品</span></span><br><span class="line">    <span class="string">'wish'</span>, <span class="comment">// 许愿商品</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">  	<span class="comment">// 性别类型</span></span><br><span class="line">    cjtsSexType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(sexTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 订单状态</span></span><br><span class="line">    cjtsOrderType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(orderTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  	<span class="comment">// 商品类型</span></span><br><span class="line">    goodBusinessType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(goodBusinessTypes)</span><br><span class="line">    &#125;,</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 好友关系</span></span><br><span class="line">  	cjtsFriendshipeType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(friendshipeTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">  	<span class="comment">// 重要日子类型关系</span></span><br><span class="line">  	cjtsImportantDateType: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(importantDateTypes)</span><br><span class="line">    &#125;,</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 价格(string或float):60.111/88.12345</span></span><br><span class="line">    cjtsIPrice: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">      	<span class="comment">// Random.float( min, max, dmin, dmax )</span></span><br><span class="line">        <span class="keyword">return</span> Random.float(<span class="number">60</span>, <span class="number">100</span>, <span class="number">3</span>, <span class="number">5</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 数量(string或float):0-100000</span></span><br><span class="line">    cjtsICount: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">      	<span class="comment">// Random.integer( min, max )</span></span><br><span class="line">        <span class="keyword">return</span> Random.integer(<span class="number">0</span>, <span class="number">100000</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-<h3 id="3、图片Mock"><a href="#3、图片Mock" class="headerlink" title="3、图片Mock"></a>3、图片Mock</h3><p>定义如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> imageUrls = [</span><br><span class="line">    <span class="string">"https://cdn3-banquan.ituchong.com/weili/l/903088213443084399.jpeg"</span>,</span><br><span class="line">    <span class="string">"https://cdn3-banquan.ituchong.com/weili/l/902924454934609986.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/914495302984269898.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/1113166746308968471.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1113170740519632955.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn3-banquan.ituchong.com/weili/l/1068890057315319833.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1016768155267367042.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/1026741765014028478.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn9-banquan.ituchong.com/weili/l/967833239214751792.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/966827220441759777.jpeg"</span>,</span><br><span class="line">  	</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/919795258271596547.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=355970603,3245667099&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn3-banquan.ituchong.com/weili/l/1073188615191658529.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/57461353849430061.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://cdn6-banquan.ituchong.com/weili/l/1017308169985458197.jpeg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/0a/3c/373880000.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/76/d4/324995286.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1892357736,3979425284&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/bd/f0/241894345.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/41/4f/134317211.jpg"</span>,</span><br><span class="line">  	</span><br><span class="line">  	<span class="string">"https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=3155622504,3922873140&amp;fm=26&amp;gp=0.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/5b/9c/824812856.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/5a/8d/381503287.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/b6/22/164126642.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://img1.droitstock.com/middleW/df/26/271782228.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://alifei04.cfp.cn/creative/vcg/veer/800water/veer-163722653.jpg"</span>,</span><br><span class="line">  	<span class="string">"https://alifei01.cfp.cn/creative/vcg/veer/800water/veer-132426620.jpg"</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">Random.extend(&#123;</span><br><span class="line">    cjtsImageUrl: <span class="function"><span class="keyword">function</span>(<span class="params">params</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// return "http://1.jpg"</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.pick(imageUrls)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-<p><strong>特别注意，不能有下划线等特殊符号，如定义为cjts_imageUrl，使用@cjts_imageUrl，则不能够正确使用到。应该为定义为cjtsImageUrl，使用@cjtsImageUrl。</strong></p>
-<p><img src="/实用工具/yapi/yapi的使用之Mock篇/yapi_mock_imageUrl.png" alt="image-20201121190315325"></p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之Mock篇/" data-id="cm121y19600toqar4r1thghw9" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/yapi/yapi的使用之入门篇" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/yapi/yapi的使用之入门篇/" class="article-date">
-  <time datetime="2020-11-02T01:03:27.000Z" itemprop="datePublished">2020-11-02</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/yapi/yapi的使用之入门篇/">yapi的使用之入门篇</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="yapi的使用之入门篇"><a href="#yapi的使用之入门篇" class="headerlink" title="yapi的使用之入门篇"></a>yapi的使用之入门篇</h1><h2 id="一、模拟接口"><a href="#一、模拟接口" class="headerlink" title="一、模拟接口"></a>一、模拟接口</h2><p>如果你已在<a href="http://121.41.91.92:3000/" target="_blank" rel="noopener">http://121.41.91.92:3000/</a>上创建了对应接口，直接在接口path后，添加<code>.toSimulateApi()</code>实现，你重新请求的时候调用的是你模拟的api。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">"/account/wallet/virtualAsset/page"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toSimulateApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">"/account/wallet/virtualAsset/page"</span>.toSimulateApi();</span><br></pre></td></tr></table></figure>
-<p>如果你未创建过接口，请查看如下接口的创建方法</p>
-<h2 id="二、新建接口"><a href="#二、新建接口" class="headerlink" title="二、新建接口"></a>二、新建接口</h2><ul>
-<li>点击左侧接口分组右侧的菜单按钮，选择 <code>添加接口</code>，或者点击接口列表右上角的 <code>添加接口</code>。</li>
-</ul>
-<p><img src="https://hellosean1025.github.io/yapi/documents/images/usage/api_add_btn.png" alt="img"></p>
-<ul>
-<li>选择接口分类，输入接口名称和接口路径，点击 <code>提交</code>。</li>
-</ul>
-<p><img src="https://hellosean1025.github.io/yapi/documents/images/usage/api_add_panel.png" alt="img"></p>
-<ul>
-<li>恭喜你！创建了第一个YApi的接口，你可以看到在左侧看到接口名称，右侧有该接口的信息预览。</li>
-</ul>
-<h2 id="三、注册"><a href="#三、注册" class="headerlink" title="三、注册"></a>三、注册</h2><p>登录<a href="http://121.41.91.92:3000/" target="_blank" rel="noopener">http://121.41.91.92:3000/</a>进行注册，注册成功，管理员添加项目权限后，即可查看对应接口列表。如：</p>
-<p><img src="/实用工具/yapi/yapi的使用之入门篇/yapi的使用之入门/image-20211222151919051.png" alt="image-20211222151919051"></p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之入门篇/" data-id="cm121y19800tvqar4mkxdd8zq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之Mock篇2-类型修改/" data-id="cm1p7o82b00sdxsr4es6j5d2h" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -959,7 +1044,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之设置篇/" data-id="cm121y19700trqar45nm65x7o" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的使用之设置篇/" data-id="cm1p7o82c00sjxsr45oebo5km" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -1115,50 +1200,11 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/" data-id="cm121y3h6019eqar4uxieq33x" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage③解码/" data-id="cm1p7oafk017yxsr44ts6i7e1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
 
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter项目环境切换" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter项目环境切换/" class="article-date">
-  <time datetime="2020-08-24T06:26:12.000Z" itemprop="datePublished">2020-08-24</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter项目环境切换/">Flutter项目环境切换</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<p>见我的另一篇文章：《<a href=".,/../../../Architecture架构/开发工具.md">开发工具.md</a>》</p>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>如图，长按”Hello”所在的文字区域，进入环境切换界面，进行你想要的环境切换即可。<br><img src="/Flutter/项目实践/Flutter项目环境切换/APP环境切换入口.png" alt="APP环境切换入口" style="zoom:50%;"><img src="/Flutter/项目实践/Flutter项目环境切换/App环境切换界面.png" alt="App环境切换界面" style="zoom:50%;"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter项目环境切换/" data-id="cm121y13q00ghqar4sy06qv0m" class="article-share-link">Share</a>
-      
-      
     </footer>
   </div>
   

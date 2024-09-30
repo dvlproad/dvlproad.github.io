@@ -72,9 +72,9 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" class="article-date">
   <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
 </a>
     
@@ -90,7 +90,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/">SDWebImage①缓存-②缓存原理</a>
     </h1>
   
 
@@ -98,15 +98,33 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+        <p>[toc]</p>
+<h2 id="七、多线程–第三方库SDWebImage"><a href="#七、多线程–第三方库SDWebImage" class="headerlink" title="七、多线程–第三方库SDWebImage"></a>七、多线程–第三方库SDWebImage</h2><p>参考资料：</p>
+<ul>
+<li><a href="http://blog.csdn.net/l_511/article/details/48242793" target="_blank" rel="noopener">ioS开发之多线程– 第三方库SDWebImage</a></li>
+<li><a href="http://blog.csdn.net/kuangdacaikuang/article/details/53332771" target="_blank" rel="noopener">旧版本SDWebImage图解</a></li>
+</ul>
+<p>这个类库提供一个UIImageView类别以支持加载来自网络的远程图片。具有缓存管理、异步下载、同一个URL下载次数控制和优化等特征。</p>
+<h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>SDWebImage 基本思路如下：</p>
+<p><a href="https://blog.csdn.net/zhang7761/article/details/45224917" target="_blank" rel="noopener">SDWebImage基本思路</a></p>
+<p>1 扩展(category) UIImageView，这样写出的代码更整洁</p>
+<p>2 GCD 异步下载 </p>
+<p>3 重用 UITableViewCell 加异步下载会出现图片错位，所以每次 cell 渲染时都要预设一个图片 (placeholder)，</p>
+<p>以覆盖先前由于 cell 重用可能存在的图片, 同时要给 UIImageView 设置 tag 以防止错位。</p>
+<p>4 内存 + 文件 二级缓存， 内存缓存基于 NSCache</p>
+<p>暂时没有考虑 cell 划出屏幕的情况，一是没看明白 SDWebImage 是怎么判断滑出屏幕并 cancel 掉队列中对应的请求的</p>
+<p>二是我觉得用户很多情况下滑下去一般还会滑回来，预加载一下也挺好。坏处是对当前页图片加载性能上有点小影响。</p>
+<h3 id="1、SDWebImage在图片下载及缓存的处理方法"><a href="#1、SDWebImage在图片下载及缓存的处理方法" class="headerlink" title="1、SDWebImage在图片下载及缓存的处理方法"></a>1、SDWebImage在图片下载及缓存的处理方法</h3><p>SDWebImage加载网络图片的原理图分析如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage加载网络图片的原理图分析.jpg" alt="SDWebImage加载网络图片的原理图分析"></p>
+<p>其中图片的获取与存储过程大概如下：<br><img src="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/SDWebImage theory.png" alt="SDWebImage theory"></p>
+<p>大概描述为：<br>注：SDWebImage中的<code>SDWebImageDownloader</code>有使用到GCD相关<code>dispatch_barrier_sync</code><br>1）当我门需要获取网络图片的时候，我们首先需要的便是URl没有URl什么都没有，获得URL后我们SDWebImage实现的并不是直接去请求网路，而是检查图片缓存中有没有和URl相关的图片，如果有则直接返回image，如果没有则进行下一步。</p>
+<p>2）当图片缓存中没有图片时，SDWebImage依旧不会直从网络上获取，而是检查沙盒中是否存在图片，如果存在，则把沙盒中对应的图片存进image缓存中，然后按着第一步的判断进行。</p>
+<p>3）如果沙盒中也不存在，则显示占位图，然后根据图片的下载队列缓存判断是否正在下载，如果下载则等待，避免二次下载。如果不存则创建下载队列，下载完毕后将下载操作从队列中清除，并且将image存入图片缓存中。</p>
+<p>4）刷新UI（当然根据实际情况操作）将image存入沙盒缓存。</p>
+<h4 id="缓存策略的源码解析：SDWebImage-源码解析—缓存策略"><a href="#缓存策略的源码解析：SDWebImage-源码解析—缓存策略" class="headerlink" title="缓存策略的源码解析：SDWebImage 源码解析—缓存策略"></a>缓存策略的源码解析：<a href="https://zhang759740844.github.io/2018/03/03/SDWebImage2/" target="_blank" rel="noopener">SDWebImage 源码解析—缓存策略</a></h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm121y3gm019bqar44lj20b24" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cm1p7oaco017jxsr46ic6soot" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -167,7 +185,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cm121y3hp019hqar4c0ep0woz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cm1p7oada017mxsr4ftdfs6rs" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -247,7 +265,53 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cm121y3j0019nqar4uucqpzdm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cm1p7oaef017sxsr4zjayj561" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1><p>[toc]</p>
+<p><a href="https://blog.csdn.net/applelg/article/details/81293013" target="_blank" rel="noopener">iOS - 主线程调度在应用中的小技巧</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm1p7oaez017vxsr40y218g4u" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -293,7 +357,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm121xzj3002hqar4s4uh6yhu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm1p7o6uz002kxsr4pfj0qhlm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -478,7 +542,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm121y17w00oiqar4me62fz46" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm1p7o80y00nexsr4qn8jrqlz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -535,7 +599,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm121y17x00opqar46uhx7nae" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm1p7o81500nwxsr4cuytohfl" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -619,7 +683,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm121y17z00owqar425biwtf7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm1p7o81600o0xsr40vkw4rz8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -665,76 +729,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm121y18m00rnqar4kgwifbvh" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins上显示二维码图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins上显示二维码图片/" class="article-date">
-  <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">2019-04-24</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins上显示二维码图片/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[TOC]</p>
-<h1 id="Jenkins上显示二维码图片"><a href="#Jenkins上显示二维码图片" class="headerlink" title="Jenkins上显示二维码图片"></a>Jenkins上显示二维码图片</h1><h2 id="一、在Jenkins上显示二维码图片"><a href="#一、在Jenkins上显示二维码图片" class="headerlink" title="一、在Jenkins上显示二维码图片"></a>一、在Jenkins上显示二维码图片</h2><p><a href="https://testerhome.com/topics/19161#" target="_blank" rel="noopener">持续集成 从零开始在 Jenkins 上显示打包二维码</a></p>
-<h3 id="1-安装Jenkins插件"><a href="#1-安装Jenkins插件" class="headerlink" title="1. 安装Jenkins插件"></a>1. 安装Jenkins插件</h3><ul>
-<li><p>进入Jenkins工作台<code>系统管理</code>&gt;<code>插件管理</code>&gt;<code>可选插件</code>&gt;<code>过滤</code>&gt;<code>build-name-setter</code>，勾选对应插件<code>直接安装</code></p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR1.png" alt="showQR1"></p>
-</li>
-<li><p>返回<code>工作台首页</code>，选择一个<code>Build工程</code>&gt;<code>配置</code></p>
-</li>
-<li><p>可以看到<code>构建环境</code>处多了一个<code>Set Build Name</code>的选项，即插件安装成功</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR2.png" alt="showQR2"></p>
-</li>
-</ul>
-<h3 id="2-配置Set-Build-Name插件"><a href="#2-配置Set-Build-Name插件" class="headerlink" title="2. 配置Set Build Name插件"></a>2. 配置<code>Set Build Name</code>插件</h3><p>查看Jekins的环境变量参数，我们可以看到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BUILD_NUMBER</span><br><span class="line">The current build number, such as &quot;153&quot;</span><br><span class="line">BUILD_DISPLAY_NAME</span><br><span class="line">The display name of the current build, which is something like &quot;#153&quot; by default.</span><br></pre></td></tr></table></figure>
-<ul>
-<li><p><code>Set Build Name</code>就是修改这个<code>BUILD_DISPLAY_NAME</code>，默认为<code>#${BUILD_NUMBER}</code></p>
-</li>
-<li><p>Jenkins的默认安全设置，会把所有的输入都当成纯文本，为了使图片链接生效，需要更改一下<code>系统管理</code>&gt;<code>全局安全配置</code>&gt;<code>标记格式器</code>，将<code>纯文本</code>选项改为<code>Safe HTML</code>,保存设置</p>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR3.png" alt="showQR3"></p>
-</li>
-<li><p>点击<code>Set Build Name</code>的高级，会出现<code>Build Description</code>的设置，可以在这里写入一个图片的链接 <code>&lt;img src=&quot;http://ww1.sinaimg.cn/large/007x9vWyly1g2zgykchtmj30a7064dk4.jpg&quot; height=&quot;200&quot; width=&quot;200/&gt;</code></p>
-</li>
-<li><p>Build完成之后即可在Build历史中看到对应的图片链接</p>
-<p><img src="http://ww1.sinaimg.cn/large/007x9vWyly1g2zhbf2iizj30a206kwho.jpg" alt="img"></p>
-</li>
-</ul>
-<p><img src="/实用工具/Jenkins/Jenkins上显示二维码图片/showQR4_update1.png" alt="showQR4_update1"></p>
-<h1 id="End"><a href="#End" class="headerlink" title="End"></a>End</h1>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins上显示二维码图片/" data-id="cm121y18n00rrqar40nhmq3iv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins参数化构建/" data-id="cm1p7o81n00qbxsr4jp8kkxwi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -860,7 +855,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cm121y18p00s2qar49huup9gu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins使用问题常见/" data-id="cm1p7o81o00qfxsr4ast2j6hd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>

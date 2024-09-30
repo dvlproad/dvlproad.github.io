@@ -16,7 +16,7 @@
 <meta property="og:description" content="必备知识架构-数据结构-①nil、isEqual、Hash[toc] 前言：你真的懂isEqual与hash？参考文章：  iOS开发 之 不要告诉我你真的懂isEqual与hash! 哈希算法详解（附带 iOS 开发中实际应用） iOS weak关键字实现原理  eg： 121、NSMutableSet/NSSet中添加对象的时候，就会调用- (NSUInteger)hash方法。2、NSMut">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/1语言/equal.jpg">
-<meta property="og:updated_time" content="2022-03-16T05:35:04.624Z">
+<meta property="og:updated_time" content="2024-09-22T17:13:30.171Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="dvlproadの博客">
 <meta name="twitter:description" content="必备知识架构-数据结构-①nil、isEqual、Hash[toc] 前言：你真的懂isEqual与hash？参考文章：  iOS开发 之 不要告诉我你真的懂isEqual与hash! 哈希算法详解（附带 iOS 开发中实际应用） iOS weak关键字实现原理  eg： 121、NSMutableSet/NSSet中添加对象的时候，就会调用- (NSUInteger)hash方法。2、NSMut">
@@ -149,16 +149,16 @@
 <ul>
 <li><a href="https://blog.csdn.net/u011109881/article/details/80379505" target="_blank" rel="noopener">数据结构 Hash表（哈希表）</a></li>
 </ul>
+<p>哈希（Hash）的本质是一种算法，它能够将任意长度的输入（通常是字符串）通过一系列复杂的计算转换成固定长度的输出，这个输出被称为哈希值或哈希码。</p>
+<p><code>NSDictionary</code> 通常是基于哈希表的数据结构。<strong>在 <code>NSDictionary</code> 中，键（key）通过哈希函数转换成一个哈希值</strong>，然后使用这个哈希值来找到键值对在内存中的存储位置。</p>
+<p>哈希表提供了快速的查找、插入和删除操作，这些操作的平均时间复杂度是 O(1)。</p>
 <h3 id="1、哈希函数-amp-Hash地址"><a href="#1、哈希函数-amp-Hash地址" class="headerlink" title="1、哈希函数 &amp; Hash地址"></a>1、哈希函数 &amp; Hash地址</h3><p>要想知道什么是哈希表，那得先了解<strong>哈希函数</strong>。</p>
 <p>hash函数就是根据key计算出应该存储地址的位置，而哈希表是基于哈希函数建立的一种查找表</p>
 <p><strong>地址index=H（key）</strong></p>
 <p>通过Hash函数和关键字计算出来的存储位置（<strong>注意这里的存储位置只是表中的存储位置，并不是实际的物理地址</strong>）称作为Hash地址。</p>
 <p>重要：<strong>相同元素的 Hash 值相同</strong>。附：两个相等的实例，他们的hash值一定相等。但是hash值相等的两个实例，不一定相等。</p>
-<h3 id="2、哈希函数的构造方法"><a href="#2、哈希函数的构造方法" class="headerlink" title="2、哈希函数的构造方法"></a>2、哈希函数的构造方法</h3><p><strong>除留余数法</strong>用的较多<br>H（key）=key MOD p （p&lt;=m m为表长）<br>很明显，如何选取p是个关键问题。</p>
-<blockquote>
-<p>p应为不大于m的质数或是不含20以下的质因子的合数，这样可以减少地址的重复（冲突）</p>
-</blockquote>
-<p>比如key = 7，39，18，24，33，21时取表长m为9 p为7 那么存储如下</p>
+<h3 id="2、哈希函数的构造方法"><a href="#2、哈希函数的构造方法" class="headerlink" title="2、哈希函数的构造方法"></a>2、哈希函数的构造方法</h3><p><strong>除留余数法</strong>用的较多，H（key）=key MOD p （<strong>p&lt;=m，m为表长</strong>，p为质数时候可以减少地址冲突）</p>
+<p>比如key = 7，39，18，24，33，21时取表长m为9，p为7 那么存储如下</p>
 <table>
 <thead>
 <tr>
@@ -181,14 +181,22 @@
 <td>21(冲突后移)</td>
 <td></td>
 <td>24</td>
-<td>4</td>
+<td>39</td>
 <td>18(冲突后移)</td>
 <td>33(冲突后移)</td>
 <td></td>
 </tr>
 </tbody>
 </table>
-<h3 id="3、哈希冲突的解决方案"><a href="#3、哈希冲突的解决方案" class="headerlink" title="3、哈希冲突的解决方案"></a>3、哈希冲突的解决方案</h3><p>哈希冲突即不同key值产生相同的地址，H（key1）=H（key2）<br>比如我们上面说的存储3 6 9，p取7是<br>7 MOD 7 == 21 MOD 7<br>此时7和21都发生了hash冲突</p>
+<p><strong>哈希冲突的解决</strong></p>
+<p>哈希冲突即不同key值产生相同的地址，H（key1）=H（key2）。</p>
+<p>比如我们上面说的存储7和21，p取7时 7 MOD 7 == 21MOD 7。此时7和21都发生了hash冲突。上面的哈希冲突解决方案我们使用的是<strong>开放寻址法（Open Addressing）</strong>：当发生冲突时，会寻找表中的下一个空闲位置来存储元素。这通常通过某种探测序列（如线性探测、二次探测或双重散列）来实现。开放寻址法处理冲突的基本原则就是出现冲突后按照一定算法查找一个空位置存放。</p>
+<p>其他哈希冲突解决方案：</p>
+<p><strong>链地址法（Chaining）</strong>：每个哈希表槽位（或称为“桶”）都关联一个链表，所有映射到该索引的元素都存储在这个链表中。这种方法在处理冲突时比较简单，且无堆积现象，非同义词决不会发生冲突，因此平均查找长度较短。链地址法适用于经常进行插入和删除的情况，且在用链地址法构造的散列表中，删除结点的操作易于实现。</p>
+<p><strong>哈希表的扩容：</strong></p>
+<p>哈希表的大小，即桶（buckets）的数量，是根据存储在其中的对象数量动态变化的。当字典中的元素数量增加到某个阈值时，哈希表会进行扩容，通常是通过增加桶的数量来实现的，以保持操作的效率。</p>
+<p>当哈希表进行扩容时，表中的桶（buckets）数量会增加，这意味着原有的哈希值可能不再适用于新的桶数组。因此，当扩容发生时，存储在哈希表中的所有键值对的哈希值通常会重新计算，以便将它们分配到新的桶位置。</p>
+<p>在处理哈希冲突时，可能使用开放定址法来解决冲突，这种方法会在哈希表中寻找下一个空闲的桶来存储新的键值对。当哈希表的负载因子（即已使用的桶与总桶数量的比率）达到一定阈值时，哈希表会进行扩容，通常是通过增加桶的数量来实现的。这样可以保持哈希表的操作效率，使得查找、插入和删除操作的平均时间复杂度接近 O(1)。附：数组查找元素需要 O(n) 的时间复杂度，因为它可能需要遍历整个数组。所以<strong>哈希表相比数组，查找效率更高。</strong>除此之外，哈希表可以在插入时快速检查重复，这对于确保集合中元素的唯一性非常有用。</p>
 <h3 id="4、hash表的查找"><a href="#4、hash表的查找" class="headerlink" title="4、hash表的查找"></a>4、hash表的查找</h3><p>查找过程和造表过程一致，假设采用开放定址法处理冲突，则查找过程为：<br>对于给定的key，计算hash地址index = H（key）<br>如果数组arr【index】的值为空 则查找不成功<br>如果数组arr【index】== key 则查找成功<br>否则 使用冲突解决方法求下一个地址，直到arr【index】== key或者 arr【index】==null</p>
 <p>哈希表（hash table，也叫散列表），是根据键（key）直接访问访问在内存储存位置的数据结构。</p>
 <p><a href="https://link.juejin.im/?target=https%3A%2F%2Fzh.wikipedia.org%2Fwiki%2F%E5%93%88%E5%B8%8C%E8%A1%A8" target="_blank" rel="noopener">哈希表</a>本质是一个数组，数组中的每一个元素成为一个箱子，箱子中存放的是键值对。根据下标index从数组中取value。关键是如何获取index，这就需要一个固定的函数（哈希函数），将key转换成index。</p>
@@ -275,7 +283,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/" data-id="cm121xzjh003tqar4pq49k0bq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/数据结构/9数据结构-①nil、isEqual、Hash/" data-id="cm1p7o6vm002xxsr4zistjobc" class="article-share-link">Share</a>
       
       
     </footer>

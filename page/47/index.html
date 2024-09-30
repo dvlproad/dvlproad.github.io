@@ -72,6 +72,212 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/框架相关/网络相关/网络耗时及其优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/网络相关/网络耗时及其优化/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/框架相关/网络相关/网络耗时及其优化/">网络耗时及其优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="第2节：网络耗时及其优化"><a href="#第2节：网络耗时及其优化" class="headerlink" title="第2节：网络耗时及其优化"></a>第2节：网络耗时及其优化</h1><h2 id="一、网络耗时流程及优化方案结论"><a href="#一、网络耗时流程及优化方案结论" class="headerlink" title="一、网络耗时流程及优化方案结论"></a>一、网络耗时流程及优化方案结论</h2><p>发起请求 -&gt; 域名DNS解析 -&gt; TCP三次握手 ( -&gt; TLS握手 -&gt; ) -&gt; request -&gt; response -&gt; json解析 -&gt; 业务</p>
+<h3 id="1、过程中的优化方案"><a href="#1、过程中的优化方案" class="headerlink" title="1、过程中的优化方案"></a>1、过程中的优化方案</h3><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>阶段</th>
+<th>耗时根源</th>
+<th>优化方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>发起请求</td>
+<td>每个接口都要建立连接</td>
+<td>前端配置想要的数据，后台通过一个接口返回<br>如商品详情页，请求[Base,Detai,Images]：商品基础信息+详情+图片<br>其他减少请求参数的body数据。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>域名DNS解析</td>
+<td>DNS解析过程不受控制，⽆法保证解析到最快的IP</td>
+<td>方案1：<a href="#IP直连">IP直连</a> 点击链接可跳转到下文介绍<br>HTTP(HTTPS)请求，底层基于TCP连接，需要有IP和端口信息。<br>⾃⼰做域名解析⼯作，通过HTTP请求后台去拿到域名对应的IP地址。<br>方案2：<a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener">HTTPDNS</a><br>阿里云的DNS SDK：<a href="https://help.aliyun.com/zh/dns/sdk-for-ios-developer-guide?spm=a2c4g.11186623.0.0.1e124f14wri277" target="_blank" rel="noopener">AlicloudPDNS</a>、<a href="https://www.alibabacloud.com/help/zh/httpdns/latest/install-httpdns-sdk-for-ios?spm=a2c63.p38356.0.0.506464b4p0KBCD" target="_blank" rel="noopener">AlicloudHTTPDNS</a><br>附：<a href="https://help.aliyun.com/zh/dns/native-encrypted-dns-in-ios-14?spm=a2c4g.11186623.0.0.31c86f48zh2Ojc#topic-2042900" target="_blank" rel="noopener">iOS14原生加密DNS方案</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>TCP三次握手</td>
+<td>TCP：面向连接的协议<br>UDP：无连接协议<br>TCP 比 UDP 要慢</td>
+<td>方案1：<a href="#用HTTP实现长连接">用HTTP实现长连接</a> 点击链接可跳转到下文介绍<br>方案2：使用HTTP/3.0 采用了基于 UDP 的 QUIC 协议来替代传统的 TCP 协议<br><a href="#HTTP协议各版本使用情况">HTTP协议各版本使用情况</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>TLS握手</td>
+<td>——</td>
+<td>——</td>
+</tr>
+<tr>
+<td>5</td>
+<td>request</td>
+<td></td>
+<td>服务端排查是否有耗时逻辑</td>
+</tr>
+<tr>
+<td>6</td>
+<td>response</td>
+<td>数据体积大</td>
+<td>删减冗余数据，开启gzip，数据分页、Protobuf、WebP等方式进行优化<br>Protobuf：见我的另一篇文章 <a href="../../protobuf/protobuf的安装.md">protobuf的安装.md</a><br>分页：见我的另一篇文章 <a href="../../Architecture架构/基础规范/分页规范.md">分页规范.md</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>json解析</td>
+<td>解析耗时</td>
+<td>采用解析效率更高的库，如 YYModel</td>
+</tr>
+<tr>
+<td>8</td>
+<td>业务</td>
+<td>——</td>
+<td>——</td>
+</tr>
+</tbody>
+</table>
+<p>上述优化方案的参考文档来源于：</p>
+<blockquote>
+<ul>
+<li><a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener">iOS 网络优化和网络基础</a></li>
+<li><p><a href="https://www.jianshu.com/p/a57f963310a6" target="_blank" rel="noopener">iOS 网络优化</a></p>
+</li>
+<li><p><a href="https://help.aliyun.com/zh/dns/guide-to-obtaining-dns-resolution-time-on-ios?spm=5176.22414175.sslink.3.36377dc5X2Sfyc" target="_blank" rel="noopener">阿里云 iOS端获取DNS解析时间指南</a></p>
+</li>
+<li><p><a href="http://www.52im.net/thread-2172-1-1.html" target="_blank" rel="noopener">美图App的移动端DNS优化实践：HTTPS请求耗时减小近半</a></p>
+<blockquote>
+<p>TCP \ RTMP</p>
+</blockquote>
+</li>
+<li><p><a href="https://www.jianshu.com/p/66ee6798b99a" target="_blank" rel="noopener">iOS之网络优化</a></p>
+</li>
+<li><p><a href="http://www.52im.net/thread-2479-1-1.html" target="_blank" rel="noopener">百度APP移动端网络深度优化实践分享(二)：网络连接优化篇</a></p>
+</li>
+</ul>
+</blockquote>
+<h3 id="2、其他优化方案"><a href="#2、其他优化方案" class="headerlink" title="2、其他优化方案"></a>2、其他优化方案</h3><h4 id="2-1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。"><a href="#2-1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。" class="headerlink" title="2.1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。"></a>2.1、弱网优化：针对不同的网络，做不同超时，重试设置，以及取不同质量的图片数据。</h4><h4 id="2-2、缓存（必备：API缓存-可考虑加：Last-Modified-ETag）"><a href="#2-2、缓存（必备：API缓存-可考虑加：Last-Modified-ETag）" class="headerlink" title="2.2、缓存（必备：API缓存+可考虑加：Last-Modified/ETag）"></a>2.2、缓存（必备：API缓存+可考虑加：Last-Modified/ETag）</h4><p>见我的另一篇文章：</p>
+<p><strong>发布的内容，优先写入数据库，视频切片使用另一个请求异步获取。</strong></p>
+<h2 id="二、网络耗时分布统计"><a href="#二、网络耗时分布统计" class="headerlink" title="二、网络耗时分布统计"></a>二、网络耗时分布统计</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ResponseModel</span> </span>&#123;</span><br><span class="line">  <span class="built_in">int</span> statusCode;</span><br><span class="line">  <span class="built_in">String</span>? message;</span><br><span class="line">  <span class="keyword">dynamic</span> result;</span><br><span class="line">  <span class="built_in">bool</span>? isCache;</span><br><span class="line">  <span class="built_in">bool</span>? isSameToBefore; <span class="comment">// 网络新数据是否和之前数据一样(重试/缓存)</span></span><br><span class="line">  <span class="keyword">final</span> ResponseDateModel dateModel; <span class="comment">// 这次结果的时间。</span></span><br><span class="line">  <span class="built_in">List</span>&lt;ResponseDateModel&gt;? cacheDateModels; <span class="comment">// 请求缓存接口过程的所有时间段（缓存数据获取时间、缓存数据执行时间、网络数据获取时间）。因为有时候得到一个结果是不仅经过一次，而是多次请求才得到的（如缓存）,所以一个请求有多条时间线的时候。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1、ResponseDateModel dateModel; // 这次结果的时间</p>
+<p>2、List<responsedatemodel>? cacheDateModels; // 请求缓存接口过程的所有时间段（缓存数据获取时间、缓存数据执行时间、网络数据获取时间）。因为有时候得到一个结果是不仅经过一次，而是多次请求才得到的（如缓存）,所以一个请求有多条时间线的时候。</responsedatemodel></p>
+<h3 id="1、网络请求各阶段的耗时（iOS）"><a href="#1、网络请求各阶段的耗时（iOS）" class="headerlink" title="1、网络请求各阶段的耗时（iOS）"></a>1、网络请求各阶段的耗时（iOS）</h3><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session task:(<span class="built_in">NSURLSessionTask</span> *)task didFinishCollectingMetrics:(<span class="built_in">NSURLSessionTaskMetrics</span> *)metrics API_AVAILABLE(macosx(<span class="number">10.12</span>), ios(<span class="number">10.0</span>), watchos(<span class="number">3.0</span>), tvos(<span class="number">10.0</span>)) </span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// 首先检查是否是iOS 10.0或更高版本，如果不是，则退出方法</span></span><br><span class="line">  <span class="keyword">if</span> (!@available(iOS <span class="number">10.0</span>, *)) &#123;</span><br><span class="line">    <span class="keyword">return</span>; <span class="comment">// 退出方法</span></span><br><span class="line">  &#125;</span><br><span class="line">    </span><br><span class="line">  <span class="comment">// 由于使用了@available注解，下面的代码默认只在iOS 10.0或更高版本上执行</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="built_in">NSURLSessionTaskTransactionMetrics</span> *sMetric <span class="keyword">in</span> metrics.transactionMetrics) &#123;</span><br><span class="line">    <span class="built_in">NSInteger</span> dom = timeDiff(sMetric.domainLookupStartDate, sMetric.domainLookupEndDate);	<span class="comment">// 域名解析</span></span><br><span class="line">    <span class="built_in">NSInteger</span> sec = timeDiff(sMetric.secureConnectionStartDate, sMetric.secureConnectionEndDate);<span class="comment">// TLS</span></span><br><span class="line">    <span class="built_in">NSInteger</span> con = timeDiff(sMetric.connectStartDate, sMetric.connectEndDate);		<span class="comment">// 连接耗时(包括TLS)</span></span><br><span class="line">    <span class="built_in">NSInteger</span> req = timeDiff(sMetric.requestStartDate, sMetric.requestEndDate);		<span class="comment">// 请求</span></span><br><span class="line">    <span class="built_in">NSInteger</span> res = timeDiff(sMetric.responseStartDate, sMetric.responseEndDate);	<span class="comment">// 回调</span></span><br><span class="line">    <span class="built_in">NSInteger</span> tot = timeDiff(sMetric.fetchStartDate, sMetric.responseEndDate); 		<span class="comment">// 总耗时</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">NSString</span> *locip = <span class="string">@""</span>;</span><br><span class="line">    <span class="built_in">NSString</span> *remip = <span class="string">@""</span>;</span><br><span class="line">    <span class="keyword">if</span> (@available(iOS <span class="number">13.0</span>, *)) &#123;</span><br><span class="line">      locip = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"%@"</span>, sMetric.localAddress];</span><br><span class="line">      remip = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"%@"</span>, sMetric.remoteAddress];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"metric path:%@ 总耗时:%ldms, 域名解析:%ldms, 连接耗时:%ldms(包括TLS:%ldms), 请求:%ldms, 回调:%ldms l:%@ r:%@"</span>, sessionMetric.request.URL.lastPathComponent, (<span class="keyword">long</span>)tot, (<span class="keyword">long</span>)dom, (<span class="keyword">long</span>)con, (<span class="keyword">long</span>)sec, (<span class="keyword">long</span>)req, (<span class="keyword">long</span>)res, locip, remip);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 辅助方法，计算两个NSDate之间的时间差，单位为毫秒</span></span><br><span class="line">- (<span class="built_in">NSInteger</span>)timeDifferenceInMilliseconds:(<span class="built_in">NSDate</span> *)start to:(<span class="built_in">NSDate</span> *)end &#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">NSInteger</span>)((end.timeIntervalSince1970 - start.timeIntervalSince1970) * <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id=""><a href="#" class="headerlink" title=" "></a> </h2><h2 id="Next：第3节：弱网优化空间探索"><a href="#Next：第3节：弱网优化空间探索" class="headerlink" title="Next：第3节：弱网优化空间探索"></a>Next：<a href="./弱网优化空间探索">第3节：弱网优化空间探索</a></h2><h2 id="-1"><a href="#-1" class="headerlink" title=" "></a> </h2><p><a name="HTTP协议各版本使用情况"></a></p>
+<h2 id="附1：HTTP协议各版本使用情况"><a href="#附1：HTTP协议各版本使用情况" class="headerlink" title="附1：HTTP协议各版本使用情况"></a>附1：HTTP协议各版本使用情况</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>发布时间与现状</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP/1.1</td>
+<td>在1997年被标准化，是目前互联网上广泛使用的HTTP协议版本</td>
+<td></td>
+</tr>
+<tr>
+<td>HTTP/2.0</td>
+<td>于2015年发布，也是目前互联网上广泛使用的HTTP协议版本</td>
+<td>不是对HTTP/1.1的重写，而是在性能方面的改进</td>
+</tr>
+<tr>
+<td>HTTP/3.0</td>
+<td>目前尚未成为主流，还在逐步推广和应用中</td>
+<td>是基于Google的QUIC协议开发</td>
+</tr>
+</tbody>
+</table>
+<h2 id="附2：DNS"><a href="#附2：DNS" class="headerlink" title="附2：DNS"></a>附2：DNS</h2><h3 id="1、DNS介绍"><a href="#1、DNS介绍" class="headerlink" title="1、DNS介绍"></a>1、DNS介绍</h3><h4 id="1-1、DNS劫持-DNS污染前后"><a href="#1-1、DNS劫持-DNS污染前后" class="headerlink" title="1.1、DNS劫持/DNS污染前后"></a>1.1、DNS劫持/DNS污染前后</h4><p>未劫持 VS 劫持</p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/dns flow.png" alt="dns flow" style="zoom: 25%;"></p>
+</blockquote>
+<h4 id="1-2、DNS劫持模拟"><a href="#1-2、DNS劫持模拟" class="headerlink" title="1.2、DNS劫持模拟"></a>1.2、DNS劫持模拟</h4><ul>
+<li><p><a href="https://cloud.tencent.com/developer/article/1043506" target="_blank" rel="noopener">PC局域网DNS劫持实战</a></p>
+</li>
+<li><p><a href="https://github.com/shinvey/dns-spoofing" target="_blank" rel="noopener">charles DNS Spoofing</a></p>
+<blockquote>
+<p>1、Charles 在 Tools 中设置 DNS Spoofing</p>
+<p><img src="/Architecture架构/框架相关/网络相关/网络耗时及其优化/网络框架/charles_DNS Spoofing.png" alt="charles_DNS Spoofing" style="zoom: 33%;"></p>
+<p>2、修改终端设备的代理</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="1-3、如何检测-DNS-劫持"><a href="#1-3、如何检测-DNS-劫持" class="headerlink" title="1.3、如何检测 DNS 劫持"></a>1.3、如何检测 DNS 劫持</h4><ul>
+<li>iOS 用户推荐 iNetTools</li>
+<li>Android 用户推荐 LanDroid</li>
+</ul>
+<ul>
+<li><p><a href="https://www.kaspersky.com.cn/resource-center/definitions/what-is-dns-hijacking" target="_blank" rel="noopener">如何检测 DNS 劫持</a></p>
+<blockquote>
+<p> ping 一个不存在的 IP 地址却仍获得解析，则 DNS 很可能已被黑客入侵。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="2、DNS的优化"><a href="#2、DNS的优化" class="headerlink" title="2、DNS的优化"></a>2、DNS的优化</h3><p>方案1：IP直连</p>
+<p>方案2：HTTPDNS</p>
+<p><a name="IP直连"></a></p>
+<h4 id="2-1、IP直连"><a href="#2-1、IP直连" class="headerlink" title="2.1、IP直连"></a>2.1、IP直连</h4><p><a href="https://juejin.cn/post/6844903564960088071" target="_blank" rel="noopener">iOS IP 直连原理剖析</a></p>
+<blockquote>
+<p>为什么大家会选择直接使用 IP 来进行连接呢？它具有多方面的优势：</p>
+<ul>
+<li>防劫持，可以绕过运营商 LocalDNS 解析过程，避免域名劫持，提高网络访问成功率</li>
+<li>降低延迟，DNS 解析是一个相对耗时的工作，跳过这个过程可以降低一定的延迟</li>
+<li>精准调度，运营商解析返回的节点不一定是最优的，自己获取 IP 可以基于自己的策略来获取最精准的、最优的节点</li>
+</ul>
+<p>对于获取 IP，我了解到的是两种方案，</p>
+<p>一种是直接接入腾讯或者阿里的 HTTPDNS 服务，在发起请求的时候是通过 HTTPDNS 获取 IP，然后直接使用 IP 来进行业务访问；一种是内置 Server IP，可以在启动等阶段由服务端下发域名和 IP 的对应列表，客户端来进行缓存，发起网络请求的时候直接根据缓存 IP 来进行业务访问。</p>
+</blockquote>
+<p><a name="用HTTP实现长连接"></a></p>
+<h2 id="附3：用HTTP实现长连接"><a href="#附3：用HTTP实现长连接" class="headerlink" title="附3：用HTTP实现长连接"></a>附3：用HTTP实现长连接</h2><p>长连接：长连接的特点是一旦通过三次握手建立链接之后，该条链路就一直存在，而且该链路是一种双向的通行机制，适合于频繁的网络请求，避免 Http 每一次请求都会建立链接和关闭链接的操作，减少浪费，提高效率。</p>
+<p>在首部字段中设置Connection:keep-alive 和Keep-Alive: timeout=60，表明连接建立之后，空闲时间超过60秒之后，就会失效。如果在空闲第58秒时，再次使用此连接，则连接仍然有效，使用完之后，重新计数，空闲60秒之后过期。</p>
+<p>设置HTTP长连接，无过期时间：<br>在首部字段中只设置Connection:keep-alive，表明连接永久有效。</p>
+<p>其他文章：<a href="https://zhuanlan.zhihu.com/p/542380273" target="_blank" rel="noopener">tcp长短连接、http长短连接、心跳包、tcp KeepAlive保活机制</a></p>
+<ol>
+<li><strong>TCP 是 HTTP 的默认传输层协议</strong>：HTTP 通常运行在 TCP 之上，因为 TCP 提供了可靠的、面向连接的服务，确保数据按顺序、完整无误地从源传送到目的地。这对于 Web 浏览器和服务器之间的通信非常重要，因为它们需要确保请求和响应的完整性。</li>
+</ol>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>其他参考文档：</p>
+<p>项目 ：<a href="https://github.com/aozhimin/iOS-Monitor-Platform" target="_blank" rel="noopener">iOS-Monitor-Platform</a>  中的网络部分 <a href="https://github.com/aozhimin/iOS-Monitor-Platform?tab=readme-ov-file#network" target="_blank" rel="noopener">https://github.com/aozhimin/iOS-Monitor-Platform?tab=readme-ov-file#network</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/" data-id="cm1p7o9k30141xsr4nr7anrbl" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Architecture架构/监控相关/性能监控/异常与崩溃" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Architecture架构/监控相关/性能监控/异常与崩溃/" class="article-date">
@@ -128,238 +334,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/性能监控/异常与崩溃/" data-id="cm121y2ql015rqar4txt31c9g" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" class="article-date">
-  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/">页面加载-1整体时长-2数据分析</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="页面加载-1整体时长-2数据分析"><a href="#页面加载-1整体时长-2数据分析" class="headerlink" title="页面加载-1整体时长-2数据分析"></a>页面加载-1整体时长-2数据分析</h1><h2 id="五、数据分析"><a href="#五、数据分析" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><h3 id="1、需求一期"><a href="#1、需求一期" class="headerlink" title="1、需求一期"></a>1、需求一期</h3><h4 id="1、原始数据整理"><a href="#1、原始数据整理" class="headerlink" title="1、原始数据整理"></a>1、原始数据整理</h4><p>按版本整理数据，整理频率为常态下的下个版本提审时，统计上个版本。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=3vyl41" target="_blank" rel="noopener">页面各时长数据：sheet_原始数据</a></p>
-<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ori1.png" alt="page_load_data_ori1" style="zoom: 40%;"></p>
-<h4 id="2、原始数据分析1–异常数据"><a href="#2、原始数据分析1–异常数据" class="headerlink" title="2、原始数据分析1–异常数据"></a>2、原始数据分析1–异常数据</h4><p>1、制定时长异常的参考标准。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=BB08J2" target="_blank" rel="noopener">页面各时长数据：sheet_ref</a></p>
-<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_ref1.png" alt="image-20231102162146321" style="zoom:50%;"></p>
-<p>2、单独看每条记录，按异常程度，列出”超标”数据，并分析异常原因。</p>
-<p>示例：</p>
-<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_oversize1.png" alt="image-20231102161544919" style="zoom: 40%;"></p>
-<p>3、合并看前后版本记录，比较版本差异数据</p>
-<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ver1.png" alt="image-20231102162759893" style="zoom:40%;"></p>
-<h3 id="2、需求二期"><a href="#2、需求二期" class="headerlink" title="2、需求二期"></a>2、需求二期</h3><p>需求：页面时长变化趋势，不区分版本。绘制excel变化曲线图。</p>
-<h2 id="五、数据分析-1"><a href="#五、数据分析-1" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><p>前端APP/游戏，核心页面、核心接口的（首页4个tab，内容详情，商品详情，商城，订单，我的；主态农场，客态农场、下一家，排行榜，消息，收豆，抢羊，福利榜）。 TTI时间，游戏的加载时长，按照TP90/95统计数据，按天出数据。如何从大数据日志里抓数据，做成grafana监控大盘</p>
-<p>核心页面数据分析，按周</p>
-<p>核心页面控制在1s内，按90分位整理</p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" data-id="cm121y2rt0161qar4ybru9txv" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" class="article-date">
-  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/">页面加载网络时长-1需求规划</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="页面加载网络时长-1需求规划"><a href="#页面加载网络时长-1需求规划" class="headerlink" title="页面加载网络时长-1需求规划"></a>页面加载网络时长-1需求规划</h1><h2 id="一、需求一期"><a href="#一、需求一期" class="headerlink" title="一、需求一期"></a>一、需求一期</h2><p>需求：核心页面的网络耗时统计</p>
-<p>描述：统计所有影响页面加载的网络接口的访问时长，关联到页面数据上，并上报到后台；</p>
-<p>目的：分析网络访问在页面加载时长中的占比。</p>
-<p>背景：为了分析页面加载时长中各种事件（当前需求里仅指网络请求耗时）的时间分布。</p>
-<p>结果示例：</p>
-<table>
-<thead>
-<tr>
-<th>描述</th>
-<th>接口加载时长</th>
-<th>接口加载【刚开始】时刻</th>
-<th>接口加载【都结束】时刻</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>内容首页（推荐、同城、关注、热单）</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>内容详情（图文、视频）</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>商城首页</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>商品详情</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>订单首页（我收到的、我送出的）</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>订单详情</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-<tr>
-<td>我的首页</td>
-<td>🆕</td>
-<td>🆕</td>
-<td>🆕</td>
-</tr>
-</tbody>
-</table>
-<p>方案：需要增加页面加载过程必须进行的所有网络请求的总耗时。</p>
-<p>预算结果：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"page_duration"</span>: <span class="number">8000</span>,</span><br><span class="line">	<span class="attr">"api"</span>: &#123;</span><br><span class="line">    	<span class="attr">"total_duration"</span>: &#123;</span><br><span class="line">        <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">        <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">        <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">      &#125;,</span><br><span class="line">    	<span class="attr">"apis"</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api1"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api2"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>步骤：</p>
-<table>
-<thead>
-<tr>
-<th>步骤</th>
-<th>问题</th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>一个页面加载过程必须进行的所有网络请求有哪些</td>
-<td>8</td>
-<td>梳理页面接口，建立并管理【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表</td>
-</tr>
-<tr>
-<td></td>
-<td>请求与页面加载的绑定：请求是哪个页面哪次进入发起的</td>
-<td></td>
-<td>基于梳理的页面接口，在请求时候</td>
-</tr>
-<tr>
-<td></td>
-<td>请求接口的开始和结束的记录及网络库对该数据的对外提供处理</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>请求接口的开始和结束的日志记录及展示处理</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>页面请求管理器（UnfinishPageApiManager）：计算一个页面加载过程执行完所有必须的网络请求的耗时</td>
-<td>4</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>页面绘制所需请求耗时信息的管理(AllPageTimeManager)</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>页面绘制各耗时信息总管理器（事件间等待，总完成的上报时机优化）</td>
-<td>8</td>
-</tr>
-</tbody>
-</table>
-<p>1、梳理页面接口，建立【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表管理器（静态、变更时需自己更新维护)</p>
-<p>①梳理优先处理的核心页面</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// allneedPage_ApiManager.dart</span><br><span class="line">class AllNeedPageApiManager &#123;</span><br><span class="line">  static Map&lt;String, dynamic&gt; allNeedPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"ContentHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"ContentDetailPage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallDetailPage"</span>: [api1, api2],</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>增加Type，区分一个页面不同业务使用。如订单列表中，我送出的和我收到的，同属于一个页面。</p>
-<p>却通过type</p>
-<p>2、网络库接口中，</p>
-<ul>
-<li><p>请求是哪个页面哪次进入发起的：</p>
-<p>为请求创建页面key：每次进入页面，创建页面唯一key，避免等下网络请求时候，不晓得是哪个页面哪个进入发起的。</p>
-</li>
-<li><p>记录请求进行表</p>
-</li>
-</ul>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// unfinishPage_ApiManager.dart</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UnfinishPageApiManager</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 所有页面的所有请求</span></span><br><span class="line">	<span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps = &#123;&#125;; </span><br><span class="line">  <span class="comment">// 示例</span></span><br><span class="line">  <span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="string">"ContentHomePage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="string">"ContentDetailPage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求开始</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> startApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 添加新请求</span></span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; newApiInfoMap = &#123;</span><br><span class="line">      apiUrl: api,</span><br><span class="line">      apiStart: apiStart,</span><br><span class="line">    &#125;;</span><br><span class="line">    pageRequestingApiMaps.add(newApiInfoMap);</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求结束</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> finishApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表,及其个数</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 找到此请求的开始信息,并补充上此请求的结束信息</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      item.addAll(&#123;<span class="string">"apiEnd"</span>: apiEnd&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> hasFinishCount = pageRequestingApiMaps.length;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取指定页面原本应该有几个请求</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageNeedApiMaps = PageApiManager.allNeedPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="built_in">int</span> needCount = pageNeedApiMaps.length;</span><br><span class="line">   	</span><br><span class="line">    <span class="comment">// 判断是否是最后一个请求，是的话上报本次页面的所有所需结束</span></span><br><span class="line">    <span class="keyword">if</span> (hasFinishCount &gt;= needCount) &#123;</span><br><span class="line">      _notifyToPage(pageRequestingApiMaps);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 通知页面请求完成</span></span><br><span class="line">  <span class="keyword">static</span> _notifyToPage(<span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps) &#123;</span><br><span class="line">    <span class="built_in">int</span> minStart;</span><br><span class="line">    <span class="built_in">int</span> maxEnd;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      <span class="built_in">int</span> itemStart = item[<span class="string">"apiStart"</span>];</span><br><span class="line">      <span class="built_in">int</span> itemEnd = item[<span class="string">"apiEnd"</span>];</span><br><span class="line">      <span class="keyword">if</span> (minStart == <span class="keyword">null</span>) &#123;</span><br><span class="line">        minStart = itemStart;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        minStart = min(minStart, itemStart);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">        maxEnd = itemEnd;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        maxEnd = max(maxEnd, itemEnd);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (minStart == <span class="keyword">null</span> || maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">      debugPrint(<span class="string">"发生错误了"</span>);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> pageApiTotalDuration = maxEnd - minStart;</span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = &#123;</span><br><span class="line">      <span class="string">"page_duration"</span>: pageApiTotalDuration,</span><br><span class="line">      <span class="string">"api"</span>: &#123;</span><br><span class="line">        <span class="string">"total_duration"</span>: &#123;</span><br><span class="line">          <span class="string">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="string">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="string">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">"apis"</span>: pageRequestingApiMaps</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    eventBus.fire(PageFinishLoadRequest(pageApiMap: pageApiMap));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>页面接收</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AllPageTimeManager</span> </span>&#123;</span><br><span class="line">		pageRequestEvent = eventBus.on&lt;PageFinishLoadRequest&gt;().listen((event) &#123;</span><br><span class="line">      <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = event.pageApiMap;</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    _uploadToSevice(&#123;required <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; uploadPageInfo&#125;) &#123;</span><br><span class="line">    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" data-id="cm121y2ru0164qar4wet2gsua" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/性能监控/异常与崩溃/" data-id="cm1p7o9k60147xsr4fnft44wu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -782,7 +757,238 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" data-id="cm121y2sc0167qar4i5xk9tr2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" data-id="cm1p7o9lf014gxsr4vwl0z0rc" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/">页面加载网络时长-1需求规划</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载网络时长-1需求规划"><a href="#页面加载网络时长-1需求规划" class="headerlink" title="页面加载网络时长-1需求规划"></a>页面加载网络时长-1需求规划</h1><h2 id="一、需求一期"><a href="#一、需求一期" class="headerlink" title="一、需求一期"></a>一、需求一期</h2><p>需求：核心页面的网络耗时统计</p>
+<p>描述：统计所有影响页面加载的网络接口的访问时长，关联到页面数据上，并上报到后台；</p>
+<p>目的：分析网络访问在页面加载时长中的占比。</p>
+<p>背景：为了分析页面加载时长中各种事件（当前需求里仅指网络请求耗时）的时间分布。</p>
+<p>结果示例：</p>
+<table>
+<thead>
+<tr>
+<th>描述</th>
+<th>接口加载时长</th>
+<th>接口加载【刚开始】时刻</th>
+<th>接口加载【都结束】时刻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>内容首页（推荐、同城、关注、热单）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>内容详情（图文、视频）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>商城首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>商品详情</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>订单首页（我收到的、我送出的）</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>订单详情</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+<tr>
+<td>我的首页</td>
+<td>🆕</td>
+<td>🆕</td>
+<td>🆕</td>
+</tr>
+</tbody>
+</table>
+<p>方案：需要增加页面加载过程必须进行的所有网络请求的总耗时。</p>
+<p>预算结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"page_duration"</span>: <span class="number">8000</span>,</span><br><span class="line">	<span class="attr">"api"</span>: &#123;</span><br><span class="line">    	<span class="attr">"total_duration"</span>: &#123;</span><br><span class="line">        <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">        <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">        <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">      &#125;,</span><br><span class="line">    	<span class="attr">"apis"</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api1"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">"url"</span>: <span class="string">"api2"</span>,</span><br><span class="line">          <span class="attr">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="attr">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="attr">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>步骤：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>问题</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>一个页面加载过程必须进行的所有网络请求有哪些</td>
+<td>8</td>
+<td>梳理页面接口，建立并管理【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表</td>
+</tr>
+<tr>
+<td></td>
+<td>请求与页面加载的绑定：请求是哪个页面哪次进入发起的</td>
+<td></td>
+<td>基于梳理的页面接口，在请求时候</td>
+</tr>
+<tr>
+<td></td>
+<td>请求接口的开始和结束的记录及网络库对该数据的对外提供处理</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>请求接口的开始和结束的日志记录及展示处理</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面请求管理器（UnfinishPageApiManager）：计算一个页面加载过程执行完所有必须的网络请求的耗时</td>
+<td>4</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面绘制所需请求耗时信息的管理(AllPageTimeManager)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>页面绘制各耗时信息总管理器（事件间等待，总完成的上报时机优化）</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<p>1、梳理页面接口，建立【页面(含页面类型)–到–页面加载过程必须进行的所有网络请求】的关联表管理器（静态、变更时需自己更新维护)</p>
+<p>①梳理优先处理的核心页面</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// allneedPage_ApiManager.dart</span><br><span class="line">class AllNeedPageApiManager &#123;</span><br><span class="line">  static Map&lt;String, dynamic&gt; allNeedPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"ContentHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"ContentDetailPage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallHomePage"</span>: [api1, api2],</span><br><span class="line">    <span class="attr">"MallDetailPage"</span>: [api1, api2],</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>增加Type，区分一个页面不同业务使用。如订单列表中，我送出的和我收到的，同属于一个页面。</p>
+<p>却通过type</p>
+<p>2、网络库接口中，</p>
+<ul>
+<li><p>请求是哪个页面哪次进入发起的：</p>
+<p>为请求创建页面key：每次进入页面，创建页面唯一key，避免等下网络请求时候，不晓得是哪个页面哪个进入发起的。</p>
+</li>
+<li><p>记录请求进行表</p>
+</li>
+</ul>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// unfinishPage_ApiManager.dart</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UnfinishPageApiManager</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 所有页面的所有请求</span></span><br><span class="line">	<span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps = &#123;&#125;; </span><br><span class="line">  <span class="comment">// 示例</span></span><br><span class="line">  <span class="keyword">static</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; unfinishPageApiMaps =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="string">"ContentHomePage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="string">"ContentDetailPage"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api1,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        apiUrl: api2,</span><br><span class="line">        apiStart: apiStart,</span><br><span class="line">        apiEnd: apiEnd,</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求开始</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> startApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 添加新请求</span></span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; newApiInfoMap = &#123;</span><br><span class="line">      apiUrl: api,</span><br><span class="line">      apiStart: apiStart,</span><br><span class="line">    &#125;;</span><br><span class="line">    pageRequestingApiMaps.add(newApiInfoMap);</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 页面请求结束</span></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">void</span> finishApi(&#123;required <span class="built_in">String</span> api, required <span class="built_in">String</span> pageKey&#125;) &#123;</span><br><span class="line">    <span class="comment">// 加锁🔐</span></span><br><span class="line">    <span class="comment">// 获取指定页面已有的请求列表,及其个数</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps = unfinishPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="comment">// 找到此请求的开始信息,并补充上此请求的结束信息</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      item.addAll(&#123;<span class="string">"apiEnd"</span>: apiEnd&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> hasFinishCount = pageRequestingApiMaps.length;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取指定页面原本应该有几个请求</span></span><br><span class="line">    <span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageNeedApiMaps = PageApiManager.allNeedPageApiMaps[pageKey] ?? [];</span><br><span class="line">    <span class="built_in">int</span> needCount = pageNeedApiMaps.length;</span><br><span class="line">   	</span><br><span class="line">    <span class="comment">// 判断是否是最后一个请求，是的话上报本次页面的所有所需结束</span></span><br><span class="line">    <span class="keyword">if</span> (hasFinishCount &gt;= needCount) &#123;</span><br><span class="line">      _notifyToPage(pageRequestingApiMaps);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 解锁🔐</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 通知页面请求完成</span></span><br><span class="line">  <span class="keyword">static</span> _notifyToPage(<span class="built_in">List</span>&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; pageRequestingApiMaps) &#123;</span><br><span class="line">    <span class="built_in">int</span> minStart;</span><br><span class="line">    <span class="built_in">int</span> maxEnd;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; item <span class="keyword">in</span> pageRequestingApiMaps) &#123;</span><br><span class="line">      <span class="built_in">int</span> itemStart = item[<span class="string">"apiStart"</span>];</span><br><span class="line">      <span class="built_in">int</span> itemEnd = item[<span class="string">"apiEnd"</span>];</span><br><span class="line">      <span class="keyword">if</span> (minStart == <span class="keyword">null</span>) &#123;</span><br><span class="line">        minStart = itemStart;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        minStart = min(minStart, itemStart);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">        maxEnd = itemEnd;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        maxEnd = max(maxEnd, itemEnd);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (minStart == <span class="keyword">null</span> || maxEnd == <span class="keyword">null</span>) &#123;</span><br><span class="line">      debugPrint(<span class="string">"发生错误了"</span>);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> pageApiTotalDuration = maxEnd - minStart;</span><br><span class="line">    <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = &#123;</span><br><span class="line">      <span class="string">"page_duration"</span>: pageApiTotalDuration,</span><br><span class="line">      <span class="string">"api"</span>: &#123;</span><br><span class="line">        <span class="string">"total_duration"</span>: &#123;</span><br><span class="line">          <span class="string">"start"</span>: <span class="number">1000</span>,</span><br><span class="line">          <span class="string">"end"</span>: <span class="number">5000</span>,</span><br><span class="line">          <span class="string">"duration"</span>: <span class="number">4000</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">"apis"</span>: pageRequestingApiMaps</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    eventBus.fire(PageFinishLoadRequest(pageApiMap: pageApiMap));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>页面接收</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AllPageTimeManager</span> </span>&#123;</span><br><span class="line">		pageRequestEvent = eventBus.on&lt;PageFinishLoadRequest&gt;().listen((event) &#123;</span><br><span class="line">      <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; pageApiMap = event.pageApiMap;</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    _uploadToSevice(&#123;required <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt; uploadPageInfo&#125;) &#123;</span><br><span class="line">    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" data-id="cm1p7o9m5014jxsr4ngplwohh" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/">页面加载-1整体时长-2数据分析</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载-1整体时长-2数据分析"><a href="#页面加载-1整体时长-2数据分析" class="headerlink" title="页面加载-1整体时长-2数据分析"></a>页面加载-1整体时长-2数据分析</h1><h2 id="五、数据分析"><a href="#五、数据分析" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><h3 id="1、需求一期"><a href="#1、需求一期" class="headerlink" title="1、需求一期"></a>1、需求一期</h3><h4 id="1、原始数据整理"><a href="#1、原始数据整理" class="headerlink" title="1、原始数据整理"></a>1、原始数据整理</h4><p>按版本整理数据，整理频率为常态下的下个版本提审时，统计上个版本。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=3vyl41" target="_blank" rel="noopener">页面各时长数据：sheet_原始数据</a></p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ori1.png" alt="page_load_data_ori1" style="zoom: 40%;"></p>
+<h4 id="2、原始数据分析1–异常数据"><a href="#2、原始数据分析1–异常数据" class="headerlink" title="2、原始数据分析1–异常数据"></a>2、原始数据分析1–异常数据</h4><p>1、制定时长异常的参考标准。<a href="https://docs.qq.com/sheet/DTk56aUVXckRCT2VV?tab=BB08J2" target="_blank" rel="noopener">页面各时长数据：sheet_ref</a></p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_ref1.png" alt="image-20231102162146321" style="zoom:50%;"></p>
+<p>2、单独看每条记录，按异常程度，列出”超标”数据，并分析异常原因。</p>
+<p>示例：</p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_oversize1.png" alt="image-20231102161544919" style="zoom: 40%;"></p>
+<p>3、合并看前后版本记录，比较版本差异数据</p>
+<p><img src="/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/page_load_data_ver1.png" alt="image-20231102162759893" style="zoom:40%;"></p>
+<h3 id="2、需求二期"><a href="#2、需求二期" class="headerlink" title="2、需求二期"></a>2、需求二期</h3><p>需求：页面时长变化趋势，不区分版本。绘制excel变化曲线图。</p>
+<h2 id="五、数据分析-1"><a href="#五、数据分析-1" class="headerlink" title="五、数据分析"></a>五、数据分析</h2><p>前端APP/游戏，核心页面、核心接口的（首页4个tab，内容详情，商品详情，商城，订单，我的；主态农场，客态农场、下一家，排行榜，消息，收豆，抢羊，福利榜）。 TTI时间，游戏的加载时长，按照TP90/95统计数据，按天出数据。如何从大数据日志里抓数据，做成grafana监控大盘</p>
+<p>核心页面数据分析，按周</p>
+<p>核心页面控制在1s内，按90分位整理</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" data-id="cm1p7o9mq014mxsr4jgtgdwh8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1041,7 +1247,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm121y334017oqar467a1gn8v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm1p7o9x8015vxsr4xbtd1eps" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1080,7 +1286,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm121xzjj0041qar4oaxl6yfn" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm1p7o6vp0030xsr413cayhek" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1184,7 +1390,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm121y18y00siqar4dpa255lv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm1p7o81w00r9xsr4ndh5gy8k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1250,7 +1456,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm121y0kq006qqar4wpay8iau" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm1p7o7fm0083xsr4trfdnjyo" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1314,430 +1520,11 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm121y18x00sfqar4uayc8vbg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm1p7o81t00qzxsr4rj5oro1n" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
 
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-随笔/游戏随笔" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/随笔/游戏随笔/" class="article-date">
-  <time datetime="2016-08-17T10:28:34.000Z" itemprop="datePublished">2016-08-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/随笔/游戏随笔/">游戏随笔</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="有这么一个技能，当怪物血量高于总血量的70-时，你的伤害增加50-。"><a href="#有这么一个技能，当怪物血量高于总血量的70-时，你的伤害增加50-。" class="headerlink" title="有这么一个技能，当怪物血量高于总血量的70%时，你的伤害增加50%。"></a><strong>有这么一个技能，当怪物血量高于总血量的70%时，你的伤害增加50%。</strong></h2><p>以血量1000下的不同攻击力分别计算带该技能后，相当于整个攻击过程增加了多少的攻击力？<br>情况1，攻击力10：未带技能时攻击次数是100次，有带技能时加成与未加成的攻击次数分别是20和70（有带技能且加成时攻击力是15，打20次后降到70%以下的血，剩700要用攻击力10打），相当于攻击力增加10%。附(20+70)/100=0.90<br>情况2，攻击力100：未带技能时攻击次数是10次，有带技能时加成与未加成的攻击次数分别是2和7（有带技能且加成时攻击力是150，打2次后降到70%以下的血，剩700要用攻击力100打），相当于攻击力增加10%。附(2+7)/10=0.90<br>情况3，攻击力200：未带技能时攻击次数是5.0次，有带技能时加成与未加成的攻击次数分别是1和3.5(有带技能且加成时攻击力是300，打1次后降到70%以下的血，剩700要用攻击力200打），相当于攻击力增加10%，即(1+3.5)/5.0=0.90<br>情况4，攻击力300：未带技能时攻击次数是3.3次，有带技能时加成与未加成攻击次数分别是1和1.83(有带技能且加成时攻击力是450，打1次后降到70%以下的血，剩550要用攻击力300打），相当于攻击力增加15%，即(1+1.83)/3.3≈0.85<br>情况5，攻击力400：未带技能时攻击次数是2.5次，有带技能时加成与未加成的攻击次数分别是1和1.0(有带技能且加成时攻击力是600，打1次后降到70%以下的血，剩400要用攻击力400打），相当于攻击力增加20%，即(1+1.0)/2.5=0.80<br>情况6，攻击力500：未带技能时攻击次数是2.0次，有带技能时加成与未加成的攻击次数分别是1和0.5(有带技能且加成时攻击力是750，打1次后降到70%以下的血，剩250要用攻击力500打），相当于攻击力增加25%，即(1+0.5)/2.0=0.75</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>攻击力</th>
-<th>未带技能时<br>攻击次数</th>
-<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
-<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
-<th>攻击次数比</th>
-<th>增长</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>10</td>
-<td>1000/10 = 100次</td>
-<td>15功 * 20次 = 300血</td>
-<td>700血 / 10功 = 70次</td>
-<td>(20+70)/100 = 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>2</td>
-<td>100</td>
-<td>10次</td>
-<td>150功 * 2次 = 300血</td>
-<td>700血 / 100功 = 7.0次</td>
-<td>(2+7.0)/10 = 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>3</td>
-<td>200</td>
-<td>5.0次</td>
-<td>300功 * 1次 = 300血(剩&lt;700)</td>
-<td>700血 / 200功 = 3.5次</td>
-<td>(1+3.5)/5.0 = 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>4</td>
-<td>300</td>
-<td>3.3次</td>
-<td>450功 * 1次 = 450血</td>
-<td>550血 / 300功 ≈ 1.83次</td>
-<td>(1+1.83)/3.3≈0.85</td>
-<td>15%</td>
-</tr>
-<tr>
-<td>5</td>
-<td>400</td>
-<td>2.5次</td>
-<td>600功 * 1次 = 600血</td>
-<td>400血 / 400功 = 1.0次</td>
-<td>(1+1.0)/2.5 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>6</td>
-<td>500</td>
-<td>2.0次</td>
-<td>750功 * 1次 = 750血</td>
-<td>250血 / 500功 = 0.5次</td>
-<td>(1+0.5)/2.0 = 0.75</td>
-<td>25%</td>
-</tr>
-<tr>
-<td>7</td>
-<td>600</td>
-<td>1000/600≈1.66次</td>
-<td>900功 * 1次 = 900血</td>
-<td>100血 / 600功 ≈ 0.16次</td>
-<td>(1+0.16)/1.66≈0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>8</td>
-<td>666</td>
-<td>1000/666.6=1.5次</td>
-<td>1000功 * 1次 = 1000血</td>
-<td>0血 / 666.66功 = 0.0次</td>
-<td>(1+0.0)/1.5 ≈ 0.66</td>
-<td><strong>33%</strong></td>
-</tr>
-<tr>
-<td>9</td>
-<td>700</td>
-<td>1000/700 ≈1.42次</td>
-<td>1050功 * 1次 = 1050血</td>
-<td>0血 / 700功 = 0.0次</td>
-<td>(1+0.0)/1.42 ≈ 0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>10</td>
-<td>800</td>
-<td>1000/800 =1.25次</td>
-<td>1200功 * 1次 = 1200血</td>
-<td>0血 / 800功 = 0.0次</td>
-<td>(1+0.0)/1.25 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>11</td>
-<td>900</td>
-<td>1000/900 ≈1.11次</td>
-<td>1350功 * 1次 = 1350血</td>
-<td>0血 / 900功 = 0.0次</td>
-<td>(1+0.0)/1.11 ≈ 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>12</td>
-<td>1000</td>
-<td>1000/1000 =1.0次</td>
-<td>1500功 * 1次 = 1500血</td>
-<td>0血 / 1000功 = 0.0次</td>
-<td>(1+0.0)/1.0 = 1.0</td>
-<td>0%</td>
-</tr>
-</tbody>
-</table>
-<p>最大增长率是33% 。<strong>发生在带技能后技能生效一枪爆头，把技能的增效才充分利用了。即最大增长率发生在 <code>(1+50%)*1枪=处决</code> 。</strong>即未加攻时1.5枪，加功时1枪。(1+0.0)/1.5 ≈ 0.66，增长了33%，差不多略小于 50%*70% = 35%</p>
-<p>如果技能是当怪物血量高于总血量的70%时，伤害可以增加60%（而不是50%）呢？</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>攻击力</th>
-<th>未带技能时<br>攻击次数</th>
-<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
-<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
-<th>攻击次数比</th>
-<th>增长</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>10</td>
-<td>1000/10 = 100次</td>
-<td>16功 * 19次 = 304血</td>
-<td>696血 / 10功 = 70次</td>
-<td>(19+70)/100 = 0.89</td>
-<td>11%</td>
-</tr>
-<tr>
-<td>2</td>
-<td>100</td>
-<td>10次</td>
-<td>160功 * 2次 = 320血</td>
-<td>680血 / 100功 = 6.8次</td>
-<td>(2+6.8)/10 = 0.88</td>
-<td>12%</td>
-</tr>
-<tr>
-<td>3</td>
-<td>200</td>
-<td>5.0次</td>
-<td>320功 * 1次 = 320血(剩&lt;700)</td>
-<td>680血 / 200功 = 3.4次</td>
-<td>(1+3.4)/5.0 = 0.88</td>
-<td>12%</td>
-</tr>
-<tr>
-<td>4</td>
-<td>300</td>
-<td>3.3次</td>
-<td>480功 * 1次 = 480血</td>
-<td>520血 / 300功 ≈ 1.73次</td>
-<td>(1+1.73)/3.3≈0.82</td>
-<td>18%</td>
-</tr>
-<tr>
-<td>5</td>
-<td>400</td>
-<td>2.5次</td>
-<td>640功 * 1次 = 640血</td>
-<td>360血 / 400功 = 0.9次</td>
-<td>(1+0.9)/2.5 = 0.76</td>
-<td>24%</td>
-</tr>
-<tr>
-<td>6</td>
-<td>500</td>
-<td>2.0次</td>
-<td>800功 * 1次 = 800血</td>
-<td>200血 / 500功 = 0.4次</td>
-<td>(1+0.4)/2.0 = 0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>7</td>
-<td>600</td>
-<td>1000/600≈1.66次</td>
-<td>960功 * 1次 = 960血</td>
-<td>40血 / 600功 ≈ 0.06次</td>
-<td>(1+0.06)/1.66≈0.64</td>
-<td>36%</td>
-</tr>
-<tr>
-<td>8</td>
-<td>625</td>
-<td>1000/625 =1.6次</td>
-<td>1000功 * 1次 = 1000血</td>
-<td>0血 / 625功 = 0.0次</td>
-<td>(1+0.0)/1.6 = 0.625</td>
-<td><strong>37.5%</strong></td>
-</tr>
-<tr>
-<td>9</td>
-<td>700</td>
-<td>1000/700 ≈1.42次</td>
-<td>1120功 * 1次 = 1120血</td>
-<td>0血 / 700功 = 0.0次</td>
-<td>(1+0.0)/1.42 ≈ 0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>10</td>
-<td>800</td>
-<td>1000/800 =1.25次</td>
-<td>1280功 * 1次 = 1280血</td>
-<td>0血 / 800功 = 0.0次</td>
-<td>(1+0.0)/1.25 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>11</td>
-<td>900</td>
-<td>1000/900 ≈1.11次</td>
-<td>1440功 * 1次 = 1440血</td>
-<td>0血 / 900功 = 0.0次</td>
-<td>(1+0.0)/1.11 ≈ 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>12</td>
-<td>1000</td>
-<td>1000/1000 =1.0次</td>
-<td>1600功 * 1次 = 1600血</td>
-<td>0血 / 1000功 = 0.0次</td>
-<td>(1+0.0)/1.0 = 1.0</td>
-<td>0%</td>
-</tr>
-</tbody>
-</table>
-<p>最大增长率是37.5% 。<strong>发生在带技能后技能生效一枪爆头，把技能的增效才充分利用了。即最大增长率发生在 <code>(1+60%)*1枪=处决</code> 。</strong>即未加攻时1.6枪，加功时1枪。(1+0.0)/1.6 = 0.625，增长了37.5%，差不多略小于 60%*70% = 42%</p>
-<p>如果技能是当怪物血量高于总血量的50%（不用到70%）就可以生效伤害增加50%的效果呢？</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>攻击力</th>
-<th>未带技能时<br>攻击次数</th>
-<th>有带技能且生效时<br>攻击力、可打次数和输出伤害</th>
-<th>有带技能但失效时<br>剩余血量和还需攻击次数</th>
-<th>攻击次数比</th>
-<th>增长</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>10</td>
-<td>1000/10 = 100次</td>
-<td>15功 * 34次 = 510血</td>
-<td>490血 / 10功 = 49次</td>
-<td>(34+49)/100 = 0.73</td>
-<td>27%</td>
-</tr>
-<tr>
-<td>2</td>
-<td>100</td>
-<td>10次</td>
-<td>150功 * 4次 = 600血</td>
-<td>400血 / 100功 = 4.0次</td>
-<td>(4+4.0)/10 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>3</td>
-<td>200</td>
-<td>5.0次</td>
-<td>300功 * 2次 = 600血</td>
-<td>400血 / 200功 = 2.0次</td>
-<td>(2+2.0)/5.0 = 0.80</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>4</td>
-<td>300</td>
-<td>3.3次</td>
-<td>450功 * 2次 = 900血</td>
-<td>100血 / 300功 ≈ 0.33次</td>
-<td>(2+0.33)/3.3≈0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td></td>
-<td>333.33</td>
-<td>1000/333.33=3.0次</td>
-<td>500功 * 1次 = 500血(剩&lt;500)</td>
-<td>500血 / 333.33功=1.5次</td>
-<td>(1+1.5)/3.0≈0.83</td>
-<td>17%</td>
-</tr>
-<tr>
-<td>5</td>
-<td>400</td>
-<td>2.5次</td>
-<td>600功 * 1次 = 600血(剩&lt;500)</td>
-<td>400血 / 400功 = 1.0次</td>
-<td>(1+1.0)/2.5 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>6</td>
-<td>500</td>
-<td>2.0次</td>
-<td>750功 * 1次 = 750血</td>
-<td>250血 / 500功 = 0.5次</td>
-<td>(1+0.5)/2.0 = 0.75</td>
-<td>25%</td>
-</tr>
-<tr>
-<td>7</td>
-<td>600</td>
-<td>1000/600≈1.66次</td>
-<td>900功 * 1次 = 900血</td>
-<td>100血 / 600功 ≈ 0.16次</td>
-<td>(1+0.16)/1.66≈0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>8</td>
-<td>666</td>
-<td>1000/666.6=1.5次</td>
-<td>1000功 * 1次 = 1000血</td>
-<td>0血 / 666.66功 = 0.0次</td>
-<td>(1+0.0)/1.5 ≈ 0.66</td>
-<td><strong>33%</strong></td>
-</tr>
-<tr>
-<td>9</td>
-<td>700</td>
-<td>1000/700 ≈1.42次</td>
-<td>1050功 * 1次 = 1050血</td>
-<td>0血 / 700功 = 0.0次</td>
-<td>(1+0.0)/1.42 ≈ 0.70</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>10</td>
-<td>800</td>
-<td>1000/800 =1.25次</td>
-<td>1200功 * 1次 = 1200血</td>
-<td>0血 / 800功 = 0.0次</td>
-<td>(1+0.0)/1.25 = 0.80</td>
-<td>20%</td>
-</tr>
-<tr>
-<td>11</td>
-<td>900</td>
-<td>1000/900 ≈1.11次</td>
-<td>1350功 * 1次 = 1350血</td>
-<td>0血 / 900功 = 0.0次</td>
-<td>(1+0.0)/1.11 ≈ 0.90</td>
-<td>10%</td>
-</tr>
-<tr>
-<td>12</td>
-<td>1000</td>
-<td>1000/1000 =1.0次</td>
-<td>1500功 * 1次 = 1500血</td>
-<td>0血 / 1000功 = 0.0次</td>
-<td>(1+0.0)/1.0 = 1.0</td>
-<td>0%</td>
-</tr>
-</tbody>
-</table>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/随笔/游戏随笔/" data-id="cm121xzkh0052qar4jlm19u5q" class="article-share-link">Share</a>
-      
-      
     </footer>
   </div>
   

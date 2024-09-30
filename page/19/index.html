@@ -72,6 +72,240 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" class="article-date">
+  <time datetime="2020-07-08T09:08:41.000Z" itemprop="datePublished">2020-07-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/">一个不用重加载的WebView</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="一个不用重加载的WebView"><a href="#一个不用重加载的WebView" class="headerlink" title="一个不用重加载的WebView"></a>一个不用重加载的WebView</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><ul>
+<li>一个基于WebView的Cocos2d游戏，因为启动加载引擎会有3-5秒的加载时长。为了更好的游戏体验，希望启动后重新进入不用重新加载。</li>
+</ul>
+<h2 id="二、webView的方案汇总"><a href="#二、webView的方案汇总" class="headerlink" title="二、webView的方案汇总"></a>二、webView的方案汇总</h2><table>
+<thead>
+<tr>
+<th>序号</th>
+<th>描述</th>
+<th>方式</th>
+<th>方案</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>传统方法</td>
+<td>页面</td>
+<td>APage + AWebView + AWebControl</td>
+<td>重进重载</td>
+</tr>
+<tr>
+<td>2</td>
+<td>单例WebControl</td>
+<td>页面</td>
+<td>APage + AWebView + ShareWebControl</td>
+<td>暂未发现</td>
+</tr>
+<tr>
+<td>3</td>
+<td>单例WebView</td>
+<td>页面</td>
+<td>APage + ShareWebView</td>
+<td>Flutter因无法插入视图直接不适用</td>
+</tr>
+<tr>
+<td>4</td>
+<td>全局WebView 用法1</td>
+<td>弹窗</td>
+<td>ShareWebView</td>
+<td>页面返回</td>
+</tr>
+<tr>
+<td>5</td>
+<td>全局WebView 用法2</td>
+<td>假页面</td>
+<td>AWebPlaceholderPage+ShareWebView</td>
+<td>页面返回</td>
+</tr>
+</tbody>
+</table>
+<p>重新梳理各方案特性：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>传统方法<br>页面</th>
+<th>单例WebControl<br>页面</th>
+<th>单例WebView<br>页面</th>
+<th>全局WebView <br>弹窗</th>
+<th>全局WebView<br>假页面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>附着物</td>
+<td>页面</td>
+<td>页面</td>
+<td>页面</td>
+<td>视图</td>
+<td>视图</td>
+</tr>
+<tr>
+<td>语言适用性</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>进出可系统控制</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>侧滑返回系统控制</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌Flutter因无法插入视图直接不适用</td>
+<td>❌</td>
+<td>🚗侧滑会先看到白屏</td>
+</tr>
+<tr>
+<td>重进可免重加载</td>
+<td>❌重进重载</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>下面我们按WebView的存在形式，对WebView的方案进行各自的详细说明。</p>
+<h2 id="三、WebView方案之是单页面"><a href="#三、WebView方案之是单页面" class="headerlink" title="三、WebView方案之是单页面"></a>三、WebView方案之是单页面</h2><h3 id="1、传统：APage-AWebView-AControl"><a href="#1、传统：APage-AWebView-AControl" class="headerlink" title="1、传统：APage + AWebView + AControl"></a>1、传统：APage + AWebView + AControl</h3><p>✅进出</p>
+<p>✅侧滑返回</p>
+<p>❌重进入游戏加载重复</p>
+<h3 id="2、webView视图”单例”—Flutter无效"><a href="#2、webView视图”单例”—Flutter无效" class="headerlink" title="2、webView视图”单例”—Flutter无效"></a>2、webView视图”单例”—Flutter无效</h3><p><strong>🚗：Flutter因无法对视图树进行视图插入直接不适用。</strong></p>
+<p>不同地方共用一个webView视图（）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">APage.addSubView(shareWebView);</span><br><span class="line">BPage.addSubView(shareWebView);</span><br><span class="line">CPage.addSubView(shareWebView);</span><br></pre></td></tr></table></figure>
+<p>区别：全局webView：所有地方都使用同一个地方的webview。</p>
+<h3 id="3、webViewControl-单例"><a href="#3、webViewControl-单例" class="headerlink" title="3、webViewControl 单例"></a>3、webViewControl 单例</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类似 player 的 control()</span></span><br><span class="line">webView1.control = shareControl;</span><br><span class="line">APage.addSubView(webView1);</span><br><span class="line"></span><br><span class="line">webView2.control = shareControl;</span><br><span class="line">BPage.addSubView(webView2);</span><br><span class="line"></span><br><span class="line">webView3.control = shareControl;</span><br><span class="line">CPage.addSubView(webView3)</span><br><span class="line"> </span><br><span class="line">  </span><br><span class="line">build() &#123;</span><br><span class="line">  <span class="comment">//return shareWebView(); // ❌</span></span><br><span class="line">	<span class="keyword">return</span> webViewWidget(control: shareControl)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、WebView方案之是全局"><a href="#四、WebView方案之是全局" class="headerlink" title="四、WebView方案之是全局"></a>四、WebView方案之是全局</h2><h3 id="1、直接弹窗"><a href="#1、直接弹窗" class="headerlink" title="1、直接弹窗"></a>1、直接弹窗</h3><p>在Flutter上，以Overlay的方式进行全局WebView的显示时候，底部页面仍会进行相应渲染事项，即仍占用CPU、GPU。</p>
+<p>原因：轮播图、gif动画的渲染在弹出弹窗后，并未停止。</p>
+<p>🚄优化：显示游戏时候，轮播图停止、gif动画停止（类似隐藏游戏的时候，游戏定时器及渲染关闭）。</p>
+<h3 id="2、新页面-弹窗"><a href="#2、新页面-弹窗" class="headerlink" title="2、新页面+弹窗"></a>2、新页面+弹窗</h3><p>目的：通过新页面来作为路由页。</p>
+<h4 id="2-1、显示方式：先显示全局webView视图，再弹出新页面"><a href="#2-1、显示方式：先显示全局webView视图，再弹出新页面" class="headerlink" title="2.1、显示方式：先显示全局webView视图，再弹出新页面"></a>2.1、显示方式：先显示全局webView视图，再弹出新页面</h4><p>若先弹出新页面再显示全局webView视图，页面会有新页面的假白屏问题。所以，应该是先显示再弹出。</p>
+<h4 id="2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"><a href="#2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图" class="headerlink" title="2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"></a>2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图</h4><p>同理若先隐藏全局webView视图再关闭新页面，页面会有新页面的假白屏问题。所以，应该是先关闭再隐藏。</p>
+<h4 id="2-3、隐藏之进入新页面：直接进入新页面。"><a href="#2-3、隐藏之进入新页面：直接进入新页面。" class="headerlink" title="2.3、隐藏之进入新页面：直接进入新页面。"></a>2.3、隐藏之进入新页面：直接进入新页面。</h4><p>以从全局webView视图进入一个app页面。若进入新页面是先关闭全局webView视图，再进入新页面，则从新页面返回的时候，返回位置会错乱（如果为了不错乱，则你必须自己判断返回到哪）。所以应该直接进入新页面。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" data-id="cm1p7o9f4010txsr4aq0e3xtf" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-实用工具/yapi/yapi的项目运行" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/实用工具/yapi/yapi的项目运行/" class="article-date">
+  <time datetime="2020-07-01T02:00:00.000Z" itemprop="datePublished">2020-07-01</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/实用工具/yapi/yapi的项目运行/">yapi的项目运行</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="yapi的项目运行"><a href="#yapi的项目运行" class="headerlink" title="yapi的项目运行"></a>yapi的项目运行</h1><p>官网地址：<a href="https://github.com/YMFE/yapi" target="_blank" rel="noopener">https://github.com/YMFE/yapi</a></p>
+<h2 id="一、下载已有的yapi的项目"><a href="#一、下载已有的yapi的项目" class="headerlink" title="一、下载已有的yapi的项目"></a>一、下载已有的yapi的项目</h2><p>下载你之前保存的 <a href="https://gitee.com/dvlpApi/CQApp-api" target="_blank" rel="noopener">yapi项目:CQApp-api</a>和<a href="https://gitee.com/dvlpApi/CQApp-api-mongodb" target="_blank" rel="noopener">yapi项目的数据:CQApp-api-mongodb</a>两个git工程到<code>本地</code>或<code>云服务器ECS</code>上，然后运行。</p>
+<p><img src="/实用工具/yapi/yapi的项目运行/image-20211222150604187.png" alt="image-20211222150604187"></p>
+<h2 id="二、运行效果预览"><a href="#二、运行效果预览" class="headerlink" title="二、运行效果预览"></a>二、运行效果预览</h2><p>运行成功的结果：</p>
+<p>要运行项目，最终是要进入项目，执行node vendors/server/app.js 指令启动服务器，然后在浏览器打开 <a href="http://127.0.0.1:3000" target="_blank" rel="noopener">http://127.0.0.1:3000</a> 访问。</p>
+<p><img src="file:///Users/lichaoqian/Project/CQBook/dvlproadHexo/source/_posts/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/yapi/yapi%E7%9A%84%E9%A1%B9%E7%9B%AE%E8%BF%90%E8%A1%8C/yapi%20start4.png?lastModify=1640156982" alt="yapi start4"></p>
+<h2 id="三、终端运行yapi项目的步骤"><a href="#三、终端运行yapi项目的步骤" class="headerlink" title="三、终端运行yapi项目的步骤"></a>三、终端运行yapi项目的步骤</h2><h3 id="1、-下载并-进入yapi项目，然后启动"><a href="#1、-下载并-进入yapi项目，然后启动" class="headerlink" title="1、(下载并)进入yapi项目，然后启动"></a>1、(下载并)进入<code>yapi项目</code>，然后启动</h3><h4 id="1-1、下载已存在的yapi项目到Project中"><a href="#1-1、下载已存在的yapi项目到Project中" class="headerlink" title="1.1、下载已存在的yapi项目到Project中"></a>1.1、下载已存在的<code>yapi项目</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api</span><br></pre></td></tr></table></figure>
+<h4 id="1-2、启动yapi项目"><a href="#1-2、启动yapi项目" class="headerlink" title="1.2、启动yapi项目"></a>1.2、启动<code>yapi项目</code></h4><p>即在终端执行的命令如下：</p>
+<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805012844104.png" alt="image-20210805012844104"></p>
+<p>如图，提示<code>mongodb load success...</code>则yapi启动成功。跳过如下MongoNetworkError错误，查看yapi的访问方法。</p>
+<blockquote>
+<p>如果出现如下的MongoNetworkError问题，则原因是你执行node vendors/server/app.js 前，未先成功启动mongodb。从而导致<strong>MongoNetworkError</strong>错误。解决方式，请查看本文最后的<code>1、MongoNetworkError的解决</code><br><img src="/实用工具/yapi/yapi的项目运行/yapi-MongoNetworkError.png" alt="MongoNetworkError"></p>
+</blockquote>
+<h3 id="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"><a href="#2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。" class="headerlink" title="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"></a>2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。</h3><p><img src="/实用工具/yapi/yapi的项目运行/yapi start5.png" alt="yapi start5" style="zoom:33%;"></p>
+<h3 id="3、登录yapi"><a href="#3、登录yapi" class="headerlink" title="3、登录yapi"></a>3、登录yapi</h3><p>利用上述部署成功后的账号和密码，登录yapi网页。</p>
+<blockquote>
+<p>账号：<a href="mailto:admin@admin.com" target="_blank" rel="noopener">admin@admin.com</a></p>
+<p>密码：ymfe.org # 已修改为姓名全拼</p>
+</blockquote>
+<p>登录后的界面截图如下：</p>
+<p><img src="/实用工具/yapi/yapi的项目运行/image-20201024153331339.png" alt="image-20201024153331339"></p>
+<h2 id="四、如启动yapi项目过程中遇到错误，各解决方式如下"><a href="#四、如启动yapi项目过程中遇到错误，各解决方式如下" class="headerlink" title="四、如启动yapi项目过程中遇到错误，各解决方式如下"></a>四、如启动yapi项目过程中遇到错误，各解决方式如下</h2><h3 id="1、MongoNetworkError的解决"><a href="#1、MongoNetworkError的解决" class="headerlink" title="1、MongoNetworkError的解决"></a>1、MongoNetworkError的解决</h3><h4 id="1-1、下载已存在的yapi项目的数据mongodb到Project中"><a href="#1-1、下载已存在的yapi项目的数据mongodb到Project中" class="headerlink" title="1.1、下载已存在的yapi项目的数据mongodb到Project中"></a>1.1、下载已存在的<code>yapi项目的数据mongodb</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api-mongodb</span><br></pre></td></tr></table></figure>
+<p>举例：下载mongodb的问题</p>
+<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805001123542.png" alt="image-20210805001123542"></p>
+<h4 id="1-2、启动yapi项目的数据mongodb"><a href="#1-2、启动yapi项目的数据mongodb" class="headerlink" title="1.2、启动yapi项目的数据mongodb"></a>1.2、启动<code>yapi项目的数据mongodb</code></h4><p><img src="/实用工具/yapi/yapi的项目运行/image-20210805003329469.png" alt="image-20210805003329469"></p>
+<p>这样启动mongodb后，再执行node vendors/server/app.js，就能让yapi正确启动了。</p>
+<p>### </p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的项目运行/" data-id="cm1p7o82e00ssxsr4c161o7ht" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-实用工具/yapi/yapi的安装" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/实用工具/yapi/yapi的安装/" class="article-date">
@@ -187,77 +421,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的安装/" data-id="cm121y19d00tyqar4hjuwkksi" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/yapi/yapi的项目运行" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/yapi/yapi的项目运行/" class="article-date">
-  <time datetime="2020-07-01T02:00:00.000Z" itemprop="datePublished">2020-07-01</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/yapi/yapi的项目运行/">yapi的项目运行</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="yapi的项目运行"><a href="#yapi的项目运行" class="headerlink" title="yapi的项目运行"></a>yapi的项目运行</h1><p>官网地址：<a href="https://github.com/YMFE/yapi" target="_blank" rel="noopener">https://github.com/YMFE/yapi</a></p>
-<h2 id="一、下载已有的yapi的项目"><a href="#一、下载已有的yapi的项目" class="headerlink" title="一、下载已有的yapi的项目"></a>一、下载已有的yapi的项目</h2><p>下载你之前保存的 <a href="https://gitee.com/dvlpApi/CQApp-api" target="_blank" rel="noopener">yapi项目:CQApp-api</a>和<a href="https://gitee.com/dvlpApi/CQApp-api-mongodb" target="_blank" rel="noopener">yapi项目的数据:CQApp-api-mongodb</a>两个git工程到<code>本地</code>或<code>云服务器ECS</code>上，然后运行。</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20211222150604187.png" alt="image-20211222150604187"></p>
-<h2 id="二、运行效果预览"><a href="#二、运行效果预览" class="headerlink" title="二、运行效果预览"></a>二、运行效果预览</h2><p>运行成功的结果：</p>
-<p>要运行项目，最终是要进入项目，执行node vendors/server/app.js 指令启动服务器，然后在浏览器打开 <a href="http://127.0.0.1:3000" target="_blank" rel="noopener">http://127.0.0.1:3000</a> 访问。</p>
-<p><img src="file:///Users/lichaoqian/Project/CQBook/dvlproadHexo/source/_posts/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/yapi/yapi%E7%9A%84%E9%A1%B9%E7%9B%AE%E8%BF%90%E8%A1%8C/yapi%20start4.png?lastModify=1640156982" alt="yapi start4"></p>
-<h2 id="三、终端运行yapi项目的步骤"><a href="#三、终端运行yapi项目的步骤" class="headerlink" title="三、终端运行yapi项目的步骤"></a>三、终端运行yapi项目的步骤</h2><h3 id="1、-下载并-进入yapi项目，然后启动"><a href="#1、-下载并-进入yapi项目，然后启动" class="headerlink" title="1、(下载并)进入yapi项目，然后启动"></a>1、(下载并)进入<code>yapi项目</code>，然后启动</h3><h4 id="1-1、下载已存在的yapi项目到Project中"><a href="#1-1、下载已存在的yapi项目到Project中" class="headerlink" title="1.1、下载已存在的yapi项目到Project中"></a>1.1、下载已存在的<code>yapi项目</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api</span><br></pre></td></tr></table></figure>
-<h4 id="1-2、启动yapi项目"><a href="#1-2、启动yapi项目" class="headerlink" title="1.2、启动yapi项目"></a>1.2、启动<code>yapi项目</code></h4><p>即在终端执行的命令如下：</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805012844104.png" alt="image-20210805012844104"></p>
-<p>如图，提示<code>mongodb load success...</code>则yapi启动成功。跳过如下MongoNetworkError错误，查看yapi的访问方法。</p>
-<blockquote>
-<p>如果出现如下的MongoNetworkError问题，则原因是你执行node vendors/server/app.js 前，未先成功启动mongodb。从而导致<strong>MongoNetworkError</strong>错误。解决方式，请查看本文最后的<code>1、MongoNetworkError的解决</code><br><img src="/实用工具/yapi/yapi的项目运行/yapi-MongoNetworkError.png" alt="MongoNetworkError"></p>
-</blockquote>
-<h3 id="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"><a href="#2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。" class="headerlink" title="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"></a>2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。</h3><p><img src="/实用工具/yapi/yapi的项目运行/yapi start5.png" alt="yapi start5" style="zoom:33%;"></p>
-<h3 id="3、登录yapi"><a href="#3、登录yapi" class="headerlink" title="3、登录yapi"></a>3、登录yapi</h3><p>利用上述部署成功后的账号和密码，登录yapi网页。</p>
-<blockquote>
-<p>账号：<a href="mailto:admin@admin.com" target="_blank" rel="noopener">admin@admin.com</a></p>
-<p>密码：ymfe.org # 已修改为姓名全拼</p>
-</blockquote>
-<p>登录后的界面截图如下：</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20201024153331339.png" alt="image-20201024153331339"></p>
-<h2 id="四、如启动yapi项目过程中遇到错误，各解决方式如下"><a href="#四、如启动yapi项目过程中遇到错误，各解决方式如下" class="headerlink" title="四、如启动yapi项目过程中遇到错误，各解决方式如下"></a>四、如启动yapi项目过程中遇到错误，各解决方式如下</h2><h3 id="1、MongoNetworkError的解决"><a href="#1、MongoNetworkError的解决" class="headerlink" title="1、MongoNetworkError的解决"></a>1、MongoNetworkError的解决</h3><h4 id="1-1、下载已存在的yapi项目的数据mongodb到Project中"><a href="#1-1、下载已存在的yapi项目的数据mongodb到Project中" class="headerlink" title="1.1、下载已存在的yapi项目的数据mongodb到Project中"></a>1.1、下载已存在的<code>yapi项目的数据mongodb</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api-mongodb</span><br></pre></td></tr></table></figure>
-<p>举例：下载mongodb的问题</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805001123542.png" alt="image-20210805001123542"></p>
-<h4 id="1-2、启动yapi项目的数据mongodb"><a href="#1-2、启动yapi项目的数据mongodb" class="headerlink" title="1.2、启动yapi项目的数据mongodb"></a>1.2、启动<code>yapi项目的数据mongodb</code></h4><p><img src="/实用工具/yapi/yapi的项目运行/image-20210805003329469.png" alt="image-20210805003329469"></p>
-<p>这样启动mongodb后，再执行node vendors/server/app.js，就能让yapi正确启动了。</p>
-<p>### </p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的项目运行/" data-id="cm121y19e00u2qar4h32ptfm9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的安装/" data-id="cm1p7o82e00swxsr46jizhczk" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
@@ -299,7 +463,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/2扩展/web扩展1/" data-id="cm121y15700h2qar4g58n8c53" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/HTML/2扩展/web扩展1/" data-id="cm1p7o7yc00g8xsr40n4j9yr6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -355,7 +519,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础3-代码复用/" data-id="cm121y14y00gzqar4yb4i6a8x" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础3-代码复用/" data-id="cm1p7o7xr00g2xsr4f1m1u45y" class="article-share-link">Share</a>
       
       
     </footer>
@@ -403,7 +567,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础2-实践基础/" data-id="cm121y14p00gvqar4c7ql38z1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础2-实践基础/" data-id="cm1p7o7y000g5xsr41ufrtyfo" class="article-share-link">Share</a>
       
       
     </footer>
@@ -442,7 +606,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础1-学习路线/" data-id="cm121y14700goqar4ao8j8a51" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/HTML/1入门/web必备基础1-学习路线/" data-id="cm1p7o7wu00fqxsr4940xf772" class="article-share-link">Share</a>
       
       
     </footer>
@@ -484,7 +648,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/性能相关/启动优化/" data-id="cm121y17f00mrqar42q1td584" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/性能相关/启动优化/" data-id="cm1p7o80o00lsxsr4toeuinib" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -619,7 +783,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/分页规范/" data-id="cm121y0mn008kqar48x7kcvyp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/分页规范/" data-id="cm1p7o7eo0072xsr4dtt31gog" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -663,7 +827,7 @@
 <p>账号管理</p>
 </blockquote>
 <h2 id="一、开发相关"><a href="#一、开发相关" class="headerlink" title="一、开发相关"></a>一、开发相关</h2><h3 id="1、分支规范"><a href="#1、分支规范" class="headerlink" title="1、分支规范"></a>1、分支规范</h3><p><a href="./功能流程/分支开发+打包流程.graffle">分支开发+打包流程</a></p>
-<h3 id="2、目录结构规范"><a href="#2、目录结构规范" class="headerlink" title="2、目录结构规范"></a>2、目录结构规范</h3><p><a href="./基础规范/项目目录结构规范.md">项目目录结构规范</a></p>
+<h3 id="2、目录结构规范"><a href="#2、目录结构规范" class="headerlink" title="2、目录结构规范"></a>2、目录结构规范</h3><p><a href="../Architecture架构/架构相关/1架构模式/架构模式-①概览.md">项目目录结构规范 见《架构模式-①概览》</a></p>
 <blockquote>
 <p>目录结构规范的必要性在于：</p>
 <ol>
@@ -717,70 +881,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/工作流程/" data-id="cm121xzha000eqar44pphfmfv" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/基础规范/分支规范" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/基础规范/分支规范/" class="article-date">
-  <time datetime="2020-04-20T09:05:41.000Z" itemprop="datePublished">2020-04-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/基础规范/分支规范/">分支规范</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="分支规范"><a href="#分支规范" class="headerlink" title="分支规范"></a>分支规范</h1><h2 id="一、分支简介"><a href="#一、分支简介" class="headerlink" title="一、分支简介"></a>一、分支简介</h2><p>项目应包含以下分支：</p>
-<ol>
-<li><p>master</p>
-<p>该分支为项目主分支，此分支只作为稳定版本发布使用，不允许在此分支上修改 bug ，开发功能等。并且该分支每次发布时需根据项目的版本号打上 tag ，例如 v1.0.0。</p>
-</li>
-<li><p>develop</p>
-<p>该分支为各开发人员的开发合并分支，各开发人员在各自开发分支/功能分支/bug分支上开发/调试代码，完成相关工作后即可合并到 develop 分支，不允许各位在此分支上直接开发。此分支无需打 tag 。</p>
-</li>
-<li><p>qa-test</p>
-<p>该分支是交由 QA 进行测试的分支，每次交由 QA 测试时，从 dev 分支合并到该分支，合并的最后一次 commit 需要打 tag ，例如 v1.0.0-test-num，num 为 1.0.0 版本提交测试的序号。QA 测试稳定后，merge 到 master 并打上 tag，待发布。</p>
-</li>
-<li><p>feture_xxx</p>
-<p>该分支用于开发新功能，比如新版本迭代时，有一个较大的功能模块，可以不在 dev_hzxxx 分支开发，相关开发同学可在此类分支上开发，有两个优点：(1)可以多人协同 (2)可以防止模块较大时导致原来代码混乱。</p>
-</li>
-<li><p>issue_xxx</p>
-<p>该分支用于解决 jira 上 bug，修改完成并验证后合并到 dev 分支，等待 QA 验证。</p>
-</li>
-</ol>
-<p>说明：关于以上 feature_xxx 和 issue_xxx 分支的使用说明可以根据实际情况进行参考，不是规定死的，在开发过程中有疑问可以跟大家讨论。</p>
-<h2 id="二、分支命名规范"><a href="#二、分支命名规范" class="headerlink" title="二、分支命名规范"></a>二、分支命名规范</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">master</span><br><span class="line"></span><br><span class="line">develop</span><br><span class="line"></span><br><span class="line">分支命名方式：模块/基础_功能_开发者</span><br><span class="line">形如：</span><br><span class="line">feature：新功能（feature）。</span><br><span class="line">-------feature/auth</span><br><span class="line">-------feature/auth_normal</span><br><span class="line">-------feature/auth_ban</span><br><span class="line">-------feature/auth_ban_qian</span><br><span class="line">perf：优化相关，比如提升性能、体验。</span><br><span class="line">-------perf/apm</span><br><span class="line">-------perf/apm_dokit</span><br><span class="line">chore：构建过程或辅助工具的变动。</span><br><span class="line">-------chore/pack</span><br><span class="line"></span><br><span class="line">附1：已知模块选项如下：</span><br><span class="line">"strong_business": &#123;</span><br><span class="line">	"auth": "登录模块(登录/注册、退出)",</span><br><span class="line">	"profile": "用户模块(个人首页/个人中心)",</span><br><span class="line">	"member": "会员模块(会员中心)",</span><br><span class="line">	"wish": "愿望单模块(愿望单列表、愿望单详情)",</span><br><span class="line">	"mall": "商城模块(商城首页、商品详情)",</span><br><span class="line">	"publish": "发布模块(愿望单发布)",</span><br><span class="line">	"order": "订单模块(订单列表、订单详情)",</span><br><span class="line">	"search": "搜索模块(大搜索)",</span><br><span class="line">	"im": "IM模块（会话列表、会话窗口）",</span><br><span class="line">	"live": "直播模块",</span><br><span class="line">	"comment": "评论模块"</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">附2：已知基础选项：</span><br><span class="line">"package": &#123;</span><br><span class="line">	"network": "网络模块",</span><br><span class="line">	"route": "路由模块",</span><br><span class="line">	"webview": "网页模块(js)",</span><br><span class="line">	"version": "版本模块（版本检查(含蒲公英)、应用内下载）",</span><br><span class="line">	"location": "定位模块",</span><br><span class="line">	"media": "媒体模块（选择、编辑、降噪增益）",</span><br><span class="line">	"share": "分享模块",</span><br><span class="line">	"apm": "应用性能管理(dokit、)",</span><br><span class="line">	"package": "其他基础库"</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/分支规范/" data-id="cm121y0m30081qar40rlouf9e" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/工作流程/" data-id="cm1p7o6sx000exsr4tdrsohzv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>

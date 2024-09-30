@@ -72,6 +72,86 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/1语言/1语言-消息转发" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-消息转发/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-消息转发"><a href="#必备知识架构-①语言-消息转发" class="headerlink" title="必备知识架构-①语言-消息转发"></a>必备知识架构-①语言-消息转发</h1><p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJBaseHelper/CJBaseHelper/HookCJHelper" target="_blank" rel="noopener">CJBaseHelper/HookCJHelper</a>》</p>
+<blockquote>
+<p>pod search CJBaseHelper</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165215629.png" alt="image-20240822165215629"></p>
+<blockquote>
+<p>库的使用方法，见我简书中的以下文章：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/5013d7bcddb5" target="_blank" rel="noopener">iOS 获取当前正在显示的视图控制器ViewController(最全)</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/cc715c5b594c" target="_blank" rel="noopener">iOS 拦截篇(一)：拦截H5通过<input>标签选取的图片</a></p>
+</li>
+</ul>
+</blockquote>
+</blockquote>
+<p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJHook" target="_blank" rel="noopener">CJHook</a>》</p>
+<blockquote>
+<p>pod search CJHook</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165517533.png" alt="image-20240822165517533"></p>
+</blockquote>
+<h2 id="在调用原始方法之前插入额外的执行逻辑"><a href="#在调用原始方法之前插入额外的执行逻辑" class="headerlink" title="在调用原始方法之前插入额外的执行逻辑"></a>在调用原始方法之前插入额外的执行逻辑</h2><h3 id="1、使用场景"><a href="#1、使用场景" class="headerlink" title="1、使用场景"></a>1、使用场景</h3><ol>
+<li><p><strong>日志记录与监控</strong>： 在方法执行前后添加日志记录，可以帮助开发者监控应用的行为，特别是在调试和性能分析时。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)swizzleMethod:(Class)class withSelector:(SEL)selector &#123;</span><br><span class="line">    Method originalMethod = class_getInstanceMethod(class, selector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(id self) &#123;</span><br><span class="line">         NSLog(@&quot;Before method execution&quot;);</span><br><span class="line">         ((void(*)(id, SEL))originalIMP)(self, selector);</span><br><span class="line">         NSLog(@&quot;After method execution&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="2、调用"><a href="#2、调用" class="headerlink" title="2、调用"></a>2、调用</h3><p>以在<strong>进入个人主页前，需要先判断是否登录</strong>为例</p>
+<p>常规：使用<strong>Util式、使用宏</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">    // 在调用原始方法之前执行的代码（进入个人主页前，需要先判断是否登录）</span><br><span class="line">    bool canPush = [LoginCheckerUtil checkLogin];</span><br><span class="line">  	if (!canPush) return;</span><br><span class="line">    </span><br><span class="line">    MineHomeViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[self.navigationController pushViewController:viewController animated:YES];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>改进(改进后发现，其实可读性不高，所以还不如不这么改）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">// LoginCheckUtil.m</span><br><span class="line">#define NeedLoginAnnotation(Class originalSelOwnerClass, SEL originalSelector) \</span><br><span class="line">HookCJHelper_addPreExecutionToClassMethod(originalSelOwnerClass, originalSelector, [LoginCheckUtil class], @selector(loginCheckMethod));</span><br><span class="line">class LoginCheckUtil: NSObject &#123;</span><br><span class="line">	+ (bool)loginCheckMethod &#123;</span><br><span class="line">	  if (UserManager.isLogin) &#123;</span><br><span class="line">      return YES;</span><br><span class="line">    &#125;</span><br><span class="line">    LoginViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[topVC pushViewController:viewController animated:YES];</span><br><span class="line">    return NO;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// HomeViewController.m</span><br><span class="line">+ (void) initialize &#123;</span><br><span class="line">	@NeedLoginAnnotation([self class], @selector(goMineHomePage))	// 在 + (void) initialize 中调用</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、内部核心代码"><a href="#3、内部核心代码" class="headerlink" title="3、内部核心代码"></a>3、内部核心代码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">// 在调用原始方法之前插入额外的执行逻辑</span><br><span class="line">bool HookCJHelper_addPreExecutionToClassMethod(Class originalSelOwnerClass, SEL originalSelector, Class preExecSelOwnerClass, SEL preExecutionSelector) &#123;</span><br><span class="line">  	// 原始方法检查</span><br><span class="line">    if (!originalSelOwnerClass || !class_getClassMethod(originalSelOwnerClass, originalSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    Method originalMethod = class_getClassMethod(originalSelOwnerClass, originalSelector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    if (!originalIMP) &#123;</span><br><span class="line">    		return false;</span><br><span class="line">   	&#125;</span><br><span class="line">    </span><br><span class="line">  	// 要插入的方法</span><br><span class="line">    if (!preExecSelOwnerClass || !class_getClassMethod(preExecSelOwnerClass, preExecutionSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 创建新的方法实现</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(Class self) &#123;</span><br><span class="line">      // 调用额外的逻辑（预执行类方法）</span><br><span class="line">      ((void(*)(Class, SEL))objc_msgSend)(preExecSelOwnerClass, preExecutionSelector);</span><br><span class="line">      // 调用原始的类方法</span><br><span class="line">      ((void(*)(Class, SEL))originalIMP)(self, originalSelector);</span><br><span class="line">  	&#125;);</span><br><span class="line"></span><br><span class="line">    // 替换原始方法的实现为新的实现</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line"></span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>什么时候会报<code>unrecognized selector</code>的异常</li>
+</ol>
+<ul>
+<li><p>当调用该对象上某个方法，而该对象上没有实现这个方法的时候。可以通过<code>消息转发</code>进行解决，流程见下图</p>
+<p><img src="https:////upload-images.jianshu.io/upload_images/1948913-f236e31f679fe683.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/597" alt="img"></p>
+<p>image</p>
+</li>
+<li><p><code>OC</code>在向一个对象发送消息时，<code>runtime</code>库会根据对象的<code>isa</code>指针找到该对象实际所属的类，然后<strong>在该类中的方法列表以及其父类方法列表中寻找方法运行，如果在最顶层的父类中依然找不到相应的方法时，程序在运行时会挂掉并抛出异常<code>unrecognized selector sent to XXX</code></strong><br><strong>但是在这之前，OC的运行时会给出三次拯救程序崩溃的机会</strong></p>
+</li>
+<li><p>Method resolution（<strong>消息动态解析</strong>）<br><code>OC</code>运行时会调用<code>+resolveInstanceMethod:</code>或者<code>+resolveClassMethod:</code>，让你有机会提供一个函数实现。如果你添加了函数，那运行时系统就会重新启动一次消息发送的过程，否则，运行时就会移到下一步，消息转发（<code>Message Forwarding</code>）</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重写 resolveInstanceMethod: 添加对象方法实现</span></span><br><span class="line">+ (<span class="built_in">BOOL</span>)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">    <span class="comment">// 如果是执行 run 函数，就动态解析，指定新的 IMP</span></span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// class: 给哪个类添加方法</span></span><br><span class="line">        <span class="comment">// SEL: 添加哪个方法</span></span><br><span class="line">        <span class="comment">// IMP: 方法实现 =&gt; 函数 =&gt; 函数入口 =&gt; 函数名</span></span><br><span class="line">        <span class="comment">// type: 方法类型：void用v来表示，id参数用@来表示，SEL用:来表示</span></span><br><span class="line">        class_addMethod(<span class="keyword">self</span>, sel, (IMP)runMethod, <span class="string">"v@:@"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//新的 run 函数</span></span><br><span class="line"><span class="keyword">void</span> runMethod(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd, <span class="built_in">NSNumber</span> *meter) &#123;</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"跑了%@"</span>, meter);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ul>
+<li><p>Fast forwarding（<strong>消息接受者重定向</strong>）<br>  如果目标对象实现了<code>-forwardingTargetForSelector:</code>，<code>Runtime</code>这时就会调用这个方法，给你把这个消息<strong>转发给其他对象</strong>的机会。只要这个方法返回的不是<code>nil</code>和<code>self</code>，整个消息发送的过程就会被重启，当然发送的对象会变成你返回的那个对象。否则，就会继续<code>Normal Fowarding</code>。 这里叫<code>Fast</code>，只是为了区别下一步的转发机制。因为这一步不会创建任何新的对象，但下一步转发会创建一个<code>NSInvocation</code>对象，所以相对更快点</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 消息接受者重定向</span></span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector&#123;</span><br><span class="line">    <span class="keyword">if</span> (aSelector == <span class="meta">@selector(run:)</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> [[Person alloc] <span class="keyword">init</span>];</span><br><span class="line">        <span class="comment">// 返回 Person 对象，让 Person 对象接收这个消息</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> forwardingTargetForSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Normal forwarding（<strong>消息重定向</strong>）<br>这一步是<code>Runtime</code>最后一次给你挽救的机会。首先它会发送<code>-methodSignatureForSelector:</code>消息获得函数的参数和返回值类型。如果<code>-methodSignatureForSelector:</code>返回<code>nil</code>，<code>Runtime</code>则会发出<code>-doesNotRecognizeSelector:</code>消息，程序这时也就挂掉了。如果返回了一个函数签名，<code>Runtime</code>就会创建一个<code>NSInvocation</code>对象并发送<code>-forwardInvocation:</code>消息给目标对象</li>
+</ul>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取函数的参数和返回值类型，返回签名</span></span><br><span class="line">- (<span class="built_in">NSMethodSignature</span> *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">    <span class="keyword">if</span> ([<span class="built_in">NSStringFromSelector</span>(aSelector) isEqualToString:<span class="string">@"run:"</span>]) &#123;</span><br><span class="line">        <span class="keyword">return</span> [<span class="built_in">NSMethodSignature</span> signatureWithObjCTypes:<span class="string">"v@:@"</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> methodSignatureForSelector:aSelector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 消息重定向</span></span><br><span class="line">- (<span class="keyword">void</span>)forwardInvocation:(<span class="built_in">NSInvocation</span> *)anInvocation &#123;</span><br><span class="line">    <span class="comment">// 从 anInvocation 中获取消息</span></span><br><span class="line">    SEL sel = anInvocation.selector;</span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// 1\. 指定当前类的一个方法作为IMP</span></span><br><span class="line">        <span class="comment">// anInvocation.selector = @selector(readBook:);</span></span><br><span class="line">        <span class="comment">// [anInvocation invoke];</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 2\. 指定其他类来执行这个IMP</span></span><br><span class="line">        Person *p = [[Person alloc] init];</span><br><span class="line">        <span class="comment">// 判断 Person 对象方法是否可以响应 sel</span></span><br><span class="line">        <span class="keyword">if</span>([p respondsToSelector:sel]) &#123;</span><br><span class="line">            <span class="comment">// 若可以响应，则将消息转发给其他对象处理</span></span><br><span class="line">            [anInvocation invokeWithTarget:p];</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 若仍然无法响应，则报错：找不到响应方法</span></span><br><span class="line">            [<span class="keyword">self</span> doesNotRecognizeSelector:sel];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        [<span class="keyword">super</span> forwardInvocation:anInvocation];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)doesNotRecognizeSelector:(SEL)aSelector &#123;</span><br><span class="line">    [<span class="keyword">super</span> doesNotRecognizeSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>既然<code>-forwardingTargetForSelector:</code>和<code>-forwardInvocation:</code>都可以将消息转发给其他对象处理，那么两者的区别在哪？</strong><br>区别就在于<code>-forwardingTargetForSelector:</code>只能将消息转发给一个对象。而<code>-forwardInvocation:</code>可以把消息存储，在你觉得合适的时机转发出去，或者不处理这个消息。修改消息的target，selector，参数等。将消息转发给多个对象</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发/" data-id="cm1p7o9p70154xsr40us9v2k0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/1语言/1语言" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/1语言/1语言/" class="article-date">
@@ -102,7 +182,7 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、浅谈runtime运行时机制</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
 </blockquote>
 <ul>
-<li><p><a href="KVC与KVO">三、KVC与KVO</a></p>
+<li><p><a href="#KVC与KVO">三、KVC与KVO</a></p>
 </li>
 <li><p><a href="Objective-C与C++">四、Objective-C与C++</a></p>
 </li>
@@ -212,12 +292,47 @@
 <li><p>initialize不是init，initialize在程序运行过程中，它会在你程序中每个类调用仅一次initialize。这个调用的时间发生在你的类接收到消息之前，但是在它的父类接收到initialize之后。<br>init则是你手动初始化几次就调用几次，和普通方法一样</p>
 </li>
 </ul>
-<p></p><p id="KVC与KVO"></p><p></p>
-<h2 id="三、KVC与KVO"><a href="#三、KVC与KVO" class="headerlink" title="三、KVC与KVO"></a>三、KVC与KVO</h2><h3 id="1、KVO"><a href="#1、KVO" class="headerlink" title="1、KVO"></a>1、KVO</h3><p><a href="http://blog.csdn.net/yuquan0821/article/details/6646400/" target="_blank" rel="noopener">KVO的概述与使用</a>内容如下</p>
+<p><a name="KVC与KVO"></a></p>
+<h2 id="三、KVC与KVO"><a href="#三、KVC与KVO" class="headerlink" title="三、KVC与KVO"></a>三、KVC与KVO</h2><h3 id="1、KVO"><a href="#1、KVO" class="headerlink" title="1、KVO"></a>1、KVO</h3><p><a href="http://blog.csdn.net/yuquan0821/article/details/6646400/" target="_blank" rel="noopener">KVO的概述与使用</a> 内容如下</p>
 <p>一、概述</p>
 <p>KVO,即键值观察者（key-value-observing），它提供一种观察者的机制，当指定的对象的属性被修改后，则对象就会接受到通知。简单的说就是每次指定的被观察的对象的属性被修改后，KVO就会自动通知相应的观察者了。</p>
-<p>二、KVO原理</p>
-<p>　　当某个类的对象第一次被观察时，系统在运行时会创建该类的派生类，该派生类中重写了该对象的setter方法，并且在setter方法中实现了通知的机制。派生类重写了class方法，以“欺骗”外部调用者他就是原先那个类。系统将这个类的isa指针指向新的派生类，因此改对象也就是新的派生类的对象了。因而该对象调用setter就会调用重写的setter，从而激活键值通知机制。此外派生类还重写了delloc方法来释放资源。</p>
+<p>二、KVO原理/本质</p>
+<p>Aspect 的实现很想 KVO的本质：详见 <a href="https://blog.wyan.vip/2023/11/Aspect_and_forwardInvocation.html" target="_blank" rel="noopener">Aspect 与 消息转发</a></p>
+<p>① <code>KVO</code>是使用<code>isa-swizzling</code>的技术实现的：<strong>当某个类的对象第一次被观察时，系统<em>在运行时会通过Runtime动态创建一个该类的派生类</em>，并将这个对象的isa指针指向这个派生类，派生类的isa指针指向原来的类，这样修改对象a的属性即对象a调用set方法就会变成是调用的是NSKVONotifying_A这个类的set方法。</strong></p>
+<p>②<strong>随后在该派生类中重写了该对象的setter方法，并且在setter方法中实现了通知的机制。</strong></p>
+<p>派生类重写了class方法，以“欺骗”外部调用者他就是原先那个类。系统将这个类的isa指针指向新的派生类，因此该对象也就是新的派生类的对象了。因而该对象调用setter就会调用重写的setter，从而激活键值通知机制。此外派生类还重写了delloc方法来释放资源。</p>
+<blockquote>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="meta">#pragma mark - 注册观察者 - 函数式编程</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)cjl_addObserver:(<span class="built_in">NSObject</span> *)observer forKeyPath:(<span class="built_in">NSString</span> *)keyPath handleBlock:(LGKVOBlock)block &#123;</span><br><span class="line">&gt;   	......</span><br><span class="line">&gt;     <span class="comment">//2、动态生成子类</span></span><br><span class="line">&gt;     Class newClass = [<span class="keyword">self</span> createChildClassWithKeyPath:keyPath];</span><br><span class="line">&gt;     object_setClass(<span class="keyword">self</span>, newClass); <span class="comment">// 将self的isa指向由原有类改为指向创建出来的派生类/中间类</span></span><br><span class="line">&gt;     </span><br><span class="line">&gt;   	<span class="comment">// 给子类NSKVONotifying_A添加方法一个名为setterSel的方法，这个方法的实现是cjl_setter。</span></span><br><span class="line">&gt;     SEL setterSel = <span class="built_in">NSSelectorFromString</span>(setterForGetter(keyPath));</span><br><span class="line">&gt;     Method method = class_getInstanceMethod([<span class="keyword">self</span> <span class="keyword">class</span>], setterSel);</span><br><span class="line">&gt;     <span class="keyword">const</span> <span class="keyword">char</span> *type = method_getTypeEncoding(method);</span><br><span class="line">&gt;     class_addMethod(newClass, setterSel, (IMP)cjl_setter, type); </span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">static</span> <span class="keyword">void</span> cjl_setter(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd, <span class="keyword">id</span> newValue)&#123;</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; </span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="meta">#pragma mark - 动态生成子类</span></span><br><span class="line">&gt; - (Class)createChildClass &#123;</span><br><span class="line">&gt;   	<span class="comment">// 动态创建子类</span></span><br><span class="line">&gt;     <span class="built_in">NSString</span> *oldClassName = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);	<span class="comment">//获取原本的类名   </span></span><br><span class="line">&gt;     <span class="built_in">NSString</span> *newClassName = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"NSKVONotifying_%@"</span>, oldClassName];<span class="comment">//拼接新的类名</span></span><br><span class="line">&gt;     Class newClass = objc_allocateClassPair([<span class="keyword">self</span> <span class="keyword">class</span>], newClassName.UTF8String, <span class="number">0</span>);</span><br><span class="line">&gt;     objc_registerClassPair(newClass);</span><br><span class="line">&gt;     <span class="comment">// 给子类NSKVONotifying_A添加方法一个名为class的方法，这个方法的实现是cjl_class。</span></span><br><span class="line">&gt;     SEL classSel = <span class="keyword">@selector</span>(<span class="keyword">class</span>);</span><br><span class="line">&gt;     Method classMethod = class_getInstanceMethod([<span class="keyword">self</span> <span class="keyword">class</span>], classSel);</span><br><span class="line">&gt;     <span class="keyword">const</span> <span class="keyword">char</span> *classType = method_getTypeEncoding(classMethod);</span><br><span class="line">&gt;     class_addMethod(newClass, classSel, (IMP)cjl_class, classType);</span><br><span class="line">&gt;   </span><br><span class="line">&gt;     <span class="keyword">return</span> newClass;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; Class cjl_class(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd)&#123;</span><br><span class="line">&gt;     <span class="keyword">return</span> class_getSuperclass(object_getClass(<span class="keyword">self</span>));<span class="comment">//通过[self class]获取会造成死循环</span></span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>以上实现参考自：<a href="https://juejin.cn/post/6949586633830187045?from=search-suggest" target="_blank" rel="noopener">iOS-底层原理 23：KVO 底层原理  自定义KVO</a> 、 <a href="https://juejin.cn/post/6939858821581897741" target="_blank" rel="noopener">iOS 探究 OC对象、isa指针及KVO实现原理</a></p>
+<p>其他参考：<a href="https://blog.csdn.net/u014247354/article/details/78403567" target="_blank" rel="noopener">KVO原理及自定义KVO</a></p>
+</blockquote>
+<p>答. 当一个对象使用了KVO监听，iOS系统会修改这个对象的isa指针，改为指向一个全新的通过Runtime动态创建的子类，子类拥有自己的set方法实现，set方法实现内部会顺序调用<strong>willChangeValueForKey方法、原来的setter方法实现、didChangeValueForKey方法，而didChangeValueForKey方法内部又会调用监听器的observeValueForKeyPath:ofObject:change:context:监听方法。</strong></p>
+<blockquote>
+<p>如何手动触发KVO 答. 被监听的属性的值被修改时，就会自动触发KVO。如果想要手动触发KVO，则需要我们自己调用<strong>willChangeValueForKey和didChangeValueForKey</strong>方法即可在不改变属性值的情况下手动触发KVO，并且这两个方法缺一不可。</p>
+</blockquote>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/e59bb8f59302" target="_blank" rel="noopener">iOS开发 – KVO的实现原理与具体应用</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/chy305chy/article/details/51793373" target="_blank" rel="noopener">iOS学习——KVO底层实现机制探究</a></p>
+</li>
+<li><a href="https://www.jianshu.com/p/aa996ddc0e85" target="_blank" rel="noopener">教你一行代码使用 KVO（Facebook 出品 FBKVOController 源码使用及解读）</a></li>
+</ul>
+<h2 id="isa指针"><a href="#isa指针" class="headerlink" title="isa指针"></a>isa指针</h2><p><strong>isa是结构体指针，只要是OC对象都有isa</strong></p>
+<ol>
+<li>实例对象的isa指向它的类对象。</li>
+<li>类对象的isa指向元类对象（元类是类的类，它存储了类的方法和属性信息。<strong>为什么要设计元类，为了复用消息传递功能</strong>）。</li>
+</ol>
+<blockquote>
+<p>当调用对象方法时，实例对象内存并没有包含对象方法，而是通过它内部的isa指针找到它的类对象，从而在类对象中找到对象方法的实现进行调用；</p>
+<p>当调用类方法时，类对象并没有类方法的信息，而是通过类对象的isa找到元类对象，最后找到类方法的实现进行调用</p>
+<ol>
+<li>instance调用对象方法的轨迹：isa找到class，方法不存在，就通过superclass找父类</li>
+<li>class调用类方法的轨迹：isa找meta-class，方法不存在，就通过superclass找父类</li>
+</ol>
+</blockquote>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/isa&amp;superclass.awebp" alt="isa&amp;superclass"></p>
 <p>三、使用方法</p>
 <p>系统框架已经支持KVO，所以程序员在使用的时候非常简单。</p>
 <ol>
@@ -298,50 +413,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言/" data-id="cm121y2vq016sqar41g82tj0i" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-①语言-请求拦截NSURLProtocol"><a href="#必备知识架构-①语言-请求拦截NSURLProtocol" class="headerlink" title="必备知识架构-①语言-请求拦截NSURLProtocol"></a>必备知识架构-①语言-请求拦截NSURLProtocol</h1><p>[toc]</p>
-<h2 id="一、NSURLProtocol"><a href="#一、NSURLProtocol" class="headerlink" title="一、NSURLProtocol"></a>一、NSURLProtocol</h2><p>如果开发者自定义的一个 NSURLProtocol 并且注册到 app 中，那么在这个自定义的 NSURLProtocol 中我们可以拦截所有的请求(（注意，不只是webView内的请求，而是整个app内的所有请求）)，进行修改，或者修改 response。即NSURLProtocol这个东西的作用可以让我们在app的内部拦截一切url请求。</p>
-<p><strong>「或者这么说吧： NSURLProtocol 就是一个苹果允许的中间人攻击。」</strong></p>
-<p>注意事项：</p>
-<p>如果我们顺序注册 A B C 三个 Protocol，那么一个 connection 在发送的时候，处理的顺序是 C B A，而且最多只有一个 Protocol 会触发处理。</p>
-<p>拦截 UIWebview 的请求，会有被拒的风险。</p>
-<p>附：</p>
-<blockquote>
-<p>iOS的Foundation框架提供了 URL Loading System 这个库(后面简写为ULS)，所有基于URL（例如http://，https:// ,ftp://这些应用层的传输协议)的协议都可以通过ULS提供的基础类和协议来实现。而ULS库里提供了一个强有力的武器 NSURLProtocol。</p>
-</blockquote>
-<h2 id="NSURLProtocol能做什么？"><a href="#NSURLProtocol能做什么？" class="headerlink" title="NSURLProtocol能做什么？"></a>NSURLProtocol能做什么？</h2><p>举几个例子：</p>
-<ul>
-<li>全局网络请求设置：我们的APP内的所有请求都需要增加公共的头，像这种我们就可以直接通过NSURLProtocol来实现，当然实现的方式有很多种</li>
-<li>自定义 Response （过滤敏感信息）</li>
-<li>再比如我们需要将APP某个API进行一些访问的统计</li>
-<li>再比如我们需要统计APP内的网络请求失败率</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cm121y2xw0174qar4vs8gjett" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言/" data-id="cm1p7o9qz015dxsr4l8i1ihrx" class="article-share-link">Share</a>
       
       
     </footer>
@@ -375,7 +447,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/知识架构--即时通信/" data-id="cm121y2ts016gqar4l65nvtij" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/知识架构--即时通信/" data-id="cm1p7o9nc014sxsr4z0jyajem" class="article-share-link">Share</a>
       
       
     </footer>
@@ -479,7 +551,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/0目录/" data-id="cm121y16z00l8qar46ys45jbf" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/0目录/" data-id="cm1p7o80i00kpxsr4y5exq290" class="article-share-link">Share</a>
       
       
     </footer>
@@ -552,7 +624,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/10其他2/" data-id="cm121y2tb016dqar4jwww33nl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/10其他2/" data-id="cm1p7o9nb014pxsr4hlwhj5e2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -602,7 +674,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/类微信体验/" data-id="cm121xzhh000jqar4ey2x15vj" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/类微信体验/" data-id="cm1p7o6tk000oxsr4p0gbv6du" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -648,7 +720,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/10与原生相关/Flutter 与原生相关/" data-id="cm121y0o3009gqar4myati27b" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/10与原生相关/Flutter 与原生相关/" data-id="cm1p7o7hu009lxsr4a3183fa8" class="article-share-link">Share</a>
       
       
     </footer>
@@ -676,7 +748,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter MaterialApp/" data-id="cm121y10900f8qar4q2v5ix2z" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter MaterialApp/" data-id="cm1p7o7ta00eqxsr4eydielfx" class="article-share-link">Share</a>
       
       
     </footer>
@@ -730,7 +802,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="cm121y10q00fcqar4ogp254wo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="cm1p7o7u800ewxsr4vzaw21kf" class="article-share-link">Share</a>
       
       
     </footer>
@@ -761,7 +833,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 拖曳排序/" data-id="cm121y10z00ffqar4g4hbez0h" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 拖曳排序/" data-id="cm1p7o7up00ezxsr44359glge" class="article-share-link">Share</a>
       
       
     </footer>
