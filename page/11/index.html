@@ -72,6 +72,179 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①队列与任务或线程"><a href="#必备知识架构-线程与网络-①队列与任务或线程" class="headerlink" title="必备知识架构-线程与网络-①队列与任务或线程"></a>必备知识架构-线程与网络-①队列与任务或线程</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<ul>
+<li><a href="#队列与执行">五、队列与执行</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">&gt;1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</span><br><span class="line">&gt;(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</span><br><span class="line">&gt;(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</span><br><span class="line">&gt;(3)、死锁原因分析</span><br><span class="line">&gt;</span><br><span class="line">&gt;2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程？</span><br><span class="line">&gt;</span><br><span class="line">&gt;3、iOS多线程中，队列和执行的排列组合结果分析</span><br><span class="line">&gt;(1)、队列的类型</span><br><span class="line">&gt;(2)、四个比较容易混淆的术语：同步、异步、并发、串行</span><br><span class="line">&gt;(3)、队列和线程的关系</span><br><span class="line">&gt;(4)、自己延伸的问题：一个队列同时存在同步任务和异步任务？</span><br><span class="line">&gt;</span><br><span class="line">&gt;4、并发是并发队列，并行又是什么鬼？？？</span><br><span class="line">&gt;(1)、多个处理器和多核处理器的区别</span><br><span class="line">&gt;(2)、并发和并行的区别</span><br><span class="line">&gt;</span><br><span class="line">&gt;5、进程和线程的区别</span><br><span class="line">&gt;(1)、进程和线程的区别</span><br><span class="line">&gt;(2)、一个app运行时只有一个进程吗？有没有多进程？</span><br><span class="line">&gt;(3)、什么时候用进程？什么时候用线程？</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="五、队列与任务执行"><a href="#五、队列与任务执行" class="headerlink" title="五、队列与任务执行"></a>五、队列与任务执行</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h3 id="1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-amp-串行队列（Serial-Dispatch-Queue））"><a href="#1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-amp-串行队列（Serial-Dispatch-Queue））" class="headerlink" title="1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））"></a>1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））</h3><p>GCD的队列可以分为2大类型：并发队列和串行队列。</p>
+<h4 id="（1）并发队列（Concurrent-Dispatch-Queue）"><a href="#（1）并发队列（Concurrent-Dispatch-Queue）" class="headerlink" title="（1）并发队列（Concurrent Dispatch Queue）"></a>（1）并发队列（Concurrent Dispatch Queue）</h4><blockquote>
+<p>可以让多个任务并发（同时）执行（自动开启多个线程同时执行任务）并发功能只有在异步（dispatch_async）函数下才有效<br><img src="http://images.cnitblog.com/i/450136/201406/242239575804246.png" alt="并发队列"></p>
+</blockquote>
+<p>####（2）串行队列（Serial Dispatch Queue）</p>
+<blockquote>
+<p>让任务一个接着一个地执行（一个任务执行完毕后，再执行下一个任务）<br><img src="http://images.cnitblog.com/i/450136/201406/242240281274213.png" alt="串行队列"></p>
+</blockquote>
+<p> 问：并发是并发队列，并行又是什么鬼？？？</p>
+<p>答案：下文会详细介绍。</p>
+<h3 id="2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）"><a href="#2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）" class="headerlink" title="2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）"></a>2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）</h3><p>答：</p>
+<blockquote>
+<p><strong>1、队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度(是按串行队列还是按并发队列调度)，而不负责任务的执行</strong><br><strong>2、任务是添加到队列里的，可以添加同步任务或者异步任务。</strong></p>
+<p>往队列里面添加任务，<br>①如果是添加异步任务，则会开启新的线程工作，开启的线程数根据队列类型决定。串行只开一条，并行开多条。<br>②如果是添加同步任务，会在当前线程内工作，不会创建新的线程。</p>
+<p><strong>3、对队列所添加的任务是在线程中执行的/由线程负责进行执行，至于在什么线程根据是同步任务还是异步任务，以及当前是什么队列共同决定。</strong></p>
+<p>（所以不管是将同步任务添加到串行队列还是并行队列，因为同步任务都不会创建新线程。所以并行同步队列和串行同步队列其实是一样的，它们都不会创建新的线程而且会是顺序执行）</p>
+<p><strong>4、补充：在一个线程内可能有多个队列。</strong></p>
+</blockquote>
+<h4 id="2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"><a href="#2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码" class="headerlink" title="2.1、理解队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"></a>2.1、理解队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码</h4><p>看以下代码，我们通过它来方便我们理解：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">//  NSOperationQueueCJHelper.m</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  创建队列</span><br><span class="line"> *</span><br><span class="line"> *  @param operations    队列的操作数组</span><br><span class="line"> *  @param lastOperation 队列的最后一条(最后一条，会等到前面都结束后才会结束)</span><br><span class="line"> *</span><br><span class="line"> *  return 队列</span><br><span class="line"> */</span><br><span class="line">+ (NSOperationQueue *)createOperationQueueWithOperations:(NSArray&lt;NSOperation *&gt; *)operations lastOperation:(NSOperation *)lastOperation &#123;</span><br><span class="line">    </span><br><span class="line">    NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">    queue.name = @&quot;this is a queue&quot;;</span><br><span class="line">    </span><br><span class="line">    for (NSBlockOperation *operation in operations) &#123;</span><br><span class="line">        [queue addOperation:operation];</span><br><span class="line">        </span><br><span class="line">        [lastOperation addDependency:operation];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    [queue addOperation:lastOperation];</span><br><span class="line">    </span><br><span class="line">    return queue;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 或者</span><br><span class="line">NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];</span><br><span class="line">NSInvocationOperation *operation = [[NSInvocationOperation alloc] initWithTarget:self</span><br><span class="line">selector:@selector(myTask) object:nil];</span><br><span class="line">[operationQueue addOperation:operation];</span><br></pre></td></tr></table></figure>
+<p>附：队列的取消、暂停、恢复<br>取消队列的所有操作使用NSOperationQueue的 <code>- (void)cancelAllOperations;</code></p>
+<p>也可以调用NSOperation的- (void)cancel方法取消单个操作</p>
+<p>暂停和恢复队列</p>
+<pre><code>- (void)setSuspended:(BOOL)b; // YES代表暂停队列，NO代表恢复队列
+</code></pre><h4 id="2-2、iOS主线程、主队列-串行队列-、全局队列"><a href="#2-2、iOS主线程、主队列-串行队列-、全局队列" class="headerlink" title="2.2、iOS主线程、主队列(串行队列)、全局队列"></a>2.2、iOS主线程、主队列(串行队列)、全局队列</h4><p><a href="https://blog.csdn.net/syzd451529064/article/details/100039633" target="_blank" rel="noopener">iOS 主队列 全局队列</a></p>
+<p><strong>主队列是系统为我们创建的串行队列</strong>，而且每个APP只有一个主队列，负责调度处理APP的唯一主线程的UI事件。</p>
+<p>注意：<strong>主队列没有办法开辟新的线程。所以，在主队列下的任务不管是异步任务还是同步任务都不会开辟线程，任务只会在主线程顺序执行。</strong></p>
+<p>主队列异步任务：先将任务放在主队列中，但是不是马上执行，等到主队列中的其它所有除我们使用代码添加到主队列的任务的任务都执行完毕之后才会执行我们使用代码添加的任务。</p>
+<p>主队列同步任务：容易阻塞主线程，所以不要这样写。原因：我们自己代码任务需要马上执行，但是主线程正在执行代码任务的方法体，因此代码任务就必须等待，而主线程又在等待代码任务的完成好去完成下面的任务，因此就形成了相互等待。整个主线程就被阻塞了。</p>
+<p>全局队列：本质是一个并发队列，由系统提供，方便编程，可以不用创建就直接使用。</p>
+<h4 id="2-3、插入问：NSOperationQueue是什么队列？"><a href="#2-3、插入问：NSOperationQueue是什么队列？" class="headerlink" title="2.3、插入问：NSOperationQueue是什么队列？"></a>2.3、插入问：NSOperationQueue是什么队列？</h4><p>答：NSOperationQueue是操作队列。结合实际才知道它是并发队列，还是串行队列。</p>
+<p><em>①<code>[NSOperationQueue mainQueue]</code>是主队列，和GCD中的主队列一样，是串行队列</em>。</p>
+<p><em>②<code>[[NSOperationQueue alloc]init]</code>是非主队列，非常特殊(同时具备并发和串行的功能)。默认情况下，非主队列是并发队列。</em></p>
+<p>NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];<br>当operationQueue.maxConcurrentOperationCount &gt; 1，那么operationQueue就是并发队列；<br>当operationQueue.maxConcurrentOperationCount == 1，那么operationQueue就是串行队列。</p>
+<h3 id="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"><a href="#3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务" class="headerlink" title="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"></a>3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务</h3><h4 id="3-1、并发和串行决定了任务的执行方式-队列-。"><a href="#3-1、并发和串行决定了任务的执行方式-队列-。" class="headerlink" title="3.1、并发和串行决定了任务的执行方式(队列)。"></a>3.1、并发和串行决定了任务的执行方式(队列)。</h4><blockquote>
+<p>并发队列：多个任务并发（同时）执行，指<strong>一个处理器</strong>同时处理多个任务<br>串行队列：一个任务执行完毕后，再执行下一个任务</p>
+</blockquote>
+<h4 id="3-2、同步和异步决定了要不要开启新的线程-线程"><a href="#3-2、同步和异步决定了要不要开启新的线程-线程" class="headerlink" title="3.2、同步和异步决定了要不要开启新的线程(线程)"></a>3.2、同步和异步决定了要不要开启新的线程(线程)</h4><blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;同步：在当前线程中执行任务，不具备开启新线程的能力</span><br><span class="line">&gt;异步：在新的线程中执行任务，具备开启新线程的能力</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？"><a href="#4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？" class="headerlink" title="4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？"></a>4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？</h3><h6 id="1-、多个处理器和多核处理器的区别"><a href="#1-、多个处理器和多核处理器的区别" class="headerlink" title="(1)、多个处理器和多核处理器的区别"></a>(1)、多个处理器和多核处理器的区别</h6><blockquote>
+<p>多个处理器：多个单核处理器，就是说电脑和处理器有多个，但是这个电脑的处理器是单核的；</p>
+</blockquote>
+<p>多核处理器：单个多核处理器，也就是说电脑有一个处理器，但是这个处理器是多核的；</p>
+<blockquote>
+</blockquote>
+<p>附：在生活中，我们的电脑上常见的处理器都是单处理器，但是这个处理器是多核的，一般是四核，有些需要玩高级游戏的，可能还是八核的处理器。</p>
+<blockquote>
+</blockquote>
+<p>详情查看：<a href="https://blog.csdn.net/kevin_yzlong/article/details/70196168" target="_blank" rel="noopener">多个处理器和多核处理器的区别</a></p>
+<h6 id="2-、并发和并行的区别"><a href="#2-、并发和并行的区别" class="headerlink" title="(2)、并发和并行的区别"></a>(2)、并发和并行的区别</h6><p>并发(concurrency)是指一个处理器同时处理多个任务。即<strong>并发指在同一时刻只能有一条指令执行，但多个进程指令被快速的轮换执行，使得在宏观上具有多个进程同时执行的效果，但在微观上并不是同时执行的，只是把时间分成若干段，使多个进程快速交替的执行</strong>。这就好像两个人用同一把铁锨，轮流挖坑，一小时后，两个人各挖一个小一点的坑，要想挖两个大一点得坑，一定会用两个小时。</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/4线程-①线程/进程线程/并发(concurrency" alt="并发(concurrency)">.jpg)</p>
+</blockquote>
+<p>并行(parallel)是指多个处理器或者是多核的处理器同时处理多个不同的任务。即并行是指在同一时刻，有多条指令在多个处理器上同时执行。</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/4线程-①线程/进程线程/并行(parallel" alt="并行(parallel)">.jpg)</p>
+</blockquote>
+<p>个人理解：是否可以理解为在出现多核处理器或者只有一个处理器的时候，我们那时候就只还有并发的概念。</p>
+<p>并行在多处理器系统中存在，而并发可以在单处理器和多处理器系统中都存在，并发能够在单处理器系统中存在是因为<strong>并发是并行的假象，并行要求程序能够同时执行多个操作，而并发只是要求程序假装同时执行多个操作（每个小时间片执行一个操作，多个操作快速切换执行）</strong>。</p>
+<h3 id="5、iOS多线程中，队列和执行的排列组合结果分析"><a href="#5、iOS多线程中，队列和执行的排列组合结果分析" class="headerlink" title="5、iOS多线程中，队列和执行的排列组合结果分析"></a>5、iOS多线程中，队列和执行的排列组合结果分析</h3><ul>
+<li><a href="http://www.cnblogs.com/dsxniubility/p/4296937.html" target="_blank" rel="noopener">iOS多线程中，队列和执行的排列组合结果分析</a></li>
+</ul>
+<p>该文章非常重要，且主要总结点有</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 开不开线程，取决于执行任务的函数，同步不开，异步开。</span><br><span class="line">2. 开几条线程，取决于队列，串行开一条，并发可以开多条(即并发队列里有异步任务，则可以开多条，如果都只有同步任务，那由于同步任务并不会开新线程，所以此时也就不会开新线程)</span><br><span class="line">3. 主队列：专门用来在主线程上调度任务的&quot;队列&quot;，主队列不能在其他线程中调度任务！</span><br><span class="line">4. 如果主线程上当前正在有执行的任务，主队列暂时不会调度任务的执行！主队列同步任务，会造成死锁。原因是循环等待</span><br><span class="line">5. 同步任务可以队列调度多个异步任务前，指定一个同步任务，让所有的异步任务，等待同步任务执行完成，这是依赖关系。</span><br><span class="line">6. 全局队列：并发，能够调度多个线程，执行效率高，但是相对费电。 串行队列效率较低，省电省流量，或者是任务之间需要依赖也可以使用串行队列。</span><br><span class="line">7. 也可以通过判断当前用户的网络环境来决定开的线程数。WIFI下6条，3G/4G下2～3条。</span><br></pre></td></tr></table></figure>
+<h3 id="6、代码：使用GCD为队列添加任务"><a href="#6、代码：使用GCD为队列添加任务" class="headerlink" title="6、代码：使用GCD为队列添加任务"></a>6、代码：使用GCD为队列添加任务</h3><p>实例1：并发队列添加异步任务/用异步函数往并发队列中添加任务的例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad</span><br><span class="line">  &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    //1.获得全局的并发队列</span><br><span class="line">   dispatch_queue_t queue =  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);</span><br><span class="line"></span><br><span class="line">    //2.添加任务到队列中，就可以执行任务</span><br><span class="line">    //异步函数：具备开启新线程的能力</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片1----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">  //打印主线程</span><br><span class="line">    NSLog(@&quot;主线程----%@&quot;,[NSThread mainThread]);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">上述方法说明.GCD中有2个用来执行任务的函数</span><br></pre></td></tr></table></figure>
+<p>说明：<code>把右边的参数（任务）提交给左边的参数（队列）进行执行</code>。</p>
+<p>（1）用同步的方式执行任务 dispatch_sync(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p>（2）用异步的方式执行任务 dispatch_async(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p></p><p id="GCD"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h6 id="2、以下两种GCD队列创建有什么不同？"><a href="#2、以下两种GCD队列创建有什么不同？" class="headerlink" title="2、以下两种GCD队列创建有什么不同？"></a>2、以下两种GCD队列创建有什么不同？</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_queue_create(&quot;MyQueue&quot;,DISPATCH_QUEUE_SERIAL);</span><br><span class="line"></span><br><span class="line">dispatch_queue_t queue =dispatch_queue_create(@“MyQueue&quot;, DISPATCH_QUEUE_CONCURRENT);</span><br><span class="line"></span><br><span class="line">//生成一个串行队列，队列中的block按照先进先出（FIFO）的顺序去执行，实际上为单线程执行。第一个参数是队列的名称，在调试程序时会非常有用，所有尽量不要重名了。</span><br><span class="line"></span><br><span class="line">//生成一个并发执行队列，block被分发到多个线程去执行</span><br></pre></td></tr></table></figure>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p>&lt; <a href="#目录">返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cm1p887na018izwr47vkjl2p0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
+<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
+<p>一个程序至少一个进程，一个进程至少一个线程。</p>
+<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
+</blockquote>
+<p>进程线程的区别：</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
+<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
+<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
+<blockquote>
+<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
+</blockquote>
+<blockquote>
+<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
+</blockquote>
+<blockquote>
+<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
+</blockquote>
+<blockquote>
+<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
+</blockquote>
+<blockquote>
+<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cm1p887nu018jzwr4sfwzkgfe" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯/" class="article-date">
@@ -122,7 +295,60 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯/" data-id="cm1p7oa8y0171xsr4wvxqsk36" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯/" data-id="cm1p887q3018nzwr4nxqimivi" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/3视图/3视图-③跳转" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/3视图/3视图-③跳转/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-视图-③跳转"><a href="#必备知识架构-视图-③跳转" class="headerlink" title="必备知识架构-视图-③跳转"></a>必备知识架构-视图-③跳转</h1><p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><a href="#视图的跳转">一、视图的跳转</a></li>
+</ul>
+<ul>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p></p><p id="视图的跳转"></p><p></p>
+<h2 id="一、视图的跳转"><a href="#一、视图的跳转" class="headerlink" title="一、视图的跳转"></a>一、视图的跳转</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
+<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
+<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
+<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
+<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
+</blockquote>
+<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cm1p887gd017tzwr4z3smdw4v" class="article-share-link">Share</a>
       
       
     </footer>
@@ -188,60 +414,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cm1p7o9ys0162xsr4vx59usdo" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-③跳转" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-③跳转/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-③跳转"><a href="#必备知识架构-视图-③跳转" class="headerlink" title="必备知识架构-视图-③跳转"></a>必备知识架构-视图-③跳转</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#视图的跳转">一、视图的跳转</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="视图的跳转"></p><p></p>
-<h2 id="一、视图的跳转"><a href="#一、视图的跳转" class="headerlink" title="一、视图的跳转"></a>一、视图的跳转</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
-<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
-<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
-<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
-<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
-</blockquote>
-<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cm1p7o9zt0166xsr4dr2liort" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cm1p887hi017yzwr44a7xk24k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -280,7 +453,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cm1p7oa0b0168xsr4pxckeryq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cm1p887im0182zwr4zz3uajjl" class="article-share-link">Share</a>
       
       
     </footer>
@@ -332,7 +505,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/纹理Texture/" data-id="cm1p7oa1c016cxsr40rf2i1xo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/纹理Texture/" data-id="cm1p887j60184zwr43k4yhwd1" class="article-share-link">Share</a>
       
       
     </footer>
@@ -427,7 +600,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-更新机制/" data-id="cm1p7oa1w016exsr4fkgvfyfo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-更新机制/" data-id="cm1p887jr0186zwr4sstjtc3f" class="article-share-link">Share</a>
       
       
     </footer>
@@ -511,7 +684,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cm1p7o9za0164xsr4bn06va7s" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cm1p887gy017wzwr4viv32e2v" class="article-share-link">Share</a>
       
       
     </footer>
@@ -547,369 +720,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cm1p7o9wp015txsr45azeg0t5" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-①本质" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-①本质/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.613Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-①本质"><a href="#必备知识架构-视图-①本质" class="headerlink" title="必备知识架构-视图-①本质"></a>必备知识架构-视图-①本质</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><p><a href="#响应链及事件链">一、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么</a></p>
-</li>
-<li><p><a href="#事件的响应链">二、事件的响应链</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：整个响应链及事件链</span><br><span class="line">1、完善响应链查找知识点</span><br><span class="line">2、基础概念等详解</span><br><span class="line">2.1 响应者对象(UIResponder)</span><br><span class="line">2.2、UITouch(点击对象)</span><br><span class="line">2.2.1、UITouch的几个主要属性和方法</span><br><span class="line">2.2.2、UITouch的生成场景</span><br><span class="line">2.3、UIEvent(事件对象)</span><br><span class="line">3、响应链的应用</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><a href="#CALayer和UIView">三、CALayer和UIView</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="响应链及事件链"></p><p></p>
-<h2 id="一、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么"><a href="#一、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么" class="headerlink" title="一、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么"></a>一、在一个app中间有一个button，在你手触摸屏幕点击后，到这个button收到点击事件，中间发生了什么</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>这其实是一个事件传递和响应链的问题。（其实，按钮点击后，这里还包括runloop的唤醒等知识，不过这点我们放在下一大点讲）。</p>
-<p>答：在我们点击按钮的时候，会产生了UITouch(点击对象)和UIEvent(事件对象)，这两个对象组合成一个点击事件。而发生触摸事件后，</p>
-<p>①消息循环(runloop)/系统就会接收到这个触摸事件，并将它放到一个由UIApplication管理的消息队列(先进先出)里。</p>
-<p>②UIApplication会从事件队列中取出最前面的事件，并将事件分发下去以便处理。首先UIApplication将事件传递给的是UIWindow对象(即一般为应用程序的主窗口keyWindow)。</p>
-<p>③然后，UIWindow(继承自UIView)对象会继续向它的子View对象传递，直到传递到最上层。（或者说UIWindow使用hitTest:withEvent:方法查找touch操作的所在的视图view）</p>
-<p>其中的应用程序逐级寻找能够响应这个事件的对象，直到没有响应者响应。这一寻找的过程，被称作<strong>事件的响应链</strong>。</p>
-<p></p><p id="事件的响应链"></p><p></p>
-<h2 id="二、事件的响应链"><a href="#二、事件的响应链" class="headerlink" title="二、事件的响应链"></a>二、事件的响应链</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>事件的响应链大概过程如下图所示：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质/事件的响应链.png" alt="事件的响应链"></p>
-</blockquote>
-<ul>
-<li><p>1、在传递的过程中，下一响应者的查找是通过UIView里的<code>- pointInside: withEvent:</code> 和 <code>- hitTest: withEvent:</code>两个方法来确定的。当从最初的只有一个响应者通过这样的方式不断的找到下一响应者后，这些响应者就组成了一个响应者链。</p>
-</li>
-<li><p>2、当通过<code>- hitTest: withEvent:</code>找到第一响应者后，若第一响应者没有处理事件，则沿着响应者链向上追溯寻找响应者(即灰色箭头方向)执行touches方法。这个过程就是<strong>事件的传递过程</strong>。从这可以看出它的方向是跟响应链方向相反的。这里我们可以用UITableViewCell中点击上面的label来想象。</p>
-</li>
-</ul>
-<h4 id="附：整个响应链及事件链"><a href="#附：整个响应链及事件链" class="headerlink" title="附：整个响应链及事件链"></a>附：整个响应链及事件链</h4><p>整个响应链(向下)及事件链(向上)，大概如图所示：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质/响应链(向下" alt="响应链(向下)及事件链(向上)">及事件链(向上).png)<br>在上图，当<code>- hitTest: withEvent:</code>方法沿着红色箭头方向寻找第一响应者后，若第一响应者没有处理事件，则沿着响应者链向上追溯寻找响应者(即灰色箭头方向)执行touches方法。<br>所以响应链为红色部分，事件链的顺序可以理解为图上的灰色箭头部分（个人理解）。</p>
-</blockquote>
-<h4 id="1、完善响应链查找知识点"><a href="#1、完善响应链查找知识点" class="headerlink" title="1、完善响应链查找知识点"></a>1、完善响应链查找知识点</h4><p>我们已经知道响应者链是由多个响应者组合起来的链条。那么怎么找到这些相应者呢？</p>
-<p><strong>响应者的查找</strong>为通过UIView内部的下面两个方法来查找的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">//根据点击坐标返回事件是否发生在本视图以内</span><br><span class="line">- (BOOL)pointInside:(CGPoint)point withEvent:(nullable UIEvent *)event;   // default returns YES if point is in bounds</span><br><span class="line"></span><br><span class="line">// 返回响应点击事件的对象（当点击区域在分为内时候，如果有子视图则返回子视图里最终的响应者，如果没有子视图则返回自身）</span><br><span class="line">- (nullable UIView *)hitTest:(CGPoint)point withEvent:(nullable UIEvent *)event;   // recursively calls -pointInside:withEvent:. point is in the receiver&apos;s coordinate system</span><br></pre></td></tr></table></figure>
-<p>对于一个视图</p>
-<blockquote>
-<p>①、若子视图中的<code>- pointInside: withEvent:</code>方法返回为NO，即判断用户点击的区域不在该子视图范围内的话，则停止对这个子视图里的子视图继续查找，<code>- hitTest: withEvent:</code>返回nil。</p>
-<p>②、若子视图中的<code>- pointInside: withEvent:</code>方法返回为YES，即判断用户点击的区域在该子视图范围内的话，则继续往该子视图里的子视图查找，直到没有子视图，然后<code>- hitTest: withEvent:</code>返回这个子视图，而后之前的视图的<code>- hitTest: withEvent:</code>也返回这个子视图。</p>
-<ul>
-<li><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"> </span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</blockquote>
-<p>hitTest-withEvent-查找过程举例，如下图</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质/hitTest-withEvent-查找过程举例.png" alt="hitTest-withEvent-查找过程举例"><br>图片中view等级<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[ViewA addSubview:ViewB];</span><br><span class="line">[ViewA addSubview:ViewC];</span><br><span class="line">[ViewB addSubview:ViewD];</span><br><span class="line">[ViewB addSubview:ViewE];</span><br></pre></td></tr></table></figure></p>
-</blockquote>
-<blockquote>
-<p>那么点击viewE后，发生的过程是怎样的</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">1.A 是UIWindow的根视图，首先对A进行hitTest:withEvent:</span><br><span class="line">2.判断A的userInteractionEnabled，如果为NO，A的hitTest:withEvent返回nil;</span><br><span class="line">3.pointInside:withEvent:方法判断用户点击是否在A的范围内，显然返回YES</span><br><span class="line">4.遍历A的子视图B和C。由于从后向前遍历，因此先查看C，再查看B。</span><br><span class="line">&gt;</span><br><span class="line">4.1 查看C：</span><br><span class="line">调用C的hitTest:withEvent方法：pointInside:withEvent:方法判断用户点击是否在C的范围内，不在返回NO，C对应的hitTest:withEvent: 方法return nil；</span><br><span class="line">&gt;	</span><br><span class="line">4.2 再查看B</span><br><span class="line">调用B的hitTest:withEvent方法：pointInside:withEvent:判断用户点击是否在B的返回内，在返回YES。</span><br><span class="line">&gt;遍历B的子视图D和E，从后向前遍历，所以先查看E，再查看D。</span><br><span class="line">		4.2.1先查看E，调用E的hitTest:withEvent方法：pointInside:withEvent:方法 判断用户点击是否在E的范围内，在返回YES，E没有子视图，因此E对应的hitTest:withEvent方法返回E,再往前回溯，就是B的hitTest:withEvent方法返回E，因此A的hitTest:withEvent方法返回E。</span><br><span class="line">		4.2.2查看D，略</span><br><span class="line">&gt;</span><br><span class="line">至此，点击事件的第一响应者就找到了。</span><br></pre></td></tr></table></figure>
-<h3 id="2、基础概念等详解"><a href="#2、基础概念等详解" class="headerlink" title="2、基础概念等详解"></a>2、基础概念等详解</h3><p>iOS中的事件可以分为3大类型：</p>
-<ol>
-<li>触摸事件</li>
-<li>加速计事件</li>
-<li>远程控制事件</li>
-</ol>
-<p>在iOS中不是任何对象都能处理事件，能接受并这些处理事件的对象只有直接或间接继承自UIResponder的对象，我们称之为“响应者对象”。</p>
-<h4 id="2-1-响应者对象-UIResponder"><a href="#2-1-响应者对象-UIResponder" class="headerlink" title="2.1 响应者对象(UIResponder)"></a>2.1 响应者对象(UIResponder)</h4><p>①、为什么只有继承自UIResponder的类才能够接收并处理事件呢？因为处理这些事件的方法是卸载UIResponder中的啊。详细的UIResponder中提供的方法如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">4个处理触摸事件的对象方法</span><br><span class="line">- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event;</span><br><span class="line">- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;</span><br><span class="line">- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event;</span><br><span class="line">- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event;</span><br><span class="line"></span><br><span class="line">和3个处理加速计事件</span><br><span class="line">- (void)motionBegan:(UIEventSubtype)motion withEvent:(UIEvent *)event;</span><br><span class="line">- (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event;</span><br><span class="line">- (void)motionCancelled:(UIEventSubtype)motion withEvent:(UIEvent *)event;</span><br><span class="line"></span><br><span class="line">以及1个处理远程控制事件的方法</span><br><span class="line">- (void)remoteControlReceivedWithEvent:(UIEvent *)event;</span><br></pre></td></tr></table></figure>
-<p>附：如何实现UIView的拖拽呢？即让UIView随着手指的移动而移动。</p>
-<p>答： 重写touchsMoved:withEvent:方法</p>
-<p>代码如下：</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    // 想让控件随着手指移动而移动,监听手指移动</span><br><span class="line">    // 获取UITouch对象</span><br><span class="line">    UITouch *touch = [touches anyObject];</span><br><span class="line">    // 获取当前点的位置</span><br><span class="line">    CGPoint curP = [touch locationInView:self];</span><br><span class="line">    // 获取上一个点的位置</span><br><span class="line">    CGPoint preP = [touch previousLocationInView:self];</span><br><span class="line">    // 获取它们x轴的偏移量,每次都是相对上一次</span><br><span class="line">    CGFloat offsetX = curP.x - preP.x;</span><br><span class="line">    // 获取y轴的偏移量</span><br><span class="line">    CGFloat offsetY = curP.y - preP.y;</span><br><span class="line">    // 修改控件的形变或者frame,center,就可以控制控件的位置</span><br><span class="line">    // 形变也是相对上一次形变(平移)</span><br><span class="line">    // CGAffineTransformMakeTranslation:会把之前形变给清空,重新开始设置形变参数</span><br><span class="line">    // make:相对于最原始的位置形变</span><br><span class="line">    // CGAffineTransform t:相对这个t的形变的基础上再去形变</span><br><span class="line">    // 如果相对哪个形变再次形变,就传入它的形变</span><br><span class="line">    self.transform = CGAffineTransformTranslate(self.transform, offsetX, offsetY);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>②、那么iOS中能接收并处理事件或者说继承自UIResponder的类有哪些呢？</p>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; iOS中能接收并处理事件或者说继承自UIResponder的类有：</span><br><span class="line">UIApplication、UIWindow、UIViewController和所有继承UIView的UIKit类都直接或间接的继承自UIResponder。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-</blockquote>
-<p>从UIResponder内部提供的方法可以看出，触摸方法接收两个参数，一个UITouch对象的集合，还有一个UIEvent对象。这两个参数分别代表的是点击对象和事件对象。</p>
-<h4 id="2-2、UITouch-点击对象"><a href="#2-2、UITouch-点击对象" class="headerlink" title="2.2、UITouch(点击对象)"></a>2.2、UITouch(点击对象)</h4><p>UITouch表示单个点击，其类文件中存在枚举类型UITouchPhase的属性，用来表示当前点击的状态。这些状态包括点击开始、移动、停止不动、结束和取消五个状态。每次点击发生的时候，点击对象都放在一个集合中传入UIResponder的回调方法中。</p>
-<h6 id="2-2-1、UITouch的几个主要属性和方法："><a href="#2-2-1、UITouch的几个主要属性和方法：" class="headerlink" title="2.2.1、UITouch的几个主要属性和方法："></a>2.2.1、UITouch的几个主要属性和方法：</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">@property(nonatomic,readonly) NSTimeInterval      timestamp;    // 记录了触摸事件产生或变化时的时间，单位是秒</span><br><span class="line">@property(nonatomic,readonly) UITouchPhase        phase;        // 当前触摸事件所处的状态</span><br><span class="line">@property(nonatomic,readonly) NSUInteger          tapCount;     // 短时间内点按屏幕的次数，可以根据tapCount判断单击、双击或更多的点击</span><br><span class="line">@property(nonatomic,readonly) UITouchType         type NS_AVAILABLE_IOS(9_0);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property(nullable,nonatomic,readonly,strong) UIWindow                        *window;      //触摸产生时所处的窗口</span><br><span class="line">@property(nullable,nonatomic,readonly,strong) UIView                          *view;        //触摸产生时所处的视图</span><br><span class="line">@property(nullable,nonatomic,readonly,copy)   NSArray &lt;UIGestureRecognizer *&gt; *gestureRecognizers NS_AVAILABLE_IOS(3_2);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  获取当前点击位置的坐标点</span><br><span class="line"> *</span><br><span class="line"> *  @param view 调用时传入的view参数为nil的话，返回的是触摸点在UIWindow的位置</span><br><span class="line"> *</span><br><span class="line"> *  @return 返回值表示触摸在view上的位置点(这里返回的位置是针对view的坐标系的（以view的左上角为原点(0, 0)）)</span><br><span class="line"> */</span><br><span class="line">- (CGPoint)locationInView:(nullable UIView *)view;</span><br><span class="line"></span><br><span class="line">/// 获取前一个触摸点位置的坐标点</span><br><span class="line">- (CGPoint)previousLocationInView:(nullable UIView *)view;</span><br></pre></td></tr></table></figure>
-<h6 id="2-2-2、UITouch的生成场景："><a href="#2-2-2、UITouch的生成场景：" class="headerlink" title="2.2.2、UITouch的生成场景："></a>2.2.2、UITouch的生成场景：</h6><blockquote>
-<p>前言：每根手指触摸屏幕时都会创建一个与该手指相关的UITouch对象。一根手指对应一个UITouch对象。每个UITouch对象保存着跟手指相关的信息，比如触摸的位置、时间、阶段。<br>当手指移动时，系统会更新同一个UITouch对象，使之能够一直保存该手指在的触摸位置。<br>当手指离开屏幕时，系统会销毁相应的UITouch对象</p>
-<p>实际调用现象举例：</p>
-<p>①、当用户用一根手指触摸屏幕时，view会调用1次touchesBegan:withEvent:方法。touches参数中装着1个UITouch对象。</p>
-<p>②、如果这两根手指一前一后分开触摸同一个view，那么view会分别调用2次touchesBegan:withEvent:方法，并且每次调用时的touches参数中只包含一个UITouch对象。</p>
-<p>③、如果两根手指同时触摸一个view，那么view只会调用一次touchesBegan:withEvent:方法，touches参数中装着2个UITouch对象</p>
-</blockquote>
-<h4 id="2-3、UIEvent-事件对象"><a href="#2-3、UIEvent-事件对象" class="headerlink" title="2.3、UIEvent(事件对象)"></a>2.3、UIEvent(事件对象)</h4><p>iOS使用UIEvent表示用户交互的事件对象，在UIEvent.h文件中，我们可以看到有一个UIEventType类型的属性，这个属性表示了当前的响应事件类型。分别有多点触控、摇一摇以及远程操作（在iOS之后新增了3DTouch事件类型）。在一个用户点击事件处理过程中，UIEvent对象是唯一的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">@property(nonatomic,readonly) UIEventType     type NS_AVAILABLE_IOS(3_0);</span><br><span class="line">@property(nonatomic,readonly) UIEventSubtype  subtype NS_AVAILABLE_IOS(3_0);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">typedef NS_ENUM(NSInteger, UIEventType) &#123;</span><br><span class="line">    UIEventTypeTouches,</span><br><span class="line">    UIEventTypeMotion,</span><br><span class="line">    UIEventTypeRemoteControl,</span><br><span class="line">    UIEventTypePresses NS_ENUM_AVAILABLE_IOS(9_0),</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">typedef NS_ENUM(NSInteger, UIEventSubtype) &#123;</span><br><span class="line">    // available in iPhone OS 3.0</span><br><span class="line">    UIEventSubtypeNone                              = 0,</span><br><span class="line">    </span><br><span class="line">    // for UIEventTypeMotion, available in iPhone OS 3.0</span><br><span class="line">    UIEventSubtypeMotionShake                       = 1,</span><br><span class="line">    </span><br><span class="line">    // for UIEventTypeRemoteControl, available in iOS 4.0</span><br><span class="line">    UIEventSubtypeRemoteControlPlay                 = 100,</span><br><span class="line">    UIEventSubtypeRemoteControlPause                = 101,</span><br><span class="line">    UIEventSubtypeRemoteControlStop                 = 102,</span><br><span class="line">    UIEventSubtypeRemoteControlTogglePlayPause      = 103,</span><br><span class="line">    UIEventSubtypeRemoteControlNextTrack            = 104,</span><br><span class="line">    UIEventSubtypeRemoteControlPreviousTrack        = 105,</span><br><span class="line">    UIEventSubtypeRemoteControlBeginSeekingBackward = 106,</span><br><span class="line">    UIEventSubtypeRemoteControlEndSeekingBackward   = 107,</span><br><span class="line">    UIEventSubtypeRemoteControlBeginSeekingForward  = 108,</span><br><span class="line">    UIEventSubtypeRemoteControlEndSeekingForward    = 109,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>介绍了以上响应者对象(UIResponder)及其相关的UITouch(点击对象)和UIEvent(事件对象)相关概念后，我们就知道了用户点击后，会产生了UITouch(点击对象)和UIEvent(事件对象)并打包发送，最后由响应者对象(UIResponder)来处理这些事件。</p>
-<p>现在的问题是你知道它是怎么通过用户的点击位置找到处理该点击事件的响应者对象吗？</p>
-<h4 id="3、响应链的应用"><a href="#3、响应链的应用" class="headerlink" title="3、响应链的应用"></a>3、响应链的应用</h4><p>既然已经知道了系统是怎么获取响应视图的流程了，那么我们可以通过重写查找事件处理者的方法来实现不规则形状点击。</p>
-<p>最常见的不规则视图就是圆形视图，在demo中我设置view的宽高为200，那么重写方法事件如下:</p>
-<blockquote>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event</span><br><span class="line">&#123;</span><br><span class="line">    const CGFloat halfWidth = 100;</span><br><span class="line">    CGFloat xOffset = point.x - 100;</span><br><span class="line">    CGFloat yOffset = point.y - 100;</span><br><span class="line">    CGFloat radius = sqrt(xOffset * xOffset + yOffset * yOffset);</span><br><span class="line">    return radius &lt;= halfWidth;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>最终的效果图如下：<br><img src="/iOS/3必备知识架构/3视图/3视图-①本质/响应链的应用1_点击不规则图形.gif" alt="响应链的应用1_点击不规则图形"></p>
-</blockquote>
-<p>前面说过按钮点击后，这里还包括一些runloop相关的知识，如唤醒等，所以下面我们就专门开讲一件Runloop。</p>
-<p></p><p id="CALayer和UIView"></p><p></p>
-<h2 id="三、CALayer和UIView"><a href="#三、CALayer和UIView" class="headerlink" title="三、CALayer和UIView"></a>三、CALayer和UIView</h2><p><strong>UIView与CALayer</strong>是什么关系。</p>
-<blockquote>
-<p>&lt;单一职责原则&gt;<br>UIView为CALayer提供内容，以及负责处理触摸等事件，参与响应链<br>CALayer负责显示内容contents</p>
-</blockquote>
-<p><code>UIView</code>是<code>CALayer</code>的<code>delegate</code>(<code>CALayerDelegate</code>)</p>
-<p><code>UIView</code>继承自<code>UIResponder</code>类，可以响应事件</p>
-<p><code>CALayer</code>直接继承自<code>NSObject</code>类，不可以响应事件</p>
-<p><code>UIView</code>主要处理事件，<code>CALayer</code>负责绘制</p>
-<p>每个<code>UIView</code>内部都有一个<code>CALayer</code>在背后提供内容的绘制和显示，并且<code>UIView</code>的尺寸样式都由内部的<code>Layer</code>所提供。两者都有树状层级结构，<code>Layer</code>内部有<code>SubLayers</code>，<code>View</code>内部有<code>SubViews</code>，但是<code>Layer</code>比<code>View</code>多了个<code>AnchorPoint</code></p>
-<p>CALayer的结构图如下：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-①本质/CALayer的结构图.jpg" alt="CALayer的结构图"></p>
-</blockquote>
-<blockquote>
-<p>在 iOS 系统中所有显示的视图都是从基类UIView继承而来的，同时UIView负责接收用户交互。 但是<em>实际上你所看到的视图内容，包括图形等，都是由UIView的一个实例图层属性来绘制和渲染的，那就是CALaye</em>r。</p>
-<p>CALayer类的概念与UIView非常类似，它也具有树形的层级关系，并且可以包含图片文本、背景色等。它与UIView最大的不同在于它不能响应用户交互，可以说它根本就不知道响应链的存在。</p>
-<p>在每一个UIView实例当中，都有一个默认的支持图层，UIView负责创建并且管理这个图层。实际上这个CALayer图层才是真正用来在屏幕上显示的，UIView仅仅是对它的一层封装，实现了CALayer的delegate，提供了处理事件交互的具体功能，还有动画底层方法的高级 API。</p>
-<p>以上摘要来自:<a href="https://blog.csdn.net/jijiji000111/article/details/50480405" target="_blank" rel="noopener">内存恶鬼drawRect - 谈画图功能的内存优化</a>中的CALayer和UIView介绍部分。</p>
-</blockquote>
-<p>CALayer有三个视觉元素：背景色、内容和边框，其中，内容的本质是一个CGImage</p>
-<p><a href="https://www.cnblogs.com/jiayongqiang/p/5339678.html" target="_blank" rel="noopener">CALayer和UIView</a></p>
-<blockquote>
-<p>简述CALayer和UIView的关系</p>
-</blockquote>
-<p>答:<strong>UIView和CALayer是相互依赖的关系。UIView依赖与calayer提供的内容，CALayer依赖uivew提供的容器来显示绘制的内容。归根到底CALayer是这一切的基础，如果没有CALayer，UIView自身也不会存在，UIView是一个特殊的CALayer实现，添加了响应事件的能力</strong>。</p>
-<blockquote>
-</blockquote>
-<p>结论：<br>UIView来自CALayer，高于CALayer，是CALayer高层实现与封装。UIView的所有特性来源于CALayer支持。</p>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p><em>问：UIButton从子类到父类依次继承自什么？</em></p>
-<blockquote>
-<p>答:UIControl-&gt; UIView-&gt; UIResponder。</p>
-</blockquote>
-<h4 id="哪些视图的设置能禁止其相应事件"><a href="#哪些视图的设置能禁止其相应事件" class="headerlink" title="哪些视图的设置能禁止其相应事件"></a>哪些视图的设置能禁止其相应事件</h4><p>1、userInterface = NO;<br>2、hidden = YES;<br>3、当UIBUTTON透明度为0就不响应事件了，当UIBUTTON透明度为0就不响应事件了。</p>
-<p>更多参考：<a href="https://blog.csdn.net/mingming24/article/details/45177377" target="_blank" rel="noopener">iOS开发经验：button不能响应的原因</a></p>
-<h5 id="离屏渲染"><a href="#离屏渲染" class="headerlink" title="离屏渲染"></a>离屏渲染</h5><p>在使用圆角、阴影和遮罩等视图功能的时候，图层属性的混合体被指定为在未预合成之前不能直接在屏幕中绘制，所有就需要在屏幕外的上下文中渲染，即离屏渲染。</p>
-<p>更多参考:<a href="https://www.cnblogs.com/fishbay/p/7576176.html" target="_blank" rel="noopener">iOS离屏渲染之优化分析</a>该文非常重要。</p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cm1p7o9y90160xsr4u3i3nt1a" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/2内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.598Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-内存-③内存泄漏定位"><a href="#必备知识架构-内存-③内存泄漏定位" class="headerlink" title="必备知识架构-内存-③内存泄漏定位"></a>必备知识架构-内存-③内存泄漏定位</h1><p>未整合的文章：</p>
-<ul>
-<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
-<li><a href="https://blog.csdn.net/mr_zhangrmwork/article/details/76210448" target="_blank" rel="noopener">xcode8 使用Instruments检测定位并解决iOS内存泄露</a></li>
-</ul>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#重要文章">重要文章</a></li>
-<li><a href="#Analyze">一、Analyze—静态分析</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、常见的三种泄露情形</span><br><span class="line">(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &apos;number&apos; is never read。翻译一下：存储在&apos;number&apos;里的值从未被读取过。</span><br><span class="line">(2)、创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line">(3)、调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into &apos;subImageRef&apos;。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</span><br><span class="line">&gt;</span><br><span class="line">2、.....</span><br><span class="line">&gt;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#Leaks">二、Leaks—内存泄露</a></p>
-</li>
-<li><p><a href="#dealloc">三、ARC下的dealloc</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、ARC下dealloc的使用</span><br><span class="line">ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</span><br><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br><span class="line">&gt;</span><br><span class="line">2、controller 不能释放，不走dealloc方法的几种可能</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p>以下内容摘自：<a href="https://www.cnblogs.com/lisaloveyou1900/p/5383760.html" target="_blank" rel="noopener">iOS性能优化之内存管理：Analyze、Leaks、Allocations的使用和案例代码</a></p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>内存空间的划分: 我们知道，一个进程占用的内存空间，包含5种不同的数据区：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">（1）BSS段：通常是存放未初始化的全局变量；</span><br><span class="line">（2）数据段：通常是存放已初始化的全局变量。</span><br><span class="line">（3）代码段：通常是存放程序执行代码。</span><br><span class="line">（4）堆：通常是用于存放进程运行中被动态分配的内存段，OC对象（所有继承自NSObject的对象）就存放在堆里。</span><br><span class="line">（5）栈：由编译器自动分配释放，存放函数的参数值，局部变量等值。</span><br></pre></td></tr></table></figure>
-<p>栈内存是系统来管理的，因此我们常说的内存管理，指的是堆内存的管理，也就是所有OC对象的创建和销毁的管理。</p>
-<p>伴随着iOS5的到来，苹果推出了ARC（自动引用计数）技术，此模式下编译器会自动在合适的地方插入retain、release、autorelease语句，也就是说编译器会自动生成内存管理的代码，解放了广大程序猿的双手，也基本上避免了内存泄露问题，但是呢…</p>
-<p>内存泄露的定义是：用动态存储分配函数动态开辟的空间，在使用完毕后未释放，结果导致一直占据该内存单元。直到程序结束。（其实说白了就是该内存空间使用完毕之后未回收）。</p>
-<p>在iOS应用中的内存泄露，原因一般有循环引用、错用Strong/copy等。</p>
-<p></p><p id="重要文章"></p><p></p>
-<h2 id="重要文章"><a href="#重要文章" class="headerlink" title="重要文章"></a>重要文章</h2><ul>
-<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
-<li><a href="https://www.jianshu.com/p/b72d0a442342" target="_blank" rel="noopener">iOS 内存泄漏的查找</a></li>
-<li><a href="https://www.jianshu.com/p/33bda0eed3aa?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation" target="_blank" rel="noopener">iOS 内存泄漏监测自动化</a></li>
-</ul>
-<p></p><p id="Analyze"></p><p></p>
-<h2 id="一、Analyze—静态分析"><a href="#一、Analyze—静态分析" class="headerlink" title="一、Analyze—静态分析"></a>一、Analyze—静态分析</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>顾名思义，静态分析不需要运行程序，就能检查到存在内存泄露的地方。</p>
-<p>使用方法：打开Xcode，command + shift + B；或者Xcode - Product - Analyze；</p>
-<h3 id="1、常见的三种泄露情形："><a href="#1、常见的三种泄露情形：" class="headerlink" title="1、常见的三种泄露情形："></a>1、常见的三种泄露情形：</h3><blockquote>
-</blockquote>
-<p>（1）创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to ‘number’ is never read。翻译一下：存储在’number’里的值从未被读取过。</p>
-<blockquote>
-</blockquote>
-<p>（2）创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to ‘str’ during its initialization is never read</p>
-<blockquote>
-</blockquote>
-<p>（3）调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into ‘subImageRef’。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</p>
-<p>贴上三种常见情形的Demo代码，如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> /**</span><br><span class="line"> * 情 形 一：创建了一个对象，但是并没有使用。</span><br><span class="line"> * 提示信息：Value Stored to &apos;number&apos; is never read</span><br><span class="line"> * 翻译一下：存储在&apos;number&apos;里的值从未被读取过，</span><br><span class="line"> */</span><br><span class="line">- (void)leakOne &#123;</span><br><span class="line">    NSString *str1 = [NSString string];</span><br><span class="line">    NSNumber *number;</span><br><span class="line">    number = @(str1.length);</span><br><span class="line">    /*</span><br><span class="line">     说我们没有读取过它，那就读取一下，比如打开下面这句代码，对它发送class消息，就不再会有这个提示了。</span><br><span class="line">     当然最好的方法还是将有关number的代码都删掉，因为，你只对number赋值，又不使用，那干嘛创建出来呢。</span><br><span class="line">     这是一个比较常见和典型的错误，也很容易检查出来</span><br><span class="line">     */</span><br><span class="line">    // [number class];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 二：创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。</span><br><span class="line"> * 提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line"> */</span><br><span class="line">- (void)leakTwo &#123;</span><br><span class="line">    NSString *str = [NSString string]; // 创建并初始化str，此时已经有一个内存单元保存str初始化的值</span><br><span class="line">    // NSString *str; // 这样就内存不泄露，因为str是可变的，只需要先声明就行。</span><br><span class="line">    // printf(&quot;str前 = %p\n&quot;,str);</span><br><span class="line">    str = @&quot;ceshi&quot;;             // str被改变了，指向了&quot;ceshi&quot;所在的地址，指针改变了，但之前保存初始化值的内存空间还未释放，保存str初始化值的内存单元泄露了。</span><br><span class="line">    // printf(&quot;str后 = %p\n&quot;,str); // 指针改变了</span><br><span class="line">    [str class];</span><br><span class="line">     </span><br><span class="line">    // 再举两个例子，同理</span><br><span class="line">     </span><br><span class="line">    NSArray *arr = [NSArray array];</span><br><span class="line">    // printf(&quot;arr前 = %p\n&quot;,arr);</span><br><span class="line">    // NSArray *arr;            // 这样就内存不泄露</span><br><span class="line">    arr = @[@&quot;1&quot;,@&quot;2&quot;];</span><br><span class="line">    // printf(&quot;arr后 = %p\n&quot;,arr); // 指针改变了</span><br><span class="line">    [arr class];</span><br><span class="line">     </span><br><span class="line">    CGRect rect = self.view.frame;</span><br><span class="line">    // CGRect rect = CGRectZero; // 这样就内存不泄露</span><br><span class="line">    rect = CGRectMake(0, 0, 0, 0);</span><br><span class="line">    NSLog(@&quot;rect = %@&quot;,NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 三：调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。</span><br><span class="line"> * 提示信息：Potential leak of an object stored into &apos;subImageRef&apos;</span><br><span class="line"> * 翻译一下：subImageRef对象的内存单元有潜在的泄露风险</span><br><span class="line"> */</span><br><span class="line">- (void)leakThree &#123;</span><br><span class="line">    CGRect rect = CGRectMake(0, 0, 50, 50);</span><br><span class="line">    UIImage *image;</span><br><span class="line">    CGImageRef subImageRef = CGImageCreateWithImageInRect(image.CGImage, rect); // subImageRef 引用计数 + 1;</span><br><span class="line">     </span><br><span class="line">    UIImage* smallImage = [UIImage imageWithCGImage:subImageRef];</span><br><span class="line">     </span><br><span class="line">    // 应该调用对应的函数，让subImageRef的引用计数减1,就不会泄露了</span><br><span class="line">    // CGImageRelease(subImageRef);</span><br><span class="line">     </span><br><span class="line">    [smallImage class];</span><br><span class="line">    UIGraphicsEndImageContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>自己遇到的实例:</p>
-<blockquote>
-<p>情形2：<a href="https://blog.csdn.net/sinat_30898863/article/details/51142127" target="_blank" rel="noopener">静态检测内存泄露Analyze－－Value stored to ‘dataArr’ during its initialization is never read</a><br>即初始化的时候开辟了一块内存，却始终没用到，导致该块内存泄漏</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NSMutableArray *tempMutArr = [NSMutableArray arrayWithCapacity:0];</span><br><span class="line">   if ([self.clickedButtonTpye isEqualToString:KClickedButtonTypeLast]) &#123;</span><br><span class="line">       tempMutArr = self.lastDataSourceArr;</span><br><span class="line">   &#125;else&#123;</span><br><span class="line">       tempMutArr = self.hotDataSourceArr;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-<p><a name="Leaks"></a></p>
-<h2 id="二、Leaks—内存泄露"><a href="#二、Leaks—内存泄露" class="headerlink" title="二、Leaks—内存泄露"></a>二、Leaks—内存泄露</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<ul>
-<li><p><a href="https://wereadteam.github.io/2016/02/22/MLeaksFinder/" target="_blank" rel="noopener">MLeaksFinder：精准 iOS 内存泄露检测工具</a></p>
-<blockquote>
-<p>项目 <a href="https://github.com/Zepo/MLeaksFinder/blob/master/MLeaksFinder/UIViewController%2BMemoryLeak.m" target="_blank" rel="noopener">UIViewController+MemoryLeak.m     NSObject+MemoryLeak.m</a></p>
-<p>原理：MLeaksFinder 一开始从 UIViewController 入手。我们知道，当一个 UIViewController 被 pop 或 dismiss 后，该 UIViewController 包括它的 view，view 的 subviews 等等将很快被释放（除非你把它设计成单例，或者持有它的强引用，但一般很少这样做）。于是，我们只需在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 UIViewController，它的 view，view 的 subviews 等等是否还存在。</p>
-<p>即我们hook <code>viewDidDisappear:</code> 和 <code>dismissViewControllerAnimated: completion:</code> 都去执行NSObject的<code>willDealloc</code>方法。</p>
-<p>在NSObject的<code>willDealloc</code>方法中，隔2秒后再去尝试调用另一个方法<code>assertNotDealloc</code>。如果UIViewController已经被成功释放，则肯定是 nil 执行 assertNotDealloc，即assertNotDealloc不会被执行，也就不会弹出内存泄露的弹窗。反之，若UIViewController没有释放，则会弹出内存泄露的弹窗。</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">// UIViewController+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_viewDidDisappear:(<span class="built_in">BOOL</span>)animated &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_viewDidDisappear:animated];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">if</span> ([objc_getAssociatedObject(<span class="keyword">self</span>, kHasBeenPoppedKey) boolValue]) &#123;</span><br><span class="line">&gt;         [<span class="keyword">self</span> willDealloc];</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_dismissViewControllerAnimated:(<span class="built_in">BOOL</span>)flag completion:(<span class="keyword">void</span> (^)(<span class="keyword">void</span>))completion &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_dismissViewControllerAnimated:flag completion:completion];</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     [dismissedViewController willDealloc];</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">// NSObject+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="built_in">BOOL</span>)willDealloc &#123;</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     __<span class="keyword">weak</span> <span class="keyword">id</span> weakSelf = <span class="keyword">self</span>;</span><br><span class="line">&gt;     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         __<span class="keyword">strong</span> <span class="keyword">id</span> strongSelf = weakSelf;</span><br><span class="line">&gt;         [strongSelf assertNotDealloc];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)assertNotDealloc &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> ([MLeakedObjectProxy isAnyObjectLeakedAtPtrs:[<span class="keyword">self</span> parentPtrs]]) &#123;</span><br><span class="line">&gt;         <span class="keyword">return</span>;</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     [MLeakedObjectProxy addLeakedObject:<span class="keyword">self</span>];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="built_in">NSString</span> *className = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);</span><br><span class="line">&gt;     <span class="built_in">NSLog</span>(<span class="string">@"Possibly Memory Leak.\nIn case that %@ should not be dealloced, override -willDealloc in %@ by returning NO.\nView-ViewController stack: %@"</span>, className, className, [<span class="keyword">self</span> viewStack]);</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-</blockquote>
-</li>
-<li><p><a href="https://maxieewong.com/Flutter%20%E8%87%AA%E5%8A%A8%E5%8C%96%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B.html" target="_blank" rel="noopener">自动化内存泄漏检测</a> 项目 <a href="https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121" target="_blank" rel="noopener">https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121</a></p>
-<blockquote>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment"><span class="markdown">///Such as WebSocket is delay close connect.</span></span></span><br><span class="line">&gt; <span class="keyword">const</span> <span class="built_in">int</span> _defaultCheckLeakDelay = <span class="number">500</span>;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">typedef</span> ShouldAddedRoute = <span class="built_in">bool</span> <span class="built_in">Function</span>(Route route);</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment"><span class="markdown">///NavigatorObserver</span></span></span><br><span class="line">&gt; <span class="class"><span class="keyword">class</span> <span class="title">LeakNavigatorObserver</span> <span class="keyword">extends</span> <span class="title">NavigatorObserver</span> </span>&#123;</span><br><span class="line">&gt;   <span class="keyword">final</span> ShouldAddedRoute? shouldCheck;</span><br><span class="line">&gt;   <span class="keyword">final</span> <span class="built_in">int</span> checkLeakDelay;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="comment"><span class="markdown">///[callback] if 'null',</span>the<span class="markdown"> all route can added to LeakDetector.</span></span></span><br><span class="line">&gt;   <span class="comment"><span class="markdown">///if not 'null', returns ‘true’, then this route </span>will<span class="markdown"> be added to </span>the<span class="markdown"> LeakDetector.</span></span></span><br><span class="line">&gt;   LeakNavigatorObserver(</span><br><span class="line">&gt;       &#123;<span class="keyword">this</span>.checkLeakDelay = _defaultCheckLeakDelay, <span class="keyword">this</span>.shouldCheck&#125;);</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPop(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPush(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _add(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didRemove(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didReplace(&#123;Route? newRoute, Route? oldRoute&#125;) &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> (newRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _add(newRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     <span class="keyword">if</span> (oldRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _remove(oldRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt;   ......</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-</blockquote>
-</li>
-<li><p><a href="https://docs.flutter.cn/community/tutorials/memory-leak-monitoring-on-flutter" target="_blank" rel="noopener">快手 Flutter 上的内存泄漏监控</a></p>
-</li>
-</ul>
-<p>Leaks是动态的内存泄露检查工具，需要一边运行程序，一边检测。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak1.jpg" alt="内存泄漏Leak1"></p>
-</blockquote>
-<p>先不切换到Call Trees，先看看Statistics(统计数据)下的情况</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak2.jpg" alt="内存泄漏Leak2"><br>Allocation中我们主要关注的是Persistent和Persistent Bytes，分别表示当前时间段，申请了但是还没释放的内存数量和大小。</p>
-</blockquote>
-<p>切换到Call Trees后世这样的</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak3.jpg" alt="内存泄漏Leak3"></p>
-</blockquote>
-<h4 id="项目中遇到过的内存泄漏"><a href="#项目中遇到过的内存泄漏" class="headerlink" title="项目中遇到过的内存泄漏"></a>项目中遇到过的内存泄漏</h4><p>这里我们不是去查看<code>Call Tree</code>,而是查看<code>Cycles &amp; Roots</code>。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位1.jpg" alt="循环引用定位1"></p>
-<p>点击标记4处为黑色，即代表该处会发生内存泄漏，双击进入代码，如图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位2.jpg" alt="循环引用定位2"><br>果然存在内存泄漏</p>
-</blockquote>
-<p>自己遇到的其他例子：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_1.jpg" alt="Leak_mine_1"><br>开始不明白为什么这个变量会内存泄漏后面才能白，其实_priceDetailModel这个本身已经用OrderPriceDetailModel赋值过一次了，而这里你又赋值了一次，导致多了一个。代码情况如下两个图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_2.jpg" alt="Leak_mine_2"><br>又在set方法中生成了一个地址<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_3.jpg" alt="Leak_mine_3"></p>
-</blockquote>
-<p><a name="dealloc"></a></p>
-<h2 id="三、ARC下的dealloc"><a href="#三、ARC下的dealloc" class="headerlink" title="三、ARC下的dealloc"></a>三、ARC下的dealloc</h2><h4 id="1、ARC下dealloc的使用"><a href="#1、ARC下dealloc的使用" class="headerlink" title="1、ARC下dealloc的使用"></a>1、ARC下dealloc的使用</h4><p>ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br></pre></td></tr></table></figure>
-<h6 id="1-、通知的观察者-或KVO的观察者；"><a href="#1-、通知的观察者-或KVO的观察者；" class="headerlink" title="(1)、通知的观察者,或KVO的观察者；"></a>(1)、通知的观察者,或KVO的观察者；</h6><blockquote>
-<p>由于通知中心是系统的一个单例,你在注册通知的观察者时,实际上是在通知中心注册的,</p>
-</blockquote>
-<p>这时,即使ARC下系统帮我们释放了对象,但是在通知中心的观察还是没有移除,那么当有</p>
-<blockquote>
-</blockquote>
-<p>该通知时,依然会尝试调用该对象的接受通知的方法,这可能会导致一些问题.</p>
-<h6 id="2-、对象强委托-引用的解除；"><a href="#2-、对象强委托-引用的解除；" class="headerlink" title="(2)、对象强委托/引用的解除；"></a>(2)、对象强委托/引用的解除；</h6><blockquote>
-<p>对于其他的对象来把你当做委托 delegate时,并且是 强引用时,即时你自身被释放,但是引用你的对象依然还在,</p>
-</blockquote>
-<p>这时需要在引用你的对象移除该delegate</p>
-<h6 id="3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。"><a href="#3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。" class="headerlink" title="(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。"></a>(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</h6><blockquote>
-<p>一个对象,如一个ViewController在销毁之前有可能需要和server打交道;</p>
-</blockquote>
-<p>这时我们也可以在dealloc中写</p>
-<h4 id="2、controller-不能释放，不走dealloc方法的几种可能"><a href="#2、controller-不能释放，不走dealloc方法的几种可能" class="headerlink" title="2、controller 不能释放，不走dealloc方法的几种可能"></a>2、controller 不能释放，不走dealloc方法的几种可能</h4><p>主要原因还是循环引用，引起的内存泄漏。</p>
-<p>详情参考：<a href="https://blog.csdn.net/flg1554112450/article/details/70228353" target="_blank" rel="noopener">controller 不能释放，不走dealloc方法的4种可能</a></p>
-<p></p><p id="Time Profile"></p><p></p>
-<h2 id="四、Time-Profile"><a href="#四、Time-Profile" class="headerlink" title="四、Time Profile"></a>四、Time Profile</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>详情参考：<a href="http://www.cocoachina.com/ios/20160805/17300.html" target="_blank" rel="noopener">instrument Time Profiler总结</a></p>
-<p>使用Time Profile前有两点需要注意的地方：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、一定要使用真机调试</span><br><span class="line">2、应用程序一定要使用发布配置</span><br></pre></td></tr></table></figure>
-<p>图标为黑色头像的就是Time Profiler给我们的提示，有可能存在性能瓶颈的地方</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/TimeProfile1.png" alt="TimeProfile1"></p>
-</blockquote>
-<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>其他参考材料：</p>
-<p>问：Xcode 运行程序，左侧memory 不显示内存。。</p>
-<blockquote>
-<p>答：运行程序后，xcode 不显示当前使用的内存情况，问题是打开了僵尸–enable zoombie Objects，关闭即可。<br>即打开 product—&gt;SCheme–&gt;EditSCheme –&gt;enable zoombie Objects  取消选中 ok</p>
-</blockquote>
-<p>就可以继续显示了</p>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" data-id="cm1p7o9w7015rxsr43wc0r7lk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cm1p887dm017jzwr4srmbbzhl" class="article-share-link">Share</a>
       
       
     </footer>

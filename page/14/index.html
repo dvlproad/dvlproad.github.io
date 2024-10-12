@@ -72,6 +72,91 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-iOS-点击状态栏回到顶部"><a href="#Flutter-iOS-点击状态栏回到顶部" class="headerlink" title="Flutter iOS 点击状态栏回到顶部"></a>Flutter iOS 点击状态栏回到顶部</h1><h2 id="一、会回到顶部的原理"><a href="#一、会回到顶部的原理" class="headerlink" title="一、会回到顶部的原理"></a>一、会回到顶部的原理</h2><p>ios中一个常见的交互是：点击顶部栏时，自动将当前的滚动区滚到顶部。在flutter中，大部分时候这件事是“自然完成”的，但是也有时候会遇到这个行为失效的情况。要解决这个问题首先自然是要看这个feature是如何实现的。<br> 其实大部分都是Scaffold里面干的事：<br> Scaffold里有这样一段代码:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (themeData.platform) &#123;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.iOS:</span><br><span class="line">    _addIfNonNull(</span><br><span class="line">      children,</span><br><span class="line">      GestureDetector(</span><br><span class="line">        behavior: HitTestBehavior.opaque,</span><br><span class="line">        onTap: _handleStatusBarTap,</span><br><span class="line">        <span class="comment">// iOS accessibility automatically adds scroll-to-top to the clock in the status bar</span></span><br><span class="line">        excludeFromSemantics: <span class="literal">true</span>,</span><br><span class="line">      ),</span><br><span class="line">      _ScaffoldSlot.statusBar,</span><br><span class="line">      removeLeftPadding: <span class="literal">false</span>,</span><br><span class="line">      removeTopPadding: <span class="literal">true</span>,</span><br><span class="line">      removeRightPadding: <span class="literal">false</span>,</span><br><span class="line">      removeBottomPadding: <span class="literal">true</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.android:</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.fuchsia:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里命名很舒服，可以直接看出来在干什么：如果是ios的话，那就给Scaffold加一个在状态栏上的点击区，点击的话就会触发一个函数，这个函数干的事情如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">_handleStatusBarTap</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (_primaryScrollController.hasClients) &#123;</span><br><span class="line">    _primaryScrollController.animateTo(</span><br><span class="line">      <span class="number">0.0</span>,</span><br><span class="line">      duration: <span class="function"><span class="keyword">const</span> <span class="title">Duration</span><span class="params">(milliseconds: <span class="number">300</span>)</span>,</span></span><br><span class="line"><span class="function">      curve: Curves.linear, <span class="comment">// TODO(ianh): Use a more appropriate curve.</span></span></span><br><span class="line"><span class="function">    )</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也就是，Scaffold会提供一个默认的ScrollController，而点击顶部栏会使得这个controller滚到顶部，在ScrollView的build函数中则会取这个controller:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line">Widget build(BuildContext context) &#123;</span><br><span class="line">  <span class="keyword">final</span> List&lt;Widget&gt; slivers = buildSlivers(context);</span><br><span class="line">  <span class="keyword">final</span> AxisDirection axisDirection = getDirection(context);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 注意，此处的primary不是传入的primary，</span></span><br><span class="line">  <span class="comment">// primary = primary ?? controller == null &amp;&amp; identical(scrollDirection, Axis.vertical)</span></span><br><span class="line">  <span class="keyword">final</span> ScrollController scrollController = primary</span><br><span class="line">    ? PrimaryScrollController.of(context)</span><br><span class="line">    : controller;</span><br><span class="line">  <span class="keyword">final</span> Scrollable scrollable = Scrollable(</span><br><span class="line">    dragStartBehavior: dragStartBehavior,</span><br><span class="line">    axisDirection: axisDirection,</span><br><span class="line">    controller: scrollController,</span><br><span class="line">    physics: physics,</span><br><span class="line">    semanticChildCount: semanticChildCount,</span><br><span class="line">    viewportBuilder: (BuildContext context, ViewportOffset offset) &#123;</span><br><span class="line">      <span class="keyword">return</span> buildViewport(context, offset, axisDirection, slivers);</span><br><span class="line">    &#125;,</span><br><span class="line">  );</span><br><span class="line">  <span class="keyword">return</span> primary &amp;&amp; scrollController != <span class="literal">null</span></span><br><span class="line">    ? PrimaryScrollController.none(child: scrollable)</span><br><span class="line">    : scrollable;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果指定controller的话，就不会使用PrimaryScrollview，如果不指定的话，则在primary为true时使用PrimaryController，而默认情况下controller为null，primary为true，因此一个裸体的ListView是会相应屏幕点击的。<br> 知道了原理，就很容易分析自己代码里出的问题是什么，常见的可能就是：<br> 1、没加Scaffold，这个其实并不常见（自相矛盾草），不过可以检查一下，一般总是会有Scaffold的<br> 2、真正常见的：指定了controller，如果自己创建了一个Controller丢给ScrollView，那必然是会失效的。但是使用controller又是一个很常见且重要的需求，怎么办呢？也很简单，就是不要自己创建新的ScrollController，而是直接取PrimaryScrollController.of(context)这个controller，对其进行自己要做的操作。<br> 3、相对不太常见且需要分析具体代码的：多个Scaffold导致的冲突。<br> 注意到其实flutter里的这个点击状态栏并不是真的点击了状态栏，而是点击了“Scaffold提供的位于状态栏的可点击区域”，也就是说，如果有多个Scaffold就会有多个这样的区域。实际情况是，只有最内部的Scaffold的状态栏会有响应，而如果ScrollView所处位置取到的和点击的Scaffold不一致，自然也就不会有滚动到顶部的feature</p>
+<h2 id="二、错误示例"><a href="#二、错误示例" class="headerlink" title="二、错误示例"></a>二、错误示例</h2><p>今天遇到ios点击状态栏无法回到顶部（原理在文章后）的问题。研究后发现，Scaffold组件虽然会自带这个功能。但使用时候，必须遵循指定规则才行。</p>
+<p>我们以点击 TapStatusNormalPage 上的状态栏返回顶部来举例。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// tap_status_normal_page.dart</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TapStatusNormalPage</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> TapStatusNormalPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;TapStatusNormalPage&gt; createState() =&gt; _TapStatusNormalPageState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_TapStatusNormalPageState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">TapStatusNormalPage</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold( <span class="comment">// 注意这个页面已经包了 Scaffold 了</span></span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: <span class="keyword">const</span> Text(<span class="string">'状态栏点击-Normal5'</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: ListView.builder(</span><br><span class="line">        itemCount: <span class="number">200</span>,</span><br><span class="line">        itemBuilder: (context, index) &#123;</span><br><span class="line">          <span class="keyword">return</span> Text(<span class="string">'<span class="subst">$index<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">        &#125;,</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">      ),</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    );</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">&#125;</span></span></span></span><br></pre></td></tr></table></figure>
+<h3 id="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"><a href="#错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。" class="headerlink" title="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"></a>错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。</h3><p>失效示例1：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">HomePage</span> <span class="title">extends</span> <span class="title">StatelessWidget</span> &#123;</span><br><span class="line">  @<span class="keyword">override</span></span><br><span class="line">  <span class="function">Widget <span class="title">build</span>(<span class="params">BuildContext context</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: TapStatusNormalPage(), <span class="comment">// 失效原因：TapStatusNormalPage里已经有 Scaffold 了</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种情况，点击状态栏便不会回到顶部，我们需要保证的就是每个页面仅有一个Scaffold。</p>
+<h3 id="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"><a href="#错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部" class="headerlink" title="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"></a>错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</h3><p>失效示例2：</p>
+<p>虽然home里只有一个 Scaffold ，但app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ScreenUtilInit(</span><br><span class="line">    designSize: <span class="keyword">const</span> Size(<span class="number">375</span>, <span class="number">812</span>),</span><br><span class="line">    builder: () =&gt; MaterialApp(</span><br><span class="line">      navigatorKey: navigatorKey,</span><br><span class="line">      title: <span class="string">'wish'</span>,</span><br><span class="line">      home: TapStatusNormalPage(),</span><br><span class="line">      builder: EasyLoading.init(builder: (context, widget) &#123;</span><br><span class="line">        <span class="keyword">return</span> MediaQuery(</span><br><span class="line">          <span class="comment"><span class="markdown">///设置文字大小不随系统设置改变</span></span></span><br><span class="line">          data: MediaQuery.of(context).copyWith(textScaleFactor: <span class="number">1.0</span>),</span><br><span class="line">          <span class="comment">// child: Scaffold( // 注意：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</span></span><br><span class="line">          <span class="comment">//   resizeToAvoidBottomInset: false,</span></span><br><span class="line">          <span class="comment">//   body: widget,</span></span><br><span class="line">          <span class="comment">// ),</span></span><br><span class="line">          child: widget, <span class="comment">// OK</span></span><br><span class="line">        );</span><br><span class="line">      &#125;),</span><br><span class="line">    ),</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
+<h3 id="错误三：一说要滚动就自定义controller"><a href="#错误三：一说要滚动就自定义controller" class="headerlink" title="错误三：一说要滚动就自定义controller"></a>错误三：一说要滚动就自定义controller</h3><p>点击页面上的某个按钮，让页面上的列表滚动到顶部（不需要自定义controller）。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">PrimaryScrollController.of(context).jumpTo(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PrimaryScrollController.of(context).animateTo(</span><br><span class="line">            <span class="number">0</span>,</span><br><span class="line">            duration: <span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>),</span><br><span class="line">            curve: Curves.linear,</span><br><span class="line">          );</span><br></pre></td></tr></table></figure>
+<p>如果还要监听滚动</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> didChangeDependencies() &#123;</span><br><span class="line">   <span class="keyword">super</span>.didChangeDependencies();</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">if</span> (!_hasEverInitListener) &#123;</span><br><span class="line">     PrimaryScrollController.of(context).addListener(_handleScrollViewEvent);</span><br><span class="line">     _hasEverInitListener = <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> deactivate() &#123;</span><br><span class="line">   <span class="keyword">super</span>.deactivate();</span><br><span class="line">   PrimaryScrollController.of(context).removeListener(_handleScrollViewEvent);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">_handleScrollViewEvent() &#123;</span><br><span class="line">   <span class="comment">// 滚动距离</span></span><br><span class="line">   <span class="built_in">double</span> offsetY = PrimaryScrollController.of(context).offset;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views"><a href="#错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views" class="headerlink" title="错误四：Another exception was thrown: ScrollController attached to multiple scroll views."></a>错误四：Another exception was thrown: ScrollController attached to multiple scroll views.</h3><p>问题：</p>
+<p>flutter_swiper：Another exception was thrown: ScrollController attached to multiple scroll views</p>
+<p>翻译一下：引发了另一个异常：ScrollController连接到多个滚动视图。</p>
+<p>原因：</p>
+<p>Flutter Swiper是一个轮播图组件，内部包含一个Widget List，当这个Widget List数量大于1，就可能会有这种情况</p>
+<p>解决方案：给Swiper加一个Key即可解决</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">return</span> <span class="selector-tag">Container</span>(</span><br><span class="line">     <span class="attribute">child</span>: AspectRatio(</span><br><span class="line">       <span class="attribute">aspectRatio</span>: <span class="number">1.5</span> / <span class="number">1</span>, <span class="comment">// 宽高比450/300</span></span><br><span class="line">       <span class="attribute">child</span>: Swiper(</span><br><span class="line">         <span class="attribute">key</span>: UniqueKey(), <span class="comment">// 这个必须添加，代表唯一</span></span><br><span class="line">         <span class="attribute">itemBuilder</span>: (BuildContext context, int index) &#123;</span><br><span class="line">           return new Image.network(</span><br><span class="line">             imgList[index][<span class="string">'url'</span>],</span><br><span class="line">             <span class="attribute">fit</span>: BoxFit.fill,</span><br><span class="line">           );</span><br><span class="line">         &#125;,</span><br><span class="line">         <span class="attribute">itemCount</span>: imgList.length,</span><br><span class="line">         <span class="attribute">pagination</span>: new SwiperPagination(),</span><br><span class="line">         <span class="attribute">control</span>: new SwiperControl(),</span><br><span class="line">         <span class="attribute">autoplay</span>: true,</span><br><span class="line">       ),</span><br><span class="line">     ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter iOS 点击状态栏回到顶部/" data-id="cm1p8855j00fdzwr48vdmcus5" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/开发随笔/Flutter 拖曳排序" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/开发随笔/Flutter 拖曳排序/" class="article-date">
+  <time datetime="2021-12-30T06:49:09.004Z" itemprop="datePublished">2021-12-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Flutter-拖曳排序"><a href="#Flutter-拖曳排序" class="headerlink" title="Flutter 拖曳排序"></a>Flutter 拖曳排序</h1><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/924428a31b6b" target="_blank" rel="noopener">Flutter使用Draggable实现可拖拽GridView</a></li>
+</ul>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 拖曳排序/" data-id="cm1p8856000fkzwr4vbsc11o9" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Flutter/开发随笔/Flutter 最常出现的错误" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Flutter/开发随笔/Flutter 最常出现的错误/" class="article-date">
@@ -165,7 +250,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 最常出现的错误/" data-id="cm1p7o7vg00f8xsr4vhdta8cq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/Flutter 最常出现的错误/" data-id="cm1p8856900fozwr4y9f36hn2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -299,7 +384,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="cm1p7o7vw00fexsr42slw0skh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/开发随笔/" data-id="cm1p8856i00frzwr4djzws97u" class="article-share-link">Share</a>
       
       
     </footer>
@@ -338,7 +423,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="cm1p7o7wl00fnxsr4oxb0f9w4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/开发随笔/UI+App demo/" data-id="cm1p8856s00fvzwr4gwkx5hu6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -437,7 +522,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/Git-Flow/" data-id="cm1p7o7e6006pxsr48wj8utdw" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/Git-Flow/" data-id="cm1p884nt006rzwr4ioo1mk5q" class="article-share-link">Share</a>
       
       
     </footer>
@@ -496,7 +581,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="cm1p7o6wl003cxsr4phrinwyh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/远程共享文件夹/" data-id="cm1p883la004ezwr4tcnmrthz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -533,7 +618,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/远程桌面连接/" data-id="cm1p7o6wv003ixsr42aryojnd" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/远程桌面连接/" data-id="cm1p883lu004kzwr4p6uzdhcf" class="article-share-link">Share</a>
       
       
     </footer>
@@ -562,7 +647,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/npmjs/npm的命令/" data-id="cm1p7oaif018bxsr4669qrjtp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/代码管理/库管理/npmjs/npm的命令/" data-id="cm1p8881001a2zwr4jqoeo6d7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -614,77 +699,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods/" data-id="cm1p7oag40181xsr4p7l9jq0a" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-代码管理/SVN" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/代码管理/SVN/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.960Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="SVN"><a href="#SVN" class="headerlink" title="SVN"></a>SVN</h1><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>1.Mac下搭建SVN服务器</p>
-<h2 id="1"><a href="#1" class="headerlink" title="1"></a>1</h2><p><a href="http://www.cnblogs.com/dafozhang/archive/2012/06/28/2567769.html" target="_blank" rel="noopener">SVN中trunk,branches,tags用法详解</a></p>
-<p>svn://proj/|+-trunk+-branches+-tags<br>这是一个标准的布局，trunk为主开发目录，branches为分支开发目录，tags为tag存档目录（不允许修改）。但是具体这几个目录应该如何使用，svn并没有明确的规范，更多的还是用户自己的习惯。</p>
-<p>对于这几个开发目录，一般的使用方法有两种。我更多的是从软件产品的角度出发（比如freebsd），因为互联网的开发模式是完全不一样的。 1.第一种方法，使用trunk作为主要的开发目录<br>一般的，我们的所有的开发都是基于trunk进行开发，当一个版本/release开发告一段落（开发、测试、文档、制作安装程序、打包等）结束后，代码处于冻结状态（人为规定，可以通过hook来进行管理）。此时应该基于当前冻结的代码库，打tag。当下一个版本/阶段的开发任务开始，继续在trunk进行开发。<br>此时，如果发现了上一个已发行版本（Released Version）有一些bug，或者一些很急迫的功能要求，而正在开发的版本（Developing Version）无法满足时间要求，这时候就需要在上一个版本上进行修改了。应该基于发行版对应的tag，做相应的分支（branch）进行开发。<br>例如，刚刚发布1.0，正在开发2.0，此时要在1.0的基础上进行bug修正。</p>
-<p><a href="http://blog.csdn.net/lilongsheng1125/article/details/8742200" target="_blank" rel="noopener">SVN 中trunk、tags、branches使用</a></p>
-<p><a href="http://blog.csdn.net/njuitjf/article/details/7546189" target="_blank" rel="noopener">svn中的revert和update</a></p>
-<p><a href="http://blog.csdn.net/gf771115/article/details/41008853" target="_blank" rel="noopener">iOS 用CornerStone配置SVN，HTTP及svn简单使用说明</a></p>
-<h3 id="Mac下搭建SVN服务器"><a href="#Mac下搭建SVN服务器" class="headerlink" title="Mac下搭建SVN服务器"></a>Mac下搭建SVN服务器</h3><p>有些MAC用户想在自己的电脑中建立一个SVN服务器，那么该怎么做呢？<br>具体步骤：</p>
-<ul>
-<li>第一步，启动终端。命令如下：<code>svnadmin create /Users/lichaoqian/Project/SVN</code>，这样我们就在自己的主目录下建立了一个名为“SVN”的代码库。 得到的目录为：<br><img src="/代码管理/SVN/./Screenshots/SVN/SVN create catalog.png" alt="SVN创建后的目录结构"></li>
-<li>第二步，配置这个代码仓库。</li>
-<li>①首先修改conf文件夹中的svnserve.conf文件，只要把<code>#password-db = passwd</code>这句话的#去掉，使得这个配置项生效即可。保存退出。<br><img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile1.png" alt="SVN配置代码库1"></li>
-<li>②接着修改passwd文件，这个里面存着这个代码库接受的用户名和密码<br>　　采用的形式是［用户名］=［密码］。可以增加一个用户“user”，密码“pass”，形如：<code>user=pass</code>,<br>　　<img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile2.png" alt="SVN配置代码库2"><br>　　这里改为只接受用户名为lichaoqian,密码也为lichaoqian的用户。<br>　　<img src="/代码管理/SVN/./Screenshots/SVN/SVN create updateFile3.png" alt="SVN配置代码库3"><br>　　保存退出。</li>
-<li>第三步，启动服务器。终端中继续，命令如下：<br><code>svnserve -d -r /Users/lichaoqian/Project/SVN</code><br>没有任何提示就说明启动成功了。附停止服务器：<code>killall -9 svnserve</code><br>以上就是在MAC中建立SVN服务器的具体步骤了，想要自己建立SVN服务器的用户，快来看看吧</li>
-</ul>
-<h3 id="CornerStone的使用"><a href="#CornerStone的使用" class="headerlink" title="CornerStone的使用"></a>CornerStone的使用</h3><p><a href="http://blog.csdn.net/keda8997110/article/details/21813035" target="_blank" rel="noopener">svn的merge使用例子</a><br><a href="http://www.jianshu.com/p/d97b1d82d6cf" target="_blank" rel="noopener">Cornerstone Merge操作详解</a><br><a href="http://blog.csdn.net/qq_30513483/article/details/52219036" target="_blank" rel="noopener">CornerStone的使用</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/代码管理/SVN/" data-id="cm1p7o6uw002gxsr4qzihrjp6" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/数据库FMDB/数据库" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库/" class="article-date">
-  <time datetime="2021-12-17T14:19:19.906Z" itemprop="datePublished">2021-12-17</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-数据库"><a href="#必备知识架构-数据库" class="headerlink" title="必备知识架构-数据库"></a>必备知识架构-数据库</h1><h5 id="2、面试题：用一条sql语句查询出“每门”课程都大于80分的学生姓名"><a href="#2、面试题：用一条sql语句查询出“每门”课程都大于80分的学生姓名" class="headerlink" title="2、面试题：用一条sql语句查询出“每门”课程都大于80分的学生姓名"></a>2、<a href="http://blog.csdn.net/u012110719/article/details/47138477" target="_blank" rel="noopener">面试题：用一条sql语句查询出“每门”课程都大于80分的学生姓名</a></h5><p>select distinct name from aa where name not in (select distinct name from aa where fengshu&lt;=80)<br>或写成</p>
-<p><a href="http://www.cnblogs.com/hongyan5682/p/4816444.html" target="_blank" rel="noopener">select distinct A.name from Student A<br>where not exists (select 1 from Student S Where  S.score &lt;80 AND S.name =A.name)</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库/" data-id="cm1p7oadv017pxsr4zgvv0wi1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/代码管理/库管理/CocoaPods/CocoaPods/" data-id="cm1p887z6019szwr4wi2wcn31" class="article-share-link">Share</a>
       
       
     </footer>

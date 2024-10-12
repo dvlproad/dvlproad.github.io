@@ -139,7 +139,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cm1p7oa0u016axsr4vfvph569" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cm1p887i20180zwr4e7r3be35" class="article-share-link">Share</a>
       
       
     </footer>
@@ -282,7 +282,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cm1p7o9vq015pxsr44j66cn3v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cm1p887d3017hzwr4qz0x8z6t" class="article-share-link">Share</a>
       
       
     </footer>
@@ -347,9 +347,12 @@
 <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 核心思想1：注册，以统一管理，后续调用时候，从注册表中查询并执行对应的操作</span></span><br><span class="line"><span class="keyword">void</span> <span class="keyword">register</span>(url, handle) &#123;</span><br><span class="line">  model.url = url;</span><br><span class="line">  model.handle = handle;</span><br><span class="line">  models.add(model); <span class="comment">// 问题1:用什么管理所有数据</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 核心思想2：执行，遍历在注册表中的所有操作，找到对应的操作后进行执行</span></span><br><span class="line"><span class="keyword">void</span> exec(url) &#123;</span><br><span class="line">  <span class="keyword">for</span> (var model <span class="keyword">in</span> models) &#123;</span><br><span class="line">    <span class="keyword">if</span> (model.url == url) &#123;</span><br><span class="line">      model.handle();</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="2、实现方案"><a href="#2、实现方案" class="headerlink" title="2、实现方案"></a>2、实现方案</h3><h4 id="2-1、方案1：Url-block-路由器"><a href="#2-1、方案1：Url-block-路由器" class="headerlink" title="2.1、方案1：Url+block   路由器"></a>2.1、方案1：Url+block   路由器</h4><p>缺点：入参，取参不明显。</p>
 <h4 id="2-2、方法2：protocal-class"><a href="#2-2、方法2：protocal-class" class="headerlink" title="2.2、方法2：protocal - class"></a>2.2、方法2：protocal - class</h4><p>将要执行的方法统一放到类中，通过protocal或者类。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 根据 protocal 查找 class</span></span><br><span class="line"><span class="comment">// 方法1（可一对多）：为 protocal 添加监听者数组属性（通过runtime，形成类似于 protocal.listeners ），</span></span><br><span class="line"><span class="built_in">NSHashTable</span> *protocalListeners = objc_getAssociatedObject(protocol, CJ_BROADCAST_PROTOCOL_LISTENER); <span class="comment">// 找到之前绑定到这个protocal上的监听者列表。</span></span><br><span class="line">objc_setAssociatedObject(protocol, CJ_BROADCAST_PROTOCOL_LISTENER, protocalListeners, OBJC_ASSOCIATION_RETAIN_NONATOMIC);</span><br><span class="line"></span><br><span class="line">注册的时候 [protocalListeners addObject:listener];</span><br><span class="line">  </span><br><span class="line"><span class="comment">// 方法2（只能一对一）：以 protocal 为 key , 通过 protocal 存取 module 模块(模块自身遵循协议)</span></span><br><span class="line"><span class="comment">// 创建一个NSMapTable实例，其中键是强引用，值是弱引用</span></span><br><span class="line"><span class="built_in">NSMapTable</span>&lt;<span class="built_in">NSString</span> *, <span class="built_in">NSObject</span> *&gt; *weakRefHashTable = [<span class="built_in">NSMapTable</span> strongToStrongObjectsMapTable];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 向哈希表中添加一个键值对</span></span><br><span class="line"><span class="built_in">NSString</span> *key = <span class="string">@"someKey"</span>;</span><br><span class="line"><span class="built_in">NSObject</span> *value = [[<span class="built_in">NSObject</span> alloc] init];</span><br><span class="line">[weakRefHashTable setObject:value forKey:key];</span><br></pre></td></tr></table></figure>
+<p>模块协议拆分为多个子协议，用户</p>
+<p>网络处理协议、数据管理协议（单独）、用户界面更新协议</p>
 <p>改进思想</p>
 <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1、发起请求(LoginViewController)</span></span><br><span class="line"><span class="keyword">id</span>&lt;OrderModulePublic&gt; moduler = [[CJMoudleManager shared] modulerForProtocal:@protocal(OrderModulePublic)];</span><br><span class="line"><span class="built_in">UIViewController</span> *vc = [moduler orderViewControllerWithPageType:xxx];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2、实现请求(TSOrderModuleImpl)</span></span><br><span class="line">[CJProtocolCenter addModule:<span class="keyword">self</span> forProtocol:<span class="class"><span class="keyword">@protocol</span>(<span class="title">OrderModulePublic</span>)];</span></span><br><span class="line"><span class="meta">#pragma mark - OrderModulePublic</span></span><br><span class="line">- (<span class="built_in">UIViewController</span> *)orderViewControllerWithPageType:(<span class="keyword">int</span>)pageType</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>上述代码还可以演变成实现通知的一种形式</p>
+<p>上述代码还可以演变成实现通知的一种形式（当注入的类中，有多个类都遵循了(实际上不应该出现)模块协议时候）</p>
 <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1、发起请求(LoginViewController)</span></span><br><span class="line"><span class="built_in">NSMutableSet</span>&lt;<span class="keyword">id</span>&lt;CJUserServiceProtocolForModule&gt;&gt; listener = [[CJMoudleManager shared] listenersForProtocal:@protocal(CJUserServiceProtocolForModule)];</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">id</span>&lt;CJUserServiceProtocolForModule&gt; listener <span class="keyword">in</span> listeners) &#123;</span><br><span class="line">  [listener userNameUpadte:userName];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2、实现请求(OrderHomeViewController)</span></span><br><span class="line">[CJProtocolCenter addModule:<span class="keyword">self</span> forProtocol:<span class="class"><span class="keyword">@protocol</span>(<span class="title">CJUserServiceProtocolForModule</span>)];</span></span><br><span class="line"><span class="meta">#pragma mark - CJUserServiceProtocolForModule</span></span><br><span class="line">- (<span class="keyword">void</span>)userNameUpadte:(<span class="built_in">NSString</span> *)userName</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>下列图片来源于 《<a href="../../架构相关/1架构模式/架构模式-①概览/架构分层.graffle">架构分层.graffle</a>》 中的【三、模块间设计】</p>
 <p>跳转的使用示例：</p>
@@ -360,9 +363,9 @@
 <blockquote>
 <p><img src="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/modular_CJProtocalManager 通知.png" alt="modular_CJProtocalManager 通知"></p>
 </blockquote>
-<p>跳转和通知的实现示例：</p>
+<p>跳转 + 数据变化后内部通知的实现示例：</p>
 <blockquote>
-<p><img src="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/modular_CJProtocalManager 跳转 +通知.png" alt="modular_CJProtocalManager 跳转 +通知"></p>
+<p><img src="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/modular_CJProtocalManager 跳转 + 数据变化后内部通知.png" alt="modular_CJProtocalManager 跳转 + 数据变化后内部通知"></p>
 </blockquote>
 <h2 id="四、组件化设计思路2：无管理中心"><a href="#四、组件化设计思路2：无管理中心" class="headerlink" title="四、组件化设计思路2：无管理中心"></a>四、组件化设计思路2：无管理中心</h2><p>项目示例：<a href="https://github.com/dvlproad/CJStandardProject/blob/fb796e4f5c3d30c3942e7fe088bba6cc406b6c01/CJStandardProjectDemo/Pods/CJDemoModuleMainMediator/CJDemoModuleMainMediator/CTMediator%2BCJDemoModuleMain.m" target="_blank" rel="noopener">CJStandardProject 中 CTMediator+CJDemoModuleMain.h </a></p>
 <h3 id="1、核心思想-1"><a href="#1、核心思想-1" class="headerlink" title="1、核心思想"></a>1、核心思想</h3><p><strong>核心思想：直接执行，让系统通过反射来找到要响应事件的类和方法</strong></p>
@@ -387,7 +390,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/" data-id="cm1p7o9is012axsr47172kluc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/" data-id="cm1p886zx0142zwr4rzrbmv4f" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1214,7 +1217,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/日志系统/" data-id="cm1p7o7gy0093xsr4xmr35c30" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/日志系统/" data-id="cm1p884qi008pzwr4ip89rfn8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1313,7 +1316,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cm1p7o6wp003dxsr4emhamw5b" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/旧电脑数据清理/" data-id="cm1p883li004gzwr4gvicwzek" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1854,7 +1857,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm1p7o6ib000axsr4gk89kp8h" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/总目录/" data-id="cm1p8837g0008zwr4uq2k4xwy" class="article-share-link">Share</a>
       
       
     </footer>
@@ -2161,7 +2164,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm1p7o6y9004cxsr40n9lkld1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm1p883k40038zwr4ujbcpfh6" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全/">安全</a></li></ul>
@@ -2246,7 +2249,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/灰度系统/" data-id="cm1p7o7gm008xxsr4s8vo2q4i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/灰度系统/" data-id="cm1p884qn008szwr4ygvxvhqf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -2274,7 +2277,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm1p7odvg019pxsr4771231oz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_hardware/" data-id="cm1p88bav01bizwr487o2ico0" class="article-share-link">Share</a>
       
       
     </footer>
@@ -2300,7 +2303,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm1p7odz4019vxsr44m3otbza" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/h5js/dvlp_h5js_demo_webview/" data-id="cm1p88bc601bozwr4n948bwva" class="article-share-link">Share</a>
       
       
     </footer>

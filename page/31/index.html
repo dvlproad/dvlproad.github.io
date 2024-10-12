@@ -72,6 +72,404 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/页面加载相关/页面加载体验优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/页面加载相关/页面加载体验优化/" class="article-date">
+  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第八章：页面加载相关/">第八章：页面加载相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/页面加载相关/页面加载体验优化/">页面加载体验优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="页面加载体验优化"><a href="#页面加载体验优化" class="headerlink" title="页面加载体验优化"></a>页面加载体验优化</h1><h2 id="一、页面初始加载优化"><a href="#一、页面初始加载优化" class="headerlink" title="一、页面初始加载优化"></a>一、页面初始加载优化</h2><h3 id="1、数据携带-数据参照"><a href="#1、数据携带-数据参照" class="headerlink" title="1、数据携带/数据参照"></a>1、数据携带/数据参照</h3><p>通过前一个页面的已获得数据，对所进入的新页面中的数据进行预填充。</p>
+<p>eg1:商品列表 —&gt; 商品详情：使用数据携带</p>
+<p>eg2:愿望星count个数：通过count的0与非0，知晓所进入的页面初始状态更有可能是哪种状态</p>
+<p>1、如果所进入的页面没有缓存数据，则携带的数据在进入的时候直接使用，后台接口返回实时数据后，再更新</p>
+<p>2、<strong>如果所进入的页面有缓存数据</strong>，则携带的数据只能给缓存数据，而不能是后台接口返回的实时数据</p>
+<h3 id="2、管理的数据的缓存"><a href="#2、管理的数据的缓存" class="headerlink" title="2、管理的数据的缓存"></a>2、管理的数据的缓存</h3><h4 id="2-1、普通数据的缓存"><a href="#2-1、普通数据的缓存" class="headerlink" title="2.1、普通数据的缓存"></a>2.1、普通数据的缓存</h4><p>通过缓存框架，将数据缓存起来(key需携带uid)，下次界面展示时候，优先从缓存中获取。</p>
+<p>附：缓存框架详见：<a href="../Flutter/9框架升级/组件的使用-Cache">flutter_cache_kit使用文档</a></p>
+<h4 id="2-2、管理数据的缓存"><a href="#2-2、管理数据的缓存" class="headerlink" title="2.2、管理数据的缓存"></a>2.2、管理数据的缓存</h4><p>建立Service层，管理用户所有数据的变动。</p>
+<p><strong>好处</strong>：与普通数据的缓存相比，能够在将来增加数据变动时候，通过本地通知系统，告知相关页面更新相应数据，而不用等到重新下载后才能显示已知道会更新的数据。</p>
+<p>使用要点：</p>
+<p>修改的时候，同步数据；下次界面需要数据，优先从用户管理服务中获取初始数据</p>
+<p>eg1:用户愿望单收藏、商品收藏、品牌收藏、足迹数据</p>
+<p>eg2:用户会员中心数据</p>
+<h3 id="3、默认数据"><a href="#3、默认数据" class="headerlink" title="3、默认数据"></a>3、默认数据</h3><p>如果没有从前一页携带数据过来，则使用与产品约定的默认数据来加载。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (携带数据) <span class="keyword">return</span> 携带的.orderCount; </span><br><span class="line"><span class="keyword">if</span> (管理数据) <span class="keyword">return</span> servier.orderCount; </span><br><span class="line"><span class="keyword">if</span> (默认数据) <span class="keyword">return</span> default_orderCount;</span><br></pre></td></tr></table></figure>
+<h3 id="4、预览页：美团-饿了么的骨架屏灰底效果"><a href="#4、预览页：美团-饿了么的骨架屏灰底效果" class="headerlink" title="4、预览页：美团/饿了么的骨架屏灰底效果"></a>4、预览页：美团/饿了么的骨架屏灰底效果</h3><p>对携带的数据与默认数据中相同的对象，使用携带的数据替换掉，一起整合成初始默认数据（携带的数据优先级高）。</p>
+<h3 id="5、添加请求加载圈"><a href="#5、添加请求加载圈" class="headerlink" title="5、添加请求加载圈"></a>5、添加请求加载圈</h3><h3 id="6、网络接口的缓存数据"><a href="#6、网络接口的缓存数据" class="headerlink" title="6、网络接口的缓存数据"></a>6、网络接口的缓存数据</h3><blockquote>
+<p>页面处理优化及处理过程中的内容（图片）加载优化如下图所示：</p>
+<p>图片来源可查看 《<a href="./页面加载体验优化/app启动与页面加载.graffle">app启动与页面加载.graffle</a>》中的【二、页面加载】版面</p>
+<p><img src="/Architecture架构/页面加载相关/页面加载体验优化/page_and_image_load_optimize1.png" alt="image-20240725001944956"></p>
+<p>从上图中，可以看出弱网情况下，我们可以针对不同的网络：做不同超时，重试设置，以及取不同质量的图片数据。</p>
+</blockquote>
+<h2 id="二、图片优化"><a href="#二、图片优化" class="headerlink" title="二、图片优化"></a>二、图片优化</h2><p>图片优化，请查看我的另一篇文章：<a href="../框架相关/图片相关/图片框架.md">图片框架.md</a></p>
+<p>图片高磁盘占用，请查看我的另一篇文章：《<a href="../../iOS/3必备知识架构/2内存/高磁盘占用的排查与优化.md">高磁盘占用的排查与优化.md</a>》</p>
+<h2 id="三、网络优化"><a href="#三、网络优化" class="headerlink" title="三、网络优化"></a>三、网络优化</h2><p>api数据缓存，请查看我的另一篇文章：《<a href="../框架相关/网络相关/网络框架.md">网络框架.md</a>》</p>
+<p>弱网优化，请查看我的另一篇文章：《<a href="../../Architecture架构/框架相关/网络相关/弱网优化空间探索.md">弱网优化空间探索.md</a>》</p>
+<h2 id="四、按钮点击区域优化"><a href="#四、按钮点击区域优化" class="headerlink" title="四、按钮点击区域优化"></a>四、按钮点击区域优化</h2><p>eg：返回键的点击</p>
+<p>防抖(立即执行）：</p>
+<h2 id="五、样式"><a href="#五、样式" class="headerlink" title="五、样式"></a>五、样式</h2><p>loading加载动画按需添加</p>
+<p>返回按钮统一</p>
+<p>toast提示统一</p>
+<p>底部弹窗统一</p>
+<h2 id="六、底层异常处理"><a href="#六、底层异常处理" class="headerlink" title="六、底层异常处理"></a>六、底层异常处理</h2><h3 id="1、图片的404错误"><a href="#1、图片的404错误" class="headerlink" title="1、图片的404错误"></a>1、图片的404错误</h3><p>错误示例：</p>
+<p><a href="https://img.alicdn.com/bao/uploaded/i1/1799996758/TB2YYnmoFXXXXatXFXXXXXXXXXX_!!1799996758.jpg" target="_blank" rel="noopener">https://img.alicdn.com/bao/uploaded/i1/1799996758/TB2YYnmoFXXXXatXFXXXXXXXXXX_!!1799996758.jpg</a></p>
+<p>错误提示：</p>
+<p>flutter: CacheManager: Failed to download file from <a href="https://img.alicdn.com/bao/uploaded/i3/791232018/TB2_zAjsVXXXXaNXXXXXXXXXXXX_!!791232018.jpg" target="_blank" rel="noopener">https://img.alicdn.com/bao/uploaded/i3/791232018/TB2_zAjsVXXXXaNXXXXXXXXXXXX_!!791232018.jpg</a> with error:</p>
+<p><img src="/Architecture架构/页面加载相关/页面加载体验优化/image_error_404.png" alt="image-20220119162152615"></p>
+<p>修改方案：</p>
+<p><a href="https://blog.csdn.net/a18339063397/article/details/117960301" target="_blank" rel="noopener">Flutter cached_network_image图片缓存异常/加载失败优化</a></p>
+<h2 id="七、代码优化"><a href="#七、代码优化" class="headerlink" title="七、代码优化"></a>七、代码优化</h2><p>屏幕适配写法</p>
+<p><a href="https://juejin.cn/post/7306311487277776915" target="_blank" rel="noopener">iOS 等比例UI适配方案</a></p>
+<h2 id="八、其他预加载优化"><a href="#八、其他预加载优化" class="headerlink" title="八、其他预加载优化"></a>八、其他预加载优化</h2><h3 id="1、列表预加载"><a href="#1、列表预加载" class="headerlink" title="1、列表预加载"></a>1、列表预加载</h3><h4 id="1-1、轮播图列表预加载"><a href="#1-1、轮播图列表预加载" class="headerlink" title="1.1、轮播图列表预加载"></a>1.1、轮播图列表预加载</h4><p>预加载下一张(不是全部)</p>
+<h3 id="2、视频预加载"><a href="#2、视频预加载" class="headerlink" title="2、视频预加载"></a>2、视频预加载</h3><h3 id="3、全局WebView"><a href="#3、全局WebView" class="headerlink" title="3、全局WebView"></a>3、全局WebView</h3><h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面加载体验优化/" data-id="cm1p884r40092zwr4mj8y51gb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/音视频相关/视频优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/音视频相关/视频优化/" class="article-date">
+  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/音视频相关/视频优化/">视频</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h2 id="一、视频上传"><a href="#一、视频上传" class="headerlink" title="一、视频上传"></a>一、视频上传</h2><p>《<a href="../Architecture架构/框架相关/网络相关/文件分片上传与分片下载.md">文件分片上传与分片下载.md</a>》</p>
+<h2 id="二、常见视频播放"><a href="#二、常见视频播放" class="headerlink" title="二、常见视频播放"></a>二、常见视频播放</h2><h3 id="1、视频地址-素材获取网站"><a href="#1、视频地址-素材获取网站" class="headerlink" title="1、视频地址/素材获取网站"></a>1、视频地址/素材获取网站</h3><ul>
+<li><a href="http://www.m3u8play.com/" target="_blank" rel="noopener">m3u8网站</a></li>
+<li><a href="http://blog.luckly-mjw.cn/tool-show/m3u8-downloader/index.html?source=http:\u002F\u002F36689.live-vod.cdn.aodianyun.com\u002Fm3u8\u002F0x0\u002Faqes_36689.aqes0.1628058327\u002Faqes_36689.aqes0.1628058327.m3u8" target="_blank" rel="noopener">m3u8 视频在线提取工具</a></li>
+</ul>
+<h3 id="2、m3u8文件认识"><a href="#2、m3u8文件认识" class="headerlink" title="2、m3u8文件认识"></a>2、m3u8文件认识</h3><p>现在比较常见的视频流媒体，大部分都是 m3u8 格式的，而对于 m3u8 格式的视频而言，如果你下载过，你会发现它就是一个文本文件，大概也就只有几十 kb，从磁盘大小来看，应该也知道它并不是一个直接的视频文件。即如果我们想要下载对应的视频文件，直接下载 m3u8，当然是达不到目的的。</p>
+<p><strong>m3u8 是一种视频的播放格式，它是将一个完整的视频切割成多个 ts 后缀的视频，然后当我们的进度条被移动或者按时间顺序移动的时候，就会下载对应的片段来加载。</strong></p>
+<p>触发的方法在iOS中如下，其中 loadingRequest 每一小块数据的请求，请求地址如m3u8格式中的ts文件链接地址。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*  连接视频播放和视频断点下载的桥梁</span></span><br><span class="line"><span class="comment"> *  必须返回Yes，如果返回NO，则resourceLoader将会加载出现故障的数据</span></span><br><span class="line"><span class="comment"> *  这里会出现很多个loadingRequest请求,需要为每一次请求作出处理</span></span><br><span class="line"><span class="comment"> *  该接口会被调用多次，请求不同片段的视频数据，应当保存这些请求，在请求的数据全部响应完毕才销毁该请求</span></span><br><span class="line"><span class="comment"> *  @param resourceLoader 资源管理器</span></span><br><span class="line"><span class="comment"> *  @param loadingRequest 每一小块数据的请求</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">- (BOOL)resourceLoader:(AVAssetResourceLoader*)resourceLoader shouldWaitForLoadingOfRequestedResource:(AVAssetResourceLoadingRequest*)loadingRequest&#123;</span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span>在这里面开始我们的网络下载请求，也就是得到AVAssetResourceLoadingRequest对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现代码摘自：<a href="https://github.com/yangKJ/KJPlayerDemo/blob/master/Sources/AVPlayer/AVDownloader/KJResourceLoaderManager.m" target="_blank" rel="noopener">KJPlayerDemo</a> 其说明文档见： <a href="https://www.jianshu.com/p/b767788e9d57" target="_blank" rel="noopener">iOS 音频视频播放器实现边下载边播放缓存视频</a></p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// 开始请求下载数据 </span></span><br><span class="line"><span class="built_in">NS_INLINE</span> <span class="keyword">void</span> kStartDownloading(KJDownloader * downloader, <span class="built_in">AVAssetResourceLoadingRequest</span> * request)&#123;</span><br><span class="line">    <span class="built_in">AVAssetResourceLoadingDataRequest</span> *dataRequest = request.dataRequest;  </span><br><span class="line">    <span class="built_in">NSInteger</span> length = dataRequest.requestedLength;</span><br><span class="line">  </span><br><span class="line">  	<span class="built_in">NSInteger</span> offset;</span><br><span class="line">    <span class="keyword">if</span> (dataRequest.currentOffset != <span class="number">0</span>) &#123;</span><br><span class="line">      offset = (<span class="built_in">NSInteger</span>)dataRequest.currentOffset;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      offset = (<span class="built_in">NSInteger</span>)dataRequest.requestedOffset;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (@available(iOS <span class="number">9.0</span>, *)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (dataRequest.requestsAllDataToEndOfResource) &#123;</span><br><span class="line">            [downloader kj_downloadTaskRange:<span class="built_in">NSMakeRange</span>(offset, length) whole:<span class="literal">YES</span>];</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    [downloader kj_downloadTaskRange:<span class="built_in">NSMakeRange</span>(offset, length) whole:<span class="literal">NO</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-1、m3u8文件示例"><a href="#2-1、m3u8文件示例" class="headerlink" title="2.1、m3u8文件示例"></a>2.1、m3u8文件示例</h4><p>m3u8文件示例1：ts片段是完整地址</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">#EXTM3U</span><br><span class="line">#EXT-X-TARGETDURATION:19</span><br><span class="line">#EXT-X-VERSION:2</span><br><span class="line">#EXTINF:10,</span><br><span class="line">http:<span class="comment">//122.225.31.106/6775ED76AE94E84581E2FA4D03/0300080B0053D05A49A22808DF700EC607AF80-D3EF-E08A-FB37-918809D8CF4C.mp4.ts?ts_start=0&amp;ts_end=10&amp;ts_seg_no=0</span></span><br><span class="line">#EXTINF:10,</span><br><span class="line">http:<span class="comment">//122.225.31.106/6775ED76AE94E84581E2FA4D03/0300080B0053D05A49A22808DF700EC607AF80-D3EF-E08A-FB37-918809D8CF4C.mp4.ts?ts_start=10&amp;ts_end=20&amp;ts_seg_no=1</span></span><br><span class="line">…………..</span><br><span class="line">#EXTINF:12,</span><br><span class="line">http:<span class="comment">//122.225.31.85/657DD4BEC15488401753C7200C/0300080B0A53D05A49A22808DF700EC607AF80-D3EF-E08A-FB37-918809D8CF4C.mp4.ts?ts_start=320&amp;ts_end=336&amp;ts_seg_no=396</span></span><br><span class="line">#EXT-X-ENDLIST</span><br></pre></td></tr></table></figure>
+<p>m3u8文件示例2：这里的片段，全部是基于域名的相对地址，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#EXTM3U</span><br><span class="line">#EXT-X-VERSION:2</span><br><span class="line">#EXT-X-MEDIA-SEQUENCE:102</span><br><span class="line">#EXT-X-TARGETDURATION:12</span><br><span class="line">#EXTINF:10,</span><br><span class="line">57b3f432.ts</span><br><span class="line">#EXTINF:12,</span><br><span class="line">57b3f43c.ts</span><br><span class="line">#EXTINF:9,</span><br><span class="line">57b3f446.ts</span><br></pre></td></tr></table></figure>
+<h4 id="2-2、m3u8文件字段说明"><a href="#2-2、m3u8文件字段说明" class="headerlink" title="2.2、m3u8文件字段说明"></a>2.2、m3u8文件字段说明</h4><p>#EXTINF:10表示的是这段TS的时长是10秒。</p>
+<p>57b3f432.ts这里表示的是每一个TS的文件名，有的M3U8这里直接是一个完成的http链接。</p>
+<p>其他参考文章：</p>
+<p><a href="https://www.jianshu.com/p/4f6db32fc76a" target="_blank" rel="noopener">iOS解析M3U8文件及TS文件下载与合并</a></p>
+<p><a href="https://blog.51cto.com/u_87851/11370101" target="_blank" rel="noopener">iOS 拼接m3u8文件 苹果m3u8怎么转换成mp4</a></p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.playerUrl = <span class="string">@"http://cctv2.vtime.cntv.wscdns.com:8000/live/no/204_/seg0/index.m3u8?begintime=1469509516000"</span>;</span><br></pre></td></tr></table></figure>
+<p>附：边下边播</p>
+<p>1、解码m3u8：拿到一个M3U8链接后可以解析出M3U8索引的具体内容，包括每一个TS的下载链接、时长等；</p>
+<p><strong>下载：</strong>拿到每一个TS文件的链接就可以逐个下载了，下载后存储为xxx.ts到手机里；<br><strong>打包：</strong>将下载的TS数据按照播放顺序打包，供客户端播放；<br><strong>播放：</strong>数据打包完成，就可以播放了。</p>
+<p><a href="https://a-sen.blog.csdn.net/article/details/78180822?spm=1001.2101.3001.6650.6&amp;utm_medium=distribute.wap_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6-78180822-blog-78212142.237%5Ev3%5Ewap_relevant_t0_download&amp;depth_1-utm_source=distribute.wap_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6-78180822-blog-78212142.237%5Ev3%5Ewap_relevant_t0_download" target="_blank" rel="noopener">Android——实现m3u8视频缓存</a></p>
+<p><a href="https://www.jianshu.com/p/b0db841ed6d3" target="_blank" rel="noopener">iOS流媒体开发之三：HLS直播（M3U8）回看和下载功能的实现</a></p>
+<p><a href="https://zhanglei.blog.csdn.net/article/details/124142453" target="_blank" rel="noopener">iOS 视频边下边播（缓存，预加载）</a></p>
+<p>点播：</p>
+<p>服务器将直播内容使用FFMPEG转码成MP4和3GP等点播源，生成播放连接返回给客户端播放就可以了。</p>
+<h3 id="2、播放器选择之路"><a href="#2、播放器选择之路" class="headerlink" title="2、播放器选择之路"></a>2、播放器选择之路</h3><p>音视频播放对于现在的互联网应用来说，已经是不可或缺的功能之一。作为一个 App 开发者，开发一个音视频播放功能，说难不难，说简单也不简单，我们常常会面临几个抉择：</p>
+<ol>
+<li>使用原生视频组件（如：MediaPlayer）</li>
+<li>使用原生硬解码/FFmpeg软解，定制视频播放组件</li>
+<li>使用完全开源的第三方组件（如：ijkplayer）</li>
+<li>使用商业第三方组件（如：腾讯云播放器，阿里云播放器）</li>
+</ol>
+<h4 id="2-1、腾讯云播放器"><a href="#2-1、腾讯云播放器" class="headerlink" title="2.1、腾讯云播放器"></a>2.1、腾讯云播放器</h4><ul>
+<li><p><a href="https://cloud.tencent.com/document/product/266/58778" target="_blank" rel="noopener">腾讯-超级播放器</a></p>
+<blockquote>
+<p>官方文档：<a href="https://cloud.tencent.com/document/product/266/58778" target="_blank" rel="noopener">腾讯-超级播放器</a></p>
+<p>项目地址：<a href="https://github.com/LiteAVSDK/Player_Flutter/tree/main/Flutter" target="_blank" rel="noopener">https://github.com/LiteAVSDK/Player_Flutter/tree/main/Flutter</a></p>
+<p>点播播放关心的几个问题：<a href="https://github.com/LiteAVSDK/Player_Flutter/blob/main/Flutter/docs/点播播放.md" target="_blank" rel="noopener">Super_Player 点播播放各功能使用的整体介绍</a></p>
+<p>1、视频本地缓存</p>
+<p>在短视频播放场景中，视频文件的本地缓存是很刚需的一个特性，对于普通用户而言，一个已经看过的视频再次观看时，不应该再消耗一次流量。</p>
+<p>2、视频预播放、无缝切换</p>
+<p>在短视频播放场景中，视频预播放功能对于流畅的观看体验很有帮助：在观看当前视频的同时，在后台加载即将要播放的下一个视频 ，这样一来，当用户真正切换到下一个视频时，已经不需要从头开始加载了，而是可以做到立刻播放。</p>
+</blockquote>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/96706072" target="_blank" rel="noopener">功能强大的Flutter 视频播放插件</a></p>
+</li>
+</ul>
+<p>flutter_tencentplayer_plus</p>
+<ul>
+<li><a href="https://www.modb.pro/db/415035" target="_blank" rel="noopener">Flutter 音视频开发新思路</a></li>
+</ul>
+<ul>
+<li><a href="https://cloud.tencent.com/developer/article/1908904?from=15425" target="_blank" rel="noopener">腾讯云点播 SDK 集成接入之踩坑&amp;填坑记</a></li>
+</ul>
+<h2 id="三、直播礼物播放"><a href="#三、直播礼物播放" class="headerlink" title="三、直播礼物播放"></a>三、直播礼物播放</h2><p><a href="http://www.svga.vip/page/41.html" target="_blank" rel="noopener">直播礼物类型详解</a></p>
+<p><a href="https://www.ui.cn/detail/610000.html" target="_blank" rel="noopener"><strong>VAP动效实现方案</strong></a></p>
+<h2 id="四、视频预加载"><a href="#四、视频预加载" class="headerlink" title="四、视频预加载"></a>四、视频预加载</h2><ul>
+<li><a href="https://johnsonlee.io/2021/02/10/short-video-preloading-1/" target="_blank" rel="noopener">短视频预加载技术（一）</a></li>
+</ul>
+<h2 id="五、视频帧"><a href="#五、视频帧" class="headerlink" title="五、视频帧"></a>五、视频帧</h2><p>业务流程图：<a href="../Architecture架构/功能流程/视频帧获取.graffle">视频帧获取.graffle</a></p>
+<ul>
+<li><p><a href="https://cloud.tencent.com/developer/ask/sof/390883" target="_blank" rel="noopener">Flutter使用视频播放器或ffmpeg获取视频帧</a></p>
+</li>
+<li><p><a href="http://t.zoukankan.com/wanghuaijun-p-5575255.html" target="_blank" rel="noopener">iOS视频录制、压缩导出、取帧</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/a_zhon/article/details/119546032" target="_blank" rel="noopener">Flutter视频编辑轨道</a></p>
+</li>
+<li><p><a href="https://github.com/Xie-Yin/video_crop_track" target="_blank" rel="noopener">一个Flutter视频裁剪编辑的轨道UI交互效果</a></p>
+<blockquote>
+<p>实现的功能</p>
+<ul>
+<li>视频轨道最大截取3分钟</li>
+<li>视频轨道最小截取3秒钟</li>
+<li>如果小于3分钟则充满整个轨道</li>
+<li>如果大于3分钟，则轨道上的展示的帧图片可以左右滑动来截取</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<h2 id="六、视频播放暗掉"><a href="#六、视频播放暗掉" class="headerlink" title="六、视频播放暗掉"></a>六、视频播放暗掉</h2><p>核心：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1.打开常亮</span></span><br><span class="line">[[<span class="built_in">UIApplication</span> sharedApplication] setIdleTimerDisabled:<span class="literal">YES</span>] ;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2.关闭长亮</span></span><br><span class="line">[[<span class="built_in">UIApplication</span> sharedApplication] setIdleTimerDisabled:<span class="literal">NO</span>] ;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p><a href="https://pub.dev/packages/wakelock_plus" target="_blank" rel="noopener">flutter wakelock_plus</a></p>
+<blockquote>
+<p><a href="https://github.com/fluttercommunity/wakelock_plus/blob/main/wakelock_plus/ios/Classes/UIApplication%2BidleTimerLock.m" target="_blank" rel="noopener">wakelock_plus 在 ios 上的实现原理代码</a></p>
+</blockquote>
+</li>
+</ul>
+<h2 id="视频解码"><a href="#视频解码" class="headerlink" title="视频解码"></a>视频解码</h2><ul>
+<li><a href="https://www.shuzhiduo.com/A/WpdK3wlMdV/" target="_blank" rel="noopener">videoToolbox：硬解码</a></li>
+</ul>
+<h2 id="音频降噪"><a href="#音频降噪" class="headerlink" title="音频降噪"></a>音频降噪</h2><ul>
+<li><a href="https://www.volcengine.com/docs/6489/72099" target="_blank" rel="noopener">火山引擎-音频降噪与增强能力集</a></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><strong>枚举值名称</strong></th>
+<th><strong>枚举值</strong></th>
+<th><strong>枚举类型描述</strong></th>
+<th>类</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V2TIM_ELEM_TYPE_NONE</td>
+<td>0</td>
+<td>没有元素</td>
+<td></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_TEXT</td>
+<td>1</td>
+<td>文本消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimTextElem.html" target="_blank" rel="noopener">V2TimTextElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_CUSTOM</td>
+<td>2</td>
+<td>自定义消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimCustomElem.html" target="_blank" rel="noopener">V2TimCustomElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_IMAGE</td>
+<td>3</td>
+<td>图片消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimImageElem.html" target="_blank" rel="noopener">V2TimImageElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_SOUND</td>
+<td>4</td>
+<td>语音消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimSoundElem.html" target="_blank" rel="noopener">V2TimSoundElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_VIDEO</td>
+<td>5</td>
+<td>视频消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimVideoElem.html" target="_blank" rel="noopener">V2TimVideoElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_FILE</td>
+<td>6</td>
+<td>文件消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimFileElem.html" target="_blank" rel="noopener">V2TimFileElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_LOCATION</td>
+<td>7</td>
+<td>地理位置消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimLocationElem.html" target="_blank" rel="noopener">V2TimLocationElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_FACE</td>
+<td>8</td>
+<td>表情消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimFaceElem.html" target="_blank" rel="noopener">V2TimFaceElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_GROUP_TIPS</td>
+<td>9</td>
+<td>群 Tips 消息（存消息列表）</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Group/V2TimGroupTipsElem.html" target="_blank" rel="noopener">V2TimGroupTipsElem</a></td>
+</tr>
+<tr>
+<td>V2TIM_ELEM_TYPE_MERGER</td>
+<td>10</td>
+<td>合并消息</td>
+<td><a href="https://comm.qq.com/im/doc/flutter/zh/SDKAPI/Class/Message/V2TimMergerElem.html" target="_blank" rel="noopener">V2TimMergerElem</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/音视频相关/视频优化/" data-id="cm1p884ra0096zwr4mglksdqh" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/基础规范/代码开发规范/项目代码编写规范" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/基础规范/代码开发规范/项目代码编写规范/" class="article-date">
+  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/基础规范/代码开发规范/项目代码编写规范/">项目代码编写规范</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="项目代码编写规范"><a href="#项目代码编写规范" class="headerlink" title="项目代码编写规范"></a>项目代码编写规范</h1><h2 id="一、Flutter代码开发规范"><a href="#一、Flutter代码开发规范" class="headerlink" title="一、Flutter代码开发规范"></a>一、Flutter代码开发规范</h2><p><a href="./项目目录结构规范/Flutter代码开发规范.md">Flutter代码开发规范</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/项目代码编写规范/" data-id="cm1p886w90124zwr4ydjbdief" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/基础规范/代码开发规范/代码编写技巧" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/基础规范/代码开发规范/代码编写技巧/" class="article-date">
+  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/基础规范/代码开发规范/代码编写技巧/">代码编写技巧</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="代码编写技巧"><a href="#代码编写技巧" class="headerlink" title="代码编写技巧"></a>代码编写技巧</h1><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.selectedBackgroundView = (&#123;</span><br><span class="line">  <span class="built_in">UIView</span> *view = [<span class="built_in">UIView</span> new];</span><br><span class="line">  view.backgroundColor = [<span class="built_in">UIColor</span> colorWithRed:<span class="number">244</span>/<span class="number">255.0</span> green:<span class="number">244</span>/<span class="number">255.0</span> blue:<span class="number">244</span>/<span class="number">255.0</span> alpha:<span class="number">1.0</span>]; <span class="comment">//#f4f4f4</span></span><br><span class="line">  view;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>枚举转 int  AvatarStatus</p>
+<p>协变和逆变 ?= 策略 </p>
+<p>在Dart1.x的版本种是<strong>既支持协变又支持逆变</strong>，但是在Dart2.x版本开始<strong>仅支持协变</strong>。所以后面我们就不再讨论Dart的逆变。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class PrintMsg&lt;T&gt; &#123;</span><br><span class="line"></span><br><span class="line">    T _msg;</span><br><span class="line"></span><br><span class="line">    set msg(T msg) &#123; this._msg = msg; &#125;</span><br><span class="line"></span><br><span class="line">    void printMsg() &#123; print(_msg); &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>T</code>是一个抽象类型,因此无法直接使用<code>T(a: &quot;hello&quot;)</code>来创建实例。我们需要稍微修改一下代码,以便在<code>test()</code>方法中正确创建<code>T</code>的实例。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  <span class="built_in">String</span>? a;</span><br><span class="line">  A(&#123;<span class="keyword">this</span>.a&#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A1</span> <span class="keyword">extends</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  A1(&#123;<span class="built_in">String</span>? a&#125;) : <span class="keyword">super</span>(a: a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A2</span> <span class="keyword">extends</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  A2(&#123;<span class="built_in">String</span>? a&#125;) : <span class="keyword">super</span>(a: a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span>&lt;<span class="title">T</span> <span class="keyword">extends</span> <span class="title">A</span>&gt; </span>&#123;</span><br><span class="line">  <span class="comment">// 生成泛型T的实例ben。即达到B&lt;A1&gt;().test(); 输出A1，而B&lt;A2&gt;().test(); 输出A2</span></span><br><span class="line">  T createInstance() &#123;</span><br><span class="line">    <span class="keyword">if</span> (T == A1) &#123;</span><br><span class="line">      <span class="keyword">return</span> A1(a: <span class="string">"hello"</span>) <span class="keyword">as</span> T;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (T == A2) &#123;</span><br><span class="line">      <span class="keyword">return</span> A2(a: <span class="string">"world"</span>) <span class="keyword">as</span> T;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> Exception(<span class="string">"Unsupported type"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> test() &#123;</span><br><span class="line">    T bean = createInstance();</span><br><span class="line">    <span class="built_in">print</span>(bean.runtimeType); <span class="comment">// 输出实例的运行时类型</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> main() &#123;</span><br><span class="line">  B&lt;A1&gt;().test(); <span class="comment">// 输出: A1</span></span><br><span class="line">  B&lt;A2&gt;().test(); <span class="comment">// 输出: A2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/代码编写技巧/" data-id="cm1p886wd0125zwr44ug638xn" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Architecture架构/基础规范/代码开发规范/Flutter代码开发规范" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Architecture架构/基础规范/代码开发规范/Flutter代码开发规范/" class="article-date">
@@ -126,7 +524,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/Flutter代码开发规范/" data-id="cm1p7o9bf010dxsr4iqe2hgdd" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/Flutter代码开发规范/" data-id="cm1p886wg0127zwr4e00simuj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -138,9 +536,9 @@
 
 
   
-    <article id="post-Architecture架构/基础规范/代码开发规范/代码编写技巧" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Architecture架构/基础规范/埋点相关/埋点属性定义" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Architecture架构/基础规范/代码开发规范/代码编写技巧/" class="article-date">
+    <a href="/Architecture架构/基础规范/埋点相关/埋点属性定义/" class="article-date">
   <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
 </a>
     
@@ -156,7 +554,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/基础规范/代码开发规范/代码编写技巧/">代码编写技巧</a>
+      <a class="article-title" href="/Architecture架构/基础规范/埋点相关/埋点属性定义/">埋点属性定义</a>
     </h1>
   
 
@@ -165,65 +563,14 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="代码编写技巧"><a href="#代码编写技巧" class="headerlink" title="代码编写技巧"></a>代码编写技巧</h1><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.selectedBackgroundView = (&#123;</span><br><span class="line">  <span class="built_in">UIView</span> *view = [<span class="built_in">UIView</span> new];</span><br><span class="line">  view.backgroundColor = [<span class="built_in">UIColor</span> colorWithRed:<span class="number">244</span>/<span class="number">255.0</span> green:<span class="number">244</span>/<span class="number">255.0</span> blue:<span class="number">244</span>/<span class="number">255.0</span> alpha:<span class="number">1.0</span>]; <span class="comment">//#f4f4f4</span></span><br><span class="line">  view;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-<p>枚举转 int  AvatarStatus</p>
-<p>协变和逆变 ?= 策略 </p>
-<p>在Dart1.x的版本种是<strong>既支持协变又支持逆变</strong>，但是在Dart2.x版本开始<strong>仅支持协变</strong>。所以后面我们就不再讨论Dart的逆变。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class PrintMsg&lt;T&gt; &#123;</span><br><span class="line"></span><br><span class="line">    T _msg;</span><br><span class="line"></span><br><span class="line">    set msg(T msg) &#123; this._msg = msg; &#125;</span><br><span class="line"></span><br><span class="line">    void printMsg() &#123; print(_msg); &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>T</code>是一个抽象类型,因此无法直接使用<code>T(a: &quot;hello&quot;)</code>来创建实例。我们需要稍微修改一下代码,以便在<code>test()</code>方法中正确创建<code>T</code>的实例。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  <span class="built_in">String</span>? a;</span><br><span class="line">  A(&#123;<span class="keyword">this</span>.a&#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A1</span> <span class="keyword">extends</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  A1(&#123;<span class="built_in">String</span>? a&#125;) : <span class="keyword">super</span>(a: a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A2</span> <span class="keyword">extends</span> <span class="title">A</span> </span>&#123;</span><br><span class="line">  A2(&#123;<span class="built_in">String</span>? a&#125;) : <span class="keyword">super</span>(a: a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span>&lt;<span class="title">T</span> <span class="keyword">extends</span> <span class="title">A</span>&gt; </span>&#123;</span><br><span class="line">  <span class="comment">// 生成泛型T的实例ben。即达到B&lt;A1&gt;().test(); 输出A1，而B&lt;A2&gt;().test(); 输出A2</span></span><br><span class="line">  T createInstance() &#123;</span><br><span class="line">    <span class="keyword">if</span> (T == A1) &#123;</span><br><span class="line">      <span class="keyword">return</span> A1(a: <span class="string">"hello"</span>) <span class="keyword">as</span> T;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (T == A2) &#123;</span><br><span class="line">      <span class="keyword">return</span> A2(a: <span class="string">"world"</span>) <span class="keyword">as</span> T;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> Exception(<span class="string">"Unsupported type"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> test() &#123;</span><br><span class="line">    T bean = createInstance();</span><br><span class="line">    <span class="built_in">print</span>(bean.runtimeType); <span class="comment">// 输出实例的运行时类型</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> main() &#123;</span><br><span class="line">  B&lt;A1&gt;().test(); <span class="comment">// 输出: A1</span></span><br><span class="line">  B&lt;A2&gt;().test(); <span class="comment">// 输出: A2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
+<h1 id="埋点属性定义"><a href="#埋点属性定义" class="headerlink" title="埋点属性定义"></a>埋点属性定义</h1><h2 id="常见埋点的属性定义"><a href="#常见埋点的属性定义" class="headerlink" title="常见埋点的属性定义"></a>常见埋点的属性定义</h2><h3 id="1、列表banner"><a href="#1、列表banner" class="headerlink" title="1、列表banner"></a>1、列表banner</h3><h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/代码编写技巧/" data-id="cm1p7o9bj010exsr4s6wbf8s4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点属性定义/" data-id="cm1p886yg012fzwr4wxxa3xxx" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/基础规范/代码开发规范/项目代码编写规范" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/基础规范/代码开发规范/项目代码编写规范/" class="article-date">
-  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/基础规范/代码开发规范/项目代码编写规范/">项目代码编写规范</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="项目代码编写规范"><a href="#项目代码编写规范" class="headerlink" title="项目代码编写规范"></a>项目代码编写规范</h1><h2 id="一、Flutter代码开发规范"><a href="#一、Flutter代码开发规范" class="headerlink" title="一、Flutter代码开发规范"></a>一、Flutter代码开发规范</h2><p><a href="./项目目录结构规范/Flutter代码开发规范.md">Flutter代码开发规范</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/代码开发规范/项目代码编写规范/" data-id="cm1p7o9bk010gxsr4mvvmlnmy" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/埋点/">埋点</a></li></ul>
 
     </footer>
   </div>
@@ -299,50 +646,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点方案-页面和视图的进入和离开/" data-id="cm1p7o9d4010ixsr41x9m43zc" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/埋点/">埋点</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/基础规范/埋点相关/埋点属性定义" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/基础规范/埋点相关/埋点属性定义/" class="article-date">
-  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/基础规范/埋点相关/埋点属性定义/">埋点属性定义</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="埋点属性定义"><a href="#埋点属性定义" class="headerlink" title="埋点属性定义"></a>埋点属性定义</h1><h2 id="常见埋点的属性定义"><a href="#常见埋点的属性定义" class="headerlink" title="常见埋点的属性定义"></a>常见埋点的属性定义</h2><h3 id="1、列表banner"><a href="#1、列表banner" class="headerlink" title="1、列表banner"></a>1、列表banner</h3><h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点属性定义/" data-id="cm1p7o9dn010lxsr4u3ug421m" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点方案-页面和视图的进入和离开/" data-id="cm1p886yw012izwr4t9fb6jpc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/埋点/">埋点</a></li></ul>
@@ -1325,7 +1629,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点规范_结构/" data-id="cm1p7o9fm010xxsr4lia2x285" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点规范_结构/" data-id="cm1p886ze012lzwr468vzxyb9" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1371,7 +1675,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/路由及跳转/路由相关/" data-id="cm1p7o9h30117xsr40nz3ubd9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/路由及跳转/路由相关/" data-id="cm1p886zj012uzwr4molvym05" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1463,263 +1767,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-③app安装包/" data-id="cm1p7o9j0012gxsr4yr9x41zr" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/4瘦身/瘦身-③app安装包/" data-id="cm1p886zz0145zwr4y31ptz8h" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/瘦身/">瘦身</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/架构相关/9架构实操/项目目录结构规范实践" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/架构相关/9架构实操/项目目录结构规范实践/" class="article-date">
-  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/架构相关/9架构实操/项目目录结构规范实践/">项目目录结构规范实践</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="项目目录结构规范实践"><a href="#项目目录结构规范实践" class="headerlink" title="项目目录结构规范实践"></a>项目目录结构规范实践</h1><h2 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h2><p>1、项目目录结构分类与创建</p>
-<p>2、</p>
-<h2 id="一、项目目录结构分类与创建"><a href="#一、项目目录结构分类与创建" class="headerlink" title="一、项目目录结构分类与创建"></a>一、项目目录结构分类与创建</h2><p>1、utils<br>2、models<br>3、commons</p>
-<h3 id="1、独立类-utils-models-common-的文件归类、迁移"><a href="#1、独立类-utils-models-common-的文件归类、迁移" class="headerlink" title="1、独立类(utils\models\common)的文件归类、迁移"></a>1、独立类(utils\models\common)的文件归类、迁移</h3><h4 id="1-1、库创建-0-5h"><a href="#1-1、库创建-0-5h" class="headerlink" title="1.1、库创建(0.5h)"></a>1.1、库创建(0.5h)</h4><h4 id="1-2、文件归类与迁移-4h"><a href="#1-2、文件归类与迁移-4h" class="headerlink" title="1.2、文件归类与迁移(4h)"></a>1.2、文件归类与迁移(4h)</h4><p>1、util</p>
-<p>2、models</p>
-<p>用户</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>类型</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>用户</td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>内容</td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="1-3、内部的依赖修复与优化"><a href="#1-3、内部的依赖修复与优化" class="headerlink" title="1.3、内部的依赖修复与优化"></a>1.3、内部的依赖修复与优化</h4><p>内部引用优化为使用相对路径或新的绝对路径。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'./a.dart'</span>;</span><br></pre></td></tr></table></figure>
-<h4 id="1-4、外部的使用优化"><a href="#1-4、外部的使用优化" class="headerlink" title="1.4、外部的使用优化"></a>1.4、外部的使用优化</h4><p>优化为</p>
-<p>Step1：内部 export 各种文件</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="string">'./src/a.dart'</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="string">'./src/b.dart'</span>;</span><br></pre></td></tr></table></figure>
-<p>Step2：外部 import  基础类库的总文件</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:app_utils/app_utils.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:app_models/app_models.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:app_common/app_common.dart'</span>;</span><br></pre></td></tr></table></figure>
-<h3 id="2、通用组件类-commons-文件归类、迁移"><a href="#2、通用组件类-commons-文件归类、迁移" class="headerlink" title="2、通用组件类(commons)文件归类、迁移"></a>2、通用组件类(commons)文件归类、迁移</h3><p>1、内含适配组件 adapt</p>
-<p>每个视图都需要依赖</p>
-<p>2、基础用户头像、商品视图</p>
-<p>依赖：基础的像素适配</p>
-<p>入参：关键性参数及自定义的点击回调</p>
-<p>附：升级版通用功能组件类common_ui（如用户头像、商品视图等），见下文。</p>
-<h3 id="3、基础路由-route"><a href="#3、基础路由-route" class="headerlink" title="3、基础路由(route)"></a>3、基础路由(route)</h3><h3 id="4、升级版通用功能组件类common-ui（如用户头像、商品视图等）"><a href="#4、升级版通用功能组件类common-ui（如用户头像、商品视图等）" class="headerlink" title="4、升级版通用功能组件类common_ui（如用户头像、商品视图等）"></a>4、升级版通用功能组件类common_ui（如用户头像、商品视图等）</h3><p>以用户头像举例：</p>
-<p>①需要支持传入baseUserModel的时候，显示头像信息</p>
-<p>②需要支持传入baseUserModel的时候，点击跳转到对应用户详情页</p>
-<p>所以需要依赖的有：</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>需求</th>
-<th>需要依赖</th>
-<th>其他</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>需要支持传入baseUserModel的时候，显示头像信息</td>
-<td>models</td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>需要支持传入baseUserModel的时候，点击跳转到对应用户详情页</td>
-<td>route</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>商品视图：</p>
-<p>基础类空安全升级</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/9架构实操/项目目录结构规范实践/" data-id="cm1p7o9j2012kxsr44p6i74f5" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/架构相关/9架构实操/依赖关系可视化" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/架构相关/9架构实操/依赖关系可视化/" class="article-date">
-  <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">2019-04-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/架构相关/9架构实操/依赖关系可视化/">依赖关系可视化</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="依赖关系可视化"><a href="#依赖关系可视化" class="headerlink" title="依赖关系可视化"></a>依赖关系可视化</h1><p>参考文档：</p>
-<ul>
-<li><a href="https://blog.51cto.com/u_16175485/6899744" target="_blank" rel="noopener">ios 如何查看 组件依赖关系图</a></li>
-</ul>
-<h2 id="一、cocoapods依赖关系可视化"><a href="#一、cocoapods依赖关系可视化" class="headerlink" title="一、cocoapods依赖关系可视化"></a>一、cocoapods依赖关系可视化</h2><p>cocoapods管理的三方库之间有时候存在依赖关系，Podfile.lock藏满了各个版本库的版本号信息和彼此的依赖关系。</p>
-<h3 id="1、网页可视化导出：cocoapods-graph"><a href="#1、网页可视化导出：cocoapods-graph" class="headerlink" title="1、网页可视化导出：cocoapods-graph"></a>1、网页可视化导出：<a href="https://github.com/erickjung/cocoapods-graph" target="_blank" rel="noopener">cocoapods-graph</a></h3><p>终端安装插件：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install cocoapods-graph</span><br></pre></td></tr></table></figure>
-<p>使用方式：</p>
-<p>进入到工程的根目录，执行:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~/Project/CQComponent/UIKit-Overlay-iOS/TSOverlayDemo</span><br><span class="line"></span><br><span class="line">cocoapods-graph -f Podfile.lock --html</span><br></pre></td></tr></table></figure>
-<p>生成 Podfile.lock.html 文件，</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/cocoapods-graph-01.png" alt="cocoapods-graph-01"></p>
-<p>其内容展示如下：</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/cocoapods-graph-02.png" alt="cocoapods-graph-02"></p>
-<h3 id="2、图片可视化导出：cocoapods-dependencies"><a href="#2、图片可视化导出：cocoapods-dependencies" class="headerlink" title="2、图片可视化导出：cocoapods-dependencies"></a>2、图片可视化导出：<a href="https://github.com/segiddins/cocoapods-dependencies" target="_blank" rel="noopener">cocoapods-dependencies</a></h3><p>终端安装插件:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gem install cocoapods-dependencies</span><br><span class="line">brew install graphviz</span><br></pre></td></tr></table></figure>
-<p>使用方式:</p>
-<p>进入到工程的根目录，执行:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod dependencies [PODSPEC] [--graphviz] [--image]</span><br></pre></td></tr></table></figure>
-<ul>
-<li><code>pod</code> 是 CocoaPods 的命令行工具。</li>
-<li><code>dependencies</code> 是 CocoaPods 中的一个命令，用于显示特定 pod 或项目中所有 pod 的依赖关系。</li>
-<li><code>[PODSPEC]</code> 是一个可选参数，用于指定特定 pod 的名称。如果你提供了 pod 的名称，它将显示该 pod 的依赖关系。如果你没有提供 pod 的名称，它将显示项目中所有 pod 的依赖关系。</li>
-<li><code>--graphviz</code> 是一个可选标志，它会生成一个 Graphviz DOT 文件(一般为<code>Podfile.gv</code>)，表示 pod 的依赖关系图。这个文件可以用于可视化依赖关系。</li>
-<li><code>--image</code> 是一个可选标志，它会从 Graphviz DOT 文件生成一个图像文件(一般为<code>Podfile.png</code> )。这样你就可以以图像格式查看依赖关系图。</li>
-</ul>
-<h4 id="示例1：不提供-PODSPEC-将显示项目中所有-pod-的依赖关系。"><a href="#示例1：不提供-PODSPEC-将显示项目中所有-pod-的依赖关系。" class="headerlink" title="示例1：不提供 [PODSPEC] 将显示项目中所有 pod 的依赖关系。"></a>示例1：不提供 [PODSPEC] 将显示项目中所有 pod 的依赖关系。</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd ~/Project/CQComponent/UIKit-Overlay-iOS/TSOverlayDemo</span><br><span class="line"></span><br><span class="line">pod install</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 不提供 [PODSPEC] 将显示项目中所有 pod 的依赖关系。</span></span><br><span class="line">pod dependencies --graphviz --image</span><br></pre></td></tr></table></figure>
-<p>生成 <code>Podfile.gv</code> 和<code>Podfile.png</code>文件如下：</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/cocoapods-dependencies-01-html.png" alt="cocoapods-dependencies-01-html"></p>
-<p>其中 <code>Podfile.gv</code> 可用 <code>OmniGraffle应用程序</code> 打开</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/gv_open_01.png" alt="gv的打开方式" style="zoom: 50%;"></p>
-<p>打开方式说明如下：</p>
-<table>
-<thead>
-<tr>
-<th>序号</th>
-<th>打开方式</th>
-<th>打开说明</th>
-<th>示例</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Hieracchical</td>
-<td>层次结构</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td>Force-Directed</td>
-<td>强制导向</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>Circular</td>
-<td>圆形的</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>4</td>
-<td>Radial</td>
-<td>径向的</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>其各自详细效果图，详见 <a href="./依赖关系可视化/依赖关系可视化-TSOverlayDemo.graffle">依赖关系可视化-TSOverlayDemo.graffle</a></p>
-<h4 id="示例2：提供-PODSPEC-将显示该-pod-的依赖关系"><a href="#示例2：提供-PODSPEC-将显示该-pod-的依赖关系" class="headerlink" title="示例2：提供 [PODSPEC] 将显示该 pod 的依赖关系"></a>示例2：提供 [PODSPEC] 将显示该 pod 的依赖关系</h4><p>命令：<code>pod dependencies AFNetworking --graphviz --image</code></p>
-<p>这个命令将显示 <code>AFNetworking</code> 这个 pod 的依赖关系，并生成一个 Graphviz DOT 文件和相应的图像文件，用于可视化查看 <code>AFNetworking</code> 的依赖关系。你可以在生成的图像文件中查看依赖关系图。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1、安装</span></span><br><span class="line">gem install reversepoddependency</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2、查找所安装库里的命令路径</span></span><br><span class="line">gem which reversepoddependency</span><br><span class="line"><span class="meta">#</span><span class="bash"> gem <span class="built_in">which</span>：这是一个用于定位 Ruby gem 安装路径的命令。当你执行 gem <span class="built_in">which</span> GEM_NAME 时，它会返回指定 gem 的安装路径。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">which</span>：这是一个用于查找可执行文件的命令。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 得到的结果如下：</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> /usr/<span class="built_in">local</span>/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/lib/reversepoddependency.rb</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 所以该包的 specbackwarddependency 应在如下目录：</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> /usr/<span class="built_in">local</span>/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 经查找 specbackwarddependency 的其实际地址为如下：</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> /usr/<span class="built_in">local</span>/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/exe/specbackwarddependency</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3、使用所安装库里的命令</span></span><br><span class="line">/usr/local/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/exe/specbackwarddependency ~/.cocoapods/repos/trunk AFNetworking</span><br></pre></td></tr></table></figure>
-<p>在运行 <code>gem install reversepoddependency</code> 命令后，安装的 <code>reversepoddependency</code> gem 应该会被存储在你使用的 Ruby 安装目录下的 Gems 文件夹中。</p>
-<p>问题：执行 <code>/usr/local/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/exe/specbackwarddependency ~/.cocoapods/repos/trunk AFNetworking</code> 时候出现如下错误：</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/specbackwarddependency_01.png" alt="specbackwarddependency_01"></p>
-<p>我们通过进入指定文件<code>/usr/local/lib/ruby/gems/3.2.0/gems/cocoapods-core-1.12.1/lib/cocoapods-core/source.rb</code> 查看其<code>210</code>行，并添加以下代码,即可过滤掉该库：</p>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> name == <span class="string">"TUICalling"</span> <span class="params">||</span> name == <span class="string">"TUIChat"</span> <span class="params">||</span> name == <span class="string">"VK-ios-sdk"</span> </span><br><span class="line">  name = <span class="string">"AFNetworking"</span></span><br><span class="line">  version = <span class="string">"3.2.1"</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/specbackwarddependency_02.png" alt="specbackwarddependency_02"></p>
-<p>不然你得通过以下命令找到该所在库，然后再一个个删掉，这种方式会造成后续使用问题。所以我们选择修改判断代码</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd ~/.cocoapods/repos/trunk/Specs</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 查找指定库</span></span><br><span class="line">find ~/.cocoapods/repos/trunk/Specs -name 'TUICalling'</span><br></pre></td></tr></table></figure>
-<p>添加代码后，重新执行</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/lib/ruby/gems/3.2.0/gems/reversepoddependency-0.1.0/exe/specbackwarddependency ~/.cocoapods/repos/trunk AFNetworking</span><br></pre></td></tr></table></figure>
-<p>得到的结果如下：</p>
-<p><img src="/Architecture架构/架构相关/9架构实操/依赖关系可视化/specbackwarddependency_03.png" alt="specbackwarddependency_03"></p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/架构相关/9架构实操/依赖关系可视化/" data-id="cm1p7o9j7012uxsr4iw31tt5j" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
 
     </footer>
   </div>

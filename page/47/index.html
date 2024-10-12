@@ -72,6 +72,361 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-Architecture架构/框架相关/网络相关/文件分片上传与分片下载" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/网络相关/文件分片上传与分片下载/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/框架相关/网络相关/文件分片上传与分片下载/">文件分片上传与分片下载</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><a href="https://wsa.jianshu.io/p/c0a78d8ed231" target="_blank" rel="noopener">iOS m3u8本地缓存播放(控制下载并发、暂停恢复)</a></p>
+<h3 id="传统上传-VS-分片上传"><a href="#传统上传-VS-分片上传" class="headerlink" title="传统上传 VS 分片上传"></a>传统上传 VS 分片上传</h3><table>
+<thead>
+<tr>
+<th>传统上传方法的问题</th>
+<th>分片上传的优点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大文件上传耗时长，容易导致超时。</td>
+<td>将大文件拆分成较小的分片，更快更可靠地上传。</td>
+</tr>
+<tr>
+<td>占用服务器和网络带宽资源，可能影响其他用户的访问速度。</td>
+<td>监控并显示上传进度，提高用户体验。</td>
+</tr>
+<tr>
+<td>如果上传中断，需要重新上传整个文件，效率低下。</td>
+<td>充分利用浏览器的并发上传能力，减轻服务器负载。</td>
+</tr>
+<tr>
+<td>难以显示和控制上传进度。</td>
+<td>实现断点续传功能，避免重新上传已上传的分片。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="传统文件下载-VS-文件分片下载"><a href="#传统文件下载-VS-文件分片下载" class="headerlink" title="传统文件下载 VS 文件分片下载"></a>传统文件下载 VS 文件分片下载</h3><p>文件分片下载是一种通过将大文件拆分成较小的片段（分片）并同时下载它们来提高文件下载效率的技术。</p>
+<table>
+<thead>
+<tr>
+<th>问题/技术</th>
+<th>传统文件下载</th>
+<th>文件分片下载</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>长时间等待</td>
+<td>用户可能需要等待很长时间才能开始使用大文件</td>
+<td>只需下载第一个分片，客户端就可以开始使用文件</td>
+</tr>
+<tr>
+<td>网络拥堵</td>
+<td>如果网络带宽被大文件下载占用，其他用户可能会遇到下载速度慢的问题</td>
+<td>可以使用多个并行请求来下载分片，充分利用带宽并提高整体下载速度</td>
+</tr>
+<tr>
+<td>难以恢复下载</td>
+<td>如果网络故障或用户中断，整个文件必须重新下载</td>
+<td>如果下载被中断，只需重新下载未完成的分片，而不是整个文件</td>
+</tr>
+<tr>
+<td>下载效率</td>
+<td>下载速度较慢，特别是在网络不稳定或速度较慢的情况下</td>
+<td>通过将大文件拆分成较小的片段并同时下载，提高文件下载效率</td>
+</tr>
+<tr>
+<td>并行下载</td>
+<td>不支持</td>
+<td>支持，可以使用多个并行请求来下载分片</td>
+</tr>
+<tr>
+<td>下载管理</td>
+<td>整个文件作为一个整体进行下载</td>
+<td>每个分片可以单独管理和下载，提供更好的灵活性</td>
+</tr>
+</tbody>
+</table>
+<h2 id="一、分片上传的实现方法"><a href="#一、分片上传的实现方法" class="headerlink" title="一、分片上传的实现方法"></a>一、分片上传的实现方法</h2><p>1、获取文件所有切片：按指定的每个切片大小切(中断后的重新上传时，要过滤掉已上传完成的切片)。切片方法 <code>[fileHandle readDataOfLength:chunkSize];</code></p>
+<p>2、上传分片：提交时除了文件data，同时传入、总片数、当前是第几片</p>
+<p>3、上传所有分片后，有时候这里会额外调用服务器API告诉后台已完成全部上传。实际上后台自己也可以根据上传个数是否等于总数判断。服务端得到所有的数据片后合并数据。</p>
+<p>其他注意点：</p>
+<p>如果要上传的文件是录制的视频或者从系统相册中选择的视频，则该视频文件的路径必须是app的相对路径。缺点视频可被从相册中删除。</p>
+<h3 id="1-定义分片上传的辅助类"><a href="#1-定义分片上传的辅助类" class="headerlink" title="1. 定义分片上传的辅助类"></a>1. 定义分片上传的辅助类</h3><p>首先，定义一个辅助类来管理分片上传的状态和数据。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FileChunk.m 文件切片的数据模型</span></span><br><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">FileChunk</span> : <span class="title">NSObject</span></span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) ChunkFileModel *fileModel;	<span class="comment">// 切片来源于哪个文件(包含文件路径、文件大小，每个分片大小，分片总数)</span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">assign</span>) <span class="built_in">NSUInteger</span> index; 	<span class="comment">// 数据块的位置(为了中断后的重新上传时候，过滤掉已上传完成的切片)</span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">assign</span>) <span class="built_in">NSUInteger</span> offset;	<span class="comment">// 数据块的起始位置(可能不同大小的文件，切片大小不一样，data的offset就不一样)</span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSData</span> *data; 			<span class="comment">// 数据块内容</span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSURLResponse</span> *response; <span class="comment">// 上传响应（会包含每片的上传状态）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取文件单个切片：按指定的每个切片大小切</span></span><br><span class="line">- (FileChunk *)initWithFileHandle(<span class="built_in">NSFileHandle</span> *)fileHandle chunkSize:(<span class="built_in">NSUInteger</span>)chunkSize chunkIndex:(<span class="built_in">NSUInteger</span>)chunkIndex &#123;</span><br><span class="line">  <span class="keyword">self</span> = [<span class="keyword">super</span> init];</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">self</span>) &#123;</span><br><span class="line">    chunk.data = [fileHandle readDataOfLength:chunkSize];<span class="comment">// 执行后文件句柄的内部偏移量会根据读取的数据长度自动向前移动</span></span><br><span class="line">    chunk.offset = [fileHandle offsetInFile];						<span class="comment">// 返回当前文件的偏移量，即文件句柄的当前位置</span></span><br><span class="line">    chunk.index = chunkIndex;</span><br><span class="line">  &#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">self</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 要上传的切片的要设置给 HTTPHeaderField:@"Content-Range"</span></span><br><span class="line">- (<span class="built_in">NSString</span> *)uploadContentRangeString &#123;</span><br><span class="line">  <span class="keyword">return</span> [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"bytes %@-%@/total-size"</span>, @(chunk.offset), @(chunk.offset + chunk.data.length)];</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// FileChunkHelper.m</span></span><br><span class="line">+ (<span class="keyword">void</span>)addFinishSaveChunk:(FileChunk *)chunk forFilePath:(<span class="built_in">NSString</span> *)filePath &#123;</span><br><span class="line">  <span class="comment">// 以key: chunk.belongfileMD5 保存已上传完成的切片索引 [0, 1, 2, chunk.index, ...]</span></span><br><span class="line">&#125;</span><br><span class="line">+ (<span class="keyword">void</span>)getFinishSaveChunkForFilePath:(<span class="built_in">NSString</span> *)filePath &#123;</span><br><span class="line">  <span class="comment">// 以key: chunk.belongfileMD5 获取已上传完成的切片索引 [0, 1, 2, chunk.index, ...]</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取文件所有切片：按指定的每个切片大小切(中断后的重新上传时，要过滤掉已上传完成的切片)</span></span><br><span class="line">+ (<span class="built_in">NSArray</span> *)chunksFromFilePath:(<span class="built_in">NSString</span> *)filePath</span><br><span class="line">  										chunkSize:(<span class="built_in">NSUInteger</span>)chunkSize </span><br><span class="line">             withoutChunkIndexs:(<span class="built_in">NSArray</span>&lt;<span class="built_in">NSUInteger</span>&gt;)chunkIndexs</span><br><span class="line">&#123;</span><br><span class="line">  	<span class="built_in">NSMutableArray</span>&lt;FileChunk *&gt; *chunks = [<span class="built_in">NSMutableArray</span> array];</span><br><span class="line">  </span><br><span class="line">    <span class="built_in">NSFileHandle</span> *fileHandle = [<span class="built_in">NSFileHandle</span> fileHandleForReadingAtPath:filePath];</span><br><span class="line">    [fileHandle seekFileOffset:<span class="number">0</span>];	<span class="comment">// 先定位到文件头部</span></span><br><span class="line">    <span class="keyword">int</span> chunkIndex = <span class="number">0</span>;</span><br><span class="line">	  FileChunk *chunk = [[FileChunk alloc] initWithFileHandle:fileHandle chunkSize:chunkSize chunkIndex:chunkIndex];</span><br><span class="line">    <span class="keyword">while</span> (chunk.data) &#123;</span><br><span class="line">      	chunkIndex++;</span><br><span class="line">      	<span class="keyword">if</span> ([chunkIndexs contains chunk.index]) &#123; <span class="comment">// 为了中断后的重新上传时候，过滤掉已上传完成的切片</span></span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        [chunks addObject:chunk];</span><br><span class="line">    &#125;</span><br><span class="line">    [fileHandle closeFile];</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">return</span> chunks;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 单个分片的上传方法</span></span><br><span class="line">+ (<span class="keyword">void</span>)uploadChunk:(FileChunk *)chunk</span><br><span class="line">           uploadId:(<span class="built_in">NSString</span> *)uploadId</span><br><span class="line">  completionHandler:(<span class="keyword">void</span> (^)(<span class="built_in">BOOL</span> success, <span class="built_in">NSError</span> *error))completionHandler</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSMutableURLRequest</span> *request = [<span class="built_in">NSMutableURLRequest</span> requestWithURL:[<span class="built_in">NSURL</span> URLWithString:<span class="string">@"your-upload-chunk-api-endpoint"</span>]];</span><br><span class="line">    request.HTTPMethod = <span class="string">@"PUT"</span>;</span><br><span class="line">    request.HTTPBody = chunk.data;</span><br><span class="line">    [request setValue:chunk.uploadContentRangeString forHTTPHeaderField:<span class="string">@"Content-Range"</span>];</span><br><span class="line"></span><br><span class="line">    <span class="built_in">NSURLResponse</span> *response = <span class="literal">nil</span>;</span><br><span class="line">    <span class="built_in">NSError</span> *error = <span class="literal">nil</span>;</span><br><span class="line">    [<span class="built_in">NSURLConnection</span> sendSynchronousRequest:request returningResponse:&amp;response error:&amp;error];</span><br><span class="line">    <span class="keyword">if</span> (error) &#123;</span><br><span class="line">      completionHandler(<span class="literal">NO</span>, error);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    chunk.response = response;	<span class="comment">// 如果上传成功，更新状态</span></span><br><span class="line">    [<span class="keyword">self</span> addFinishSaveChunk:chunk forFilePath:chunk.filePath];</span><br><span class="line">    completionHandler(<span class="literal">YES</span>, <span class="literal">nil</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (<span class="keyword">void</span>)uploadChunks:(<span class="built_in">NSArray</span>&lt;FileChunk *&gt; *)chunks</span><br><span class="line">      	withUploadId:(<span class="built_in">NSString</span> *)uploadId</span><br><span class="line">   completionHandler:(<span class="keyword">void</span> (^)())completionHandler</span><br><span class="line">&#123;</span><br><span class="line">    dispatch_group_t group = dispatch_group_create();</span><br><span class="line">    <span class="built_in">NSMutableArray</span> *uploadTasks = [<span class="built_in">NSMutableArray</span> array];</span><br><span class="line">    <span class="keyword">for</span> (FileChunk *chunk <span class="keyword">in</span> chunks) &#123;</span><br><span class="line">      dispatch_group_enter(group);</span><br><span class="line">      [FileChunkHelper uploadChunk:chunk uploadId:uploadId completionHandler:^(<span class="built_in">BOOL</span> success,<span class="built_in">NSError</span> *error) &#123;</span><br><span class="line">        completionHandler(success, error);</span><br><span class="line">        dispatch_group_leave(group);</span><br><span class="line">      &#125;];</span><br><span class="line"></span><br><span class="line">      [uploadTasks addObject:@&#123;<span class="string">@"task"</span>: <span class="string">@"uploadChunk"</span>, <span class="string">@"chunk"</span>: chunk&#125;];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        completionHandler();</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-分片上传"><a href="#2-分片上传" class="headerlink" title="2. 分片上传"></a>2. 分片上传</h3><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 请求文件是否上传过。（未上传过：返回用于上传的upload；正在上传中：返回upload；已上传过：返回url)</span></span><br><span class="line">- (<span class="keyword">void</span>)requestUploadInfoForFilePath:(<span class="built_in">NSString</span> *)filePath</span><br><span class="line">&#123;</span><br><span class="line">  <span class="built_in">NSDictionary</span> *parameters = @&#123;</span><br><span class="line">      <span class="string">@"file_name"</span>: <span class="string">@"filename.txt"</span>, <span class="comment">// 替换为实际文件名</span></span><br><span class="line">      <span class="string">@"file_size"</span>: @([FileChunkHelper getFileSize:filePath]), <span class="comment">// 调用方法获取文件大小</span></span><br><span class="line">      <span class="string">@"part_size"</span>: @(partSize)</span><br><span class="line">  &#125;;</span><br><span class="line">  <span class="keyword">if</span> (resultModel.uploadFinish) &#123;</span><br><span class="line">    <span class="built_in">NSString</span> *url = resultModel.url;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">	<span class="built_in">NSString</span> *uploadId = resultModel.uploadId;</span><br><span class="line">  <span class="comment">//NSArray&lt;NSInteger&gt; finishChunkIndexs = resultModel.finishChunkIndexs; // 个人感觉不需要后台返回未完成的</span></span><br><span class="line">	<span class="comment">// 1、获取文件所有切片：按指定的每个切片大小切(中断后的重新上传时，要过滤掉已上传完成的切片)</span></span><br><span class="line">  <span class="built_in">NSUInteger</span> chunkSize = <span class="number">1024</span> * <span class="number">1024</span>; <span class="comment">// 1M</span></span><br><span class="line">  <span class="built_in">NSArray</span>&lt;<span class="built_in">NSUInteger</span>&gt; chunkIndexs = [FileChunkHelper getFinishSaveChunkForFilePath:filePath];</span><br><span class="line">	<span class="built_in">NSArray</span>&lt;FileChunk *&gt; *chunks = [FileChunkHelper chunksFromFilePath:filePath chunkSize:chunkSize withoutChunkIndexs:chunkIndexs];</span><br><span class="line">  <span class="comment">// 2、上传分片：提交时除了文件data，同时传入、总片数、当前是第几片</span></span><br><span class="line">  [FileChunksUpload uploadChunks:chunks withUploadId:uploadId completionHandler:^(<span class="keyword">void</span>)&#123;</span><br><span class="line">    <span class="comment">// 3、上传所有分片后，有时候这里会额外调用服务器API告诉后台已完成全部上传。实际上后台自己也可以根据上传个数是否等于总数判断</span></span><br><span class="line">  &#125;];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="iOS-文件分段下载"><a href="#iOS-文件分段下载" class="headerlink" title="iOS 文件分段下载"></a>iOS 文件分段下载</h2><p><a href="https://blog.csdn.net/oumygade/article/details/42441185" target="_blank" rel="noopener">iOS 文件分段下载</a></p>
+<p><a href="https://juejin.cn/post/6916707043441115143" target="_blank" rel="noopener">iOS文件下载,断点续传,后台下载.</a></p>
+<blockquote>
+<p> NSURLSessionDataTask 方式断点续传之下载</p>
+<p> 原理：<br> 每次向服务器下载数据的时候,告诉服务器从整个文件数据流的某个还未下载的位置开始下载,然后服务器就返回从那个位置开始的数据流.通过设置请求头Range可以指定每次从服务器下载数据包的大小.</p>
+<p> Range示例<br> bytes = 0-499    从0到499的头500个字节<br> bytes = 500-999  从500到999第二个500个字节<br> bytes = 1000-    从1000字节以后所有的字节<br> bytes = -500     最后500个字节<br> bytes = 0-499,500-999 同时指定几个范围</p>
+ <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt;  <span class="comment">/// 下次请求的时候，设置请求头，每次从本地取数据把保存好的下载长度放进请求头Range中</span></span><br><span class="line">&gt;  <span class="built_in">NSString</span> *range = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"bytes=%lld-"</span>, <span class="keyword">self</span>.currentLength]; </span><br><span class="line">&gt;  [request setValue:range forHTTPHeaderField:<span class="string">@"Range"</span>];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p> 数据</p>
+ <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&gt;  <span class="comment">/// 初始化：通过NSOutputStream流向文件写出数据 ,append是否向尾部追加下载的数据</span></span><br><span class="line">&gt;  <span class="keyword">self</span>.stream = [[<span class="built_in">NSOutputStream</span> alloc] initToFileAtPath:filePath append:<span class="literal">YES</span>];</span><br><span class="line">&gt;  </span><br><span class="line">&gt;  <span class="comment">// 获取到服务器信息后,打开流，block回调允许接收下载数据</span></span><br><span class="line">&gt;  [<span class="keyword">self</span>.stream open];</span><br><span class="line">&gt;  completionHandler(<span class="built_in">NSURLSessionResponseAllow</span>);</span><br><span class="line">&gt;  </span><br><span class="line">&gt;  <span class="comment">// 下载数据的回调：写入数据</span></span><br><span class="line">&gt;  [<span class="keyword">self</span>.stream write:[data bytes] maxLength:data.length];</span><br><span class="line">&gt;  </span><br><span class="line">&gt;  <span class="comment">// 下载成功和失败都会来</span></span><br><span class="line">&gt;  [<span class="keyword">self</span>.stream close];</span><br><span class="line">&gt;  <span class="keyword">self</span>.stream = <span class="literal">nil</span>;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>大文件视频上传：断点续传</p>
+<ul>
+<li><p><a href="https://blog.csdn.net/Calvin_zhou/article/details/123518293" target="_blank" rel="noopener">NSURLSession断点续传(07)</a></p>
+</li>
+<li><p><a href="https://www.tencentcloud.com/zh/document/product/436/37683" target="_blank" rel="noopener">腾讯云 Cos 断点续传 上传对象</a></p>
+</li>
+<li><p><a href="https://help.aliyun.com/zh/oss/developer-reference/resumable-upload-3" target="_blank" rel="noopener">阿里云 OSS 断点续传上传</a></p>
+</li>
+</ul>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/文件分片上传与分片下载/" data-id="cm1p8870s015bzwr40gz9j3vg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/框架相关/网络相关/网络框架" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/网络相关/网络框架/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/框架相关/网络相关/网络框架/">网络框架</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<p>思维脑图：请点击查看 <a href="./网络框架.xmind">网络框架.xmind</a></p>
+<blockquote>
+<p>二、网络重试</p>
+<p>三、网络缓存优化</p>
+<p>四、网络耗时</p>
+<p>五、网络使用过程中的优化</p>
+</blockquote>
+<h2 id="一、网络权限与初始化"><a href="#一、网络权限与初始化" class="headerlink" title="一、网络权限与初始化"></a>一、网络权限与初始化</h2><p>系统网络权限弹窗机制：有代码执行到网络相关事项时候才会系统自动弹出。常见的场景：1监听网络状态变化；2进行任一网络请求。</p>
+<p>验证代码：详见 <a href="https://github.com/dvlproad/CJNetwork/tree/master/CJNetworkDemo" target="_blank" rel="noopener">CJNetworkDemo</a></p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络框架/network_system_window_permission1.png" alt="network_system_window_permission1" style="zoom:33%;"></p>
+<p>图片来源于 《<a href="../../页面加载相关/页面加载体验优化/app启动与页面加载.graffle">app启动与页面加载.graffle</a>》 中的 【app启动(含网络与用户协议）(详细)】</p>
+</blockquote>
+<p>问：如何确保网络初始化过程的安卓安全合规问题？</p>
+<p>答：核心是将除网络库外的三方库统一放到同意用户协议后，避免其他三方库也可能调用获取敏感信息。至于网络库是否也放到同意协议后可用有两种方式。</p>
+<p>处理方式一：同意协议前就可以初始化网络库，但是使用中涉及的敏感信息在未同意前使用自定义的特殊值(其他三方库先不初始化)，且同意协议前仅网络库可初始化，其他三方库统一还是放到同意协议后，避免其他三方库也可能调用获取敏感信息。</p>
+<p>优点：可以避免监听蜂窝的方式没弹出网络授权弹窗，导致网络请求始终调不通。（因为网络授权弹窗只有要么发起网络请求、要么监听网络请求的时候才可能弹出。但触发请求的次数明显比监听次数多）</p>
+<p>缺点：代码里容易遗忘敏感信息的获取如安卓deviceId要先判断是否同意了用户协议，这是经常安卓审核合规不通过的常见原因。</p>
+<p>使用注意：使用中一旦涉及敏感信息，一定要先判断是不是同意了用户协议，如果没同意则不要去获取。如安卓deviceId未同意用户协议前使用deviceId_not_agree_user_privacy</p>
+<p>处理方式二：同意协议后才初始化三方库(含网络库)</p>
+<p>优点：可以避免一些如deviceId的提前获取导致不符合安卓合规。</p>
+<p>以下功能一般会牵涉到附中提到的 <a href="#网络拦截器">网络拦截器</a></p>
+<h2 id="二、网络重试"><a href="#二、网络重试" class="headerlink" title="二、网络重试"></a>二、网络重试</h2><blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络框架/network_1retry_flow1.png" alt="network_1retry_flow1" style="zoom: 50%;"></p>
+<p>图片来源于 《<a href="./网络框架的一生.graffle">网络框架的一生.graffle</a>》 中的 【网络重试】</p>
+</blockquote>
+<h2 id="三、网络接口缓存流程"><a href="#三、网络接口缓存流程" class="headerlink" title="三、网络接口缓存流程"></a>三、网络接口缓存流程</h2><p>API缓存过程涉及附文中提到的 <a href="#promise的resolve与next的流程">promise的resolve与next的流程</a></p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络框架/network_cache_flow1.png" alt="network_cache_flow1" style="zoom: 67%;"></p>
+<p>图片来源于 《<a href="./网络框架的一生.graffle">网络框架的一生.graffle</a>》 中的 【网络缓存优化】</p>
+</blockquote>
+<h3 id="1、API缓存-可考虑加：Last-Modified-ETag"><a href="#1、API缓存-可考虑加：Last-Modified-ETag" class="headerlink" title="1、API缓存+可考虑加：Last-Modified/ETag"></a>1、API缓存+可考虑加：Last-Modified/ETag</h3><blockquote>
+<p>其他参考文档：<a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener"> ETag 、 Last-Modified 的介绍</a></p>
+</blockquote>
+<p>使用 Last-Modified、ETag 其实就是在原本（见《<a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter" target="_blank" rel="noopener">001-UIKit-CQDemo-Flutter</a>》 中的 【<a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/blob/master/flutter_network_kit/lib/src/base/network_client.dart" target="_blank" rel="noopener">flutter_network_kit 库里判断<code>responseModel.isSameToBefore</code>部分</a>】）缓存的基础上省去了这个判断。如果返回304，那就是代表没有新数据，使用beforeResponseModel。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (beforeResponseModel != <span class="keyword">null</span>) &#123;</span><br><span class="line">     <span class="keyword">if</span> (responseModel.isEqualToResponse(beforeResponseModel)) &#123;</span><br><span class="line">       responseModel.isSameToBefore = <span class="keyword">true</span>;</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p><code>request.cachePolicy = NSURLRequestUseProtocolCachePolicy;</code> 这行代码设置了请求的缓存策略，告诉<code>NSURLSession</code>根据HTTP协议的缓存相关头部（如<code>Cache-Control</code>、<code>ETag</code>、<code>Last-Modified</code>等）来决定是否使用缓存。</p>
+<p>“If-Modified-Since”：服务器返回的 “Last-Modified”</p>
+<p>“If-None-Match”：服务器返回的 “ETag”</p>
+<h4 id="1-1、在iOS上使用Last-Modified和ETag实现缓存"><a href="#1-1、在iOS上使用Last-Modified和ETag实现缓存" class="headerlink" title="1.1、在iOS上使用Last-Modified和ETag实现缓存"></a>1.1、在iOS上使用Last-Modified和ETag实现缓存</h4><p>后端返回：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">app.get(<span class="string">'/your-endpoint'</span>, <span class="function"><span class="keyword">function</span>(<span class="params">req, res</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> lastModified = xxx;</span><br><span class="line">  	<span class="keyword">const</span> etag = <span class="string">'unique-etag-value'</span>;</span><br><span class="line">    res.set(<span class="string">'Last-Modified'</span>, lastModified.toUTCString());</span><br><span class="line">    res.set(<span class="string">'ETag'</span>, etag);</span><br><span class="line">    res.send(<span class="string">'Your resource content'</span>);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>前端使用并回传：</p>
+<h5 id="1-1-1、自定义缓存逻辑-NSCache，写出使用Last-Modified和ETag来实现缓存的代码。"><a href="#1-1-1、自定义缓存逻辑-NSCache，写出使用Last-Modified和ETag来实现缓存的代码。" class="headerlink" title="1.1.1、自定义缓存逻辑 NSCache，写出使用Last-Modified和ETag来实现缓存的代码。"></a>1.1.1、自定义缓存逻辑 <a href="../../iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache.md">NSCache</a>，写出使用Last-Modified和ETag来实现缓存的代码。</h5><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSURL</span> *url = [<span class="built_in">NSURL</span> URLWithString:<span class="string">@"http://example.com/resource"</span>];</span><br><span class="line"><span class="built_in">NSMutableURLRequest</span> *request = [<span class="built_in">NSMutableURLRequest</span> requestWithURL:url cachePolicy:<span class="built_in">NSURLRequestUseProtocolCachePolicy</span> timeoutInterval:<span class="number">60</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 检查并设置If-Modified-Since和If-None-Match头部</span></span><br><span class="line"><span class="built_in">NSString</span> *cachedLastModified = <span class="comment">// 从本地获取Last-Modified值</span></span><br><span class="line"><span class="built_in">NSString</span> *cachedETag = <span class="comment">// 从本地获取ETag值</span></span><br><span class="line"><span class="keyword">if</span> (cachedLastModified) &#123;</span><br><span class="line">    [request setValue:cachedLastModified forHTTPHeaderField:<span class="string">@"If-Modified-Since"</span>];</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (cachedETag) &#123;</span><br><span class="line">    [request setValue:cachedETag forHTTPHeaderField:<span class="string">@"If-None-Match"</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">NSString</span> *storageKey = <span class="string">"LastModified_url和已去除timestamp等无关参数的参数 组成的key"</span></span><br><span class="line"><span class="built_in">NSURLSession</span> *session = [<span class="built_in">NSURLSession</span> sharedSession];</span><br><span class="line"><span class="built_in">NSURLSessionDataTask</span> *dataTask = [session dataTaskWithRequest:request completionHandler:^(<span class="built_in">NSData</span> *data, <span class="built_in">NSURLResponse</span> *response, <span class="built_in">NSError</span> *error) &#123;</span><br><span class="line">    <span class="built_in">NSHTTPURLResponse</span> *httpResponse = (<span class="built_in">NSHTTPURLResponse</span> *)response;</span><br><span class="line">    <span class="built_in">NSString</span> *newLastModified = httpResponse.allHeaderFields[<span class="string">@"Last-Modified"</span>];</span><br><span class="line">    <span class="built_in">NSString</span> *newETag = httpResponse.allHeaderFields[<span class="string">@"ETag"</span>];</span><br><span class="line">    <span class="keyword">if</span> (httpResponse.statusCode == <span class="number">200</span>) &#123;</span><br><span class="line">     	<span class="comment">// 资源有更新，保存新数据和新的Last-Modified、ETag</span></span><br><span class="line">      [<span class="keyword">self</span> saveData:data LastModified:newLastModified ETag:newETag forKey:storageKey]</span><br><span class="line">      callback(data, isCacheData:<span class="literal">false</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (httpResponse.statusCode == <span class="number">304</span>) &#123;</span><br><span class="line">      <span class="comment">// 资源未更新，使用本地缓存数据(从本地再次加载缓存数据)</span></span><br><span class="line">      cacheData = [<span class="keyword">self</span> loadCachedDataForKey:storageKey];</span><br><span class="line">      callback(data, isCacheData:<span class="literal">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 处理数据...</span></span><br><span class="line">&#125;];</span><br><span class="line"></span><br><span class="line">[dataTask resume];</span><br></pre></td></tr></table></figure>
+<h5 id="1-1-2、在不自定义缓存逻辑，且完全依赖-NSURLCache-来管理缓存的情况，写出使用Last-Modified和ETag来实现缓存的代码。"><a href="#1-1-2、在不自定义缓存逻辑，且完全依赖-NSURLCache-来管理缓存的情况，写出使用Last-Modified和ETag来实现缓存的代码。" class="headerlink" title="1.1.2、在不自定义缓存逻辑，且完全依赖 NSURLCache 来管理缓存的情况，写出使用Last-Modified和ETag来实现缓存的代码。"></a>1.1.2、<strong>在不自定义缓存逻辑，且完全依赖 NSURLCache 来管理缓存的情况，写出使用Last-Modified和ETag来实现缓存的代码。</strong></h5><blockquote>
+<p>当使用 <code>NSURLCache</code> 并依赖系统的缓存机制时，通常不需要手动设置 <code>Last-Modified</code> 和 <code>ETag</code> 请求头字段。<code>NSURLCache</code> 会自动处理这些缓存相关的 HTTP 头字段，包括：</p>
+<ul>
+<li>在条件 GET 请求中自动添加 <code>If-Modified-Since</code> 和 <code>If-None-Match</code> 请求头，使用之前响应中收到的 <code>Last-Modified</code> 和 <code>ETag</code> 值。</li>
+<li>当接收到来自服务器的响应时，根据响应中的 <code>Last-Modified</code> 和 <code>ETag</code> 头字段更新缓存条目。</li>
+</ul>
+<p>如果你完全依赖 <code>NSURLCache</code> 来处理缓存逻辑，你的代码中不需要显式设置这些字段。<code>NSURLCache</code> 会在内部管理这些值，并根据 HTTP 协议标准执行适当的缓存行为。</p>
+</blockquote>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 为 NSURLSessionConfiguration 配置一个 NSURLCache 实例(设置合适的内存和磁盘缓存容量)。</span></span><br><span class="line"><span class="built_in">NSUInteger</span> memoryCapacity = <span class="number">4</span> * <span class="number">1024</span> * <span class="number">1024</span>;	<span class="comment">// 内存缓存大小（如4MB）</span></span><br><span class="line"><span class="built_in">NSUInteger</span> diskCapacity = <span class="number">20</span> * <span class="number">1024</span> * <span class="number">1024</span>;		<span class="comment">// 磁盘缓存大小（如20MB）</span></span><br><span class="line"><span class="built_in">NSURLCache</span> *urlCache = [[<span class="built_in">NSURLCache</span> alloc] initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:<span class="literal">nil</span>];</span><br><span class="line"><span class="built_in">NSURLSessionConfiguration</span> *sessionConfig = [<span class="built_in">NSURLSessionConfiguration</span> defaultSessionConfiguration];</span><br><span class="line">sessionConfig.URLCache = urlCache;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 使用配置好的 NSURLSessionConfiguration 创建 NSURLSession。</span></span><br><span class="line"><span class="built_in">NSURLSession</span> *session = [<span class="built_in">NSURLSession</span> sessionWithConfiguration:sessionConfig];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 创建并发送请求。如果之前有缓存，并且缓存包含了 Last-Modified 或 ETag，则 NSURLCache 会根据这些信息自动处理条件请求。</span></span><br><span class="line"><span class="built_in">NSURL</span> *url = [<span class="built_in">NSURL</span> URLWithString:<span class="string">@"http://example.com/resource"</span>];</span><br><span class="line"><span class="built_in">NSMutableURLRequest</span> *request = [<span class="built_in">NSMutableURLRequest</span> requestWithURL:url];</span><br><span class="line"><span class="built_in">NSURLSessionDataTask</span> *dataTask = [session dataTaskWithRequest:request completionHandler:^(<span class="built_in">NSData</span> *data, <span class="built_in">NSURLResponse</span> *response, <span class="built_in">NSError</span> *error) &#123;</span><br><span class="line">	<span class="keyword">if</span> (error != <span class="literal">nil</span>) &#123;</span><br><span class="line"> 		......</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line"> 	&#125;</span><br><span class="line">  </span><br><span class="line">  <span class="built_in">NSHTTPURLResponse</span> *httpResponse = (<span class="built_in">NSHTTPURLResponse</span> *)response;</span><br><span class="line">  <span class="keyword">switch</span> (httpResponse.statusCode) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">200</span>:</span><br><span class="line">      <span class="comment">// 资源有更新，NSURLCache 会自动更新缓存</span></span><br><span class="line">     	callback(data, isCacheData:<span class="literal">false</span>);</span><br><span class="line">  		<span class="keyword">break</span>;</span><br><span class="line"> 		<span class="keyword">case</span> <span class="number">304</span>:</span><br><span class="line">     	<span class="comment">// 资源未修改，从 NSURLCache 获取缓存的数据</span></span><br><span class="line">  		<span class="built_in">NSCachedURLResponse</span> *cachedResponse = [[<span class="built_in">NSURLCache</span> sharedURLCache] cachedResponseForRequest:request];				<span class="keyword">if</span> (cachedResponse) &#123;</span><br><span class="line">				<span class="built_in">NSData</span> *cachedData = cachedResponse.data;</span><br><span class="line">				callback(cachedData, isCacheData:<span class="literal">true</span>);	<span class="comment">// 由于是缓存的数据，通常不需要更新UI，除非有特殊需求</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">  	<span class="keyword">default</span>:</span><br><span class="line">			<span class="comment">// 处理其他HTTP状态码</span></span><br><span class="line">    	<span class="keyword">break</span>;</span><br><span class="line"> 		&#125;</span><br><span class="line">&#125;];</span><br><span class="line"></span><br><span class="line">[dataTask resume];</span><br></pre></td></tr></table></figure>
+<h2 id="四、网络耗时及其优化"><a href="#四、网络耗时及其优化" class="headerlink" title="四、网络耗时及其优化"></a>四、网络耗时及其优化</h2><p><a href="./网络耗时及其优化.md">网络耗时及其优化.md</a></p>
+<h2 id="五、网络安全"><a href="#五、网络安全" class="headerlink" title="五、网络安全"></a>五、网络安全</h2><p>请在安全篇章中查看</p>
+<p>文档：《<a href="../../../安全/网络加密.md">网络加密.md</a>》</p>
+<p>流程图： 《<a href="../../安全/网络加密/网络加密.graffle">网络加密.graffle</a>》 </p>
+<h2 id="六、文件分片上传与分片下载"><a href="#六、文件分片上传与分片下载" class="headerlink" title="六、文件分片上传与分片下载"></a>六、文件分片上传与分片下载</h2><p>《<a href="文件分片上传与分片下载">文件分片上传与分片下载.md</a>》</p>
+<h2 id="七、网络模拟"><a href="#七、网络模拟" class="headerlink" title="七、网络模拟"></a>七、网络模拟</h2><p>网络模拟文档请查看：<a href="./网络ApiMock">网络ApiMock</a></p>
+<h2 id="Next：第2节：网络耗时及其优化"><a href="#Next：第2节：网络耗时及其优化" class="headerlink" title="Next：第2节：网络耗时及其优化"></a>Next：<a href="./网络耗时及其优化">第2节：网络耗时及其优化</a></h2><p>## </p>
+<p><a name="网络拦截器"></a></p>
+<h2 id="附1：网络拦截器"><a href="#附1：网络拦截器" class="headerlink" title="附1：网络拦截器"></a>附1：网络拦截器</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>时机</th>
+<th>顺序：</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求拦截器（Request Interceptor）</td>
+<td>请求开始前拦截</td>
+<td>按照它们被添加的顺序，依次执行，修改即将发出的请求。</td>
+</tr>
+<tr>
+<td>响应拦截器（Response Interceptor）</td>
+<td>请求成功后拦截</td>
+<td></td>
+</tr>
+<tr>
+<td>错误拦截器（Error Interceptor）</td>
+<td>请求失败后拦截</td>
+</tr>
+</tbody>
+</table>
+<p>拦截器的执行顺序是根据它们各自被添加到请求实例的顺序决定的。（顺序只发生在同种类型间，不同类型间不影响。）</p>
+<p><strong>问1：如果第一个请求拦截器把参数修改了，第二个请求拦截器会怎么样？</strong></p>
+<p>答：如果第一个请求拦截器修改了请求参数，第二个请求拦截器接收到的将是修改后的请求参数。每个请求拦截器都会接收到前一个请求拦截器返回的<code>RequestOptions</code>对象，并且可以对其进行进一步的修改。</p>
+<p><strong>问2：如果是先添加响应拦截器，再添加请求拦截器会怎么样？</strong></p>
+<p>答：即使响应拦截器是先添加的，当实际发送请求时，请求拦截器会先执行，响应拦截器会在请求完成后执行。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">Dio dio = Dio();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 第一个请求拦截器</span></span><br><span class="line">dio.interceptors.add(InterceptorsWrapper(</span><br><span class="line">  onRequest: (RequestOptions options) <span class="keyword">async</span> &#123;</span><br><span class="line">    <span class="comment">// 假设我们修改了请求的queryParameters</span></span><br><span class="line">    options.queryParameters[<span class="string">'firstInterceptor'</span>] = <span class="string">'modified'</span>;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"第一个请求拦截器修改后的参数: <span class="subst">$&#123;options.queryParameters&#125;</span>"</span>);</span><br><span class="line">    <span class="keyword">return</span> options;</span><br><span class="line">  &#125;,</span><br><span class="line">));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 第二个请求拦截器</span></span><br><span class="line">dio.interceptors.add(InterceptorsWrapper(</span><br><span class="line">  onRequest: (RequestOptions options) <span class="keyword">async</span> &#123;</span><br><span class="line">    <span class="comment">// 接收到第一个拦截器修改后的参数</span></span><br><span class="line">    <span class="comment">// 我们可以再次修改它或者添加新的参数</span></span><br><span class="line">    options.queryParameters[<span class="string">'secondInterceptor'</span>] = <span class="string">'added'</span>;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"第二个请求拦截器接收到的参数: <span class="subst">$&#123;options.queryParameters&#125;</span>"</span>);</span><br><span class="line">    <span class="keyword">return</span> options;</span><br><span class="line">  &#125;,</span><br><span class="line">));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发送请求</span></span><br><span class="line">dio.<span class="keyword">get</span>(<span class="string">'https://example.com'</span>)</span><br><span class="line">  .then((response) &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"请求发送成功，并接收到响应: <span class="subst">$&#123;response.data&#125;</span>"</span>);</span><br><span class="line">  &#125;).catchError((error) &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"请求发送失败，并接收到错误: <span class="subst">$error<span class="string">");</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  &#125;);</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string"></span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">// 添加响应拦截器</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">dio.interceptors.add(InterceptorsWrapper(</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  onResponse: (Response response) &#123;</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    // 响应拦截器逻辑</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">    print("</span></span>响应拦截器"</span>);</span><br><span class="line">    <span class="keyword">return</span> response;</span><br><span class="line">  &#125;,</span><br><span class="line">));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 添加错误拦截器</span></span><br><span class="line">dio.interceptors.add(InterceptorsWrapper(</span><br><span class="line">  onError: (DioError err, ErrorInterceptorHandler handler) &#123;</span><br><span class="line">    <span class="comment">// 错误拦截器逻辑</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"错误拦截器"</span>);</span><br><span class="line">    <span class="keyword">return</span> handler.next(err); <span class="comment">// 根据错误处理逻辑可能重新抛出错误或返回自定义响应</span></span><br><span class="line">  &#125;,</span><br><span class="line">));</span><br></pre></td></tr></table></figure>
+<p>例如，Dio提供了三种类型的拦截器：请求拦截器（Request Interceptor）、响应拦截器（Response Interceptor）和错误拦截器（Error Interceptor）。每种类型的拦截器内部的执行顺序是固定的，但是不同类型拦截器之间的执行顺序则取决于它们被添加到Dio实例的顺序。</p>
+<p><a name="promise的resolve与next的流程"></a></p>
+<h2 id="附2、promise的resolve与next的流程"><a href="#附2、promise的resolve与next的流程" class="headerlink" title="附2、promise的resolve与next的流程"></a>附2、promise的resolve与next的流程</h2><p>使用 <code>resolve</code> 方法可以中断当前执行中的请求拦截器链，至于是否执行后续的响应拦截器取决于<code>resolve</code> 方法的第二个参数 <code>callFollowingResponseInterceptor</code> ，并直接返回一个 <code>Response</code> 对象作为请求的结果。</p>
+<p>在 Dio 的 <code>InterceptorsWrapper</code> 中，使用 <code>handler.resolve</code> 并<strong>不一定会直接</strong>将响应返回给最初的请求调用者，而是将控制权交回给 Dio实例，由 Dio 来决定接下来的流程。<code>resolve</code> 方法实际上并不会退出拦截器链，而是根据 <code>callFollowingResponseInterceptor</code> 参数的值来决定是否执行后续的响应拦截器。但无论 <code>callFollowingResponseInterceptor</code> 设置为 <code>true</code> 还是 <code>false</code>，<strong>调用者最终都能得到 <code>Response</code> 对象</strong>。这是因为响应拦截器的目的是处理和可能修改响应，但最终仍然需要将响应传递回调用者。不同之处在于，设置为 <code>true</code> 时会先执行响应拦截器，而设置为 <code>false</code> 时会直接返回响应给调用者，跳过响应拦截器。</p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/网络相关/网络框架/network_promise_resolve.png" alt="network_promise_resolve" style="zoom:33%;"></p>
+<p>图片来源于 《<a href="./网络框架的一生.graffle">网络框架的一生.graffle</a>》 中的 【网络缓存优化】版面里的【promise的resolve与next】图层</p>
+</blockquote>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>其他参考文档：</p>
+<ul>
+<li><a href="https://juejin.cn/post/6868945803856052231" target="_blank" rel="noopener">iOS 网络优化和网络基础</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络框架/" data-id="cm1p8871e015nzwr4xxl0j307" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/监控相关/性能监控/异常与崩溃" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/监控相关/性能监控/异常与崩溃/" class="article-date">
+  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/监控相关/性能监控/异常与崩溃/">异常与崩溃</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="异常与崩溃"><a href="#异常与崩溃" class="headerlink" title="异常与崩溃"></a>异常与崩溃</h1><h2 id="一、异常捕获"><a href="#一、异常捕获" class="headerlink" title="一、异常捕获"></a>一、异常捕获</h2><p>通过三方捕获的方式，可以选择 Buly 友盟 等。想起不展开，下面我们只讲底层自己进行异常捕获。</p>
+<h3 id="1、iOS异常捕获"><a href="#1、iOS异常捕获" class="headerlink" title="1、iOS异常捕获"></a>1、iOS异常捕获</h3><p><a href="https://juejin.cn/post/6878102352709025800" target="_blank" rel="noopener">iOS异常捕获</a></p>
+<blockquote>
+<p>开发iOS应用，解决Crash问题始终是一个难题。Crash分为两种，</p>
+<p>一种是由EXC_BAD_ACCESS引起的，原因是访问了不属于本进程的内存地址，有可能是访问已被释放的内存；</p>
+<p>另一种是未被捕获的Objective-C异常（NSException），导致程序向自身发送了SIGABRT信号而崩溃。其实对于未捕获的Objective-C异常，我们是有办法将它记录下来的，如果日志记录得当，能够解决绝大部分崩溃的问题。</p>
+</blockquote>
+<p>UncaughtExceptionHandler</p>
+<h3 id="2、Flutter异常捕获"><a href="#2、Flutter异常捕获" class="headerlink" title="2、Flutter异常捕获"></a>2、Flutter异常捕获</h3><p>runZoned 中 handleUncaughtError 拦截未处理的异步错误</p>
+<p>文档：《<a href="https://book.flutterchina.club/chapter2/thread_model_and_error_report.html#_2-8-2-flutter%E5%BC%82%E5%B8%B8%E6%8D%95%E8%8E%B7" target="_blank" rel="noopener">Flutter实战第二版：Flutter异常捕获：最终的错误上报代码</a>》</p>
+<p><a href="https://pub.dev/packages/flutter_error_catch" target="_blank" rel="noopener">flutter_error_catch</a></p>
+<blockquote>
+<p><a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/blob/master/flutter_error_catch/lib/src/app_catch_error.dart" target="_blank" rel="noopener">点击查看源码</a></p>
+</blockquote>
+<h3 id="如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？"><a href="#如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？" class="headerlink" title="如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？"></a>如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 程序被手动杀死。即将终止，可以在这里执行一些必要的清理工作</span><br><span class="line">- (void)applicationWillTerminate:(UIApplication *)application &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>applicationWillTerminate:</code>这个方法并不总是可靠的，因为它的调用取决于多种因素，包括用户如何退出应用（例如，通过按 Home 键或通过系统设置）和系统状态。相比之下，<code>RunLoop Observer</code> 提供了一种更为可靠的方法来监听应用生命周期的特定阶段。通过在 RunLoop 的退出阶段添加一个 Observer，你可以确保在 RunLoop 即将退出时执行一些操作，这通常意味着应用即将进入后台或者终止。(还未亲自验证！！！)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// 在 AppDelegate.m 文件中</span><br><span class="line">- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions &#123;</span><br><span class="line">    // 创建 RunLoop Observer，并将 Observer 添加到主线程的 RunLoop</span><br><span class="line">    CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopExit, TRUE, 0,&amp;exitRunLoopCallback);</span><br><span class="line">    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);</span><br><span class="line">    // 由于这是一个全局的 Observer，我们不需要在这里释放它。它会在应用退出时自动释放。</span><br><span class="line"></span><br><span class="line">    // 其他初始化代码...</span><br><span class="line">    return YES;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Observer 的回调函数</span><br><span class="line">void exitRunLoopCallback(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) &#123;</span><br><span class="line">    if (activity == kCFRunLoopExit) &#123;</span><br><span class="line">        // 执行清理工作</span><br><span class="line">        NSLog(@&quot;Performing cleanup work before the application exits.&quot;);</span><br><span class="line">        </span><br><span class="line">        // 这里添加你的清理代码</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、如何追踪app"><a href="#二、如何追踪app" class="headerlink" title="二、如何追踪app"></a>二、如何追踪app</h2><p><a href="https://blog.csdn.net/sunjie886/article/details/53024843?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-53024843-blog-54617137.235^v43^pc_blog_bottom_relevance_base3&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">iOS 如何追踪app</a></p>
+<h2 id="三、起死回生-回光返照"><a href="#三、起死回生-回光返照" class="headerlink" title="三、起死回生/回光返照"></a>三、起死回生/回光返照</h2><h3 id="1、iOS-使用Runloop实现起死回生-回光返照"><a href="#1、iOS-使用Runloop实现起死回生-回光返照" class="headerlink" title="1、iOS 使用Runloop实现起死回生/回光返照"></a>1、iOS 使用Runloop实现起死回生/回光返照</h3><p>核心：创建一个<code>Runloop</code>，将主线程的所有<code>Runmode</code>都拿过来跑，作为应用程序主Runloop的替代。</p>
+<p>但是：这样固然可以实现我们想要做的事情，但是会带来一个问题：因为我们为了继续执行程序而没有将控制权返回给导致崩溃的调用函数，并且我们启动了自己的<code>Runloop</code>，所以永远不会返回到原始的<code>Runloop</code>中去了，这将意味着导致异常的线程使用的<code>堆栈内存</code>将永久泄漏。因此这种类型的方法应被视为调试工具或最后手段，所以，不要在Debug以外的环境使用它。本段摘自：<a href="https://shevakuilin.com/ios-crashprotection/" target="_blank" rel="noopener">线程保活提醒</a></p>
+<p>视频：<a href="https://pan.baidu.com/s/1hjkz3CHKhj7Nwaxd1IAbRg?pwd=zfjr" target="_blank" rel="noopener">“Runloop起死回生/回光返照” 见 00:57:55–01:03:00 的视频 2021-08-21_Crash分析.wmv </a></p>
+<p>文档：<a href="https://cloud.tencent.com/developer/article/1192474" target="_blank" rel="noopener">RunLoop总结：RunLoop的应用场景（五）阻止App崩溃一次</a></p>
+<blockquote>
+<p>示例代码：<a href="https://github.com/Haley-Wong/RunLoopDemos" target="_blank" rel="noopener">https://github.com/Haley-Wong/RunLoopDemos</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/性能监控/异常与崩溃/" data-id="cm1p8871f015qzwr4jgaauand" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Architecture架构/框架相关/网络相关/网络耗时及其优化" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/Architecture架构/框架相关/网络相关/网络耗时及其优化/" class="article-date">
@@ -266,75 +621,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/" data-id="cm1p7o9k30141xsr4nr7anrbl" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/监控相关/性能监控/异常与崩溃" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/监控相关/性能监控/异常与崩溃/" class="article-date">
-  <time datetime="2018-03-21T09:08:41.000Z" itemprop="datePublished">2018-03-21</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/监控相关/性能监控/异常与崩溃/">异常与崩溃</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="异常与崩溃"><a href="#异常与崩溃" class="headerlink" title="异常与崩溃"></a>异常与崩溃</h1><h2 id="一、异常捕获"><a href="#一、异常捕获" class="headerlink" title="一、异常捕获"></a>一、异常捕获</h2><p>通过三方捕获的方式，可以选择 Buly 友盟 等。想起不展开，下面我们只讲底层自己进行异常捕获。</p>
-<h3 id="1、iOS异常捕获"><a href="#1、iOS异常捕获" class="headerlink" title="1、iOS异常捕获"></a>1、iOS异常捕获</h3><p><a href="https://juejin.cn/post/6878102352709025800" target="_blank" rel="noopener">iOS异常捕获</a></p>
-<blockquote>
-<p>开发iOS应用，解决Crash问题始终是一个难题。Crash分为两种，</p>
-<p>一种是由EXC_BAD_ACCESS引起的，原因是访问了不属于本进程的内存地址，有可能是访问已被释放的内存；</p>
-<p>另一种是未被捕获的Objective-C异常（NSException），导致程序向自身发送了SIGABRT信号而崩溃。其实对于未捕获的Objective-C异常，我们是有办法将它记录下来的，如果日志记录得当，能够解决绝大部分崩溃的问题。</p>
-</blockquote>
-<p>UncaughtExceptionHandler</p>
-<h3 id="2、Flutter异常捕获"><a href="#2、Flutter异常捕获" class="headerlink" title="2、Flutter异常捕获"></a>2、Flutter异常捕获</h3><p>runZoned 中 handleUncaughtError 拦截未处理的异步错误</p>
-<p>文档：《<a href="https://book.flutterchina.club/chapter2/thread_model_and_error_report.html#_2-8-2-flutter%E5%BC%82%E5%B8%B8%E6%8D%95%E8%8E%B7" target="_blank" rel="noopener">Flutter实战第二版：Flutter异常捕获：最终的错误上报代码</a>》</p>
-<p><a href="https://pub.dev/packages/flutter_error_catch" target="_blank" rel="noopener">flutter_error_catch</a></p>
-<blockquote>
-<p><a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/blob/master/flutter_error_catch/lib/src/app_catch_error.dart" target="_blank" rel="noopener">点击查看源码</a></p>
-</blockquote>
-<h3 id="如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？"><a href="#如果我想在应用程序退出时执行一些清理工作，我应该在-RunLoop-的哪个阶段进行操作？" class="headerlink" title="如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？"></a>如果我想在应用程序退出时执行一些清理工作，我应该在 RunLoop 的哪个阶段进行操作？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 程序被手动杀死。即将终止，可以在这里执行一些必要的清理工作</span><br><span class="line">- (void)applicationWillTerminate:(UIApplication *)application &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>applicationWillTerminate:</code>这个方法并不总是可靠的，因为它的调用取决于多种因素，包括用户如何退出应用（例如，通过按 Home 键或通过系统设置）和系统状态。相比之下，<code>RunLoop Observer</code> 提供了一种更为可靠的方法来监听应用生命周期的特定阶段。通过在 RunLoop 的退出阶段添加一个 Observer，你可以确保在 RunLoop 即将退出时执行一些操作，这通常意味着应用即将进入后台或者终止。(还未亲自验证！！！)</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// 在 AppDelegate.m 文件中</span><br><span class="line">- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions &#123;</span><br><span class="line">    // 创建 RunLoop Observer，并将 Observer 添加到主线程的 RunLoop</span><br><span class="line">    CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopExit, TRUE, 0,&amp;exitRunLoopCallback);</span><br><span class="line">    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);</span><br><span class="line">    // 由于这是一个全局的 Observer，我们不需要在这里释放它。它会在应用退出时自动释放。</span><br><span class="line"></span><br><span class="line">    // 其他初始化代码...</span><br><span class="line">    return YES;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Observer 的回调函数</span><br><span class="line">void exitRunLoopCallback(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) &#123;</span><br><span class="line">    if (activity == kCFRunLoopExit) &#123;</span><br><span class="line">        // 执行清理工作</span><br><span class="line">        NSLog(@&quot;Performing cleanup work before the application exits.&quot;);</span><br><span class="line">        </span><br><span class="line">        // 这里添加你的清理代码</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="二、如何追踪app"><a href="#二、如何追踪app" class="headerlink" title="二、如何追踪app"></a>二、如何追踪app</h2><p><a href="https://blog.csdn.net/sunjie886/article/details/53024843?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-53024843-blog-54617137.235^v43^pc_blog_bottom_relevance_base3&amp;spm=1001.2101.3001.4242.1&amp;utm_relevant_index=3" target="_blank" rel="noopener">iOS 如何追踪app</a></p>
-<h2 id="三、起死回生-回光返照"><a href="#三、起死回生-回光返照" class="headerlink" title="三、起死回生/回光返照"></a>三、起死回生/回光返照</h2><h3 id="1、iOS-使用Runloop实现起死回生-回光返照"><a href="#1、iOS-使用Runloop实现起死回生-回光返照" class="headerlink" title="1、iOS 使用Runloop实现起死回生/回光返照"></a>1、iOS 使用Runloop实现起死回生/回光返照</h3><p>核心：创建一个<code>Runloop</code>，将主线程的所有<code>Runmode</code>都拿过来跑，作为应用程序主Runloop的替代。</p>
-<p>但是：这样固然可以实现我们想要做的事情，但是会带来一个问题：因为我们为了继续执行程序而没有将控制权返回给导致崩溃的调用函数，并且我们启动了自己的<code>Runloop</code>，所以永远不会返回到原始的<code>Runloop</code>中去了，这将意味着导致异常的线程使用的<code>堆栈内存</code>将永久泄漏。因此这种类型的方法应被视为调试工具或最后手段，所以，不要在Debug以外的环境使用它。本段摘自：<a href="https://shevakuilin.com/ios-crashprotection/" target="_blank" rel="noopener">线程保活提醒</a></p>
-<p>视频：<a href="https://pan.baidu.com/s/1hjkz3CHKhj7Nwaxd1IAbRg?pwd=zfjr" target="_blank" rel="noopener">“Runloop起死回生/回光返照” 见 00:57:55–01:03:00 的视频 2021-08-21_Crash分析.wmv </a></p>
-<p>文档：<a href="https://cloud.tencent.com/developer/article/1192474" target="_blank" rel="noopener">RunLoop总结：RunLoop的应用场景（五）阻止App崩溃一次</a></p>
-<blockquote>
-<p>示例代码：<a href="https://github.com/Haley-Wong/RunLoopDemos" target="_blank" rel="noopener">https://github.com/Haley-Wong/RunLoopDemos</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/监控相关/性能监控/异常与崩溃/" data-id="cm1p7o9k60147xsr4fnft44wu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/网络相关/网络耗时及其优化/" data-id="cm1p8871g015tzwr4l81y6zs7" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -757,7 +1044,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" data-id="cm1p7o9lf014gxsr4vwl0z0rc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-1需求规划/" data-id="cm1p8872j0162zwr4uc3us49b" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -932,7 +1219,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" data-id="cm1p7o9m5014jxsr4ngplwohh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-2网络时长-1需求规划/" data-id="cm1p88743016bzwr44pbjq57f" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -988,7 +1275,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" data-id="cm1p7o9mq014mxsr4jgtgdwh8" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/页面加载相关/页面的各种时长/页面加载-1整体时长-2数据分析/" data-id="cm1p8874m016ezwr4tq08wuk2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1247,7 +1534,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm1p7o9x8015vxsr4xbtd1eps" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/高磁盘占用的排查与优化/" data-id="cm1p887fu017rzwr4na1psxop" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -1286,7 +1573,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm1p7o6vp0030xsr413cayhek" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/电脑使用/Mac中个各种文件夹/" data-id="cm1p883l00047zwr4vi062zss" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1390,141 +1677,9 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm1p7o81w00r9xsr4ndh5gy8k" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/实用工具/Terminal/1终端常用命令/" data-id="cm1p885ej00s3zwr4uiays49w" class="article-share-link">Share</a>
       
       
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/框架相关/foundation框架" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/框架相关/foundation框架/" class="article-date">
-  <time datetime="2018-01-21T09:08:41.000Z" itemprop="datePublished">2018-01-21</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/框架相关/foundation框架/">foundation</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="foundation"><a href="#foundation" class="headerlink" title="foundation"></a>foundation</h1><h2 id="一、Url处理"><a href="#一、Url处理" class="headerlink" title="一、Url处理"></a>一、Url处理</h2><table>
-<thead>
-<tr>
-<th>序号</th>
-<th>关键字</th>
-<th>场景</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>WebUrlUtil</td>
-<td>for 、 swtich</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ApiUrlUtil</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/foundation框架/" data-id="cm1p7o7fm0083xsr4trfdnjyo" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-实用工具/Jenkins/Jenkins的安装与启动" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/实用工具/Jenkins/Jenkins的安装与启动/" class="article-date">
-  <time datetime="2017-04-23T01:27:20.000Z" itemprop="datePublished">2017-04-23</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>►<a class="article-category-link" href="/categories/实用工具/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/Jenkins/Jenkins的安装与启动/">第1节：Jenkins的安装与启动</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="第1节：Jenkins的安装与启动"><a href="#第1节：Jenkins的安装与启动" class="headerlink" title="第1节：Jenkins的安装与启动"></a>第1节：Jenkins的安装与启动</h1><p>自己的文章：</p>
-<p>①、<a href="https://www.jianshu.com/p/126c9e6b63ef" target="_blank" rel="noopener">Jenkins(一)初步认识</a></p>
-<h2 id="一、Jenkins的安装"><a href="#一、Jenkins的安装" class="headerlink" title="一、Jenkins的安装"></a>一、Jenkins的安装</h2><p>①、直接下载<a href="https://jenkins.io/index.html" target="_blank" rel="noopener">Jenkins</a>安装。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">brew install jenkins-lts</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> Stable：稳定版本。</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> LTS（Long Term Support）：长期演进版</span></span><br></pre></td></tr></table></figure>
-<p>②、安装成功后，其会自动打开<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080</a></p>
-<p>此时如果我们发现打开错误。原因是我们缺少Jenkins的运行环境，所以我们需要安装java的jdk。如果要验证是否是这个原因的话，我们可以<code>通过命令行查看当前的java版本</code><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/Java.png" alt="Java"><br>果然发现没有安装，则我们通过下载jdk来进行安装。<br><a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html" target="_blank" rel="noopener">java的jdk下载地址</a><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_jdk1.png" alt="jenkins_jdk1"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_jdk2.png" alt="jenkins_jdk2"><br>安装完后，我们再运行一下验证命令，发现可以运行了，即我们安装好了。<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/Java.png" alt="Java"></p>
-<p>③、java环境安装成功之后，接下来我们就可以正常访问Jenkins了。Jenkins的访问地址为<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080</a>。打开的页面显示如下：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_3.png" alt="jenkins_3"></p>
-<p>④、提示我们需要输入其指定文件夹下的密码来访问。则我们访问其指定文件，发现没法访问该文件内容<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_4.png" alt="jenkins_4"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_noPermission1.png" alt="jenkins_noPermission1"></p>
-<p>所以这里我们通过修改权限，让读取该文件内容，如下：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_noPermission2.png" alt="jenkins_noPermission2"><br>⑤、将读取后的密码输入到登录网页上，即可登录，登录后的结果为：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start1.png" alt="jenkins_start1"></p>
-<p>⑥、因为此时为首次登陆，所以其会提示我们安装Jenkins建议的插件。则我们按照步骤进行Jenkins默认插件的安装。安装过程如下所示：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start2.jpg" alt="jenkins_start2"><br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_start3.jpg" alt="jenkins_start3"></p>
-<p>⑦、一路安装过来，输入用户名，密码。<br>之后继续登录<a href="http://localhost:8080/" target="_blank" rel="noopener">http://localhost:8080/</a>可以看到最终的显示结果为：<br><img src="/实用工具/Jenkins/Jenkins的安装与启动/jenkins_use1.png" alt="jenkins_use1"><br>此时则我们的Jenkins的初始安装完毕(之后我们可能还需要安装一些自己需要的插件)。</p>
-<h2 id="二、Jenkins的启动"><a href="#二、Jenkins的启动" class="headerlink" title="二、Jenkins的启动"></a>二、Jenkins的启动</h2><p>没有权限问题的Jenkins正确的启动方式如下(按下面方式打开，才不会出现权限问题)：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> sudo launchctl unload /Library/LaunchDaemons/org.jenkins-ci.plist</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> java -jar /Applications/Jenkins/jenkins.war --httpPort=8080</span></span><br></pre></td></tr></table></figure>
-<p>当你执行完这两行命令的时候，你可以在浏览器上输入<code>http://localhost:8080</code>来访问Jenkins了。(如果你只执行了第一行，没执行第二行，会出现无法访问)</p>
-<h2 id="三、Jenkins的升级"><a href="#三、Jenkins的升级" class="headerlink" title="三、Jenkins的升级"></a>三、Jenkins的升级</h2><h3 id="1、如何查看jenkins-的版本号"><a href="#1、如何查看jenkins-的版本号" class="headerlink" title="1、如何查看jenkins 的版本号"></a>1、如何查看jenkins 的版本号</h3><p>jenkins页面的右下角就是jenkins版本号信息</p>
-<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927143448781.png" alt="image-20200927143448781"></p>
-<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927143111985.png" alt="image-20200927143111985"></p>
-<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927233412864.png" alt="image-20200927233412864"></p>
-<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200927234036120.png" alt="image-20200927234036120"></p>
-<p>要执行下载好的版本</p>
-<p><img src="/实用工具/Jenkins/Jenkins的安装与启动/image-20200928001116531.png" alt="image-20200928001116531"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/Jenkins/Jenkins的安装与启动/" data-id="cm1p7o81t00qzxsr4rj5oro1n" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
-
     </footer>
   </div>
   
