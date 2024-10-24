@@ -72,547 +72,10 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-Flutter/8状态管理/状态管理1Provider" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Architecture架构/基础规范/埋点相关/埋点数据常见问题" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/Flutter/8状态管理/状态管理1Provider/" class="article-date">
-  <time datetime="2020-08-02T08:22:13.000Z" itemprop="datePublished">2020-08-02</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/8状态管理/状态管理1Provider/">状态管理1Provider</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="Flutter页面跳转和传值传参，接收页面返回数据、以及解决返回（pop）页面时黑屏的问题"><a href="#Flutter页面跳转和传值传参，接收页面返回数据、以及解决返回（pop）页面时黑屏的问题" class="headerlink" title="Flutter页面跳转和传值传参，接收页面返回数据、以及解决返回（pop）页面时黑屏的问题"></a>Flutter页面跳转和传值传参，接收页面返回数据、以及解决返回（pop）页面时黑屏的问题</h1><p><a href="https://blog.csdn.net/yuzhiqiang_1993/article/details/89090742" target="_blank" rel="noopener">Flutter页面跳转和传值传参，接收页面返回数据、以及解决返回（pop）页面时黑屏的问题</a></p>
-<p>flutter的渲染方式和移动端完全不同，它采用的React的思路。</p>
-<p>移动端的UI控件可以通过修改其属性改变外观，但是flutter和RN，改变样式基本是靠重新渲染，所以想要更新内容，就要改变state，然后再通过setState()更新UI。</p>
-<h2 id="ReactNative的Redux"><a href="#ReactNative的Redux" class="headerlink" title="ReactNative的Redux"></a>ReactNative的Redux</h2><p><a href="/Users/lichaoqian/Project/CQComponent/UIKit-Overlay-ReactNative/TSOverlayDemo/src/Redux">CQComponent/UIKit-Overlay-ReactNative/TSOverlayDemo/src/Redux</a></p>
-<h2 id="一、SetState"><a href="#一、SetState" class="headerlink" title="一、SetState"></a>一、SetState</h2><p>我们都知道，Flutter中Widget的状态控制了UI的更新，比如最常见的StatefulWidget，通过调用<code>setState({})</code>方法来刷新控件。那么其他类型的控件，比如StatelessWidget就不能更新状态来吗？答案当然是肯定可以的。前文已经介绍过几种状态管理</p>
-<h2 id="二、flutter全局状态管理器Provider"><a href="#二、flutter全局状态管理器Provider" class="headerlink" title="二、flutter全局状态管理器Provider"></a>二、flutter全局状态管理器Provider</h2><p><a href="https://pub.dev/packages/provider/install" target="_blank" rel="noopener">https://pub.dev/packages/provider/install</a></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">provider:</span> <span class="string">^4.3.1</span></span><br></pre></td></tr></table></figure>
-<p>为节省代码，我们以<a href="https://www.jianshu.com/p/47e5d6b6655b" target="_blank" rel="noopener">flutter全局状态管理器Provider</a>中的代码为例，进行说明。</p>
-<p>1、声明ChangeNotifier，类似于iOS中的Manager。</p>
-<blockquote>
-<p>ChangeNotifier == Manager</p>
-<p>ChangeNotifier 的 method == Manager 的 method</p>
-<p>ChangeNotifier 的 notifyListeners == Manager 的 broadcast</p>
-<blockquote>
-<p>ChangeNotifier 的 notifyListeners 的内部：Flutter系统提供的通知中心<br>Manager 的 broadcast 的内部：自己实现的多协议通知中心</p>
-</blockquote>
-</blockquote>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/cupertino.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NumModel</span> <span class="title">with</span> <span class="title">ChangeNotifier</span></span>&#123;</span><br><span class="line">  <span class="built_in">int</span> _theNum;</span><br><span class="line">  NumModel(<span class="keyword">this</span>._theNum);</span><br><span class="line">  <span class="comment">/*_theNum递增*/</span></span><br><span class="line">  <span class="keyword">void</span> add() &#123;</span><br><span class="line">    _theNum++;</span><br><span class="line">    notifyListeners();<span class="comment">//通知所有监听的页面，如果写在runapp中那么通知所有页面重新加载</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/*_theNum递减*/</span></span><br><span class="line">  <span class="keyword">void</span> reduction()&#123;</span><br><span class="line">    _theNum--;</span><br><span class="line">    notifyListeners();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/*获取_theNum*/</span></span><br><span class="line">  <span class="built_in">int</span> <span class="keyword">get</span> theNum =&gt; _theNum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>2、搭建监听系统，即搭建可以接收变化的结构</p>
-<p>如果只监听一个model</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">main() &#123;</span><br><span class="line">  runApp(ChangeNotifierProvider&lt;NumModel&gt;.value(</span><br><span class="line">    value: NumModel(<span class="number">1</span>), </span><br><span class="line">    child: MyApp(),</span><br><span class="line">  ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如果监听多个model</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">main() &#123;</span><br><span class="line">  runApp(</span><br><span class="line">      MultiProvider(providers: [</span><br><span class="line">      ChangeNotifierProvider&lt;NumModel&gt;.value(value: NumModel(<span class="number">1</span>)),</span><br><span class="line">      ChangeNotifierProvider&lt;NameModel&gt;.value(value: NameModel(<span class="string">"json"</span>))</span><br><span class="line">  ],</span><br><span class="line">      child: MyApp()</span><br><span class="line">  ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们的项目中很多情况下监听一个model是不够的，所以我们默认使用MultiProvider</p>
-<blockquote>
-<p>个人理解：它类似将所有的监听放在了AppDelegate上。</p>
-</blockquote>
-<p>3、使用Provider，发送变化</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">MaterialButton(</span><br><span class="line">  onPressed: () &#123;</span><br><span class="line">    Provider.of&lt;NumModel&gt;(context).add();</span><br><span class="line">  &#125;,</span><br><span class="line">  child: Text(<span class="string">"num递增"</span>),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-<p>4、使用Provider，接收变化</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Text(</span><br><span class="line">  <span class="string">"name="</span> + Provider.of&lt;NameModel&gt;(context).theName,</span><br><span class="line">  style: TextStyle(fontSize: <span class="number">20</span>, color: Colors.red),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-<h2 id="BloC【Business-Logic-Component】"><a href="#BloC【Business-Logic-Component】" class="headerlink" title="BloC【Business Logic Component】"></a>BloC【Business Logic Component】</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/8状态管理/状态管理1Provider/" data-id="cm2nl423j00e3zqr4d0jjm1mh" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/开发工具" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/开发工具/" class="article-date">
-  <time datetime="2020-07-20T09:05:41.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/开发工具/">开发工具</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>问：我不要<strong>频繁安装+卸载</strong>来安装我想要的包。<strong>我能不能同时装一个测试环境和正式环境</strong>?</p>
-<p>答：不行。安装两个包，严格上来讲，不用想了，不行。具体原因涉及应用id，及app根据该id配置了各种三方key环境(除非你连三方的也都额外提供一套)，太详细的道理我就不讲了。”不行“就对了。<strong>但是，我能让你安装一个包，却使用不同环境的功能</strong>。或者<strong>额外安装一个除与应用id相关的功能外其他皆一样的安装包</strong>。</p>
-<p>一、切换环境常见的场景为：</p>
-<p>1、测试时候：换环境不用一直下载；</p>
-<p>2、演示时候：某个环境使用不了，不用重新下载；</p>
-<p>3、抓包时候：想切换代理，不用重新打包安装；</p>
-<p>见下文：<a href="#app环境与切换">app环境与切换</a></p>
-<p>二、额外安装一个除与应用id相关的功能外其他皆一样的安装包的使用场景：</p>
-<p>1、app中不能接受切换环境，即严格限制一个包只能有一个环境</p>
-<blockquote>
-<p>不允许切换环境的考虑原因：</p>
-<p>测试包不允许切到生产：怕脏数据</p>
-<p>生产包不允许切到测试：测试环境不是外界用户真正需要的</p>
-</blockquote>
-<p>见我的另一篇文章：《<a href="../安全/iOS的重签名.md">iOS的重签名.md</a>》</p>
-<h2 id="一、功能开关"><a href="#一、功能开关" class="headerlink" title="一、功能开关"></a>一、功能开关</h2><p><img src="/Architecture架构/开发工具/tool_entrance_0.png" alt="tool_entrance_0" style="zoom: 50%;"></p>
-<p><img src="/Architecture架构/开发工具/tool_entrance_2log.png" alt="tool_entrance_2log"></p>
-<h2 id="二、app安装包与切换"><a href="#二、app安装包与切换" class="headerlink" title="二、app安装包与切换"></a>二、app安装包与切换</h2><h3 id="1、app安装包信息"><a href="#1、app安装包信息" class="headerlink" title="1、app安装包信息"></a>1、app安装包信息</h3><p><img src="/Architecture架构/开发工具/devtool_appinfo_0package.png" alt="devtool_appinfo_0package" style="zoom: 67%;"></p>
-<h4 id="1-1、换包：app下载页"><a href="#1-1、换包：app下载页" class="headerlink" title="1.1、换包：app下载页"></a>1.1、换包：app下载页</h4><p><img src="/Architecture架构/开发工具/devtool_appinfo_0package_downloadurl.png" alt="devtool_appinfo_0package_downloadurl" style="zoom:67%;"></p>
-<h4 id="1-2、版本记录：历史版本记录页"><a href="#1-2、版本记录：历史版本记录页" class="headerlink" title="1.2、版本记录：历史版本记录页"></a>1.2、版本记录：历史版本记录页</h4><p><img src="/Architecture架构/开发工具/devtool_appinfo_0package_version_records.png" alt="devtool_appinfo_0package_version_records" style="zoom: 10%;"></p>
-<h3 id="2、各文件目录及大小"><a href="#2、各文件目录及大小" class="headerlink" title="2、各文件目录及大小"></a>2、各文件目录及大小</h3><p><img src="/Architecture架构/开发工具/devtool_appinfo_0package_dirsize.png" alt="devtool_appinfo_0package_dirsize" style="zoom: 50%;"></p>
-<p><a name="app环境与切换"></a></p>
-<h2 id="三、app环境与切换"><a href="#三、app环境与切换" class="headerlink" title="三、app环境与切换"></a>三、app环境与切换</h2><p><img src="/Architecture架构/开发工具/package_env_test.jpg" alt="package_env_test" style="zoom:33%;"> <img src="/Architecture架构/开发工具/package_env_product.jpg" alt="package_env_product" style="zoom:33%;"></p>
-<p>流程图：《<a href="./开发工具/开发工具(含环境切换等">开发工具(含环境切换等).graffle</a>.graffle)》中的【一、切换环境】版面</p>
-<p><img src="/Architecture架构/开发工具/devtool_appenv_home.png" alt="devtool_appenv_home" style="zoom:33%;"></p>
-<h3 id="1、切换环境"><a href="#1、切换环境" class="headerlink" title="1、切换环境"></a>1、切换环境</h3><h3 id="2、切换平台"><a href="#2、切换平台" class="headerlink" title="2、切换平台"></a>2、切换平台</h3><h3 id="3、添加代理"><a href="#3、添加代理" class="headerlink" title="3、添加代理"></a>3、添加代理</h3><p><img src="/Architecture架构/开发工具/devtool_appenv_3proxy_1.png" alt="devtool_appenv_3proxy_1" style="zoom: 33%;"></p>
-<p><img src="/Architecture架构/开发工具/devtool_appenv_3proxy_2.png" alt="devtool_appenv_3proxy_2" style="zoom: 50%;"></p>
-<h2 id="四、设备信息"><a href="#四、设备信息" class="headerlink" title="四、设备信息"></a>四、设备信息</h2><p><img src="/Architecture架构/开发工具/devtool_device_0devicetoken.png" alt="devtool_device_0devicetoken"></p>
-<p><img src="/Architecture架构/开发工具/devtool_deviceinfo_0.png" alt="devtool_deviceinfo_0" style="zoom: 25%;"></p>
-<h3 id="1、设备网络类型"><a href="#1、设备网络类型" class="headerlink" title="1、设备网络类型"></a>1、设备网络类型</h3><h3 id="2、设备屏幕大小"><a href="#2、设备屏幕大小" class="headerlink" title="2、设备屏幕大小"></a>2、设备屏幕大小</h3><h4 id="2-1、设备适配验证"><a href="#2-1、设备适配验证" class="headerlink" title="2.1、设备适配验证"></a>2.1、设备适配验证</h4><p><img src="/Architecture架构/开发工具/devtool_device_uiadapt_check.png" alt="devtool_device_uiadapt_check" style="zoom: 33%;"></p>
-<h3 id="3、设备ip及代理"><a href="#3、设备ip及代理" class="headerlink" title="3、设备ip及代理"></a>3、设备ip及代理</h3><h3 id="4、设备埋点参数"><a href="#4、设备埋点参数" class="headerlink" title="4、设备埋点参数"></a>4、设备埋点参数</h3><p>未截取到的其他埋点参数见我的另一篇文章：《<a href="../Architecture架构/基础规范/埋点相关/埋点规范_结构.md">埋点规范_结构.md</a>》</p>
-<h3 id="5、是否模拟器"><a href="#5、是否模拟器" class="headerlink" title="5、是否模拟器"></a>5、是否模拟器</h3><p><img src="/Architecture架构/开发工具/devtool_device_simulator_check.png" alt="devtool_device_simulator_check"></p>
-<h2 id="五、用户相关"><a href="#五、用户相关" class="headerlink" title="五、用户相关"></a>五、用户相关</h2><p><img src="/Architecture架构/开发工具/devtool_user_info.png" alt="devtool_user_info" style="zoom: 25%;"></p>
-<h2 id="六、调试页面"><a href="#六、调试页面" class="headerlink" title="六、调试页面"></a>六、调试页面</h2><table>
-<thead>
-<tr>
-<th></th>
-<th></th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>支付</td>
-<td>支付宝</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>认证</td>
-<td>实名认证、真人认证</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>选择器</td>
-<td>生日选择、活动时间选择、项目多选</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>分享</td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>关键页面入口</td>
-<td>个人主页、发布页、引导页、完善性别/生日</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>位置相关</td>
-<td>地图位置选择</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>快捷入口</p>
-<h3 id="1、检查更新"><a href="#1、检查更新" class="headerlink" title="1、检查更新"></a>1、检查更新</h3><p><img src="/Architecture架构/开发工具/devtool_debug_0checkversion_1.png" alt="devtool_debug_0checkversion_1"></p>
-<p><img src="/Architecture架构/开发工具/devtool_debug_0checkversion_2.png" alt="devtool_debug_0checkversion_2" style="zoom:33%;"></p>
-<h3 id="2、网页测试"><a href="#2、网页测试" class="headerlink" title="2、网页测试"></a>2、网页测试</h3><p><img src="/Architecture架构/开发工具/devtool_debug_2webview_0home.png" alt="devtool_debug_2webview_0home" style="zoom:50%;"></p>
-<h4 id="2-1、网页快捷入口"><a href="#2-1、网页快捷入口" class="headerlink" title="2.1、网页快捷入口"></a>2.1、网页快捷入口</h4><p><img src="/Architecture架构/开发工具/devtool_debug_2webview_1url_entrance.png" alt="devtool_debug_2webview_1url_entrance"></p>
-<h4 id="2-2、白屏测试"><a href="#2-2、白屏测试" class="headerlink" title="2.2、白屏测试"></a>2.2、白屏测试</h4><p><img src="/Architecture架构/开发工具/devtool_debug_2webview_2blank_test.gif" alt="devtool_debug_2webview_2blank_test.gif" style="zoom:50%;"></p>
-<h4 id="2-3、JS测试"><a href="#2-3、JS测试" class="headerlink" title="2.3、JS测试"></a>2.3、JS测试</h4><p>《<a href="../Architecture架构/WebView相关/h5_native_interacte/h5js.md">h5js.md</a>》</p>
-<p><img src="/Architecture架构/开发工具/devtool_debug_2webview_3js.png" alt="devtool_debug_2webview_3js" style="zoom:25%;"></p>
-<h4 id="2-4、Route测试"><a href="#2-4、Route测试" class="headerlink" title="2.4、Route测试"></a>2.4、Route测试</h4><p>《<a href="../Architecture架构/WebView相关/h5_native_interacte/h5_open_app.md">h5_open_app.md</a>》</p>
-<p><img src="/Architecture架构/开发工具/devtool_debug_2webview_4route.png" alt="devtool_debug_2webview_4route" style="zoom:25%;"></p>
-<h2 id="七、开发工具安全性处理"><a href="#七、开发工具安全性处理" class="headerlink" title="七、开发工具安全性处理"></a>七、开发工具安全性处理</h2><p>见我在”安全”专题里的另一篇文章：《<a href="../安全/项目安全">开发工具安全性处理</a>》</p>
-<h2 id="八、脚本工具"><a href="#八、脚本工具" class="headerlink" title="八、脚本工具"></a>八、脚本工具</h2><p>目前的脚本操作如下：</p>
-<p><img src="/Architecture架构/开发工具/qtool_ui_home.png" alt="qtool_ui_home"></p>
-<p>其中自定义的脚本操作有如下：</p>
-<p><img src="/Architecture架构/开发工具/qtool_ui_custom_home.png" alt="qtool_ui_custom_home"></p>
-<h2 id="附1：Charles"><a href="#附1：Charles" class="headerlink" title="附1：Charles"></a>附1：Charles</h2><p>文档：《<a href="../实用工具/Charles/Charles.md">Charles.md</a>》</p>
-<h2 id="附2：代理的实现-Flutter版"><a href="#附2：代理的实现-Flutter版" class="headerlink" title="附2：代理的实现(Flutter版)"></a>附2：代理的实现(Flutter版)</h2><p>dio添加代理</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">   (dio.httpClientAdapter <span class="keyword">as</span> DefaultHttpClientAdapter).onHttpClientCreate =</span><br><span class="line">        (client) &#123;</span><br><span class="line">      <span class="comment">// config the http client</span></span><br><span class="line">      client.findProxy = (uri) &#123;</span><br><span class="line">        CommonUtils.log(<span class="string">'fcs-myproxy-begin:<span class="subst">$&#123;uri <span class="keyword">is</span> Uri&#125;</span> uri:<span class="subst">$&#123;uri.toString()&#125;</span>'</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"PROXY 192.168.10.47:8888"</span>;<span class="comment">//如果设置代理（localhost,127.0.0.1这样的是不行的。必须是电脑的ip）</span></span><br><span class="line"><span class="comment">//        return 'DIRECT';// 如果不设置代理</span></span><br><span class="line">      &#125;;</span><br><span class="line">      client.badCertificateCallback =</span><br><span class="line">          (X509Certificate cert, <span class="built_in">String</span> host, <span class="built_in">int</span> port) =&gt; <span class="keyword">true</span>;<span class="comment">//忽略证书</span></span><br><span class="line">    &#125;;</span><br></pre></td></tr></table></figure>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/开发工具/" data-id="cm2nl40m4000ezqr46exilzae" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter工程实践小结" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter工程实践小结/" class="article-date">
-  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter工程实践小结/">实践小结</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/c221161a9bff" target="_blank" rel="noopener">Flutter中JSON数据到模型 复杂数据模型解析 模型嵌套</a></li>
-</ul>
-<ul>
-<li><a href="https://www.cnblogs.com/lxlx1798/p/11280106.html" target="_blank" rel="noopener">Dart之字符串(String)的相关方法总结</a></li>
-</ul>
-<p><a href="http://www.voidcn.com/article/p-aoiprojh-bwb.html" target="_blank" rel="noopener">为什么某些变量在flutter自定义类中被标记为final？</a></p>
-<h1 id="升级-Flutter"><a href="#升级-Flutter" class="headerlink" title="升级 Flutter"></a>升级 Flutter</h1><p>1、命令方式</p>
-<ul>
-<li><a href="https://flutterchina.club/upgrading/" target="_blank" rel="noopener">升级Flutter</a></li>
-</ul>
-<p>2、自己下载替换方式</p>
-<ul>
-<li>去 <a href="https://flutter.dev/docs/development/tools/sdk/releases?tab=macos" target="_blank" rel="noopener">Flutter SDK 官网</a> 下载对应的SDK</li>
-<li>替换掉你本地的</li>
-<li>关掉所有正在编辑Flutter的项目(如果没有关掉所有的，则会遇到如 @require等找不到的问题)</li>
-<li>重新pub get</li>
-</ul>
-<h1 id="Flutter出现List-is-not-a-subtype-of-type-List解决方法"><a href="#Flutter出现List-is-not-a-subtype-of-type-List解决方法" class="headerlink" title="Flutter出现List is not a subtype of type List解决方法"></a>Flutter出现List is not a subtype of type List解决方法</h1><h2 id="控制台错误如下："><a href="#控制台错误如下：" class="headerlink" title="控制台错误如下："></a>控制台错误如下：</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">type <span class="string">'List&lt;dynamic&gt;'</span> <span class="keyword">is</span> not a subtype of type <span class="string">'List&lt;String&gt;'</span></span><br><span class="line"><span class="number">1</span></span><br></pre></td></tr></table></figure>
-<h2 id="出现这个错误的原因是由于解析json的数据类型不一致导致"><a href="#出现这个错误的原因是由于解析json的数据类型不一致导致" class="headerlink" title="出现这个错误的原因是由于解析json的数据类型不一致导致"></a>出现这个错误的原因是由于解析json的数据类型不一致导致</h2><p><strong>后台返回的一个json字段为：</strong></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; imagesString = [<span class="string">'https://1.png'</span>, <span class="string">'https://2.png'</span>];</span><br><span class="line">  <span class="built_in">String</span> imageParam = jsonEncode(imagesString);</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">'imageParam = <span class="subst">$imageParam<span class="string">');</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">//List&lt;String&gt; images = jsonDecode(imageParam);	// 错误写法,会造成崩溃</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  List&lt;String&gt; images = jsonDecode(imageParam).cast&lt;String&gt;();	// 正确写法</span></span></span></span><br><span class="line"><span class="string"><span class="subst"><span class="string">  print('</span></span>转换完成'</span>);</span><br></pre></td></tr></table></figure>
-<p>解析json用到的model实体类，由于labelList是一个字符串集合数组，<br>需要在解析labelList字段时加上<code>cast&lt;String&gt;()</code></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; labelList = json[<span class="string">'labelList'</span>].cast&lt;String&gt;();</span><br></pre></td></tr></table></figure>
-<h2 id="二、问题"><a href="#二、问题" class="headerlink" title="二、问题"></a>二、问题</h2><h4 id="问题1：Flutter-gpu-surface-gl"><a href="#问题1：Flutter-gpu-surface-gl" class="headerlink" title="问题1：Flutter gpu_surface_gl"></a>问题1：Flutter gpu_surface_gl</h4><p>原因为：<strong>机型的gpu不匹配</strong></p>
-<p><img src="/Flutter/项目实践/Flutter工程实践小结/Flutter gpu_surface_gl.png" alt="Flutter gpu_surface_gl"></p>
-<p>如果你使用的是命令来运行flutter的话，那么在flutter run加参数就可以。即<code>flutter run --enable-software-rendering</code>。</p>
-<p>但是这个办法有个坑，就是热加载的时候要手动在命令行输入r（不是说好的自动的么，也许是我打开的方式不对）；</p>
-<p>如果不是用命令来运行的话，那解决步骤如下：</p>
-<p><img src="/Flutter/项目实践/Flutter工程实践小结/Flutter gpu_surface_gl问题2.png" alt="Flutter gpu_surface_gl问题"></p>
-<p><img src="/Flutter/项目实践/Flutter工程实践小结/Flutter gpu_surface_gl问题3.png" alt="Flutter gpu_surface_gl问题3"></p>
-<p>–enable-software-rendering</p>
-<h4 id="问题2：resource-android-attr-fontVariationSettings-not-found"><a href="#问题2：resource-android-attr-fontVariationSettings-not-found" class="headerlink" title="问题2：resource android:attr/fontVariationSettings not found"></a>问题2：resource android:attr/fontVariationSettings not found</h4><p>解决方案：</p>
-<p>try to change the compileSdkVersion to:</p>
-<p>compileSdkVersion 28</p>
-<h4 id="bash-dart-command-not-found"><a href="#bash-dart-command-not-found" class="headerlink" title="-bash: dart: command not found"></a>-bash: dart: command not found</h4><p>原因是下载Fluter SDK时，Dart SDK已经在捆绑Fluter里了，所以需要设置下Dart环境变量的路径：</p>
-<p>①打开配置环境变量的文件: <code>.bash_profile</code></p>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">open ~<span class="regexp">/.bash_profile</span></span><br></pre></td></tr></table></figure>
-<p>②配置Dart SDK所在路径</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export DART_BIN=/Applications/flutter/bin/cache/dart-sdk/bin</span><br><span class="line">export PATH=$&#123;PATH&#125;:$&#123;DART_BIN&#125;</span><br></pre></td></tr></table></figure>
-<p>③最后在终端里执行: <code>source ~/.bash_profile</code> 重新加载一下</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source ~/.bash_profile</span><br></pre></td></tr></table></figure>
-<p>④此时，就可以用dart命令来执行你想要的操作了。比如</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dart --version</span><br></pre></td></tr></table></figure>
-<h3 id="Failed-assertion-line-1687-pos-12-‘hasSize’"><a href="#Failed-assertion-line-1687-pos-12-‘hasSize’" class="headerlink" title="Failed assertion: line 1687 pos 12: ‘hasSize’"></a>Failed assertion: line 1687 pos 12: ‘hasSize’</h3><p>原因：<strong>Column的子widget中包含ListView</strong></p>
-<p><a href="https://www.cnblogs.com/madlife/p/12465136.html" target="_blank" rel="noopener">Column的子widget中包含ListView</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter工程实践小结/" data-id="cm2nl427300fgzqr4cwonrn0e" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter控件与布局相关" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter控件与布局相关/" class="article-date">
-  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter控件与布局相关/">实践小结</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="待做"><a href="#待做" class="headerlink" title="待做"></a>待做</h2><ul>
-<li><a href="https://www.cnblogs.com/joe235/p/11224772.html" target="_blank" rel="noopener">Flutter 实现简单搜索功能</a></li>
-</ul>
-<h2 id="Flutter获取版本号"><a href="#Flutter获取版本号" class="headerlink" title="Flutter获取版本号"></a>Flutter获取版本号</h2><p>我们app版本号写在<code>pubspec.yaml</code>里<code>version</code>字段后面。例如<code>version: 1.0.0+3</code> 其中+前面为版本号，后面为构建号。</p>
-<h2 id="一、基本设置"><a href="#一、基本设置" class="headerlink" title="一、基本设置"></a>一、基本设置</h2><h3 id="1、设置背景颜色-背景图"><a href="#1、设置背景颜色-背景图" class="headerlink" title="1、设置背景颜色/背景图"></a>1、设置背景颜色/背景图</h3><h4 id="1-1、设置普通视图的背景色"><a href="#1-1、设置普通视图的背景色" class="headerlink" title="1.1、设置普通视图的背景色"></a>1.1、设置普通视图的背景色</h4><p>采用包一层<code>Container</code>，进行对应的color设置。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> Container(</span><br><span class="line">  color: Colors.red,										<span class="comment">// 设置视图颜色</span></span><br><span class="line">	child: xxx,</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-<h4 id="1-2、设置页面的背景色"><a href="#1-2、设置页面的背景色" class="headerlink" title="1.2、设置页面的背景色"></a>1.2、设置页面的背景色</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> Scaffold(</span><br><span class="line">      backgroundColor: Colors.yellow,		<span class="comment">// 设置页面背景颜色</span></span><br><span class="line">      appBar: _appBar(),</span><br><span class="line">      body: _pageWidget(),</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
-<h3 id="2、设置背景图片"><a href="#2、设置背景图片" class="headerlink" title="2、设置背景图片"></a>2、设置背景图片</h3><h4 id="2-1、设置普通视图的背景图"><a href="#2-1、设置普通视图的背景图" class="headerlink" title="2.1、设置普通视图的背景图"></a>2.1、设置普通视图的背景图</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">EmptyView</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> EmptyView(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Container(</span><br><span class="line">      decoration: BoxDecoration(					<span class="comment">// 设置视图的背景图/秀视图</span></span><br><span class="line">        image: <span class="keyword">new</span> DecorationImage(</span><br><span class="line">          fit: BoxFit.cover,	<span class="comment">// 充满容器，可能会被截断。</span></span><br><span class="line">          image: <span class="keyword">new</span> NetworkImage(</span><br><span class="line">              <span class="string">'https://randomuser.me/api/portraits/men/43.jpg'</span>),</span><br><span class="line">        ),</span><br><span class="line">      ),</span><br><span class="line">      child: Container(</span><br><span class="line">        color: Colors.red.withOpacity(<span class="number">.5</span>),</span><br><span class="line">        child: Center(</span><br><span class="line">          child: Text(</span><br><span class="line">            <span class="string">"我在图片的上面哦~"</span>,</span><br><span class="line">            style: TextStyle(color: Colors.white, fontSize: <span class="number">33</span>),</span><br><span class="line">          ),</span><br><span class="line">        ),</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="2-2、设置页面的背景图"><a href="#2-2、设置页面的背景图" class="headerlink" title="2.2、设置页面的背景图"></a>2.2、设置页面的背景图</h4><p>设背景图为如上EmptyView，则设置代码如下：</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">	<span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      backgroundColor: Colors.yellow,</span><br><span class="line">      appBar: _appBar(),</span><br><span class="line">      body: _emptyView(),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 特殊场景：如果你的页面上有TextField等会弹出键盘的视图。因为默认情况下键盘出现时是否应调整主体Scaffold的大小。所以，为了图片能正确显示，我们使用resizeToAvoidBottomInset指定在键盘出现时是否应调整主体的大小。</span></span><br><span class="line">	<span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      backgroundColor: Colors.yellow,</span><br><span class="line">      resizeToAvoidBottomInset: <span class="keyword">false</span>,	<span class="comment">// 增加此行，指定在键盘出现时不调整主体的大小</span></span><br><span class="line">      appBar: _appBar(),</span><br><span class="line">      body: _emptyView(),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<h2 id="二、布局"><a href="#二、布局" class="headerlink" title="二、布局"></a>二、布局</h2><h3 id="1、充满"><a href="#1、充满" class="headerlink" title="1、充满"></a>1、充满</h3><p><strong>默认情况下，大多数组件都会使用尽可能小的空间</strong>。所以如果不设置视图的大小的话，其会自动计算大小，只显示对应的大小。所以当你的视图不够大，而你却又想让它充满父视图的话。那应该进行一些对应的设置。</p>
-<h4 id="1-1、设置width、height等于父视图大小方式-不建议"><a href="#1-1、设置width、height等于父视图大小方式-不建议" class="headerlink" title="1.1、设置width、height等于父视图大小方式(不建议)"></a>1.1、设置width、height等于父视图大小方式(不建议)</h4><h5 id="①、如果视图有width和height属性，则直接设置。如Container和Image等。如下："><a href="#①、如果视图有width和height属性，则直接设置。如Container和Image等。如下：" class="headerlink" title="①、如果视图有width和height属性，则直接设置。如Container和Image等。如下："></a>①、如果视图有width和height属性，则直接设置。如<code>Container</code>和<code>Image</code>等。如下：</h5><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> Image(</span><br><span class="line">  width: MediaQuery.of(context).size.width,</span><br><span class="line">  height: MediaQuery.of(context).size.height,</span><br><span class="line">  image: AssetImage(</span><br><span class="line">  	<span class="string">'lib/commonui/cq-guide-overlay/Resources/bg_背景遮罩.png'</span>),</span><br><span class="line">  fit: BoxFit.fill,</span><br><span class="line">),</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> Container(</span><br><span class="line">  width: MediaQuery.of(context).size.width,</span><br><span class="line">  height: MediaQuery.of(context).size.height,</span><br><span class="line">  color: Colors.red,</span><br><span class="line">	child: xxx,</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-<p>缺点：需要计算大小，不建议使用。</p>
-<h5 id="②、如果该视图没有width和height属性，则我们通过为该视图包一层Container后来设置width、height。"><a href="#②、如果该视图没有width和height属性，则我们通过为该视图包一层Container后来设置width、height。" class="headerlink" title="②、如果该视图没有width和height属性，则我们通过为该视图包一层Container后来设置width、height。"></a>②、如果该视图没有width和height属性，则我们通过为该视图包一层<code>Container</code>后来设置width、height。</h5><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> Container(</span><br><span class="line">  width: MediaQuery.of(context).size.width,</span><br><span class="line">  height: MediaQuery.of(context).size.height,</span><br><span class="line">  color: Colors.red,</span><br><span class="line">	child: xxx,</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-<h4 id="1-2、设置constraints方式"><a href="#1-2、设置constraints方式" class="headerlink" title="1.2、设置constraints方式"></a>1.2、设置constraints方式</h4><p>如果你不想/不能通过设置width、height属性的方式设置，则你可以构建一层<code>Container</code>或者<code>ConstrainedBox</code>，然后设置constraints的属性。建议两者的选择，使用<code>ConstrainedBox</code>会使得语意更明白。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> Container(</span><br><span class="line">  constraints: BoxConstraints(</span><br><span class="line">    minWidth: <span class="built_in">double</span>.infinity,</span><br><span class="line">    minHeight: <span class="built_in">double</span>.infinity,</span><br><span class="line">  ),</span><br><span class="line">  color: Colors.red,</span><br><span class="line">	child: xxx,</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> ConstrainedBox(</span><br><span class="line">	constraints: <span class="keyword">new</span> BoxConstraints.expand(),</span><br><span class="line">  child: xxx,</span><br><span class="line">),</span><br></pre></td></tr></table></figure>
-<p>默认情况下，大多数组件都会使用尽可能小的空间：</p>
-<p><code>ConstrainedBox</code> 让部件可以使用期望的剩余空间。</p>
-<p><code>BoxConstraints.expand</code> 将会让组件使用无限制（所有可用）的空间，除非另有指定。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">BoxConstraints.tightFor(width: <span class="number">80.0</span>,height: <span class="number">80.0</span>),</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line">BoxConstraints(minHeight: <span class="number">80.0</span>,maxHeight: <span class="number">80.0</span>,minWidth: <span class="number">80.0</span>,maxWidth: <span class="number">80.0</span>)</span><br></pre></td></tr></table></figure>
-<p>更多</p>
-<h3 id="2、图片的显示方式"><a href="#2、图片的显示方式" class="headerlink" title="2、图片的显示方式"></a>2、图片的显示方式</h3><ul>
-<li><a href="https://www.jianshu.com/p/8810bacfe5d4" target="_blank" rel="noopener">Flutter 图片如何充满父布局</a></li>
-</ul>
-<p>BoxFit.fill：图显示，显示可能拉伸，充满</p>
-<h3 id="3、绝对布局"><a href="#3、绝对布局" class="headerlink" title="3、绝对布局"></a>3、绝对布局</h3><ul>
-<li><a href="https://www.jianshu.com/p/6108433be896" target="_blank" rel="noopener">Flutter Stack 组件</a></li>
-<li><a href="https://www.jianshu.com/p/97183dd3167e" target="_blank" rel="noopener">flutter 层叠布局Stack、Positioned</a></li>
-</ul>
-<h2 id="三、控件"><a href="#三、控件" class="headerlink" title="三、控件"></a>三、控件</h2><p><a href="https://www.jianshu.com/p/3f15e8d398f9" target="_blank" rel="noopener">Flutter 自定义组件之列表头悬浮</a></p>
-<p><a href="https://www.jianshu.com/p/5de174e82175" target="_blank" rel="noopener">Flutter笔记-深入分析滑动控件</a></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 滑动效果</span></span><br><span class="line"><span class="comment">  * AlwaysScrollableScrollPhysics() 总是可以滑动，默认值</span></span><br><span class="line"><span class="comment">  * NeverScrollableScrollPhysics禁止滚动</span></span><br><span class="line"><span class="comment">  * BouncingScrollPhysics 内容超过一屏 上拉有回弹效果</span></span><br><span class="line"><span class="comment">  * ClampingScrollPhysics 包裹内容 不会有回弹</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  <span class="keyword">final</span> ScrollPhysics physics;</span><br></pre></td></tr></table></figure>
-<h2 id="三方控件"><a href="#三方控件" class="headerlink" title="三方控件"></a>三方控件</h2><h3 id="Flutter-中使用-video-player-播放视频"><a href="#Flutter-中使用-video-player-播放视频" class="headerlink" title="Flutter 中使用 video_player 播放视频"></a>Flutter 中使用 video_player 播放视频</h3><p><a href="http://www.ptbird.cn/flutter-video.html" target="_blank" rel="noopener">Flutter 中使用 video_player 播放视频</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter控件与布局相关/" data-id="cm2nl427f00fkzqr4nhj74ar5" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter数据传值" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter数据传值/" class="article-date">
-  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter数据传值/">实践小结</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="传值"><a href="#传值" class="headerlink" title="传值"></a>传值</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">数据传输一般处理方式：自上而下的一层一层传递数据。</span><br><span class="line"></span><br><span class="line">场景： WidgetB数据改变后，WidgetA也随之作出响应。</span><br><span class="line"></span><br><span class="line">解决方案1： 参考Flutter知识点: InheritedWidget</span><br><span class="line"></span><br><span class="line">解决方案2：Notification，子节点状态变更，发送通知上报。</span><br></pre></td></tr></table></figure>
-<h2 id="一、父传给子"><a href="#一、父传给子" class="headerlink" title="一、父传给子"></a>一、父传给子</h2><h3 id="1、直接传"><a href="#1、直接传" class="headerlink" title="1、直接传"></a>1、直接传</h3><p><a href="https://www.jianshu.com/p/08f448b7a8aa" target="_blank" rel="noopener">Flutter中界面之间参数的传递与接收</a></p>
-<h2 id="二、子传给父"><a href="#二、子传给父" class="headerlink" title="二、子传给父"></a>二、子传给父</h2><h3 id="1、Callback-子传给父"><a href="#1、Callback-子传给父" class="headerlink" title="1、Callback(子传给父)"></a>1、Callback(子传给父)</h3><p>大家都知道回调方法在父子Widget之间传值是非常有用的,特别是用于子Widget向父Widget传值,接。</p>
-<p>定义一个回调函数类型</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> clickCallback = <span class="keyword">void</span> <span class="built_in">Function</span>(<span class="built_in">String</span> value);</span><br></pre></td></tr></table></figure>
-<p>将回调函数透出子Widget</p>
-<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> clickCallback onClick;</span><br><span class="line"></span><br><span class="line">TestWidget(&#123;</span><br><span class="line">   Key key,</span><br><span class="line">   <span class="keyword">this</span>. onClick,</span><br><span class="line"> &#125;):<span class="keyword">super</span>(key:key);</span><br></pre></td></tr></table></figure>
-<h2 id="三、传给其它-给父或给其它"><a href="#三、传给其它-给父或给其它" class="headerlink" title="三、传给其它(给父或给其它)"></a>三、传给其它(给父或给其它)</h2><h3 id="1、Notification-给其它"><a href="#1、Notification-给其它" class="headerlink" title="1、Notification(给其它)"></a>1、Notification(给其它)</h3><p>1.自定义notification</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestNotification</span> <span class="keyword">extends</span> <span class="title">Notification</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">int</span> count;</span><br><span class="line">  </span><br><span class="line">  TestNotification(&#123;</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.count,</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>2.子节点发送通知</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> RaisedButton(</span><br><span class="line">  textColor: Colors.black,</span><br><span class="line">  child: <span class="keyword">new</span> Center(</span><br><span class="line">    child: <span class="keyword">new</span> Text(<span class="string">'点击传递随机数给上层Widget'</span>),</span><br><span class="line">  ),</span><br><span class="line">  onPressed: () &#123;</span><br><span class="line">    <span class="keyword">new</span> TestNotification(count: <span class="keyword">new</span> Random().nextInt(<span class="number">100</span>)).dispatch(key.currentContext);</span><br><span class="line">  &#125;,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-<p>3.父节点使用NotificationListener进行监听子节点发出的通知，并作出响应</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> NotificationListener(</span><br><span class="line">  onNotification: (TestNotification n) &#123;</span><br><span class="line">    scaffoldStateKey.currentState.showSnackBar(<span class="keyword">new</span> SnackBar(content: <span class="keyword">new</span> Text(<span class="string">'随机数：<span class="subst">$&#123;n.count&#125;</span>'</span>)));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;,</span><br><span class="line">  child: <span class="keyword">new</span> TestAPage(</span><br><span class="line">    key: key,</span><br><span class="line">  ),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter数据传值/" data-id="cm2nl427n00fnzqr4du37qvrk" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter数据和状态管理" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter数据和状态管理/" class="article-date">
-  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter数据和状态管理/">实践小结</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="一、对比-MVC、MVP、BloC、Redux-四种架构"><a href="#一、对比-MVC、MVP、BloC、Redux-四种架构" class="headerlink" title="一、对比[MVC、MVP、BloC、Redux]四种架构"></a>一、对比[MVC、MVP、BloC、Redux]四种架构</h2><ul>
-<li><p><a href="https://www.jianshu.com/p/ba3414457419" target="_blank" rel="noopener">MVC、MVP、BloC、Redux四种架构在Flutter上的尝试</a></p>
-<blockquote>
-<h3 id="对比-MVC、MVP、BloC、Redux-四种架构的好坏，"><a href="#对比-MVC、MVP、BloC、Redux-四种架构的好坏，" class="headerlink" title="对比[MVC、MVP、BloC、Redux]四种架构的好坏，"></a>对比[MVC、MVP、BloC、Redux]四种架构的好坏，</h3><p>对比[MVC、MVP、BloC、Redux]四种架构的好坏，最终还是的回归到状态管理上来。<code>MVC</code>、<code>MVP</code>的状态管理都是采用<code>setState</code>方式，而<code>BloC</code>和<code>Redux</code>都有自己的一套状态管理。</p>
-<p>当项目最初不是很复杂的时候，采用<code>setState</code>方式更新数据是可以的。但是随着功能的增加，你的项目将会有几十个甚至上百个状态，<code>setState</code>出现的次数便会显著增加，每次<code>setState</code>都会重新调用build方法，这势必对于性能以及代码的可阅读性带来一定的影响。所以就放弃了<code>MVC</code>、<code>MVP</code>这两种架构。</p>
-<p>最初对<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fgithub.com%2FYuzopro%2FOpenGit_Flutter" target="_blank" rel="noopener">OpenGit_Flutter</a>进行架构重构的时候，用到的是<code>Redux</code>，到涉及到多个页面复用时，例如项目中的<code>项目页</code>，每涉及到一个复用页面就需要在<code>state</code>内定义一些列的变量，这是个很痛苦的过程，所以后面就放弃了用<code>Redux</code>，但是<code>Redux</code>在保存全局状态有优势，例如主题、语言、用户资料等。后面又尝试了<code>BloC</code>，该架构在多页面复用时，就没存在<code>Redux</code>的问题。</p>
-<p><strong>所以最后我采用的架构是<code>Bloc+Redux</code>，用<code>BloC</code>控制局部状态，用<code>Redux</code>控制全局状态。</strong></p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><a href="https://www.cnblogs.com/joe235/p/11970343.html" target="_blank" rel="noopener">Flutter Bloc状态管理 简单上手</a></li>
-<li><p><a href="https://cloud.tencent.com/developer/article/1622727" target="_blank" rel="noopener">[- Flutter-技能篇 -] 使用Provider前你应了解Consumer</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/9cd4b9fb7b44" target="_blank" rel="noopener">Flutter状态管理provider的使用和封装</a></p>
-</li>
-<li><a href="https://juejin.im/post/6844903864852807694#heading-43" target="_blank" rel="noopener">Flutter | 状态管理指南篇——Provider（鉴定为精450赞）</a></li>
-</ul>
-<h2 id="单例"><a href="#单例" class="headerlink" title="单例"></a>单例</h2><p>Flutter中，dart的单例模式设计</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个单例的Manager类</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Manager</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 工厂模式</span></span><br><span class="line">  <span class="keyword">factory</span> Manager() =&gt;_getInstance();</span><br><span class="line">  <span class="keyword">static</span> Manager <span class="keyword">get</span> instance =&gt; _getInstance();</span><br><span class="line">  <span class="keyword">static</span> Manager _instance;</span><br><span class="line">  Manager._internal() &#123;</span><br><span class="line">    <span class="comment">// 初始化</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">static</span> Manager _getInstance() &#123;</span><br><span class="line">    <span class="keyword">if</span> (_instance == <span class="keyword">null</span>) &#123;</span><br><span class="line">      _instance = <span class="keyword">new</span> Manager._internal();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> _instance;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用</span></span><br><span class="line"><span class="comment">// 无论如何初始化，取到的都是同一个对象</span></span><br><span class="line">Manager manager = <span class="keyword">new</span> Manager();</span><br><span class="line">Manager manager2 = Manager.instance;</span><br></pre></td></tr></table></figure>
-<h2 id="数据管理"><a href="#数据管理" class="headerlink" title="数据管理"></a>数据管理</h2><p><a href="https://dart-pub.mirrors.sjtug.sjtu.edu.cn/packages/shared_preferences/install" target="_blank" rel="noopener">shared_preferences 0.5.8</a></p>
-<p><a href="https://www.jianshu.com/p/33578467b1fa" target="_blank" rel="noopener">Flutter sharedPreferences使用</a></p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'package:shared_preferences/shared_preferences.dart'</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment"><span class="markdown">/// desc：本地储存</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SharedPreferenceUtil</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">const</span> <span class="built_in">String</span> UserTokenKey = <span class="string">"userTokenKey"</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 异步保存</span></span><br><span class="line">  Future setUserToken(<span class="built_in">String</span> userToken) <span class="keyword">async</span>&#123;</span><br><span class="line">     SharedPreferences prefs = <span class="keyword">await</span> SharedPreferences.getInstance();</span><br><span class="line">     prefs.setString(UserTokenKey, userToken);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 异步删除</span></span><br><span class="line">  Future delUserToken() <span class="keyword">async</span>&#123;</span><br><span class="line">    SharedPreferences prefs = <span class="keyword">await</span> SharedPreferences.getInstance();</span><br><span class="line">    prefs.remove(UserTokenKey);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 异步读取</span></span><br><span class="line">  Future&lt;<span class="built_in">String</span>&gt; getUserToken() <span class="keyword">async</span>&#123;</span><br><span class="line">    SharedPreferences prefs = <span class="keyword">await</span> SharedPreferences.getInstance();</span><br><span class="line">    <span class="built_in">String</span> userToken =  prefs.getString(UserTokenKey);</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">'------userToken = <span class="subst">$userToken</span>-----'</span>);</span><br><span class="line">    <span class="keyword">return</span> userToken;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line"><span class="comment">// 保存：</span></span><br><span class="line">SharedPreferenceUtil.setUserToken(<span class="string">"usertoken_zhangsan"</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 读取：</span></span><br><span class="line">Future&lt;<span class="built_in">String</span>&gt; userTokenFuture = SharedPreferenceUtil.getUserToken();</span><br><span class="line">userTokenFuture.then((<span class="built_in">String</span> userToken) &#123;</span><br><span class="line">  <span class="built_in">print</span>(<span class="string">'------userToken = <span class="subst">$userToken</span>-----'</span>);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter数据和状态管理/" data-id="cm2nl427x00frzqr48b0mkpth" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Flutter/项目实践/Flutter生命周期与路由" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Flutter/项目实践/Flutter生命周期与路由/" class="article-date">
-  <time datetime="2020-07-20T05:14:37.000Z" itemprop="datePublished">2020-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/项目实践/Flutter生命周期与路由/">实践小结</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h2 id="一、生命周期"><a href="#一、生命周期" class="headerlink" title="一、生命周期"></a>一、生命周期</h2><ul>
-<li><a href="http://findsrc.com/flutter/detail/8697" target="_blank" rel="noopener">flutter切换到后台、前台等事件的监听</a></li>
-</ul>
-<p>该界面前提：</p>
-<p>①、StatefulWidget</p>
-<p>②、WidgetsBindingObserver</p>
-<p>③、@override didChangeAppLifecycleState</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">'dart:async'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/material.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:flutter/services.dart'</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">'package:background_fetch/background_fetch.dart'</span>;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">void</span> main() &#123;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">// Enable integration testing with the Flutter Driver extension.</span></span><br><span class="line">  <span class="comment">// See https://flutter.io/testing/ for more info.</span></span><br><span class="line">  runApp(<span class="keyword">new</span> MyApp());</span><br><span class="line"> </span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyApp</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  _MyAppState createState() =&gt; <span class="keyword">new</span> _MyAppState();</span><br><span class="line"> </span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_MyAppState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">MyApp</span>&gt; <span class="title">with</span> <span class="title">WidgetsBindingObserver</span></span>&#123;</span><br><span class="line"> </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> initState() &#123;</span><br><span class="line">    <span class="keyword">super</span>.initState();</span><br><span class="line">    WidgetsBinding.instance.addObserver(<span class="keyword">this</span>);</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didChangeAppLifecycleState(AppLifecycleState state) &#123;</span><br><span class="line">    <span class="keyword">super</span>.didChangeAppLifecycleState(state);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"--"</span> + state.toString());</span><br><span class="line">    <span class="keyword">switch</span> (state) &#123;</span><br><span class="line">      <span class="keyword">case</span> AppLifecycleState.inactive: <span class="comment">// 处于这种状态的应用程序应该假设它们可能在任何时候暂停。</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> AppLifecycleState.resumed: <span class="comment">// 应用程序可见，前台</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> AppLifecycleState.paused: <span class="comment">// 应用程序不可见，后台</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> AppLifecycleState.detached: <span class="comment">// detached</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> dispose() &#123;</span><br><span class="line">    WidgetsBinding.instance.removeObserver(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">super</span>.dispose();</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MaterialApp(</span><br><span class="line">      home: <span class="keyword">new</span> Scaffold(</span><br><span class="line">        appBar: <span class="keyword">new</span> AppBar(</span><br><span class="line">            title: <span class="keyword">const</span> Text(<span class="string">'前后台测试'</span>)</span><br><span class="line">        ),</span><br><span class="line"> </span><br><span class="line">        body: Container(</span><br><span class="line">          color: Colors.black,</span><br><span class="line">          child: Text(<span class="string">'前后台测试'</span>),</span><br><span class="line">        ),</span><br><span class="line"> </span><br><span class="line">      ),</span><br><span class="line"> </span><br><span class="line">    );</span><br><span class="line"> </span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="1、什么时候渲染完成？"><a href="#1、什么时候渲染完成？" class="headerlink" title="1、什么时候渲染完成？"></a>1、什么时候渲染完成？</h3><ul>
-<li><a href="https://www.jianshu.com/p/c634cea0f88a" target="_blank" rel="noopener">flutter获取元素大小、位置</a></li>
-<li><a href="https://blog.csdn.net/senkai123/article/details/102934260" target="_blank" rel="noopener">flutter 如何判断页面渲染完毕</a></li>
-</ul>
-<ul>
-<li><a href="https://blog.csdn.net/baidu_34120295/article/details/86495861" target="_blank" rel="noopener">Flutter 获取某个控件的坐标</a></li>
-</ul>
-<p>使用场景：</p>
-<ul>
-<li><a href="https://www.imooc.com/article/304897?block_id=tuijian_wz" target="_blank" rel="noopener"><strong>Flutter 89: 图解基本 Overlay 悬浮新手引导</strong></a></li>
-</ul>
-<h2 id="二、路由"><a href="#二、路由" class="headerlink" title="二、路由"></a>二、路由</h2><ul>
-<li><p><a href="https://www.cnblogs.com/journeyzc/p/12574750.html" target="_blank" rel="noopener">Flutter进阶—路由和导航</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/1faaeaf4f3f7" target="_blank" rel="noopener">Flutter路由管理三方Fluro使用（一）</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/项目实践/Flutter生命周期与路由/" data-id="cm2nl428600fuzqr4pm1m91ys" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" class="article-date">
-  <time datetime="2020-07-08T09:08:41.000Z" itemprop="datePublished">2020-07-08</time>
+    <a href="/Architecture架构/基础规范/埋点相关/埋点数据常见问题/" class="article-date">
+  <time datetime="2020-03-18T09:08:41.000Z" itemprop="datePublished">2020-03-18</time>
 </a>
     
   <div class="article-category">
@@ -627,7 +90,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/">一个不用重加载的WebView</a>
+      <a class="article-title" href="/Architecture架构/基础规范/埋点相关/埋点数据常见问题/">埋点数据常见问题</a>
     </h1>
   
 
@@ -635,136 +98,340 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="一个不用重加载的WebView"><a href="#一个不用重加载的WebView" class="headerlink" title="一个不用重加载的WebView"></a>一个不用重加载的WebView</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><ul>
-<li>一个基于WebView的Cocos2d游戏，因为启动加载引擎会有3-5秒的加载时长。为了更好的游戏体验，希望启动后重新进入不用重新加载。</li>
-</ul>
-<h2 id="二、webView的方案汇总"><a href="#二、webView的方案汇总" class="headerlink" title="二、webView的方案汇总"></a>二、webView的方案汇总</h2><table>
+        <h1 id="埋点数据常见问题"><a href="#埋点数据常见问题" class="headerlink" title="埋点数据常见问题"></a>埋点数据常见问题</h1><h2 id="一、页面的停留时长"><a href="#一、页面的停留时长" class="headerlink" title="一、页面的停留时长"></a>一、页面的停留时长</h2><p>页面的停留时长不应该只以系统didAppear和disAppear为判断依据。</p>
+<p>还要扣除页面进入后台的时间。</p>
+<p>解决：</p>
+<p>进入后台的时候，触发消失的埋点；进入前台的时候触发显示的埋点。</p>
+<p>相当于，如果用户  进入页面 – 退到后台  –  返回前台  – 离开页面</p>
+<p>会等价于：显示 – 消失 – 显示 – 消失 。两次记录。而不是只有 进入页面– 离开页面的一次记录。</p>
+<h2 id="二、未显示的tab页面，也有使用时长"><a href="#二、未显示的tab页面，也有使用时长" class="headerlink" title="二、未显示的tab页面，也有使用时长"></a>二、未显示的tab页面，也有使用时长</h2><h2 id="三、启动app的人数"><a href="#三、启动app的人数" class="headerlink" title="三、启动app的人数"></a>三、启动app的人数</h2><table>
 <thead>
 <tr>
 <th>序号</th>
-<th>描述</th>
-<th>方式</th>
 <th>方案</th>
-<th>缺点</th>
+<th>结果</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>1</td>
-<td>传统方法</td>
-<td>页面</td>
-<td>APage + AWebView + AWebControl</td>
-<td>重进重载</td>
+<td>通过appStart计算启动app的人数</td>
+<td>不准确❌</td>
 </tr>
 <tr>
 <td>2</td>
-<td>单例WebControl</td>
-<td>页面</td>
-<td>APage + AWebView + ShareWebControl</td>
-<td>暂未发现</td>
+<td>通过登录后必进入的接口请求</td>
+<td>准确✅</td>
 </tr>
 <tr>
 <td>3</td>
-<td>单例WebView</td>
-<td>页面</td>
-<td>APage + ShareWebView</td>
-<td>Flutter因无法插入视图直接不适用</td>
-</tr>
-<tr>
-<td>4</td>
-<td>全局WebView 用法1</td>
-<td>弹窗</td>
-<td>ShareWebView</td>
-<td>页面返回</td>
-</tr>
-<tr>
-<td>5</td>
-<td>全局WebView 用法2</td>
-<td>假页面</td>
-<td>AWebPlaceholderPage+ShareWebView</td>
-<td>页面返回</td>
+<td></td>
 </tr>
 </tbody>
 </table>
-<p>重新梳理各方案特性：</p>
+<p>方案1：通过appStart计算启动app的人数，结果不准确</p>
+<p>原因说明：</p>
+<p>appStart 用户为冷启动（杀掉再进）<br>当用户未登录：有appStart，但没userId。<br>进行登录后，有首页的访问记录，但是appStart已上报过。</p>
+<p>所以，首页的访问记录 &gt;= appStart(99.99999%是大于)</p>
+<p>其他：<br>userId登录时候，未登录无；deviceId：登录和未登录都有</p>
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="1、数据筛选不准确"><a href="#1、数据筛选不准确" class="headerlink" title="1、数据筛选不准确"></a>1、数据筛选不准确</h3><p>可能原因：</p>
+<h4 id="1、未区分版本"><a href="#1、未区分版本" class="headerlink" title="1、未区分版本"></a>1、未区分版本</h4><p>可能旧版本有问题，新版本上修复后，筛选的数据要以新版本为主。</p>
+<p>举例：</p>
+<h4 id="2、会区分时间段"><a href="#2、会区分时间段" class="headerlink" title="2、会区分时间段"></a>2、会区分时间段</h4><p>比如：计算页面的在某一天的时候时长。</p>
+<p>实际举例：用户从昨天22:59开始进入app或者一直在app内的某个页面，直到第二天的23:59才退出。</p>
+<p>则app获取到的数据是，用户使用了25个小时的应用。</p>
+<p>如果计算当天，实际上，只用了23小时59分钟。</p>
+<p>为方便后台计算该次记录的初始显示时间，客户端在消失的埋点里添加显示的时间。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/埋点相关/埋点数据常见问题/" data-id="cm2noh572012rpvr432ugm2op" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Architecture架构/框架相关/WebView相关/WebView优化" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Architecture架构/框架相关/WebView相关/WebView优化/" class="article-date">
+  <time datetime="2020-03-18T09:08:41.000Z" itemprop="datePublished">2020-03-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture架构/框架相关/WebView相关/WebView优化/">WebView优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h2 id="脑图与概览"><a href="#脑图与概览" class="headerlink" title="脑图与概览"></a>脑图与概览</h2><p>点击查看 <a href="./webView/webView.ximd">webView.xmind</a></p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://tech.meituan.com/2017/06/09/webviewperf.html" target="_blank" rel="noopener">美团技术团队：WebView性能、体验分析与优化</a></li>
+<li><a href="https://pss-system.cponline.cnipa.gov.cn/retrieveList?prevPageTit=changgui" target="_blank" rel="noopener">全局WebView</a></li>
+<li><a href="https://mp.weixin.qq.com/s/evzDnTsHrAr2b9jcevwBzA" target="_blank" rel="noopener">70%以上业务由H5开发，手机QQ Hybrid 的架构如何优化演进？</a></li>
+</ul>
+<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>1、当App首次打开时，默认是并不初始化浏览器内核的；</p>
+<p>只有当创建WebView实例的时候，才会创建WebView的基础框架。</p>
+<p>所以与浏览器不同，<strong>App中打开WebView的第一步并不是建立连接，而是启动浏览器内核</strong>。</p>
+<p>先上结论</p>
 <table>
 <thead>
 <tr>
+<th>阶段</th>
+<th>优化方案</th>
 <th></th>
-<th>传统方法<br>页面</th>
-<th>单例WebControl<br>页面</th>
-<th>单例WebView<br>页面</th>
-<th>全局WebView <br>弹窗</th>
-<th>全局WebView<br>假页面</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>附着物</td>
-<td>页面</td>
-<td>页面</td>
-<td>页面</td>
-<td>视图</td>
-<td>视图</td>
+<td>(初次/重复)打开时，加载慢</td>
+<td>webview提前(尽可能多的)初始化+全局化</td>
+<td></td>
 </tr>
 <tr>
-<td>语言适用性</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
+<td>加载中，加载慢</td>
+<td>拦截加载自定义图片(webview_flutter暂不支持)</td>
+<td></td>
 </tr>
 <tr>
-<td>进出可系统控制</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
-<td>❌</td>
-<td>✅</td>
-</tr>
-<tr>
-<td>侧滑返回系统控制</td>
-<td>✅</td>
-<td>✅</td>
-<td>❌Flutter因无法插入视图直接不适用</td>
-<td>❌</td>
-<td>🚗侧滑会先看到白屏</td>
-</tr>
-<tr>
-<td>重进可免重加载</td>
-<td>❌重进重载</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
+<td></td>
+<td></td>
 </tr>
 </tbody>
 </table>
-<p>下面我们按WebView的存在形式，对WebView的方案进行各自的详细说明。</p>
-<h2 id="三、WebView方案之是单页面"><a href="#三、WebView方案之是单页面" class="headerlink" title="三、WebView方案之是单页面"></a>三、WebView方案之是单页面</h2><h3 id="1、传统：APage-AWebView-AControl"><a href="#1、传统：APage-AWebView-AControl" class="headerlink" title="1、传统：APage + AWebView + AControl"></a>1、传统：APage + AWebView + AControl</h3><p>✅进出</p>
-<p>✅侧滑返回</p>
-<p>❌重进入游戏加载重复</p>
-<h3 id="2、webView视图”单例”—Flutter无效"><a href="#2、webView视图”单例”—Flutter无效" class="headerlink" title="2、webView视图”单例”—Flutter无效"></a>2、webView视图”单例”—Flutter无效</h3><p><strong>🚗：Flutter因无法对视图树进行视图插入直接不适用。</strong></p>
-<p>不同地方共用一个webView视图（）</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">APage.addSubView(shareWebView);</span><br><span class="line">BPage.addSubView(shareWebView);</span><br><span class="line">CPage.addSubView(shareWebView);</span><br></pre></td></tr></table></figure>
-<p>区别：全局webView：所有地方都使用同一个地方的webview。</p>
-<h3 id="3、webViewControl-单例"><a href="#3、webViewControl-单例" class="headerlink" title="3、webViewControl 单例"></a>3、webViewControl 单例</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类似 player 的 control()</span></span><br><span class="line">webView1.control = shareControl;</span><br><span class="line">APage.addSubView(webView1);</span><br><span class="line"></span><br><span class="line">webView2.control = shareControl;</span><br><span class="line">BPage.addSubView(webView2);</span><br><span class="line"></span><br><span class="line">webView3.control = shareControl;</span><br><span class="line">CPage.addSubView(webView3)</span><br><span class="line"> </span><br><span class="line">  </span><br><span class="line">build() &#123;</span><br><span class="line">  <span class="comment">//return shareWebView(); // ❌</span></span><br><span class="line">	<span class="keyword">return</span> webViewWidget(control: shareControl)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="四、WebView方案之是全局"><a href="#四、WebView方案之是全局" class="headerlink" title="四、WebView方案之是全局"></a>四、WebView方案之是全局</h2><h3 id="1、直接弹窗"><a href="#1、直接弹窗" class="headerlink" title="1、直接弹窗"></a>1、直接弹窗</h3><p>在Flutter上，以Overlay的方式进行全局WebView的显示时候，底部页面仍会进行相应渲染事项，即仍占用CPU、GPU。</p>
-<p>原因：轮播图、gif动画的渲染在弹出弹窗后，并未停止。</p>
-<p>🚄优化：显示游戏时候，轮播图停止、gif动画停止（类似隐藏游戏的时候，游戏定时器及渲染关闭）。</p>
-<h3 id="2、新页面-弹窗"><a href="#2、新页面-弹窗" class="headerlink" title="2、新页面+弹窗"></a>2、新页面+弹窗</h3><p>目的：通过新页面来作为路由页。</p>
-<h4 id="2-1、显示方式：先显示全局webView视图，再弹出新页面"><a href="#2-1、显示方式：先显示全局webView视图，再弹出新页面" class="headerlink" title="2.1、显示方式：先显示全局webView视图，再弹出新页面"></a>2.1、显示方式：先显示全局webView视图，再弹出新页面</h4><p>若先弹出新页面再显示全局webView视图，页面会有新页面的假白屏问题。所以，应该是先显示再弹出。</p>
-<h4 id="2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"><a href="#2-2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图" class="headerlink" title="2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图"></a>2.2、隐藏之返回方式：先关闭新页面，再隐藏全局webView视图</h4><p>同理若先隐藏全局webView视图再关闭新页面，页面会有新页面的假白屏问题。所以，应该是先关闭再隐藏。</p>
-<h4 id="2-3、隐藏之进入新页面：直接进入新页面。"><a href="#2-3、隐藏之进入新页面：直接进入新页面。" class="headerlink" title="2.3、隐藏之进入新页面：直接进入新页面。"></a>2.3、隐藏之进入新页面：直接进入新页面。</h4><p>以从全局webView视图进入一个app页面。若进入新页面是先关闭全局webView视图，再进入新页面，则从新页面返回的时候，返回位置会错乱（如果为了不错乱，则你必须自己判断返回到哪）。所以应该直接进入新页面。</p>
+<h2 id="一、-初次-重复-打开时，加载慢：webview提前-尽可能多的-初始化-全局化"><a href="#一、-初次-重复-打开时，加载慢：webview提前-尽可能多的-初始化-全局化" class="headerlink" title="一、(初次/重复)打开时，加载慢：webview提前(尽可能多的)初始化+全局化"></a>一、(初次/重复)打开时，加载慢：webview提前(尽可能多的)初始化+全局化</h2><p>背景：有一款基于 <a href="https://docs.cocos.com/cocos2d-x/manual/zh/" target="_blank" rel="noopener">cocos2d</a> 的app游戏，其每次启动都需要加载游戏引擎，而且引擎本身又比较消耗时间。</p>
+<p>请问1：如何提高初次打开的加载速度？</p>
+<p>请问2：如何做到频繁退出进入游戏，不用都走一遍重新加载的流程呢？</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>问题</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>初次打开，加载慢</td>
+<td>1、webview的在冷启动过后不久的提前初始化<br>2、初始化的时候多多进行可以初始化的部分，如尝试游戏引擎的加载。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>重复打开，加载慢</td>
+<td>webview设为全局变量，重复使用</td>
+</tr>
+</tbody>
+</table>
+<p>优化前后对比小结：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>方法</th>
+<th>存在的问题 VS 改进的好处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>未优化</td>
+<td>每次进入游戏都开启页面，退出游戏都销毁页面。</td>
+<td>使用上述方法，每次退出再进入该页面都会因为需要重新加载引擎，而导致游戏主页内容的显示很慢，从而严重影响app的使用体验。</td>
+</tr>
+<tr>
+<td>优化后</td>
+<td>1、游戏使用一个全局GameWebView(其他WebView不用全局)<br>2、游戏显示使用将webView添加到vc或者window上。</td>
+<td>全局GameWebView不会被销毁，能够重复使用，提升加载速度。<br>①加载过的游戏，下次再进入不用重新重新加载引擎，有效的跳过loading的过程，极大的改善了用户体验。</td>
+</tr>
+</tbody>
+</table>
+<p>附1：游戏引擎能否直接在原生上提前加载？</p>
+<p>答：常见做法：构建出含Cocos的原生工程，然后将自己的功能添加上去。见 <a href="https://docs.cocos.com/creator/3.8/manual/zh/advanced-topics/native-secondary-development.html" target="_blank" rel="noopener">Cocos Creator 上原生平台二次开发指南</a></p>
+<p>存在问题：不能自己在原生上添加游戏引擎。 <a href="https://docs.cocos.com/creator/3.8/manual/zh/advanced-topics/engine-customization.html" target="_blank" rel="noopener">Cocos Creator 引擎定制工作流程 也只是将其自己编译器创建的项目的引擎定制。</a></p>
+<p>最终结论：游戏引擎没办法在原生上提前自己加载。</p>
+<p>背景：<a href="https://forum.cocos.org/t/topic/134724" target="_blank" rel="noopener">如何将 Cocos Creator 构建出来的工程用正确的姿势接入Flutter 工程</a></p>
+<p>附2：一个视图实例被添加后，再被添加到其他地方后的效果</p>
+<p>此需求背景：<a href="../../Architecture架构/路由及跳转/页面跳转相关(路由">《页面跳转相关(路由)》中【四、游戏与app跳转交互优化调研】</a>)</p>
+<p>测试过程见附录 <a href="#测试一个视图实例被添加后，再被添加到其他地方后的效果">附1：测试一个视图实例被添加后，再被添加到其他地方后的效果</a></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>被使用的方式</th>
+<th>使用的结果</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>一个视图实例添加到一个vc上的两个container上</td>
+<td>视图只显示在后面设置的位置</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>一个视图实例添加到不同viewController</td>
+<td>视图只显示在后面设置的位置。则代表回来的时候需要重新更新视图位置。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二、加载中，加载慢"><a href="#二、加载中，加载慢" class="headerlink" title="二、加载中，加载慢"></a>二、加载中，加载慢</h2><h3 id="方案1-Scheme-拦截-WKURLSchemeHandler"><a href="#方案1-Scheme-拦截-WKURLSchemeHandler" class="headerlink" title="方案1: Scheme 拦截 WKURLSchemeHandler"></a>方案1: Scheme 拦截 WKURLSchemeHandler</h3><p>解决：<strong>加载自定义图片</strong>（Flutter现有的webview_flutter暂时不支持，如要需要自己修改）</p>
+<p>参考文档：</p>
+<ul>
+<li><p><a href="https://github.com/HARlBO/WWDC/blob/master/WWDC2017/Customized-Loading-in-WKWebView.md" target="_blank" rel="noopener">WWDC Customized-Loading-in-WKWebView</a></p>
+</li>
+<li><p><a href="https://juejin.cn/post/6844903768442535949" target="_blank" rel="noopener">掘金 WWDC2017-Customized Loading in WKWebView</a></p>
+</li>
+<li><a href="https://juejin.cn/post/7219490209716158523#heading-12" target="_blank" rel="noopener">「拒绝踩坑」唯一一种拦截 WKWebView 资源请求的方式</a> =&gt; <a href="https://juejin.cn/post/7223653286465273911" target="_blank" rel="noopener">「最佳实践」WebView 预加载与资源缓存</a> =&gt; <a href="https://juejin.cn/post/6997294531498475556" target="_blank" rel="noopener">WKWebView实现请求拦截，http/https/file等</a> =&gt; <a href="https://github.com/hite/URLSchemeHandlerTest/tree/master" target="_blank" rel="noopener">WKURLSchemeHandler 的能与不能</a> 代码示例见 <a href="https://github.com/hite/URLSchemeHandlerTest/blob/master/URLSchemeHandlerTest/ViewController.m" target="_blank" rel="noopener">ViewController.m</a></li>
+</ul>
+<p>h5中</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">h3</span> <span class="attr">id</span>=<span class="string">"photo"</span>&gt;</span> 自定义图片:canineschool-avatar://photo  <span class="tag">&lt;/<span class="name">h3</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>app中</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> configuration = <span class="type">WKWebViewConfiguration</span>()</span><br><span class="line">configuration.setURLSchemeHandler(<span class="type">MyCustomSchemeHandler</span>(), forURLScheme: <span class="string">"myScheme"</span>)</span><br><span class="line"><span class="keyword">let</span> webView = <span class="type">WKWebView</span>(frame: .zero, configuration: configuration)</span><br><span class="line"><span class="comment">// 当WKWebView在加载一个使用"myScheme://"的资源时，就会调用我们的 MyCustomSchemeHandler 来获取数据。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyCustomSchemeHandler</span>: <span class="title">NSObject</span>, <span class="title">WKURLSchemeHandler</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">webView</span><span class="params">(<span class="number">_</span> webView: WKWebView, start urlSchemeTask: WKURLSchemeTask)</span></span> &#123;</span><br><span class="line">      <span class="keyword">var</span> data: <span class="type">Data</span>?</span><br><span class="line">      <span class="keyword">var</span> mimeType = <span class="string">"application/octet-stream"</span> <span class="comment">// 默认MIME类型</span></span><br><span class="line">        </span><br><span class="line">      <span class="keyword">let</span> url = urlSchemeTask.request.url!</span><br><span class="line">      <span class="comment">// 判断URL的文件扩展名，如果是图片才进行特殊处理，即将webView的图片数据改为app的图片数据</span></span><br><span class="line">      <span class="keyword">if</span> ([<span class="string">"png"</span>, <span class="string">"jpg"</span>, <span class="string">"jpeg"</span>].<span class="built_in">contains</span>(url.pathExtension.lowercased()) &#123;</span><br><span class="line">        data = <span class="type">SDWebImageManager</span>.shared.imageData(forKey: url.absoluteString, options: [])</span><br><span class="line">        mimeType = url.pathExtension.lowercased() == <span class="string">"png"</span> ? <span class="string">"image/png"</span> : <span class="string">"image/jpeg"</span>  </span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;	<span class="comment">// 对于非图片类型，使用默认响应</span></span><br><span class="line">      &#125;</span><br><span class="line">        </span><br><span class="line">      <span class="comment">// 创建URL响应,向WKWebView提供响应和数据</span></span><br><span class="line">      <span class="keyword">let</span> response = <span class="type">URLResponse</span>(url: url, mimeType: mimeType, expectedContentLength: data.<span class="built_in">count</span>, textEncodingName: <span class="literal">nil</span>)</span><br><span class="line">      urlSchemeTask.didReceive(response)</span><br><span class="line">      urlSchemeTask.didReceive(data: validData)</span><br><span class="line">      urlSchemeTask.didFinish()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">webView</span><span class="params">(<span class="number">_</span> webView: WKWebView, stop urlSchemTask: WKURLSchemeTask)</span></span> &#123;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a href="#WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向">WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向</a></p>
+<h3 id="方案2-下载并解压zip，app加载本地静态文件"><a href="#方案2-下载并解压zip，app加载本地静态文件" class="headerlink" title="方案2: 下载并解压zip，app加载本地静态文件"></a>方案2: 下载并解压zip，app加载本地静态文件</h3><p>在WebView中加载本地资源：使用file协议在WebView中加载沙盒目录中的资源。</p>
+<p>跨域问题：</p>
+<p>方法1：在后端设置<strong>CORS</strong>（跨源资源共享）策略，允许来自特定来源的请求。</p>
+<p>方法2：资源通过js来app中获取再回到web中显示。</p>
+<h3 id="方案3：在app中内置一个-WebServer"><a href="#方案3：在app中内置一个-WebServer" class="headerlink" title="方案3：在app中内置一个 WebServer"></a>方案3：在app中内置一个 WebServer</h3><h3 id="其他离线方案："><a href="#其他离线方案：" class="headerlink" title="其他离线方案："></a>其他离线方案：</h3><p><a href="https://www.nowcoder.com/discuss/518917330118750208" target="_blank" rel="noopener">iOS离线静态资源包技术方案分析</a></p>
+<p><a href="https://juejin.cn/post/6844903705968377863" target="_blank" rel="noopener">Flutter下实现WebView拦截加载离线资源</a></p>
+<h2 id="三、打开后，白屏"><a href="#三、打开后，白屏" class="headerlink" title="三、打开后，白屏"></a>三、打开后，白屏</h2><h3 id="1、白屏的原因及原理"><a href="#1、白屏的原因及原理" class="headerlink" title="1、白屏的原因及原理"></a>1、白屏的原因及原理</h3><ul>
+<li><p><a href="https://blog.csdn.net/u012413955/article/details/89671301" target="_blank" rel="noopener">深入理解WKWebView白屏</a></p>
+<blockquote>
+<p>iOS设备上造成白屏的真正原因只有两个：内存使用过度、进程通信机制出现错误。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="2、白屏的解决"><a href="#2、白屏的解决" class="headerlink" title="2、白屏的解决"></a>2、白屏的解决</h3><blockquote>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/webview_blank_flow.png" alt="webview_blank_flow" style="zoom: 50%;"></p>
+</blockquote>
+<p>理想情况（不一定白屏都会调用到）：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//进程终止(内存消耗过大导致白屏)</span></span><br><span class="line">- (<span class="keyword">void</span>)webViewWebContentProcessDidTerminate:(<span class="built_in">WKWebView</span> *)webView &#123;</span><br><span class="line">    [webView reload];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其他处理方式：</p>
+<p>白屏的像素判断法：<a href="https://blog.csdn.net/allanGold/article/details/129028790" target="_blank" rel="noopener">iOS WKWebView白屏的像素检测方法</a> 或 <a href="https://www.cnblogs.com/qfww/p/13863789.html" target="_blank" rel="noopener">iOS WKWebview 白屏的像素检测实现</a></p>
+<p>webview截图 ==&gt; 缩放图片，为了减少待会遍历的像素点 ==&gt; 遍历像素点，判断白色像素占比超过95%则认定为白屏</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">totalCount++;</span><br><span class="line"><span class="keyword">if</span> (red == <span class="number">255</span> &amp;&amp; green == <span class="number">255</span> &amp;&amp; blue == <span class="number">255</span>) &#123;</span><br><span class="line">	whiteCount++;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 占比 proportion = (float)whiteCount/totalCount; 如果 占比 &gt;0.95 则认为白屏</span></span><br></pre></td></tr></table></figure>
+<p>白屏的 webView的子视图<code>WKCompositingView</code> 不存在的判断法：<a href="https://www.jianshu.com/p/4cd4a76e94d4" target="_blank" rel="noopener">白屏时 WKCompositingView 为空</a></p>
+<p>附：WKCompositingView 也是我们在做 <a href="#WebView同层渲染">WebView同层渲染</a> 的时候经常会遇到的类。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 判断是否白屏</span></span><br><span class="line">- (<span class="built_in">BOOL</span>)isBlankView:(<span class="built_in">UIView</span>*)view &#123; <span class="comment">// YES：blank</span></span><br><span class="line">    Class wkCompositingView = <span class="built_in">NSClassFromString</span>(<span class="string">@"WKCompositingView"</span>);</span><br><span class="line">    <span class="keyword">if</span> ([view isKindOfClass:[wkCompositingView <span class="keyword">class</span>]]) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(<span class="built_in">UIView</span>*subView inview.subviews) &#123;</span><br><span class="line">        <span class="keyword">if</span> (![<span class="keyword">self</span> isBlankView:subView]) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其他解决方案：</p>
+<table>
+<thead>
+<tr>
+<th>白屏判断点</th>
+<th>参考文章</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>webView的 <code>url</code> 、<code>title</code> 、 <code>document.body.innerHTML</code> 为空</td>
+<td><a href="https://www.jianshu.com/p/e5f3ca12a11f" target="_blank" rel="noopener">WKWebView 白屏处理</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="四、使用中的交互"><a href="#四、使用中的交互" class="headerlink" title="四、使用中的交互"></a>四、使用中的交互</h2><h3 id="1、常规"><a href="#1、常规" class="headerlink" title="1、常规"></a>1、常规</h3><ul>
+<li><a href="./h5js">第1.1节：h5js(app内的h5与app互相调用JS方法及传值)</a></li>
+<li><a href="./h5_open_app">第1.2节：h5 open app(app外的h5直接打开app)</a></li>
+</ul>
+<p>WKWebView 注入js代码： <a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/tree/master/flutter_webview_kit" target="_blank" rel="noopener">001-UIKit-CQDemo-Flutter 中的 flutter_webview_kit</a></p>
+<h3 id="2、全局webView下如何正确返回前一页"><a href="#2、全局webView下如何正确返回前一页" class="headerlink" title="2、全局webView下如何正确返回前一页"></a>2、全局webView下如何正确返回前一页</h3><p>见 《<a href="webview的一生.graffle">webview的一生.graffle</a>》中的【全局webView下如何正确返回前一页】版面</p>
+<p><a name="WebView拦截请求的问题"></a></p>
+<h2 id="五、WebView拦截请求的问题"><a href="#五、WebView拦截请求的问题" class="headerlink" title="五、WebView拦截请求的问题"></a>五、WebView拦截请求的问题</h2><p>阿里云官方文档： <a href="https://help.aliyun.com/zh/dns/ios-webview?spm=a2c4g.11186623.0.0.335146d6SXDXxV" target="_blank" rel="noopener">WKWebView使用私有API进行注册拦截请求</a></p>
+<p><a name="WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向"></a></p>
+<h3 id="1、WKURLSchemeHandler-拦截https时引起网络请求也被拦截了，如何重定向"><a href="#1、WKURLSchemeHandler-拦截https时引起网络请求也被拦截了，如何重定向" class="headerlink" title="1、WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向"></a>1、WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向</h3><p>当使用<strong>WKURLSchemeHandler</strong>拦截<code>https</code>的图片时候，其自然的也会把网络请求也拦截了，需要将那些网络请求重定向。</p>
+<p><strong>为了区分出不同的https，可以通过获取url地址的扩展名，如 <code>jpg、png、txt、MP4</code>等。</strong></p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session task:(<span class="built_in">NSURLSessionTask</span> *)task willPerformHTTPRedirection:(<span class="built_in">NSHTTPURLResponse</span> *)response newRequest:(<span class="built_in">NSURLRequest</span> *)request completionHandler:(<span class="keyword">void</span> (^)(<span class="built_in">NSURLRequest</span> * _Nullable))completionHandler &#123;</span><br><span class="line">    <span class="comment">// 调用 _didPerformRedirection:newRequest: 执行重定向</span></span><br><span class="line">  	<span class="comment">// 拆成 _didPerf ormRe dire ctio n:n ewRe que st: 后倒序得到如下</span></span><br><span class="line">    <span class="built_in">NSArray</span> *privateSelStrArr = @[<span class="string">@"st:"</span>, <span class="string">@"que"</span>, <span class="string">@"ewRe"</span>, <span class="string">@"n:n"</span>, <span class="string">@"ctio"</span>, <span class="string">@"dire"</span>, <span class="string">@"ormRe"</span>, <span class="string">@"_didPerf"</span>];</span><br><span class="line">    <span class="built_in">NSString</span> *selName = [[[privateSelStrArr reverseObjectEnumerator] allObjects] componentsJoinedByString:<span class="string">@""</span>];</span><br><span class="line">    SEL sel = <span class="built_in">NSSelectorFromString</span>(selName);</span><br><span class="line">    <span class="meta">#pragma clang diagnostic push</span></span><br><span class="line">    <span class="meta">#pragma clang diagnostic ignored <span class="meta-string">"-Warc-performSelector-leaks"</span></span></span><br><span class="line">    [<span class="keyword">self</span>.schemeTask performSelector:sel withObject:response withObject:request];</span><br><span class="line">    <span class="meta">#pragma clang diagnostic pop</span></span><br><span class="line">    completionHandler(request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a name="WebView同层渲染"></a></p>
+<h2 id="六、WebView同层渲染"><a href="#六、WebView同层渲染" class="headerlink" title="六、WebView同层渲染"></a>六、WebView同层渲染</h2><h3 id="1、同层渲染需求背景："><a href="#1、同层渲染需求背景：" class="headerlink" title="1、同层渲染需求背景："></a>1、同层渲染需求背景：</h3><blockquote>
+<p>Webview 资源离线化之后不需要从后端拉取资源，省去了资源加载耗时减少等待时间，用户体验得到了明显提升，但受限于 Webview 的天生限制在某些场景下仍然能感受到与原生明显的体验落差。比如输入框弹出键盘时的页面卡顿、图片较多的页面内存占用过从后台回来前台时页面被重新加载、WebP 图片支持碎片化、图片不能跨页共享内存、视频播放组件体验不佳等问题。在 Webview 本身受限的情况下，如何在体验上向原生靠近是我们不得不面对的问题。如果能<strong>将影响用户体验的关键可交互组件用原生组件进行替换</strong>可以从根本上解决体验不如原生的问题。这部分内容我称为： <strong>WebView原生化</strong>。</p>
+<p><strong>Webview 原生化是指把 Webview 内部分占位 DOM 元素用原生组件进行替换</strong>，原生组件与原始 Webview 混合便得到了用户看到的最终界面。</p>
+<p>组件替换有两种方式，<br>蒙层方案：在 Webview 的直接上层添加原生视图蒙层，把原生组件添加到蒙层上占位 DOM 对应的位置。</p>
+<blockquote>
+<p>缺点：当一个原生组件被添另到 Webview 上时它永远处顶层，不会被 Webview 内的弹窗覆盖，在滚动时原生组件会盖住原本应被显示的区域。</p>
+</blockquote>
+<p>同层渲染方案：另一种是将原生组件添加到 Webiview 渲染时与占位 DOM 对应的合成层(独立出来的原生视图)上，下面会对比两种方案的差异。</p>
+<p>以上引用内容摘自：<a href="https://juejin.cn/post/7310786591940935689?from=search-suggest" target="_blank" rel="noopener">微信小程序『同层渲染』技术是怎么回事?</a> 强烈建议点开原文再看一遍。</p>
+</blockquote>
+<h3 id="2、同层渲染实现示例"><a href="#2、同层渲染实现示例" class="headerlink" title="2、同层渲染实现示例"></a>2、同层渲染实现示例</h3><p><strong>关键问题：如何映射 DOM 到原生视图？如何在原生视图树中查找 「DOM」</strong></p>
+<p>「同层渲染」则是将原生组件直接渲染到 WebView 层级上。</p>
+<h4 id="2-1、入门简单实现"><a href="#2-1、入门简单实现" class="headerlink" title="2.1、入门简单实现"></a>2.1、入门简单实现</h4><ul>
+<li><p><a href="https://juejin.cn/post/6983653836023922724" target="_blank" rel="noopener">同层渲染实现示例</a></p>
+<blockquote>
+<p>具体Demo示例可见<a href="https://github.com/Coder-Star/SameLayerRender" target="_blank" rel="noopener">SameLayerRender</a></p>
+</blockquote>
+</li>
+</ul>
+<p>实现步骤：</p>
+<p>1、创建一个可以生成<code>WKChildScrollView</code>原生组件的 DOM 节点</p>
+<p>2、传递给客户端查找到该 DOM 节点对应的 <code>WKChildScrollView</code> 原生组件的必要信息</p>
+<p>3、客户端根据传来的信息找到对应的原生组件，并将原生组件挂载到该 <code>WKChildScrollView</code> 节点上</p>
+<ul>
+<li><a href="https://cloud.tencent.com/developer/article/2203859" target="_blank" rel="noopener">理解iOS端的WebView同层组件</a></li>
+</ul>
+<h4 id="2-2、微信小程序实现"><a href="#2-2、微信小程序实现" class="headerlink" title="2.2、微信小程序实现"></a>2.2、微信小程序实现</h4><p><a href="https://developers.weixin.qq.com/miniprogram/dev/framework/runtime/skyline/introduction.html" target="_blank" rel="noopener">Skyline 渲染引擎 /概览 /介绍</a></p>
+<p>（ 微信 Skyline 渲染引擎类似 Flutterr 的 SkyEngine）</p>
+<p><a href="https://developers.weixin.qq.com/miniprogram/dev/component/native-component.html" target="_blank" rel="noopener">微信小程序 原生组件说明</a></p>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/image-20240903234945043.png" alt="image-20240903234945043"></p>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/image-20240903234704466.png" alt="image-20240903234704466"></p>
+<h3 id="3、其他参考文档"><a href="#3、其他参考文档" class="headerlink" title="3、其他参考文档"></a>3、其他参考文档</h3><p><a href="https://juejin.cn/post/6844904163181232136" target="_blank" rel="noopener">【必读】前端需要懂的 APP 容器原理</a></p>
+<blockquote>
+<p>容器 URL 统一化建设（一个 URL 地址可按需动态配置渲染成 H5、Native 等页面），小程序容器建设，Flutter 容器建设，容器的快照缓存、预渲染、混合渲染等优化与能力相关建设</p>
+</blockquote>
+<ul>
+<li><a href="https://juejin.cn/post/7250045388852920357" target="_blank" rel="noopener">app加载webview&amp;小程序&amp;React Navive&amp;Flutter&amp;原生渲染区别</a></li>
+</ul>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>优化待处理的文章</p>
+<ul>
+<li><a href="https://ramboqiu.github.io/posts/iOS%E7%A7%92%E5%BC%80H5%E5%AE%9E%E6%88%98%E6%80%BB%E7%BB%93/" target="_blank" rel="noopener">iOS秒开H5实战总结</a></li>
+</ul>
+<p><a href="https://blog.51cto.com/sdwml/6101197" target="_blank" rel="noopener">APP中WebView性能优化</a></p>
+<h1 id="iOS-WebView-H5-调试新姿势"><a href="#iOS-WebView-H5-调试新姿势" class="headerlink" title="iOS WebView/H5 调试新姿势"></a>iOS WebView/H5 调试新姿势</h1><p><a href="https://testerhome.com/topics/34559" target="_blank" rel="noopener"> iOS WebView/H5 调试新姿势</a></p>
+<h2 id="附1：测试一个视图实例被添加后，再被添加到其他地方后的效果"><a href="#附1：测试一个视图实例被添加后，再被添加到其他地方后的效果" class="headerlink" title="附1：测试一个视图实例被添加后，再被添加到其他地方后的效果"></a>附1：测试一个视图实例被添加后，再被添加到其他地方后的效果</h2><p><strong>测试代码：详见 <a href="https://gitee.com/dvlproad/AppCommonJSCollect/tree/master/AppCommonJSCollect/AppCommonJSCollect/Module" target="_blank" rel="noopener">AppCommonJSCollect 中的 SharedNormalView 、 SharedWebView</a></strong></p>
+<h3 id="1-1、测试一个视图实例添加到一个vc上的两个container上"><a href="#1-1、测试一个视图实例添加到一个vc上的两个container上" class="headerlink" title="1.1、测试一个视图实例添加到一个vc上的两个container上"></a>1.1、测试一个视图实例添加到一个vc上的两个container上</h3><blockquote>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInOneViewController.png" alt="ViewAddInOneViewController" style="zoom: 10%;"></p>
+</blockquote>
+<h3 id="1-2、测试一个视图实例添加到不同viewController"><a href="#1-2、测试一个视图实例添加到不同viewController" class="headerlink" title="1.2、测试一个视图实例添加到不同viewController"></a>1.2、测试一个视图实例添加到不同viewController</h3><p>阶段1：进入新页面的时候，使用之前共享的视图</p>
+<p>阶段1结果：虽然第二页复用了第一页中的视图，但是从第二页回来的时候，第一页的视图不见了。</p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInDiffViewController1.gif" alt="ViewAddInDiffViewController1" style="zoom: 33%;"></p>
+</blockquote>
+<p>阶段2：在阶段1的基础上，补充回来的时候(viewWillAppear)，需要重新更新视图的布局</p>
+<p>阶段2结果：视图显示正确了</p>
+<blockquote>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInDiffViewController2.gif" alt="ViewAddInDiffViewController2" style="zoom: 33%;"></p>
+</blockquote>
 <h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture架构/基础规范/路由及跳转/一个不用重加载的WebView/" data-id="cm2nl43xj0128zqr4ktu1zvaj" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/WebView优化/" data-id="cm2noh5iw0152pvr46nodpzd5" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li></ul>
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
 
     </footer>
   </div>
@@ -773,14 +440,14 @@
 
 
   
-    <article id="post-实用工具/yapi/yapi的安装" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Architecture架构/框架相关/WebView相关/小程序容器技术" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/实用工具/yapi/yapi的安装/" class="article-date">
-  <time datetime="2020-07-01T02:00:00.000Z" itemprop="datePublished">2020-07-01</time>
+    <a href="/Architecture架构/框架相关/WebView相关/小程序容器技术/" class="article-date">
+  <time datetime="2020-03-18T09:08:41.000Z" itemprop="datePublished">2020-03-18</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
   </div>
 
   </div>
@@ -791,7 +458,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/yapi/yapi的安装/">yapi的安装及其项目的创建和启动</a>
+      <a class="article-title" href="/Architecture架构/框架相关/WebView相关/小程序容器技术/">小程序容器技术</a>
     </h1>
   
 
@@ -800,98 +467,21 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="yapi的安装及其项目的创建和启动"><a href="#yapi的安装及其项目的创建和启动" class="headerlink" title="yapi的安装及其项目的创建和启动"></a>yapi的安装及其项目的创建和启动</h1><p>官网地址：<a href="https://github.com/YMFE/yapi" target="_blank" rel="noopener">https://github.com/YMFE/yapi</a></p>
-<h2 id="前言-官网"><a href="#前言-官网" class="headerlink" title="前言/官网"></a>前言/官网</h2><p><a href="https://github.com/ymfe/yapi" target="_blank" rel="noopener">官网 https://github.com/ymfe/yapi</a></p>
-<h2 id="一、安装yapi"><a href="#一、安装yapi" class="headerlink" title="一、安装yapi"></a>一、安装yapi</h2><p> 使用yapi-cli 工具，部署 YApi 平台。</p>
-<p>命令如下：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">npm install -g yapi-cli --registry https://registry.npm.taobao.org	# 需要 nodejs环境</span><br><span class="line">yapi server																													# 需要 MongoDB环境</span><br></pre></td></tr></table></figure>
-<p>虽然只有两个命令，但是两个命令的执行分别需要nodejs环境和MongoDB环境。</p>
-<p>所以，使用这两个命令前，我们先按需依次完成以下步骤，搭建yapi所需的nodejs环境和MongoDB环境。</p>
-<h2 id="二、yapi所需环境nodejs的安装"><a href="#二、yapi所需环境nodejs的安装" class="headerlink" title="二、yapi所需环境nodejs的安装"></a>二、yapi所需环境nodejs的安装</h2><h3 id="1、nodejs环境的检测"><a href="#1、nodejs环境的检测" class="headerlink" title="1、nodejs环境的检测"></a>1、nodejs环境的检测</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">node -v</span><br></pre></td></tr></table></figure>
-<p>如果能够执行此命令，则代表你已安装nodejs的环境，请不用再重复安装。如果没有，请看下一步<code>3、nodejs环境的安装</code>。</p>
-<h3 id="2、未安装nodejs环境，导致的yapi安装失败"><a href="#2、未安装nodejs环境，导致的yapi安装失败" class="headerlink" title="2、未安装nodejs环境，导致的yapi安装失败"></a>2、未安装nodejs环境，导致的yapi安装失败</h3><p>因为安装yapi的  <code>npm install -g yapi-cli --registry https://registry.npm.taobao.org</code> 那条命令，需要用到npm环境。如果没安装，则会失败如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/image-20201117155309965.png" alt="image-20201117155309965"></p>
-<p>所以请先检测您电脑是否已经安装了nodejs（7.6+)了。</p>
-<h3 id="3、nodejs环境的安装"><a href="#3、nodejs环境的安装" class="headerlink" title="3、nodejs环境的安装"></a>3、nodejs环境的安装</h3><p>安装nodejs（7.6+)。另关于node的安装，请查看<a href="../../node/node.md">本网站中的node.md</a></p>
-<h2 id="三、yapi所需环境MongoDB的安装与启动"><a href="#三、yapi所需环境MongoDB的安装与启动" class="headerlink" title="三、yapi所需环境MongoDB的安装与启动"></a>三、yapi所需环境MongoDB的安装与启动</h2><h3 id="1、未配MongoDB环境，导致的yapi安装失败"><a href="#1、未配MongoDB环境，导致的yapi安装失败" class="headerlink" title="1、未配MongoDB环境，导致的yapi安装失败"></a>1、未配MongoDB环境，导致的yapi安装失败</h3><p>执行部署yapi的 <code>yapi server</code> 命令时候，此时看到的执行结果如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/yapi start1.png" alt="yapi start1" style="zoom: 33%;"></p>
-<p>如果你未提前安装<code>mongodb</code>，则会在部署yapi的时候发生如下错误。</p>
-<p><img src="/实用工具/yapi/yapi的安装/yapi start1error.png" alt="yapi start error" style="zoom:50%;"></p>
-<p>所以要完成yapi的成功部署，其还需要 <strong>mongodb（2.6+）</strong></p>
-<h3 id="2、MongoDB环境的检测"><a href="#2、MongoDB环境的检测" class="headerlink" title="2、MongoDB环境的检测"></a>2、MongoDB环境的检测</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongo -version</span><br></pre></td></tr></table></figure>
-<p>如果能够执行此命令，则代表你已安装mongodb的环境，请不用再重复安装。如果没有，请看<code>3、yapi所需环境MongoDB的安装</code>。</p>
-<h3 id="3、yapi所需环境MongoDB的安装"><a href="#3、yapi所需环境MongoDB的安装" class="headerlink" title="3、yapi所需环境MongoDB的安装"></a>3、yapi所需环境MongoDB的安装</h3><h4 id="方法一、可视化桌面安装"><a href="#方法一、可视化桌面安装" class="headerlink" title="方法一、可视化桌面安装"></a>方法一、可视化桌面安装</h4><p><strong>如果您是云服务器ECS，请跳过方法一，直接使用方法二终端命令安装MongoDB。</strong></p>
-<p>其他参考见：<a href="https://www.runoob.com/mongodb/mongodb-osx-install.html" target="_blank" rel="noopener">Mac OSX 平台安装 MongoDB</a></p>
-<p><a href="https://zhuanlan.zhihu.com/p/94152357" target="_blank" rel="noopener">在Mac 安装MongoDB</a></p>
-<p>1、点击进入下载地址<a href="https://www.mongodb.com/download-center/enterprise" target="_blank" rel="noopener">https://www.mongodb.com/download-center/enterprise</a></p>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb download1.png" alt="mongodb download"></p>
-<p>将下载下来的tgz解压后，放到<code>/usr/local</code>文件夹中，并改名为<code>mongodb</code>。</p>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb install1.png" alt="mongodb install"></p>
-<p>在改名为<code>mongodb</code>后，通过在终端执行<code>open ~</code>，找到并打开该目录下的<code>.bash_profile</code>中配置如下环境变量</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export PATH=$&#123;PATH&#125;:/usr/local/mongodb/bin</span><br></pre></td></tr></table></figure>
-<p>配置完后，关闭文件，终端执行如下命令，使得钢材配置的环境变量能够生效。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">source ./.bash_profile</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 或者直接下面一句</span></span><br><span class="line">source  ~/.bash_profile</span><br></pre></td></tr></table></figure>
-<p>不执行 上述source命令的话， mongo -version 无法生效。</p>
-<p>安装成功后，执行<code>mongo -version</code>，如果不提示 command not found，代表安装成功了。</p>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb install success.png" alt="mongodb install success" style="zoom:50%;"></p>
-<p>至此，mongo安装完成，接下去进行启动mongo。</p>
-<h4 id="方法二、终端命令安装MongoDB-云服务器常用的安装方式"><a href="#方法二、终端命令安装MongoDB-云服务器常用的安装方式" class="headerlink" title="方法二、终端命令安装MongoDB(云服务器常用的安装方式)"></a>方法二、终端命令安装MongoDB(云服务器常用的安装方式)</h4><p><a href="https://www.runoob.com/mongodb/mongodb-linux-install.html" target="_blank" rel="noopener">Linux平台安装MongoDB官网安装文档 https://www.runoob.com/mongodb/mongodb-linux-install.html</a></p>
-<p>进入地址：<a href="https://www.mongodb.com/try/download/community" target="_blank" rel="noopener">https://www.mongodb.com/try/download/community</a></p>
-<p><img src="/实用工具/yapi/yapi的安装/image-20201117221110499.png" alt="image-20201117221110499"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd 到某个目录，执行以下命令,下载文件</span><br><span class="line">yum install libcurl openssl</span><br><span class="line">wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel80-4.4.1.tgz</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/image-20201117235817379.png" alt="image-20201117235817379"></p>
-<h5 id="1、找到并提前测试所下载的mongodb能否在本操作系统下有效执行。如果无效，会出现以下错误"><a href="#1、找到并提前测试所下载的mongodb能否在本操作系统下有效执行。如果无效，会出现以下错误" class="headerlink" title="1、找到并提前测试所下载的mongodb能否在本操作系统下有效执行。如果无效，会出现以下错误"></a>1、找到并提前测试所下载的mongodb能否在本操作系统下有效执行。如果无效，会出现以下错误</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-bash: ./mongo: cannot execute binary file: Exec format error</span><br></pre></td></tr></table></figure>
-<p>查看系统是几位的终端命令为<code>getconf LONG_BIT</code></p>
-<p>测试方法：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1、使用wget下载</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2、使用tar -zxvf解压缩后</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3、直接进入解压缩后的mongodb的bin目录下，执行对应的命令</span></span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/image-20210804131852567.png" alt="image-20210804131852567"></p>
-<h5 id="2、有效后，再转移并设置环境变量"><a href="#2、有效后，再转移并设置环境变量" class="headerlink" title="2、有效后，再转移并设置环境变量"></a>2、有效后，再转移并设置环境变量</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf mongodb-linux-x86_64-rhel80-4.4.1.tgz</span><br><span class="line"></span><br><span class="line">mv mongodb-linux-x86_64-rhel80-4.4.1 /usr/local/mongodb</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/image-20201118004346856.png" alt="image-20201118004346856"></p>
-<p>输入<code>vim /etc/profile</code>编辑环境变量文件</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">set</span> <span class="keyword">for</span> mongo</span></span><br><span class="line">export PATH=/usr/local/mongodb/bin:$PATH</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/image-20210803224610402.png" alt="image-20210803224610402"></p>
-<p>插入完成后，执行<code>source /etc/profile</code>，使环境变量生效，之后执行以下命令，就可以看到有效了。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongo -version</span><br></pre></td></tr></table></figure>
-<h3 id="4、yapi所需环境MongoDB的启动"><a href="#4、yapi所需环境MongoDB的启动" class="headerlink" title="4、yapi所需环境MongoDB的启动"></a>4、yapi所需环境MongoDB的启动</h3><p>命令认识：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> --dbpath 设置数据存放目录</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> --logpath 设置日志存放目录</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> --fork 在后台运行</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> mongod --dbpath &lt;path to data directory&gt; 																					<span class="comment"># 基础的运行命令</span></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> mongod --dbpath &lt;path to data directory&gt; --logpath &lt;path to <span class="built_in">log</span> directory&gt; --fork <span class="comment"># 后台的运行命令（如果要--fork，则必须有--logpath参数）</span></span></span><br></pre></td></tr></table></figure>
-<h4 id="方法一：可视化桌面操作-以MacOS为例"><a href="#方法一：可视化桌面操作-以MacOS为例" class="headerlink" title="方法一：可视化桌面操作(以MacOS为例)"></a>方法一：可视化桌面操作(以MacOS为例)</h4><h5 id="1、为MongoDB创建数据-必需-及日志存放的目录-可选"><a href="#1、为MongoDB创建数据-必需-及日志存放的目录-可选" class="headerlink" title="1、为MongoDB创建数据(必需)及日志存放的目录(可选)"></a>1、为MongoDB创建数据(必需)及日志存放的目录(可选)</h5><p>步骤：为MongoDB创建数据及日志存放的目录，这里我们就把它们放在/usr/local/var目录下。</p>
-<p>创建数据目录：            /usr/local/var/mongodb</p>
-<p>创建日志存放的目录：/usr/local/var/log/mongodb</p>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb start1.png" alt="mongodb start1"></p>
-<h5 id="2、执行命令启动-mongodb"><a href="#2、执行命令启动-mongodb" class="headerlink" title="2、执行命令启动 mongodb"></a>2、执行命令启动 mongodb</h5><p>数据(必需)及日志存放的目录创建完成后，输入如下命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> --dbpath 设置数据存放目录</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> --logpath 设置日志存放目录</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> --fork 在后台运行</span></span><br><span class="line">mongod --dbpath /usr/local/var/mongodb --logpath /usr/local/var/log/mongodb/mongo.log --fork</span><br><span class="line"></span><br><span class="line">或</span><br><span class="line">cd /usr/local/var/</span><br><span class="line">mongod --dbpath ./mongodb --logpath ./log/mongodb/mongo.log --fork</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb start2.png" alt="mongodb start2"></p>
-<h4 id="方法二：终端命令操作-常用于云服务器"><a href="#方法二：终端命令操作-常用于云服务器" class="headerlink" title="方法二：终端命令操作(常用于云服务器)"></a>方法二：终端命令操作(常用于云服务器)</h4><h5 id="1、为MongoDB创建数据-必需-及日志存放的目录-可选-1"><a href="#1、为MongoDB创建数据-必需-及日志存放的目录-可选-1" class="headerlink" title="1、为MongoDB创建数据(必需)及日志存放的目录(可选)"></a>1、为MongoDB创建数据(必需)及日志存放的目录(可选)</h5><p>步骤：为MongoDB创建数据及日志存放的目录，这里我们新建一个单独的文件夹，如CQApp-api-mongodb来单独存放yapi的数据及日志。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 创建存放的目录</span></span><br><span class="line">cd Project</span><br><span class="line">mkdir CQApp-api-mongodb</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 创建数据目录data</span></span><br><span class="line">sudo mkdir -p data</span><br><span class="line">sudo chown -R 777 data</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 创建日志存放的目录<span class="built_in">log</span></span></span><br><span class="line">sudo mkdir -p log</span><br><span class="line">sudo chown -R 777 log</span><br></pre></td></tr></table></figure>
-<p>生成后，文件如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/image-20210805014810744.png" alt="image-20210805014810744" style="zoom: 33%;"></p>
-<h5 id="2、执行命令启动-mongodb-1"><a href="#2、执行命令启动-mongodb-1" class="headerlink" title="2、执行命令启动 mongodb"></a>2、执行命令启动 mongodb</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/CQApp-api-mongodb/</span><br><span class="line">mongod --dbpath ./data --logpath ./log/mongo.log --fork</span><br></pre></td></tr></table></figure>
-<p><img src="/实用工具/yapi/yapi的安装/image-20210805003329469.png" alt="image-20210805003329469"></p>
-<h3 id="5、mongodb启动成功后，即可重新点击之前的开始部署-开始创建yapi项目。"><a href="#5、mongodb启动成功后，即可重新点击之前的开始部署-开始创建yapi项目。" class="headerlink" title="5、mongodb启动成功后，即可重新点击之前的开始部署/开始创建yapi项目。"></a>5、mongodb启动成功后，即可重新点击之前的开始部署/开始创建yapi项目。</h3><h3 id="6、yapi所需环境MongoDB的关闭"><a href="#6、yapi所需环境MongoDB的关闭" class="headerlink" title="6、yapi所需环境MongoDB的关闭"></a>6、yapi所需环境MongoDB的关闭</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 对于处理后台启动的mogodb的关闭，使用以下命令来关闭</span></span><br><span class="line">pkill mongod</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 其他前台的，直接退出终端或者Ctrl+C结束就行了。</span></span><br></pre></td></tr></table></figure>
-<h2 id="四、创建yapi项目"><a href="#四、创建yapi项目" class="headerlink" title="四、创建yapi项目"></a>四、创建yapi项目</h2><h3 id="1、执行部署yapi的-yapi-server-命令"><a href="#1、执行部署yapi的-yapi-server-命令" class="headerlink" title="1、执行部署yapi的 yapi server 命令"></a>1、执行部署yapi的 <code>yapi server</code> 命令</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yapi server</span><br></pre></td></tr></table></figure>
-<h3 id="2、访问http-0-0-0-0-9090，"><a href="#2、访问http-0-0-0-0-9090，" class="headerlink" title="2、访问http://0.0.0.0:9090，"></a>2、访问<code>http://0.0.0.0:9090</code>，</h3><p>此时看到的结果如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/yapi start1.png" alt="yapi start1" style="zoom: 33%;"></p>
-<h3 id="3、点击开始部署，"><a href="#3、点击开始部署，" class="headerlink" title="3、点击开始部署，"></a>3、点击开始部署，</h3><p>执行过程如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/yapi start2.png" alt="yapi start2"></p>
-<h3 id="4、部署-创建成功"><a href="#4、部署-创建成功" class="headerlink" title="4、部署/创建成功"></a>4、部署/创建成功</h3><p>部署/创建成功，截图如下：</p>
-<p><img src="/实用工具/yapi/yapi的安装/yapi start3 success.png" alt="yapi start success"></p>
-<blockquote>
-<p>账号：<a href="mailto:admin@admin.com" target="_blank" rel="noopener">admin@admin.com</a></p>
-<p>密码：ymfe.org</p>
-</blockquote>
-<p>这个账号密码，待会需要用于登录yapi网页界面使用。</p>
-<p>此时你所填写的部署路径下，就会有所创建生成的yapi工程。</p>
-<p>附：执行后mongodb config1</p>
-<p><img src="/实用工具/yapi/yapi的安装/mongodb config1.jpg" alt="mongodb config1" style="zoom:33%;"></p>
-<h2 id="五、yapi的项目运行"><a href="#五、yapi的项目运行" class="headerlink" title="五、yapi的项目运行"></a>五、yapi的项目运行</h2><p>请查看 <a href="./yapi的项目运行.md">本博客中的yapi的项目运行.md</a></p>
+<h2 id="小程序容器技术"><a href="#小程序容器技术" class="headerlink" title="小程序容器技术"></a>小程序容器技术</h2><p> React Native 的 Text 组件转换为 iOS 的原生 UILabel ，是怎么实现这一过程的？</p>
+<p><a href="https://mdnice.com/writing/00b8953681ad4053acbd06b479353749" target="_blank" rel="noopener">小程序容器技术对比分析</a></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">view</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">text</span> <span class="attr">class</span>=<span class="string">"title"</span>&gt;</span>Hello, &#123;&#123;name&#125;&#125;!<span class="tag">&lt;/<span class="name">text</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">view</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-class">.container</span> &#123;</span><br><span class="line">  <span class="attribute">display</span>: flex;</span><br><span class="line">  <span class="attribute">justify-content</span>: center;</span><br><span class="line">  <span class="attribute">align-items</span>: center;</span><br><span class="line">  <span class="attribute">height</span>: <span class="number">100vh</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.title</span> &#123;</span><br><span class="line">  <span class="attribute">font-size</span>: <span class="number">24px</span>;</span><br><span class="line">  <span class="attribute">color</span>: <span class="number">#333</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> UIKit</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MiniProgramContainerViewController</span>: <span class="title">UIViewController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> nameLabel: <span class="type">UILabel</span>!</span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">super</span>.viewDidLoad()</span><br><span class="line">        view.backgroundColor = .white</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建一个简单的视图来显示文本</span></span><br><span class="line">        nameLabel = <span class="type">UILabel</span>()</span><br><span class="line">        nameLabel.translatesAutoresizingMaskIntoConstraints = <span class="literal">false</span></span><br><span class="line">        view.addSubview(nameLabel)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 设置文本标签的位置</span></span><br><span class="line">        <span class="type">NSLayoutConstraint</span>.activate([</span><br><span class="line">            nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),</span><br><span class="line">            nameLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)</span><br><span class="line">        ])</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 模拟从WXML解析来的数据</span></span><br><span class="line">        <span class="keyword">let</span> data = [<span class="string">"name"</span>: <span class="string">"World"</span>]</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 模拟WXML模板解析</span></span><br><span class="line">        <span class="keyword">let</span> template = <span class="string">"""</span></span><br><span class="line"><span class="string">        &lt;view class="container"&gt;</span></span><br><span class="line"><span class="string">          &lt;text class="title"&gt;Hello, &#123;&#123;name&#125;&#125;!&lt;/text&gt;</span></span><br><span class="line"><span class="string">        &lt;/view&gt;</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 简单的模板字符串替换</span></span><br><span class="line">      	在实际的小程序容器中，你需要一个完整的模板引擎来解析<span class="type">WXML</span>，并将其转换为iOS的<span class="type">UI</span>组件。</span><br><span class="line">       	你还需要一个样式引擎来解析<span class="type">WXSS</span>，并应用样式到对应的<span class="type">UI</span>组件上。</span><br><span class="line">        <span class="keyword">let</span> resultString = template.replacingOccurrences(of: <span class="string">"&#123;&#123;name&#125;&#125;"</span>, with: data[<span class="string">"name"</span>] ?? <span class="string">"Visitor"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 将解析后的字符串设置为标签的文本</span></span><br><span class="line">        nameLabel.text = resultString</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 应用WXSS样式（这里只是简单地设置样式，实际上需要更复杂的样式解析和应用逻辑）</span></span><br><span class="line">        nameLabel.font = <span class="type">UIFont</span>.systemFont(ofSize: <span class="number">24</span>)</span><br><span class="line">        nameLabel.textColor = <span class="type">UIColor</span>.black</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在实际的小程序容器中，你需要一个完整的模板引擎来解析WXML，并将其转换为iOS的UI组件。你还需要一个样式引擎来解析WXSS，并应用样式到对应的UI组件上。</p>
+<p><a href="https://mpxjs.cn/articles/1.0.html#%E6%BB%B4%E6%BB%B4%E5%BC%80%E6%BA%90%E5%B0%8F%E7%A8%8B%E5%BA%8F%E6%A1%86%E6%9E%B6mpx" target="_blank" rel="noopener">滴滴开源小程序框架Mpx</a></p>
 <h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的安装/" data-id="cm2nl42gf00tszqr4s5q2k295" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/小程序容器技术/" data-id="cm2noh5jf0155pvr4oirbty3x" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
 
     </footer>
   </div>
@@ -900,14 +490,14 @@
 
 
   
-    <article id="post-实用工具/yapi/yapi的项目运行" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <article id="post-Architecture架构/框架相关/WebView相关/h5_native_interacte" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
-    <a href="/实用工具/yapi/yapi的项目运行/" class="article-date">
-  <time datetime="2020-07-01T02:00:00.000Z" itemprop="datePublished">2020-07-01</time>
+    <a href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/" class="article-date">
+  <time datetime="2020-03-18T09:08:41.000Z" itemprop="datePublished">2020-03-18</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/实用工具/">实用工具</a>
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a>
   </div>
 
   </div>
@@ -918,7 +508,62 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/实用工具/yapi/yapi的项目运行/">yapi的项目运行</a>
+      <a class="article-title" href="/Architecture架构/框架相关/WebView相关/h5_native_interacte/">目录</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <ul>
+<li><a href="./h5_native_interacte/h5js">第1.1节：h5js(app内的h5与app互相调用JS方法及传值)</a></li>
+<li><a href="./h5_native_interacte/h5_open_app">第1.2节：h5 open app(app外的h5直接打开app)</a></li>
+</ul>
+<p><a href="./h5_native_interacte/外部与app交互.xmind">外部与app交互脑图</a></p>
+<p>本地代码测试：</p>
+<p>将文件放置到  <a href="/Library/WebServer/Documents/">/Library/WebServer/Documents/</a> 下，比如将 dvlp_h5_open_app_app_route_url_demo.html </p>
+<p>放置：<a href="/Library/WebServer/Documents/">/Library/WebServer/Documents/</a>h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo.html</p>
+<p>1、基本访问测试</p>
+<p>访问：<a href="http://localhost/" target="_blank" rel="noopener">http://localhost/</a>h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo.html</p>
+<p>2、参数携带测试</p>
+<p>访问：<a href="http://localhost/" target="_blank" rel="noopener">http://localhost/</a>h5_native_interacte/h5_open_app/dvlp_h5_open_app_app_route_url_demo.html<a href="">?fileUrl=dvlp_h5_open_app_browser_url_demo.json</a></p>
+<p>3、更多参数使用测试可参考 <a href="./h5_native_interacte/h5_open_app.md">h5_open_app</a> 或 <a href="./h5_native_interacte/h5js.md">h5js</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture架构/框架相关/WebView相关/h5_native_interacte/" data-id="cm2noh5o3015ypvr4io3ifvgl" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/h5与app交互/">h5与app交互</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Flutter/5详解/详解Exception异常处理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/Flutter/5详解/详解Exception异常处理/" class="article-date">
+  <time datetime="2020-01-10T04:00:00.000Z" itemprop="datePublished">2020-01-10</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/5详解/详解Exception异常处理/">第4节：详解Exception异常处理</a>
     </h1>
   
 
@@ -927,41 +572,354 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>[toc]</p>
-<h1 id="yapi的项目运行"><a href="#yapi的项目运行" class="headerlink" title="yapi的项目运行"></a>yapi的项目运行</h1><p>官网地址：<a href="https://github.com/YMFE/yapi" target="_blank" rel="noopener">https://github.com/YMFE/yapi</a></p>
-<h2 id="一、下载已有的yapi的项目"><a href="#一、下载已有的yapi的项目" class="headerlink" title="一、下载已有的yapi的项目"></a>一、下载已有的yapi的项目</h2><p>下载你之前保存的 <a href="https://gitee.com/dvlpApi/CQApp-api" target="_blank" rel="noopener">yapi项目:CQApp-api</a>和<a href="https://gitee.com/dvlpApi/CQApp-api-mongodb" target="_blank" rel="noopener">yapi项目的数据:CQApp-api-mongodb</a>两个git工程到<code>本地</code>或<code>云服务器ECS</code>上，然后运行。</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20211222150604187.png" alt="image-20211222150604187"></p>
-<h2 id="二、运行效果预览"><a href="#二、运行效果预览" class="headerlink" title="二、运行效果预览"></a>二、运行效果预览</h2><p>运行成功的结果：</p>
-<p>要运行项目，最终是要进入项目，执行node vendors/server/app.js 指令启动服务器，然后在浏览器打开 <a href="http://127.0.0.1:3000" target="_blank" rel="noopener">http://127.0.0.1:3000</a> 访问。</p>
-<p><img src="file:///Users/lichaoqian/Project/CQBook/dvlproadHexo/source/_posts/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/yapi/yapi%E7%9A%84%E9%A1%B9%E7%9B%AE%E8%BF%90%E8%A1%8C/yapi%20start4.png?lastModify=1640156982" alt="yapi start4"></p>
-<h2 id="三、终端运行yapi项目的步骤"><a href="#三、终端运行yapi项目的步骤" class="headerlink" title="三、终端运行yapi项目的步骤"></a>三、终端运行yapi项目的步骤</h2><h3 id="1、-下载并-进入yapi项目，然后启动"><a href="#1、-下载并-进入yapi项目，然后启动" class="headerlink" title="1、(下载并)进入yapi项目，然后启动"></a>1、(下载并)进入<code>yapi项目</code>，然后启动</h3><h4 id="1-1、下载已存在的yapi项目到Project中"><a href="#1-1、下载已存在的yapi项目到Project中" class="headerlink" title="1.1、下载已存在的yapi项目到Project中"></a>1.1、下载已存在的<code>yapi项目</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api</span><br></pre></td></tr></table></figure>
-<h4 id="1-2、启动yapi项目"><a href="#1-2、启动yapi项目" class="headerlink" title="1.2、启动yapi项目"></a>1.2、启动<code>yapi项目</code></h4><p>即在终端执行的命令如下：</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805012844104.png" alt="image-20210805012844104"></p>
-<p>如图，提示<code>mongodb load success...</code>则yapi启动成功。跳过如下MongoNetworkError错误，查看yapi的访问方法。</p>
-<blockquote>
-<p>如果出现如下的MongoNetworkError问题，则原因是你执行node vendors/server/app.js 前，未先成功启动mongodb。从而导致<strong>MongoNetworkError</strong>错误。解决方式，请查看本文最后的<code>1、MongoNetworkError的解决</code><br><img src="/实用工具/yapi/yapi的项目运行/yapi-MongoNetworkError.png" alt="MongoNetworkError"></p>
-</blockquote>
-<h3 id="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"><a href="#2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。" class="headerlink" title="2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。"></a>2、yapi服务开启后，我们根据提示，再在浏览器访问地址，即可看到我们的效果。</h3><p><img src="/实用工具/yapi/yapi的项目运行/yapi start5.png" alt="yapi start5" style="zoom:33%;"></p>
-<h3 id="3、登录yapi"><a href="#3、登录yapi" class="headerlink" title="3、登录yapi"></a>3、登录yapi</h3><p>利用上述部署成功后的账号和密码，登录yapi网页。</p>
-<blockquote>
-<p>账号：<a href="mailto:admin@admin.com" target="_blank" rel="noopener">admin@admin.com</a></p>
-<p>密码：ymfe.org # 已修改为姓名全拼</p>
-</blockquote>
-<p>登录后的界面截图如下：</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20201024153331339.png" alt="image-20201024153331339"></p>
-<h2 id="四、如启动yapi项目过程中遇到错误，各解决方式如下"><a href="#四、如启动yapi项目过程中遇到错误，各解决方式如下" class="headerlink" title="四、如启动yapi项目过程中遇到错误，各解决方式如下"></a>四、如启动yapi项目过程中遇到错误，各解决方式如下</h2><h3 id="1、MongoNetworkError的解决"><a href="#1、MongoNetworkError的解决" class="headerlink" title="1、MongoNetworkError的解决"></a>1、MongoNetworkError的解决</h3><h4 id="1-1、下载已存在的yapi项目的数据mongodb到Project中"><a href="#1-1、下载已存在的yapi项目的数据mongodb到Project中" class="headerlink" title="1.1、下载已存在的yapi项目的数据mongodb到Project中"></a>1.1、下载已存在的<code>yapi项目的数据mongodb</code>到Project中</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd Project/</span><br><span class="line">git clone https://gitee.com/dvlpApi/CQApp-api-mongodb</span><br></pre></td></tr></table></figure>
-<p>举例：下载mongodb的问题</p>
-<p><img src="/实用工具/yapi/yapi的项目运行/image-20210805001123542.png" alt="image-20210805001123542"></p>
-<h4 id="1-2、启动yapi项目的数据mongodb"><a href="#1-2、启动yapi项目的数据mongodb" class="headerlink" title="1.2、启动yapi项目的数据mongodb"></a>1.2、启动<code>yapi项目的数据mongodb</code></h4><p><img src="/实用工具/yapi/yapi的项目运行/image-20210805003329469.png" alt="image-20210805003329469"></p>
-<p>这样启动mongodb后，再执行node vendors/server/app.js，就能让yapi正确启动了。</p>
-<p>### </p>
+<h1 id="详解Exception异常处理"><a href="#详解Exception异常处理" class="headerlink" title="详解Exception异常处理"></a>详解Exception异常处理</h1><p>好文分享：</p>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/154514485" target="_blank" rel="noopener">Flutter中异常处理</a>：必须一定要看。</li>
+<li></li>
+</ul>
+<h2 id="一、异常的捕获"><a href="#一、异常的捕获" class="headerlink" title="一、异常的捕获"></a>一、异常的捕获</h2><p><strong>同步异常</strong>通过 try-catch 机制捕获</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 try-catch 捕获同步异常</span></span><br><span class="line">xxx() &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> StateError(<span class="string">'This is a Dart exception.'</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">      <span class="built_in">print</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>异步异常</strong>采用 Future 提供的 catchError 语句捕获。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 catchError 捕获异步异常</span></span><br><span class="line">Future&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">dynamic</span>&gt;&gt; simulate_get(<span class="built_in">String</span> url) <span class="keyword">async</span> &#123;</span><br><span class="line">   Future.delayed(<span class="built_in">Duration</span>(seconds: <span class="number">1</span>)).then((value) &#123;</span><br><span class="line">     <span class="keyword">throw</span> StateError(<span class="string">'This is a Dart exception in Future.'</span>);</span><br><span class="line">     <span class="keyword">return</span> &#123;</span><br><span class="line">       <span class="string">'statusCode'</span>: <span class="number">200</span>,</span><br><span class="line">       <span class="string">'msg'</span>: <span class="string">'"<span class="subst">$&#123;url&#125;</span>执行成功"'</span>,</span><br><span class="line">     &#125;;</span><br><span class="line">   &#125;).catchError((onError) &#123;</span><br><span class="line">     <span class="built_in">print</span>(onError);</span><br><span class="line">     <span class="comment">//rethrow; // 这里不能rethrow. 因为A rethrow must be inside of a catch clause.</span></span><br><span class="line">   &#125;);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、异常的上抛"><a href="#二、异常的上抛" class="headerlink" title="二、异常的上抛"></a>二、异常的上抛</h2><p><strong>异步异常</strong>的上抛</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">// 使用上文中自己建的异步方法 await simulate_get(url) 来模拟</span></span><br><span class="line">Future&lt;<span class="keyword">dynamic</span>&gt; requestBaidu1() <span class="keyword">async</span> &#123;</span><br><span class="line">   <span class="keyword">var</span> url = <span class="string">"https://www.baidu.com/"</span>;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">dynamic</span> response = <span class="keyword">await</span> simulate_get(url);</span><br><span class="line"></span><br><span class="line">     <span class="keyword">if</span> (response[<span class="string">'statusCode'</span>] == <span class="number">200</span>) &#123;</span><br><span class="line">       <span class="keyword">return</span> response.data;</span><br><span class="line">     &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">       <span class="keyword">throw</span> Exception(<span class="string">'后端接口出现异常'</span>);</span><br><span class="line">     &#125;</span><br><span class="line">   &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">     <span class="built_in">print</span>(<span class="string">'网络错误:======&gt;url:<span class="subst">$url</span> \nbody:<span class="subst">$&#123;e.toString()&#125;</span>'</span>);</span><br><span class="line">     <span class="comment">// 这里只有执行了rethrow 或 throw，外层才能继续 .catchError((onError) &#123;&#125;</span></span><br><span class="line">     <span class="keyword">rethrow</span>;</span><br><span class="line">     <span class="comment">// throw Exception('网络错误:======&gt;url:$url \nbody:$&#123;e.toString()&#125;');</span></span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用网络请求库 dio 中的异步方法 await dio.get(url) 来模拟</span></span><br><span class="line"> Future&lt;<span class="keyword">dynamic</span>&gt; requestBaidu2() <span class="keyword">async</span> &#123;</span><br><span class="line">   <span class="keyword">var</span> url = <span class="string">"https://www.baidu.com/"</span>;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     Dio dio = <span class="keyword">new</span> Dio();</span><br><span class="line">     Response response = <span class="keyword">await</span> dio.<span class="keyword">get</span>(url);</span><br><span class="line"></span><br><span class="line">     <span class="keyword">if</span> (response.statusCode == <span class="number">200</span>) &#123;</span><br><span class="line">       <span class="keyword">return</span> response.data;</span><br><span class="line">     &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">       <span class="keyword">throw</span> Exception(<span class="string">'后端接口出现异常'</span>);</span><br><span class="line">     &#125;</span><br><span class="line">   &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">     <span class="comment">// throw Exception('网络错误:======&gt;url:$url \nbody:$&#123;e.toString()&#125;');</span></span><br><span class="line">     <span class="built_in">print</span>(<span class="string">'网络错误:======&gt;url:<span class="subst">$url</span> \nbody:<span class="subst">$&#123;e.toString()&#125;</span>'</span>);</span><br><span class="line">     <span class="keyword">rethrow</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>进行如上的上抛操作后，</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// xxxPage.dart	</span></span><br><span class="line">	getData() &#123;</span><br><span class="line">    Api.requestBaidu2().then((<span class="keyword">dynamic</span> data) &#123;</span><br><span class="line">      <span class="keyword">if</span> (data.isSuccess) &#123;</span><br><span class="line">        Toast.show(<span class="string">"请求成功，有数据 isSuccess = true"</span>, context);</span><br><span class="line">        updateWidgetType(WidgetType.SuccessWithData);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        Toast.show(<span class="string">"服务器失败 isSuccess = false"</span>, context);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;).catchError((onError) &#123;</span><br><span class="line">      <span class="built_in">print</span>(<span class="string">'网络问题'</span>);</span><br><span class="line">      Toast.show(<span class="string">"catchError网络问题111"</span>, context);</span><br><span class="line">      updateWidgetType(WidgetType.ErrorNetwork);</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="判断网络异常"><a href="#判断网络异常" class="headerlink" title="判断网络异常"></a>判断网络异常</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">checkNetwork() <span class="keyword">async</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">final</span> result = <span class="keyword">await</span> InternetAddress.lookup(<span class="string">'baidu.com'</span>); <span class="comment">//尝试连接baidu</span></span><br><span class="line">   &#125; on SocketException <span class="keyword">catch</span> (_) &#123;</span><br><span class="line">     Toast.show(<span class="string">"catchError网络问题222333"</span>, context);</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/5详解/详解Exception异常处理/" data-id="cm2noh37i00crpvr4xeghom6y" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/跨平台/">跨平台</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理/Git/Git代码同步" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/Git/Git代码同步/" class="article-date">
+  <time datetime="2020-01-07T02:51:37.000Z" itemprop="datePublished">2020-01-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/Git/Git代码同步/">Git代码同步</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Git代码同步"><a href="#Git代码同步" class="headerlink" title="Git代码同步"></a>Git代码同步</h1><h3 id="1、拉取最新代码、提交"><a href="#1、拉取最新代码、提交" class="headerlink" title="1、拉取最新代码、提交"></a>1、拉取最新代码、提交</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd CQApp-api-mongodb/</span><br><span class="line">git pull origin master</span><br><span class="line">git add .</span><br><span class="line">git commit -m "add api cardlist"</span><br><span class="line">git push origin master</span><br></pre></td></tr></table></figure>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121123010573.png" alt="image-20201121123010573"></p>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121123124236.png" alt="image-20201121123124236"></p>
+<p>上传成功，我们通过网站或者sourcetree等查看效果</p>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121124131447.png" alt="image-20201121124131447"></p>
+<h4 id="1、问题1：未配置用户名和邮箱"><a href="#1、问题1：未配置用户名和邮箱" class="headerlink" title="1、问题1：未配置用户名和邮箱"></a>1、问题1：未配置用户名和邮箱</h4><p><img src="/代码管理/Git/Git代码同步/image-20201121123308986.png" alt="image-20201121123308986"></p>
+<p><strong>解决配置用户名和邮箱</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1、全局配置：使用 --global 修饰后设置的全局的用户</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> git config --global user.name <span class="string">"Your Name"</span>  </span></span><br><span class="line"><span class="meta">$</span><span class="bash"> git config --global user.email <span class="string">"email@example.com"</span>  </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2、如果只想设置单个项目的用户：可<span class="built_in">cd</span>到项目根目录下,执行如下命令:</span></span><br><span class="line"><span class="meta">$</span><span class="bash"> git config user.name <span class="string">"Your Name"</span>  </span></span><br><span class="line"><span class="meta">$</span><span class="bash"> git config user.email <span class="string">"email@example.com"</span></span></span><br></pre></td></tr></table></figure>
+<p>使用命令:git config –list 可查看当前用户信息以及其他的一些信息</p>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121123421969.png" alt="image-20201121123421969"></p>
+<h3 id="2、拉取提交省去密码输入的技巧–ssh"><a href="#2、拉取提交省去密码输入的技巧–ssh" class="headerlink" title="2、拉取提交省去密码输入的技巧–ssh"></a>2、拉取提交省去密码输入的技巧–ssh</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -C "ecs_aliyun"</span><br><span class="line"></span><br><span class="line">cd /root/.ssh</span><br><span class="line"></span><br><span class="line">cat id_rsa.pub</span><br></pre></td></tr></table></figure>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121114358468.png" alt="image-20201121114358468"></p>
+<p>到 github/gitee/gitlab 上添加对应的ssh</p>
+<p><img src="/代码管理/Git/Git代码同步/image-20201121114618923.png" alt="image-20201121114618923"></p>
+<h2 id="四、提交云服务器代码"><a href="#四、提交云服务器代码" class="headerlink" title="四、提交云服务器代码"></a>四、提交云服务器代码</h2><ul>
+<li>1、从服务器重新拉代码，将本地代码更新为服务器上的最新代码</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git pull</span><br></pre></td></tr></table></figure>
+<p><img src="/代码管理/Git/Git代码同步/yapi_git_1.png" alt="image-20220112144529354"></p>
+<ul>
+<li>2、查看本地代码状态，是否有待提交的代码 </li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git status</span><br></pre></td></tr></table></figure>
+<ul>
+<li>3、将本地代码全部提交</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git  add .</span><br></pre></td></tr></table></figure>
+<ul>
+<li>4、commit提交并添加注释 </li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git commit -m "我是提交的注释"</span><br></pre></td></tr></table></figure>
+<p>如果提交过程中出现如下问题：</p>
+<p><img src="/代码管理/Git/Git代码同步/yapi_git_3commit1.png" alt="image-20220112145348308"></p>
+<p>请先根据提示，设置全局邮件和用户名，以让其他开发者可以看到是谁提交。配置前和配置后，可使用</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 查看</span></span><br><span class="line">git config -l</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 设置提交者的邮箱</span></span><br><span class="line">git config --global user.email "dvlproad@163.com"</span><br><span class="line"><span class="meta">#</span><span class="bash"> 设置提交者的用户名</span></span><br><span class="line">git config --global user.email "dvlproad"</span><br></pre></td></tr></table></figure>
+<p><img src="/代码管理/Git/Git代码同步/yapi_git_3commit2.png" alt="image-20220112145514520"></p>
+<p>设置完后，重新执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git commit -m "我是提交的注释"</span><br></pre></td></tr></table></figure>
+<p>即可。接下来就只剩最后一步，就可正式提交完成了。</p>
+<ul>
+<li>5、将本地的 master 分支推送到 origin 主机的 master 分支。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> git push origin master</span></span><br></pre></td></tr></table></figure>
+<p>更多 git push用法，查看官网<a href="https://www.runoob.com/git/git-push.html" target="_blank" rel="noopener">https://www.runoob.com/git/git-push.html</a></p>
+<p><img src="/代码管理/Git/Git代码同步/yapi_git_5push.png" alt="image-20220112163849708"></p>
+<p>结果：</p>
+<p><img src="/代码管理/Git/Git代码同步/yapi_git_5push2.png" alt="image-20220112172647153"></p>
 <h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/实用工具/yapi/yapi的项目运行/" data-id="cm2nl42gg00tvzqr41hf32sft" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/代码管理/Git/Git代码同步/" data-id="cm2noh3r000q9pvr4e2ikqb45" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/实用工具/">实用工具</a></li></ul>
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-常识类" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/常识类/" class="article-date">
+  <time datetime="2020-01-07T02:51:09.000Z" itemprop="datePublished">2020-01-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/常识类/">常识类</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/常识类/" data-id="cm2noh1cj0009pvr4sfmxtb84" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-代码管理" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/代码管理/" class="article-date">
+  <time datetime="2019-12-24T06:23:40.000Z" itemprop="datePublished">2019-12-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/代码管理/">管理工具类</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/代码管理/" data-id="cm2noh1ci0008pvr4gm16vpog" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/功能性技术/iOS功能-Universal Link(通用链接)" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/" class="article-date">
+  <time datetime="2019-09-28T12:21:53.000Z" itemprop="datePublished">2019-09-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/">iOS功能_通用链接</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[toc]</p>
+<h1 id="Universal-Links-通用链接"><a href="#Universal-Links-通用链接" class="headerlink" title="Universal Links(通用链接)"></a>Universal Links(通用链接)</h1><p>相关文档：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/1970fd59de12" target="_blank" rel="noopener">iOS Universal Links(通用链接)的使用</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/9117f925447c" target="_blank" rel="noopener">iOS-Universal Link 接入与微信分享的配置</a></p>
+</li>
+<li><a href="https://blog.csdn.net/wisudom/article/details/106431078" target="_blank" rel="noopener">iOS微信分享、通用链接Universal Link注意事项</a></li>
+</ul>
+<h2 id="一、Universal-Links-amp-scheme"><a href="#一、Universal-Links-amp-scheme" class="headerlink" title="一、Universal Links &amp; scheme"></a>一、Universal Links &amp; scheme</h2><p>Universal Links(通用链接)，是iOS9推出的一项新功能。如果你的应用（app）支持通用链接（Universal Link）之后，iOS用户能够在点击网页的链接的时候无缝的重定向到已经安装的app，不需要额外的任何操作。如果没有安装对应的app，那么点击链接会使用Safari打开网页。</p>
+<p>附：在iOS9以前，对于各种浏览器，Safari中唤醒app的需求，我们通常是<strong>只能</strong>使用scheme的方式。现在iOS9之后，我们多了一种方式。两种方式的区别是scheme能够支持我们跳转app的时候加入参数。</p>
+<h2 id="二、Universal-Links的表现及测试"><a href="#二、Universal-Links的表现及测试" class="headerlink" title="二、Universal Links的表现及测试"></a>二、Universal Links的表现及测试</h2><p>假设对于 com.dvlproad.Beyond 这个app，</p>
+<p>dvlproad.com/app 是通用链接， dvlproad.com/mobile 不是通用链接。</p>
+<h3 id="1、在浏览器Safari地址栏中的表现"><a href="#1、在浏览器Safari地址栏中的表现" class="headerlink" title="1、在浏览器Safari地址栏中的表现"></a>1、在浏览器Safari地址栏中的表现</h3><p>则我们先分别将这些链接粘贴到浏览器Safari的地址栏中，</p>
+<p>1、浏览器地址栏为非通用链接时，没什么特别。<br>2、而浏览器地址栏为通用链接的时候，<br>①如果我们有安装`com.dvlproad.Beyond这个app，则会发现该页面下滑后，在顶部会多了个在应用中打开的操作，形如：</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/UniversalLinks_show1.png" alt="UniversalLinks_show1" style="zoom:25%;"></p>
+<p>②如果我们没有安装<code>com.dvlproad.Beyond</code>这个app，则没有多这栏打开。即使你的通用链接都配置正确了。</p>
+<h3 id="2、在非浏览器，如备用录app里的表现"><a href="#2、在非浏览器，如备用录app里的表现" class="headerlink" title="2、在非浏览器，如备用录app里的表现"></a>2、在非浏览器，如备用录app里的表现</h3><p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/UniversalLinks_show2.png" alt="UniversalLinks_show2" style="zoom:25%;"></p>
+<p>我们会发现点击</p>
+<p>1、备忘录中的链接为非通用链接时，点击链接没什么特别。<br>2、而备忘录中的链接为通用链接的时候，点击链接会直接跳转到我们的<code>com.dvlproad.Beyond</code>这个app上。</p>
+<h2 id="三、Universal-Links的实现"><a href="#三、Universal-Links的实现" class="headerlink" title="三、Universal Links的实现"></a>三、Universal Links的实现</h2><p>要让一个链接成为通用链接。需要</p>
+<p>1、开启配置 Associated Domains</p>
+<p>只有以该域名开头的链接，才可能是通用链接。</p>
+<p>2、制作上传 apple-app-site-association</p>
+<h3 id="1、Associated-Domains"><a href="#1、Associated-Domains" class="headerlink" title="1、Associated Domains"></a>1、Associated Domains</h3><p>1、进入苹果Apple Developer -&gt; Member Center -&gt; Certificates, Identifiers &amp; Profiles – &gt;Identifiers - &gt;App IDs–&gt;Edit 然后开启打钩 Associated Domains 后保存。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/3636987-50a3c3b1594ac805.png?imageMogr2/auto-orient/strip|imageView2/2/w/1099" alt="img"></p>
+<p>如果你使用Xcode的自动管理证书，可直接跳到第二步，即Xcode会在你打开Associated Domains时，自动帮你处理证书配置问题以及appIDs打开Associated Domains。</p>
+<p>2、在项目中添加Associated Domains</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/iOS功能-Universal Link(通用链接" alt="AssociatedDomains_Set1">/AssociatedDomains_Set1.png)</p>
+<p>点击Associated Domains的+号填入applinks:后面是你的域名。</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/iOS功能-Universal Link(通用链接" alt="AssociatedDomains_Set2">/AssociatedDomains_Set2.png)</p>
+<p>及添加完后，只有以该域名<code>dvlproad.com</code>开头的链接，才可能是通用链接。</p>
+<p>附：有时候，上面的设置也会改使用二级域名，如applinks:app.dvlproad.com。</p>
+<h3 id="2、apple-app-site-association"><a href="#2、apple-app-site-association" class="headerlink" title="2、apple-app-site-association"></a>2、apple-app-site-association</h3><p>App在安装的时候，iOS系统会去根据该app配置里填的那些<code>Associated Domains</code>下，去这些域的根目录下，取apple-app-site-association文件。</p>
+<p>我们创建apple-app-site-association文件，并上传也是为了让iOS系统通过<code>Associated Domains</code>和<code>apple-app-site-association</code>这个文件，一起知道你的哪些是链接是Universal Links，哪些不是Universal Links。</p>
+<h4 id="2-1、制作apple-app-site-association-文件"><a href="#2-1、制作apple-app-site-association-文件" class="headerlink" title="2.1、制作apple-app-site-association 文件"></a>2.1、制作apple-app-site-association 文件</h4><p>创建一个命名为apple-app-site-association文件，文件名必须为<strong>apple-app-site-association</strong>!!!（注意这个文件<strong>必须没有后缀名</strong>）</p>
+<p>设<code>apple-app-site-association</code>内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;applinks&quot;: &#123;</span><br><span class="line">        &quot;apps&quot;: [],</span><br><span class="line">        &quot;details&quot;: [</span><br><span class="line">            &#123;</span><br><span class="line">                &quot;appID&quot;: &quot;myTeamId.com.dvlproad.Beyond1&quot;,</span><br><span class="line">                &quot;paths&quot;: [ &quot;*&quot; ]</span><br><span class="line">            &#125;,</span><br><span class="line">            &#123;</span><br><span class="line">                &quot;appID&quot;: &quot;myTeamId.com.dvlproad.Beyond2&quot;,</span><br><span class="line">                &quot;paths&quot;: [ &quot;app&quot; ]</span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>appID 是由你的Team ID+BundleID组成，如果你不知道你的Team ID是什么？进入苹果Apple Developer -&gt; Member Center -&gt;Membership-&gt;Team ID</p>
+<p>paths 是一个字符串的数组,这里是你的应用支持的通用链接与不支持的链接，例如你使用的是/*,代表着只要是Associated Domains域名下的所有的链接都支持。如果你不支持某一个链接，在这个链接前面加NOT空格，举个例子</p>
+<p>“paths”:[ “NOT /home/<em>“, “/</em>“ ]</p>
+<p>如果这样写就是除了不支持/home下所有的链接，其他链接都支持。</p>
+<h4 id="2-2、上传apple-app-site-association-文件"><a href="#2-2、上传apple-app-site-association-文件" class="headerlink" title="2.2、上传apple-app-site-association 文件"></a>2.2、上传apple-app-site-association 文件</h4><p>把你刚才制作好的apple-app-site-association文件，放到<strong>1中Associated Domains所填写的域名<code>dvlproad.com</code></strong>的根目录下或者<code>.well-known</code>下（要怕除问题，两个地方都放也行。）。</p>
+<h4 id="2-3、检测上传的apple-app-site-association-文件是否成功"><a href="#2-3、检测上传的apple-app-site-association-文件是否成功" class="headerlink" title="2.3、检测上传的apple-app-site-association 文件是否成功"></a>2.3、检测上传的apple-app-site-association 文件是否成功</h4><p>①、通过浏览器访问<code>https://xxx.com/apple-app-site-association</code>地址，看文件是否上传成功。</p>
+<p>②、苹果有一个检测的接口<a href="https://link.jianshu.com/?t=https://search.developer.apple.com/appsearch-validation-tool/" target="_blank" rel="noopener"> 苹果测试入口</a> ，将你的域名放入测试口，点击TestURL即可。</p>
+<h4 id="2-4、上传apple-app-site-association-文件到dvlproad-github-io的例子"><a href="#2-4、上传apple-app-site-association-文件到dvlproad-github-io的例子" class="headerlink" title="2.4、上传apple-app-site-association 文件到dvlproad.github.io的例子"></a>2.4、上传apple-app-site-association 文件到<code>dvlproad.github.io</code>的例子</h4><p>为方便测试，我们域名使用<code>dvlproad.github.io</code>这个。</p>
+<p>1、<code>apple-app-site-association</code>必须放置在域名的根目录或者 .well-known 目录下，</p>
+<p>2、在本地测试跟路径是否有效。</p>
+<p>方法：将<code>apple-app-site-association</code>放置好后，我们执行<code>hexo s</code>，则我们就能成功访问<a href="http://localhost:4000" target="_blank" rel="noopener">http://localhost:4000</a>，进而<a href="http://localhost:4000/apple-app-site-association" target="_blank" rel="noopener">http://localhost:4000/apple-app-site-association</a>。</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/iOS功能-Universal Link(通用链接" alt="UniversalLinks_test1">/UniversalLinks_test1.png)</p>
+<p>3、本地可以后，就部署到服务器</p>
+<p>测试部署成功与否，通过浏览器访问<a href="https://dvlproad.github.io/apple-app-site-association">https://dvlproad.github.io/apple-app-site-association</a></p>
+<p>1、优先本地部署测试，即 hexo s 后，通过浏览器访问：<br><a href="http://localhost:4000/apple-app-site-association" target="_blank" rel="noopener">http://localhost:4000/apple-app-site-association</a> 如果可以下载则文件位置放置在根目录正确。<br>2、本地测试通过后，进行远程部署 hexo g 和 hexo d 测试，及通过浏览器访问：<br><a href="https://dvlproad.github.io/apple-app-site-association">https://dvlproad.github.io/apple-app-site-association</a><br>如果可以下载代表在1的基础上，远程部署也成功了。<br>如果无法访问/下载，而又确认部署完成了，那一般是部署了但还没同步到域名地址上的问题。建议等等或者再部署一下看看。</p>
+<h3 id="3、写一个通用链接并测试"><a href="#3、写一个通用链接并测试" class="headerlink" title="3、写一个通用链接并测试"></a>3、写一个通用链接并测试</h3><p>为进一步了解知道哪些链接是通用链接，哪些不是。我们以上述例子进行说明。</p>
+<p>则对于<code>com.dvlproad.Beyond1</code>这个app，由于paths是<code>[ &quot;*&quot; ]</code>，</p>
+<p>即只要是<code>dvlproad.com</code>开头的链接都是通用链接。</p>
+<p>而对于<code>com.dvlproad.Beyond2</code>这个app，由于paths是<code>[ &quot;app&quot; ]</code>，</p>
+<p>所以，只有以<code>dvlproad.com/app</code>开头的链接才是通用链接。即形如 dvlproad.com/app/111、dvlproad.com/app/abc 等都是通用链接。</p>
+<p>通用链接的测试方法，请按上面已经写玩的<em>Universal Links的表现及测试</em>进行测试，不再累述。</p>
+<h2 id="四、Universal-Links的使用"><a href="#四、Universal-Links的使用" class="headerlink" title="四、Universal Links的使用"></a>四、Universal Links的使用</h2><p>在AppDelegate添加下面的方法处理Universal Links</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">//TODO:后台进入前台/通用链接</span><br><span class="line">#pragma mark - Universal Link</span><br><span class="line">- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void(^)(NSArray&lt;id&lt;UIUserActivityRestoring&gt;&gt; * __nullable restorableObjects))restorationHandler &#123;</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;userActivity : %@&quot;,userActivity.webpageURL.description);</span><br><span class="line">    if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) &#123;</span><br><span class="line">        NSURL *webUrl = userActivity.webpageURL;</span><br><span class="line">        NSArray *universalLinks = LUCKIN_UNIVERSALLINKS;</span><br><span class="line">        BOOL isUniversalLinks = NO;</span><br><span class="line">        for (NSString *universalLink in universalLinks) &#123;</span><br><span class="line">            isUniversalLinks = [webUrl.host isEqualToString:universalLink];</span><br><span class="line">            if (isUniversalLinks) &#123;</span><br><span class="line">                break;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        if (isUniversalLinks) &#123;</span><br><span class="line">            //TODO:判断域名是自己的网站，进行我们需要的处理</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            [[UIApplication sharedApplication] openURL:webUrl];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return YES;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当用Universal Links启动APP时就会调用上面的方法。</p>
+<p>把我们设置好通用链接的URL放到备忘录中，长按URL会多出一条在“××××”中打开，当你点击时就会打开你的APP，并且在上面的方法中将URL传给你处理。</p>
+<h2 id="五、微信配Universal-Links"><a href="#五、微信配Universal-Links" class="headerlink" title="五、微信配Universal Links"></a>五、微信配Universal Links</h2><p>微信SDK的最新版本openSDK1.8.6 开始，需要进行Universal Links配置。</p>
+<h3 id="1、分析微信配Universal-Links的原因"><a href="#1、分析微信配Universal-Links的原因" class="headerlink" title="1、分析微信配Universal Links的原因"></a>1、分析微信配Universal Links的原因</h3><p>回顾iOS9之前，假设一个页面在微信app内部打开，其要跳转到app，一般需要先跳转到浏览器，如Safari中，然后才能再进行scheme跳转到我们的应用。</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/UniversalLinks_wechat1.png" alt="UniversalLinks_wechat1" style="zoom:25%;"></p>
+<p>而有了Universal Links后，现在你用微信打开的页面，跳转的时候，即可直接跳转到app中，不用再经过浏览器。</p>
+<h3 id="2、微信配Universal-Links的操作"><a href="#2、微信配Universal-Links的操作" class="headerlink" title="2、微信配Universal Links的操作"></a>2、微信配Universal Links的操作</h3><h4 id="2-1、基本分享操作的支持"><a href="#2-1、基本分享操作的支持" class="headerlink" title="2.1、基本分享操作的支持"></a>2.1、基本分享操作的支持</h4><p>微信分享配置Universal Links的有两个地方。</p>
+<p>1、微信开放平台 <a href="https://open.weixin.qq.com" target="_blank" rel="noopener">https://open.weixin.qq.com</a> 上对应app的Universal Links配置</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/iOS功能-Universal Link(通用链接" alt="UniversalLinks_wechat_Set1">/UniversalLinks_wechat_Set1.png)</p>
+<p>2、微信SDK使用时候的Universal Links配置。</p>
+<p>如果上述两个值设置不一样，会导致在app中点击分享的时候，没法正常调起分享操作。错误信息如下：</p>
+<p><img src="/iOS/功能性技术/iOS功能-Universal Link(通用链接)/UniversalLinks_wechat_error1.png" alt="UniversalLinks_wechat_error1" style="zoom: 33%;"></p>
+<p>我们知道Universal Links是用来做通用链接的。但要完成这一步的操作不需要我们去开<code>Associated Domains</code>和上传<code>apple-app-site-association</code>才能完成基本的分享操作了。</p>
+<h4 id="2-2、分享完微信能够正常返回"><a href="#2-2、分享完微信能够正常返回" class="headerlink" title="2.2、分享完微信能够正常返回"></a>2.2、分享完微信能够正常返回</h4><p>iOS 9系统策略更新，限制了http协议的访问，需要在“Info.plist”中将要使用的URL Schemes列为白名单，才可正常检查其他应用是否安装。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;key&gt;LSApplicationQueriesSchemes&lt;/key&gt;</span><br><span class="line">&lt;array&gt;</span><br><span class="line">    &lt;string&gt;weixin&lt;/string&gt;</span><br><span class="line">    &lt;string&gt;weixinULAPI&lt;/string&gt;</span><br><span class="line">&lt;/array&gt;</span><br><span class="line">&lt;key&gt;NSAppTransportSecurity&lt;/key&gt;</span><br><span class="line">&lt;dict&gt;</span><br><span class="line">    &lt;key&gt;NSAllowsArbitraryLoads&lt;/key&gt;</span><br><span class="line">    &lt;true/&gt;</span><br><span class="line">&lt;/dict&gt;</span><br></pre></td></tr></table></figure>
+<h4 id="2-3、可以在微信内部直接跳转到app"><a href="#2-3、可以在微信内部直接跳转到app" class="headerlink" title="2.3、可以在微信内部直接跳转到app"></a>2.3、可以在微信内部直接跳转到app</h4><p>实现Universal Links的实现。即</p>
+<p>1、开启配置 Associated Domains</p>
+<p>2、制作上传 apple-app-site-association</p>
+<p>上面已说明，请查看上面内容。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/功能性技术/iOS功能-Universal Link(通用链接)/" data-id="cm2noh3q000n3pvr4r1uyuecs" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-常识类/技术常识/图片相关常识" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/常识类/技术常识/图片相关常识/" class="article-date">
+  <time datetime="2019-06-19T10:02:45.000Z" itemprop="datePublished">2019-06-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/技术常识/">技术常识</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/常识类/技术常识/图片相关常识/">技术常识</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h2 id="一、判断图片是png还是jpg或者jpeg"><a href="#一、判断图片是png还是jpg或者jpeg" class="headerlink" title="一、判断图片是png还是jpg或者jpeg"></a>一、判断图片是png还是jpg或者jpeg</h2><h3 id="1、快速数据判断方法："><a href="#1、快速数据判断方法：" class="headerlink" title="1、快速数据判断方法："></a>1、快速数据判断方法：</h3><p>PNG格式的图片去除后缀后用记事本/Sublime打开的显示结果如下：</p>
+<p><img src="/常识类/技术常识/图片相关常识/图片格式判断1.png" alt="PNG格式的图片去除后缀后用记事本/Sublime打开的显示结果"></p>
+<p>JPEG格式的图片去除后缀后用记事本/Sublime打开的显示结果如下：</p>
+<p><img src="/常识类/技术常识/图片相关常识/图片格式判断2.png" alt="JPEG格式的图片去除后缀后用记事本/Sublime打开的显示结果"></p>
+<h3 id="2、代码判断方法："><a href="#2、代码判断方法：" class="headerlink" title="2、代码判断方法："></a>2、代码判断方法：</h3><p>参考文档：<a href="https://blog.csdn.net/lsy2013/article/details/42965805" target="_blank" rel="noopener">iOS判断图片是png还是jpg或者jpeg</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/常识类/技术常识/图片相关常识/" data-id="cm2noh3t400vbpvr4mh73586l" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/技术常识/">技术常识</a></li></ul>
 
     </footer>
   </div>
@@ -974,7 +932,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/16/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/48/">48</a><a class="extend next" rel="next" href="/page/18/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/16/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/45/">45</a><a class="extend next" rel="next" href="/page/18/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -1014,7 +972,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">February 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/01/">January 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/05/">May 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/10/">October 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
