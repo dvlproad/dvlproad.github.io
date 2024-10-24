@@ -72,397 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①队列与任务或线程"><a href="#必备知识架构-线程与网络-①队列与任务或线程" class="headerlink" title="必备知识架构-线程与网络-①队列与任务或线程"></a>必备知识架构-线程与网络-①队列与任务或线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<ul>
-<li><a href="#队列与执行">五、队列与执行</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">&gt;1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</span><br><span class="line">&gt;(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</span><br><span class="line">&gt;(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</span><br><span class="line">&gt;(3)、死锁原因分析</span><br><span class="line">&gt;</span><br><span class="line">&gt;2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程？</span><br><span class="line">&gt;</span><br><span class="line">&gt;3、iOS多线程中，队列和执行的排列组合结果分析</span><br><span class="line">&gt;(1)、队列的类型</span><br><span class="line">&gt;(2)、四个比较容易混淆的术语：同步、异步、并发、串行</span><br><span class="line">&gt;(3)、队列和线程的关系</span><br><span class="line">&gt;(4)、自己延伸的问题：一个队列同时存在同步任务和异步任务？</span><br><span class="line">&gt;</span><br><span class="line">&gt;4、并发是并发队列，并行又是什么鬼？？？</span><br><span class="line">&gt;(1)、多个处理器和多核处理器的区别</span><br><span class="line">&gt;(2)、并发和并行的区别</span><br><span class="line">&gt;</span><br><span class="line">&gt;5、进程和线程的区别</span><br><span class="line">&gt;(1)、进程和线程的区别</span><br><span class="line">&gt;(2)、一个app运行时只有一个进程吗？有没有多进程？</span><br><span class="line">&gt;(3)、什么时候用进程？什么时候用线程？</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2 id="五、队列与任务执行"><a href="#五、队列与任务执行" class="headerlink" title="五、队列与任务执行"></a>五、队列与任务执行</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h3 id="1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-amp-串行队列（Serial-Dispatch-Queue））"><a href="#1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-amp-串行队列（Serial-Dispatch-Queue））" class="headerlink" title="1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））"></a>1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））</h3><p>GCD的队列可以分为2大类型：并发队列和串行队列。</p>
-<h4 id="（1）并发队列（Concurrent-Dispatch-Queue）"><a href="#（1）并发队列（Concurrent-Dispatch-Queue）" class="headerlink" title="（1）并发队列（Concurrent Dispatch Queue）"></a>（1）并发队列（Concurrent Dispatch Queue）</h4><blockquote>
-<p>可以让多个任务并发（同时）执行（自动开启多个线程同时执行任务）并发功能只有在异步（dispatch_async）函数下才有效<br><img src="http://images.cnitblog.com/i/450136/201406/242239575804246.png" alt="并发队列"></p>
-</blockquote>
-<p>####（2）串行队列（Serial Dispatch Queue）</p>
-<blockquote>
-<p>让任务一个接着一个地执行（一个任务执行完毕后，再执行下一个任务）<br><img src="http://images.cnitblog.com/i/450136/201406/242240281274213.png" alt="串行队列"></p>
-</blockquote>
-<p> 问：并发是并发队列，并行又是什么鬼？？？</p>
-<p>答案：下文会详细介绍。</p>
-<h3 id="2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）"><a href="#2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）" class="headerlink" title="2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）"></a>2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）</h3><p>答：</p>
-<blockquote>
-<p><strong>1、队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度(是按串行队列还是按并发队列调度)，而不负责任务的执行</strong><br><strong>2、任务是添加到队列里的，可以添加同步任务或者异步任务。</strong></p>
-<p>往队列里面添加任务，<br>①如果是添加异步任务，则会开启新的线程工作，开启的线程数根据队列类型决定。串行只开一条，并行开多条。<br>②如果是添加同步任务，会在当前线程内工作，不会创建新的线程。</p>
-<p><strong>3、对队列所添加的任务是在线程中执行的/由线程负责进行执行，至于在什么线程根据是同步任务还是异步任务，以及当前是什么队列共同决定。</strong></p>
-<p>（所以不管是将同步任务添加到串行队列还是并行队列，因为同步任务都不会创建新线程。所以并行同步队列和串行同步队列其实是一样的，它们都不会创建新的线程而且会是顺序执行）</p>
-<p><strong>4、补充：在一个线程内可能有多个队列。</strong></p>
-</blockquote>
-<h4 id="2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"><a href="#2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码" class="headerlink" title="2.1、理解队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"></a>2.1、理解队列是用来添加任务/保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码</h4><p>看以下代码，我们通过它来方便我们理解：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">//  NSOperationQueueCJHelper.m</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  创建队列</span><br><span class="line"> *</span><br><span class="line"> *  @param operations    队列的操作数组</span><br><span class="line"> *  @param lastOperation 队列的最后一条(最后一条，会等到前面都结束后才会结束)</span><br><span class="line"> *</span><br><span class="line"> *  return 队列</span><br><span class="line"> */</span><br><span class="line">+ (NSOperationQueue *)createOperationQueueWithOperations:(NSArray&lt;NSOperation *&gt; *)operations lastOperation:(NSOperation *)lastOperation &#123;</span><br><span class="line">    </span><br><span class="line">    NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">    queue.name = @&quot;this is a queue&quot;;</span><br><span class="line">    </span><br><span class="line">    for (NSBlockOperation *operation in operations) &#123;</span><br><span class="line">        [queue addOperation:operation];</span><br><span class="line">        </span><br><span class="line">        [lastOperation addDependency:operation];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    [queue addOperation:lastOperation];</span><br><span class="line">    </span><br><span class="line">    return queue;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 或者</span><br><span class="line">NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];</span><br><span class="line">NSInvocationOperation *operation = [[NSInvocationOperation alloc] initWithTarget:self</span><br><span class="line">selector:@selector(myTask) object:nil];</span><br><span class="line">[operationQueue addOperation:operation];</span><br></pre></td></tr></table></figure>
-<p>附：队列的取消、暂停、恢复<br>取消队列的所有操作使用NSOperationQueue的 <code>- (void)cancelAllOperations;</code></p>
-<p>也可以调用NSOperation的- (void)cancel方法取消单个操作</p>
-<p>暂停和恢复队列</p>
-<pre><code>- (void)setSuspended:(BOOL)b; // YES代表暂停队列，NO代表恢复队列
-</code></pre><h4 id="2-2、iOS主线程、主队列-串行队列-、全局队列"><a href="#2-2、iOS主线程、主队列-串行队列-、全局队列" class="headerlink" title="2.2、iOS主线程、主队列(串行队列)、全局队列"></a>2.2、iOS主线程、主队列(串行队列)、全局队列</h4><p><a href="https://blog.csdn.net/syzd451529064/article/details/100039633" target="_blank" rel="noopener">iOS 主队列 全局队列</a></p>
-<p><strong>主队列是系统为我们创建的串行队列</strong>，而且每个APP只有一个主队列，负责调度处理APP的唯一主线程的UI事件。</p>
-<p>注意：<strong>主队列没有办法开辟新的线程。所以，在主队列下的任务不管是异步任务还是同步任务都不会开辟线程，任务只会在主线程顺序执行。</strong></p>
-<p>主队列异步任务：先将任务放在主队列中，但是不是马上执行，等到主队列中的其它所有除我们使用代码添加到主队列的任务的任务都执行完毕之后才会执行我们使用代码添加的任务。</p>
-<p>主队列同步任务：容易阻塞主线程，所以不要这样写。原因：我们自己代码任务需要马上执行，但是主线程正在执行代码任务的方法体，因此代码任务就必须等待，而主线程又在等待代码任务的完成好去完成下面的任务，因此就形成了相互等待。整个主线程就被阻塞了。</p>
-<p>全局队列：本质是一个并发队列，由系统提供，方便编程，可以不用创建就直接使用。</p>
-<h4 id="2-3、插入问：NSOperationQueue是什么队列？"><a href="#2-3、插入问：NSOperationQueue是什么队列？" class="headerlink" title="2.3、插入问：NSOperationQueue是什么队列？"></a>2.3、插入问：NSOperationQueue是什么队列？</h4><p>答：NSOperationQueue是操作队列。结合实际才知道它是并发队列，还是串行队列。</p>
-<p><em>①<code>[NSOperationQueue mainQueue]</code>是主队列，和GCD中的主队列一样，是串行队列</em>。</p>
-<p><em>②<code>[[NSOperationQueue alloc]init]</code>是非主队列，非常特殊(同时具备并发和串行的功能)。默认情况下，非主队列是并发队列。</em></p>
-<p>NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];<br>当operationQueue.maxConcurrentOperationCount &gt; 1，那么operationQueue就是并发队列；<br>当operationQueue.maxConcurrentOperationCount == 1，那么operationQueue就是串行队列。</p>
-<h3 id="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"><a href="#3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务" class="headerlink" title="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"></a>3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务</h3><h4 id="3-1、并发和串行决定了任务的执行方式-队列-。"><a href="#3-1、并发和串行决定了任务的执行方式-队列-。" class="headerlink" title="3.1、并发和串行决定了任务的执行方式(队列)。"></a>3.1、并发和串行决定了任务的执行方式(队列)。</h4><blockquote>
-<p>并发队列：多个任务并发（同时）执行，指<strong>一个处理器</strong>同时处理多个任务<br>串行队列：一个任务执行完毕后，再执行下一个任务</p>
-</blockquote>
-<h4 id="3-2、同步和异步决定了要不要开启新的线程-线程"><a href="#3-2、同步和异步决定了要不要开启新的线程-线程" class="headerlink" title="3.2、同步和异步决定了要不要开启新的线程(线程)"></a>3.2、同步和异步决定了要不要开启新的线程(线程)</h4><blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;同步：在当前线程中执行任务，不具备开启新线程的能力</span><br><span class="line">&gt;异步：在新的线程中执行任务，具备开启新线程的能力</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3 id="4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？"><a href="#4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？" class="headerlink" title="4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？"></a>4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？</h3><h6 id="1-、多个处理器和多核处理器的区别"><a href="#1-、多个处理器和多核处理器的区别" class="headerlink" title="(1)、多个处理器和多核处理器的区别"></a>(1)、多个处理器和多核处理器的区别</h6><blockquote>
-<p>多个处理器：多个单核处理器，就是说电脑和处理器有多个，但是这个电脑的处理器是单核的；</p>
-</blockquote>
-<p>多核处理器：单个多核处理器，也就是说电脑有一个处理器，但是这个处理器是多核的；</p>
-<blockquote>
-</blockquote>
-<p>附：在生活中，我们的电脑上常见的处理器都是单处理器，但是这个处理器是多核的，一般是四核，有些需要玩高级游戏的，可能还是八核的处理器。</p>
-<blockquote>
-</blockquote>
-<p>详情查看：<a href="https://blog.csdn.net/kevin_yzlong/article/details/70196168" target="_blank" rel="noopener">多个处理器和多核处理器的区别</a></p>
-<h6 id="2-、并发和并行的区别"><a href="#2-、并发和并行的区别" class="headerlink" title="(2)、并发和并行的区别"></a>(2)、并发和并行的区别</h6><p>并发(concurrency)是指一个处理器同时处理多个任务。即<strong>并发指在同一时刻只能有一条指令执行，但多个进程指令被快速的轮换执行，使得在宏观上具有多个进程同时执行的效果，但在微观上并不是同时执行的，只是把时间分成若干段，使多个进程快速交替的执行</strong>。这就好像两个人用同一把铁锨，轮流挖坑，一小时后，两个人各挖一个小一点的坑，要想挖两个大一点得坑，一定会用两个小时。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/4线程-①线程/进程线程/并发(concurrency" alt="并发(concurrency)">.jpg)</p>
-</blockquote>
-<p>并行(parallel)是指多个处理器或者是多核的处理器同时处理多个不同的任务。即并行是指在同一时刻，有多条指令在多个处理器上同时执行。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/4线程-①线程/进程线程/并行(parallel" alt="并行(parallel)">.jpg)</p>
-</blockquote>
-<p>个人理解：是否可以理解为在出现多核处理器或者只有一个处理器的时候，我们那时候就只还有并发的概念。</p>
-<p>并行在多处理器系统中存在，而并发可以在单处理器和多处理器系统中都存在，并发能够在单处理器系统中存在是因为<strong>并发是并行的假象，并行要求程序能够同时执行多个操作，而并发只是要求程序假装同时执行多个操作（每个小时间片执行一个操作，多个操作快速切换执行）</strong>。</p>
-<h3 id="5、iOS多线程中，队列和执行的排列组合结果分析"><a href="#5、iOS多线程中，队列和执行的排列组合结果分析" class="headerlink" title="5、iOS多线程中，队列和执行的排列组合结果分析"></a>5、iOS多线程中，队列和执行的排列组合结果分析</h3><ul>
-<li><a href="http://www.cnblogs.com/dsxniubility/p/4296937.html" target="_blank" rel="noopener">iOS多线程中，队列和执行的排列组合结果分析</a></li>
-</ul>
-<p>该文章非常重要，且主要总结点有</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 开不开线程，取决于执行任务的函数，同步不开，异步开。</span><br><span class="line">2. 开几条线程，取决于队列，串行开一条，并发可以开多条(即并发队列里有异步任务，则可以开多条，如果都只有同步任务，那由于同步任务并不会开新线程，所以此时也就不会开新线程)</span><br><span class="line">3. 主队列：专门用来在主线程上调度任务的&quot;队列&quot;，主队列不能在其他线程中调度任务！</span><br><span class="line">4. 如果主线程上当前正在有执行的任务，主队列暂时不会调度任务的执行！主队列同步任务，会造成死锁。原因是循环等待</span><br><span class="line">5. 同步任务可以队列调度多个异步任务前，指定一个同步任务，让所有的异步任务，等待同步任务执行完成，这是依赖关系。</span><br><span class="line">6. 全局队列：并发，能够调度多个线程，执行效率高，但是相对费电。 串行队列效率较低，省电省流量，或者是任务之间需要依赖也可以使用串行队列。</span><br><span class="line">7. 也可以通过判断当前用户的网络环境来决定开的线程数。WIFI下6条，3G/4G下2～3条。</span><br></pre></td></tr></table></figure>
-<h3 id="6、代码：使用GCD为队列添加任务"><a href="#6、代码：使用GCD为队列添加任务" class="headerlink" title="6、代码：使用GCD为队列添加任务"></a>6、代码：使用GCD为队列添加任务</h3><p>实例1：并发队列添加异步任务/用异步函数往并发队列中添加任务的例子：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad</span><br><span class="line">  &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    //1.获得全局的并发队列</span><br><span class="line">   dispatch_queue_t queue =  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);</span><br><span class="line"></span><br><span class="line">    //2.添加任务到队列中，就可以执行任务</span><br><span class="line">    //异步函数：具备开启新线程的能力</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片1----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">  //打印主线程</span><br><span class="line">    NSLog(@&quot;主线程----%@&quot;,[NSThread mainThread]);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">上述方法说明.GCD中有2个用来执行任务的函数</span><br></pre></td></tr></table></figure>
-<p>说明：<code>把右边的参数（任务）提交给左边的参数（队列）进行执行</code>。</p>
-<p>（1）用同步的方式执行任务 dispatch_sync(dispatch_queue_t queue, dispatch_block_t block);</p>
-<p>（2）用异步的方式执行任务 dispatch_async(dispatch_queue_t queue, dispatch_block_t block);</p>
-<p></p><p id="GCD"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h6 id="2、以下两种GCD队列创建有什么不同？"><a href="#2、以下两种GCD队列创建有什么不同？" class="headerlink" title="2、以下两种GCD队列创建有什么不同？"></a>2、以下两种GCD队列创建有什么不同？</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_queue_create(&quot;MyQueue&quot;,DISPATCH_QUEUE_SERIAL);</span><br><span class="line"></span><br><span class="line">dispatch_queue_t queue =dispatch_queue_create(@“MyQueue&quot;, DISPATCH_QUEUE_CONCURRENT);</span><br><span class="line"></span><br><span class="line">//生成一个串行队列，队列中的block按照先进先出（FIFO）的顺序去执行，实际上为单线程执行。第一个参数是队列的名称，在调试程序时会非常有用，所有尽量不要重名了。</span><br><span class="line"></span><br><span class="line">//生成一个并发执行队列，block被分发到多个线程去执行</span><br></pre></td></tr></table></figure>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-②队列与任务或线程/" data-id="cm1p887na018izwr47vkjl2p0" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/4线程-①进程与线程" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-线程与网络-①线程"><a href="#必备知识架构-线程与网络-①线程" class="headerlink" title="必备知识架构-线程与网络-①线程"></a>必备知识架构-线程与网络-①线程</h1><p>[toc]</p>
-<p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h4 id="5、进程和线程的区别"><a href="#5、进程和线程的区别" class="headerlink" title="5、进程和线程的区别"></a>5、进程和线程的区别</h4><h6 id="1-、进程和线程的区别"><a href="#1-、进程和线程的区别" class="headerlink" title="(1)、进程和线程的区别"></a>(1)、进程和线程的区别</h6><blockquote>
-<p>以下区别摘自：<a href="https://www.cnblogs.com/zhuzhu2016/p/5804875.html" target="_blank" rel="noopener">进程和线程的区别</a>。</p>
-<p>一个程序至少一个进程，一个进程至少一个线程。</p>
-<p><strong>一个线程只能属于一个进程，而一个进程可以有多个线程，且至少有一个线程。</strong></p>
-</blockquote>
-<p>进程线程的区别：</p>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">资源拥有：同一进程内的所有线程共享该进程的资源。如内存、I/O、cpu等，但是进程之间的资源是独立的。</span><br><span class="line">地址空间：同一进程的线程共享本进程的地址空间，而进程之间则是独立的地址空间。</span><br><span class="line">&gt; </span><br><span class="line">一个进程崩溃后，在保护模式下不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。所以多进程要比多线程健壮。</span><br><span class="line">&gt; </span><br><span class="line">进程切换时，消耗的资源大，效率高。所以涉及到频繁的切换时，使用线程要好于进程。同样如果要求同时进行并且又要共享某些变量的并发操作，只能用线程不能用进程。</span><br><span class="line">&gt; </span><br><span class="line">两者均可并发执行。</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h6 id="2-、一个app运行时只有一个进程吗？有没有多进程？"><a href="#2-、一个app运行时只有一个进程吗？有没有多进程？" class="headerlink" title="(2)、一个app运行时只有一个进程吗？有没有多进程？"></a>(2)、一个app运行时只有一个进程吗？有没有多进程？</h6><p>一个正在运行的程序可以看做一个进程。（例如：正在运行的QQ就是一个进程），进程拥有独立运行所需的全部资源。</p>
-<p><a href="https://blog.csdn.net/kuangdacaikuang/article/details/78891379" target="_blank" rel="noopener">iOS (APP)进程间8中常用通信方式总结</a></p>
-<h6 id="3-、什么时候用进程？什么时候用线程？"><a href="#3-、什么时候用进程？什么时候用线程？" class="headerlink" title="(3)、什么时候用进程？什么时候用线程？"></a>(3)、什么时候用进程？什么时候用线程？</h6><p>进程与线程的选择取决以下几点：</p>
-<blockquote>
-<p>1、需要频繁创建销毁的优先使用线程；因为对进程来说创建和销毁一个进程代价是很大的。</p>
-</blockquote>
-<blockquote>
-<p>2、线程的切换速度快，所以在需要大量计算，切换频繁时用线程，还有耗时的操作使用线程可提高应用程序的响应</p>
-</blockquote>
-<blockquote>
-<p>3、因为对CPU系统的效率使用上线程更占优，所以可能要发展到多机分布的用进程，多核分布用线程；</p>
-</blockquote>
-<blockquote>
-<p>4、并行操作时使用线程，如C/S架构的服务器端并发线程响应用户的请求；</p>
-</blockquote>
-<blockquote>
-<p>5、需要更稳定安全时，适合选择进程；需要速度时，选择线程更好。</p>
-</blockquote>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/4线程-①进程与线程/" data-id="cm1p887nu018jzwr4sfwzkgfe" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.623Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="通讯-②跨端间的通讯"><a href="#通讯-②跨端间的通讯" class="headerlink" title="通讯-②跨端间的通讯"></a>通讯-②跨端间的通讯</h1><p>[toc]</p>
-<p></p><p id="线程间的通信"></p><br>Flutter 与 Android iOS 原生的通信有以下三种方式 <p></p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th></th>
-<th>使用场景</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td>BasicMessageChannel</td>
-<td>调用原生端的相机功能来拍照，并且获取拍摄的照片数据</td>
-<td>支持<strong>双向通信</strong>，即Flutter可以向原生发送消息，并且原生可以回复这些消息。</td>
-</tr>
-<tr>
-<td></td>
-<td>MethodChannel</td>
-<td>向原生发送一次性的命令或请求，并等待响应</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>EventChannel</td>
-<td>适合用于数据流的通信，如监听传感器数据、网络变化等事件。</td>
-<td><strong>单向通信</strong>，只能由原生平台向Flutter发送事件流</td>
-</tr>
-</tbody>
-</table>
-<p>参考文档：</p>
-<p><a href="https://cloud.tencent.com/developer/article/1688491" target="_blank" rel="noopener">Flutter通过BasicMessageChannel与Android iOS 的双向通信</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/4①线程/通讯-②跨端间的通讯/" data-id="cm1p887q3018nzwr4nxqimivi" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-③跳转" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-③跳转/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-③跳转"><a href="#必备知识架构-视图-③跳转" class="headerlink" title="必备知识架构-视图-③跳转"></a>必备知识架构-视图-③跳转</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#视图的跳转">一、视图的跳转</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="视图的跳转"></p><p></p>
-<h2 id="一、视图的跳转"><a href="#一、视图的跳转" class="headerlink" title="一、视图的跳转"></a>一、视图的跳转</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
-<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
-<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
-<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
-<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
-</blockquote>
-<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cm1p887gd017tzwr4z3smdw4v" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-②生命周期" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-②生命周期/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-②生命周期"><a href="#必备知识架构-视图-②生命周期" class="headerlink" title="必备知识架构-视图-②生命周期"></a>必备知识架构-视图-②生命周期</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#生命周期">五、控制器View的生命周期</a></li>
-</ul>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p></p><p id="生命周期"></p><p></p>
-<h2 id="五、控制器View的生命周期"><a href="#五、控制器View的生命周期" class="headerlink" title="五、控制器View的生命周期"></a>五、控制器View的生命周期</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p>更详细的生命周期请查看：<a href="https://www.jianshu.com/p/d60b388b19f5" target="_blank" rel="noopener">iOS程序执行顺序和UIViewController 的生命周期(整理)</a></p>
-<h5 id="题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的"><a href="#题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的" class="headerlink" title="题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?"></a>题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1.在视图显示之前调用viewWillAppear;该函数可以调用多次; </span><br><span class="line">2.视图显示完毕,调用viewDidAppear;</span><br><span class="line">3.在视图消失之前调用viewWillDisAppear;该函数可以调用多次(如需要);</span><br><span class="line">4.在布局变化前后,调用viewWill/DidLayoutSubviews处理相关信息;</span><br></pre></td></tr></table></figure>
-<p>viewWillAppear——-》viewWillLayoutSubviews—–》viewDidLayoutSubviews———–》</p>
-<p>viewDidAppear</p>
-<h5 id="题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的"><a href="#题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的" class="headerlink" title="题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的."></a>题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</h5><p><a href="http://blog.csdn.net/w_sx_/article/details/39431205" target="_blank" rel="noopener">loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</a></p>
-<h4 id="3、layoutSubviews布局与drawRect重绘"><a href="#3、layoutSubviews布局与drawRect重绘" class="headerlink" title="3、layoutSubviews布局与drawRect重绘"></a>3、layoutSubviews布局与drawRect重绘</h4><h6 id="1-、layoutSubviews布局"><a href="#1-、layoutSubviews布局" class="headerlink" title="(1)、layoutSubviews布局"></a>(1)、layoutSubviews布局</h6><p>layoutSubviews是对subviews重新布局；<br>比如，我们想更新子视图的位置的时候，可以通过调用layoutSubviews方法，即可以实现对子视图重新布局。但实际上<strong>一般我们都是不要直接手动调用layoutSubviews方法</strong>。因为有操作时候，系统会自动调用layoutSubviews。</p>
-<blockquote>
-<p>那我们进行哪些操作会触发layoutSubviews方法呢？答如下：</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">首先注意：</span><br><span class="line">①init初始化不会触发layoutSubviews，</span><br><span class="line">但是使用initWithFrame进行初始化时，当rect的值不为CGRectZero时，会触发layoutSubviews。</span><br><span class="line">②、直接调用setLayoutSubviews。</span><br><span class="line">③、addSubview的时候一般都会触发layoutSubviews。(最常见) 注：但当本View的frame为0时,addSubView也不会调用layoutSubViews。</span><br><span class="line">④、当view的frame发生改变的时候触发layoutSubviews。</span><br><span class="line">⑤、滑动UIScrollView的时候触发layoutSubviews。</span><br><span class="line">⑥、旋转Screen会触发父UIView上的layoutSubviews事件。</span><br><span class="line">⑦、改变一个UIView大小的时候也会触发父UIView上的layoutSubviews事件。</span><br></pre></td></tr></table></figure>
-<p>所以我们可以看出当视图约束/frame变化时候，会触发layoutSubviews，进行重新布局。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：</span><br><span class="line">如果你还是想强制更新布局，你可以调用setNeedsLayout方法；</span><br><span class="line">如果你想立即显示你的views，你需要调用layoutIfNeed方法。</span><br><span class="line"></span><br><span class="line">①、- (void)layoutSubviews; </span><br><span class="line">这个方法，默认没有做任何事情，需要子类进行重写；</span><br><span class="line">②、- (void)setNeedsLayout; </span><br><span class="line">标记为需要重新布局，异步调用layoutIfNeeded刷新布局，不立即刷新，但layoutSubviews一定会被调用；</span><br><span class="line">③、- (void)layoutIfNeeded; </span><br><span class="line">如果，有需要刷新的标记，立即调用layoutSubviews进行布局（如果没有标记，不会调用layoutSubviews）。</span><br></pre></td></tr></table></figure>
-<p>其他参考文章:<a href="https://blog.csdn.net/u011146511/article/details/51234907" target="_blank" rel="noopener">iOS layoutSubview的方法总结／重绘drawRect</a></p>
-<p>什么时候用layoutSubviews?</p>
-<blockquote>
-<p>答：仅仅在以下情况下:自动布局达不到想要效果时你才有必要重写这个方法.可以直接设置subviews的尺寸.</p>
-</blockquote>
-<h6 id="2-、drawRect重绘"><a href="#2-、drawRect重绘" class="headerlink" title="(2)、drawRect重绘"></a>(2)、drawRect重绘</h6><p>重绘作用：重写该方法以实现自定义的绘制内容</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drawRect:(CGRect)rect方法：重写此方法，执行重绘任务</span><br><span class="line">-setNeedsDisplay方法：标记为需要重绘，异步调用drawRect</span><br><span class="line">-setNeedsDisplayInRect:(CGRect)invalidRect方法：标记为需要局部重绘</span><br></pre></td></tr></table></figure>
-<h6 id="3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"><a href="#3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序" class="headerlink" title="(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"></a>(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">layoutSubviews是对subviews重新布局；</span><br><span class="line">drawRect重绘；</span><br><span class="line">layoutSubviews方法调用先于drawRect，也就是先布局子视图，在重绘。</span><br></pre></td></tr></table></figure>
-<p>所以，在调用updateConstraintsIfNeeded可能会立即执行updateConstraints，然后调用layoutSubviews。因为按照Autolayout布局的步骤，应该是先更新约束然后更新布局的。</p>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cm1p887hi017yzwr44a7xk24k" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-④图片" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-④图片/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-④图片"><a href="#必备知识架构-视图-④图片" class="headerlink" title="必备知识架构-视图-④图片"></a>必备知识架构-视图-④图片</h1><ul>
-<li><a href="https://www.jianshu.com/p/7c44c3b2a056" target="_blank" rel="noopener">2019 iOS面试题—UI相关：事件传递，图像显示，性能优化，离屏渲染</a></li>
-</ul>
-<ul>
-<li><p><a href="https://www.cnblogs.com/sunyanyan/p/5417792.html" target="_blank" rel="noopener">SDWebImageDecoder</a></p>
-<blockquote>
-<p>由于UIImage的imageWithData函数是每次画图的时候才将Data解压成ARGB的图像，</p>
-<p>所以在每次画图的时候，会有一个解压操作，这样效率很低。为了提高效率，通过SDWebImageDecoder将包装在Data下的资源解压，然后画在另外一张图片上，这样这张新图片就不再需要重复解压了。</p>
-</blockquote>
-</li>
-<li><p><a href="https://www.jianshu.com/p/e00854ab5567" target="_blank" rel="noopener">有关请求相同地址图片的下载问题(SDWebIMage底层原理的实现)</a></p>
-</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-④图片/" data-id="cm1p887im0182zwr4zz3uajjl" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/3必备知识架构/3视图/纹理Texture" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/3视图/纹理Texture/" class="article-date">
@@ -505,186 +114,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/纹理Texture/" data-id="cm1p887j60184zwr43k4yhwd1" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-更新机制" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-更新机制/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.621Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>[toc]</p>
-<h1 id="视图-更新机制"><a href="#视图-更新机制" class="headerlink" title="视图-更新机制"></a>视图-更新机制</h1><p>系统有基本稳定的刷新频率，在layer内容改变的时候，把这个layer做个<strong>需要刷新</strong>的标记，即是<code>setNeedsDisplay</code>。</p>
-<p>然后每次刷新时，把上次刷新之后被标记的layer一次性全部提交给图形系统，所以这里还有一个东西，就是<strong>事务(CATransaction)</strong>。</p>
-<p>其他类似举例：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tableView.beginUpdates()</span><br><span class="line">tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-2</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">    tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-1</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">tableView.endUpdates()</span><br></pre></td></tr></table></figure>
-<p><code>beginUpdates</code> 和 <code>endUpdates</code> 方法的作用是，让这两条语句之间的对 tableView 的操作( insert/delete)<strong>不立即执行，而是先聚合起来，然后同时更新 UI</strong>。</p>
-<h3 id="1、刷新频率"><a href="#1、刷新频率" class="headerlink" title="1、刷新频率"></a>1、刷新频率</h3><h4 id="1-1、显示器的刷新率-VS-显卡渲染的帧率"><a href="#1-1、显示器的刷新率-VS-显卡渲染的帧率" class="headerlink" title="1.1、显示器的刷新率 VS 显卡渲染的帧率"></a>1.1、显示器的刷新率 VS 显卡渲染的帧率</h4><p>1、显示器的刷新率为 50Hz，显卡渲染的帧率是 200FPS</p>
-<p>即显示器20ms显示一帧，显卡5ms渲染一帧。</p>
-<p>则20ms里，显卡渲染了4帧数据，但显示器只能显示了一次，该画面由4帧数据组成，造成撕裂。</p>
-<p>所以需要压制显卡的渲染速率，使显卡的帧缓冲区切换行为与显示器的帧绘制保持同步。<strong>垂直同步（Vertical Synchronization, VSync）</strong>即是为了处理此。</p>
-<p>好文推荐： <a href="https://daily.elepover.com/2021/03/27/vsync/index.html" target="_blank" rel="noopener">扫描，撕裂和垂直同步 - VSync 技术实现</a></p>
-<h5 id="1-1-1、显示数据的提供来源：帧缓冲区"><a href="#1-1-1、显示数据的提供来源：帧缓冲区" class="headerlink" title="1.1.1、显示数据的提供来源：帧缓冲区"></a>1.1.1、显示数据的提供来源：帧缓冲区</h5><p>通常，显示器是一台独立工作的设备，状态与显卡无关，会以恒定不变的频率从某个「池」里面读取画面，以保证稳定的图像输出。与此同时，显卡也会往这个「池」里写画面，以供显示器读取。这个「池」叫「<strong>Framebuffer（帧缓冲区）</strong>」。</p>
-<p>一张显卡通常有 2 个帧缓冲区：<strong>主/副（Primary/Secondary）缓冲区（也称前/后缓冲区（Front/Back））</strong>，由数据选择器（Multiplexer）选择连接到显示器的缓冲区。连接到显示器的缓冲区总是主缓冲区，显示器从中读取图像内容；未连接到显示器的缓冲区总是副缓冲区，显卡向其中写入渲染好的内容。</p>
-<p>显卡总是会尝试以最快的速度渲染内容，每完成一帧渲染即切换主/副缓冲区，与显示器的工作状态完全无关。</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-更新机制/image-20240905163331025.png" alt="image-20240905163331025" style="zoom:50%;"></p>
-<blockquote>
-<p>当渲染完成后，副缓冲区的内容会与主缓冲区的内容进行交换，这个过程是双缓冲（Double Buffering）技术的一部分，用于避免屏幕撕裂和闪烁，同时提高图像渲染的效率。下面详细解释这个过程：</p>
-<ol>
-<li><strong>主缓冲区（Front Buffer）</strong>：这是当前正在屏幕上显示的图像所在的缓冲区。用户看到的所有内容都存储在这里，显示器会不断读取这个缓冲区的内容来显示图像。</li>
-<li><strong>副缓冲区（Back Buffer）</strong>：这是显卡用来准备下一帧图像的缓冲区。当一帧图像显示在屏幕上时，显卡可以在副缓冲区中渲染下一帧图像，而不会影响当前显示的内容。</li>
-<li><strong>渲染过程</strong>：显卡开始在副缓冲区中渲染新的一帧图像。这个过程可能包括执行复杂的图形计算，如光照计算、纹理映射、深度测试等。</li>
-<li><strong>缓冲区交换（Buffer Swap）</strong>：一旦副缓冲区中的新帧渲染完成，显卡会执行一个缓冲区交换操作。这个操作会将副缓冲区的内容复制到主缓冲区，这样显示器就可以开始显示新的一帧图像，而副缓冲区则准备好接受下一帧的渲染数据。</li>
-<li><strong>避免屏幕撕裂</strong>：由于显示器是逐行刷新的，如果在显示器刷新过程中显卡正在渲染新的帧，就可能出现屏幕撕裂现象。双缓冲技术通过在渲染完成后才进行缓冲区交换，确保了显示器在任何时候都不会读取到半成品的帧，从而避免了屏幕撕裂。</li>
-<li><strong>提高效率</strong>：在双缓冲机制下，显卡可以在一帧显示的同时准备下一帧，这样可以更有效地利用显卡资源，提高渲染效率。</li>
-<li><strong>垂直同步（V-Sync）</strong>：为了进一步提高图像质量和减少撕裂，有时会使用垂直同步技术。垂直同步会同步显卡的渲染速度和显示器的刷新率，确保缓冲区交换发生在显示器刷新周期的合适时刻。</li>
-</ol>
-<p>通过这种方式，双缓冲技术能够在不牺牲渲染效率的情况下，提供流畅且无撕裂的图像显示。</p>
-</blockquote>
-<h4 id="1-2、垂直同步（Vertical-synchronization）"><a href="#1-2、垂直同步（Vertical-synchronization）" class="headerlink" title="1.2、垂直同步（Vertical synchronization）"></a>1.2、垂直同步（Vertical synchronization）</h4><p>V-Sync 的主要作用就是保证<strong>只有在帧缓冲区中的图像被渲染之后，后备缓冲区中的内容才可以被拷贝到帧缓冲区中</strong>。</p>
-<p>理想情况下每次 V-Sync 发生时，CPU 以及 GPU 都已经完成了对图像的处理以及绘制，显示器可以直接拿到缓冲区中的帧。即 V-Sync  会按这种方式工作：</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-更新机制/image-20240905184838586.png" alt="image-20240905184838586" style="zoom:33%;"></p>
-<p>但是，如果 CPU 或者 GPU 的处理需要的时间较长，就会发生掉帧的问题，即在 V-Sync 信号发出时，CPU 和 GPU 并没有准备好需要渲染的帧，显示器就会继续使用当前帧。</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-更新机制/image-20240905184900129.png" alt="image-20240905184900129" style="zoom:33%;"></p>
-<p>其实到这里关于屏幕渲染的内容就已经差不多结束了，根据 V-Sync 的原理，优化应用性能、提高 App 的 FPS 就可以从两个方面来入手，优化 CPU 以及 GPU 的处理时间。</p>
-<p><strong>iOS 的显示系统是由 VSync 信号驱动的</strong>，VSync 信号由硬件时钟生成，每秒钟发出 60 次（这个值取决设备硬件，比如 iPhone 真机上通常是 59.97）。</p>
-<p><strong>RunLoop是一个事件循环对象</strong>，用于管理线程的事件处理。每个线程都有一个与之对应的RunLoop对象，主线程的RunLoop在应用程序启动时自动创建并运行，而子线程的RunLoop需要手动创建和维护。<strong>RunLoop的作用是让线程能够随时处理事件而不退出，它通过循环检查输入源（如Timer、Source等）和定时源，等待接收事件，当没有事件时让线程休眠以节省资源。</strong></p>
-<p>Core Animation（CA）是 iOS 中的动画和图形渲染引擎，它在 RunLoop 中注册了 Observer 来监听特定的事件，以便在适当的时机进行渲染操作。这些 Observer 可以监听多种 RunLoop 的事件，包括：</p>
-<ol>
-<li><strong>BeforeWaiting</strong>：RunLoop 即将进入休眠状态之前，此时没有待处理的事件，系统可能在等待新的输入事件或定时器事件。Core Animation 会在这个时候进行渲染操作，准备下一帧的显示内容。</li>
-<li><strong>Exit</strong>：RunLoop 即将退出时，这通常意味着线程将结束运行。在这个阶段，Core Animation 可能会进行一些清理工作。</li>
-</ol>
-<p>手机硬件时钟生成Vsync信号 </p>
-<p>=&gt; 图形服务接收到 VSync 信号后，会通过 IPC 通知到 App 内。</p>
-<p>=&gt; app收到当VSync信号到达时，应用程序的主线程开始处理显示内容，如视图创建、布局计算等，然后将内容提交给GPU进行渲染。渲染完成后，GPU将结果提交到帧缓冲区，等待下一个VSync信号到来时显示到屏幕上。</p>
-<p>=&gt; Runloop接收到时钟信号（<strong>App 的 Runloop 在启动后会注册对应的 CFRunLoopSource 通过 mach_port 接收传过来的时钟信号通知</strong>，随后 Source 的回调会驱动整个 App 的动画与显示。</p>
-<p>当VSync信号到来时，系统图形服务会通过CADisplayLink等机制通知应用程序，</p>
-<h2 id="离屏渲染"><a href="#离屏渲染" class="headerlink" title="离屏渲染"></a>离屏渲染</h2><p>在iOS设备上，<strong>GPU渲染通常发生在帧缓冲区中</strong>，这是GPU用来临时存储即将显示到屏幕上的像素数据的区域。帧缓冲区通常采用双缓冲机制，即存在一个前台缓冲区和一个后台缓冲区。前台缓冲区是当前显示在屏幕上的帧，而后台缓冲区是GPU正在渲染的下一帧。</p>
-<p><strong>离屏渲染（Off-Screen Rendering）是当GPU无法直接在帧缓冲区中渲染某些效果时所采用的一种技术。以下是一些可以在帧缓冲区处理的效果，以及一些需要离屏渲染的效果：</strong></p>
-<p>可以在帧缓冲区处理的效果：</p>
-<ol>
-<li><strong>简单的颜色填充和边框绘制</strong>：这些可以直接在GPU的帧缓冲区中进行，因为它们不涉及复杂的像素操作。</li>
-<li><strong>使用<code>contents</code>属性设置的图像</strong>：如果图层的内容是一个简单的图像，且没有复杂的变换或混合，这些可以直接在帧缓冲区中渲染。</li>
-</ol>
-<p>需要离屏渲染的效果：</p>
-<ol>
-<li><strong>圆角（Rounded Corners）</strong>：当为UIView或其子类设置<code>cornerRadius</code>属性时，如果视图同时具有不透明背景色或复杂的背景图像，可能会触发离屏渲染。</li>
-<li><strong>阴影（Shadows）</strong>：设置layer的shadow属性（如shadowColor、shadowOffset、shadowRadius等）会产生阴影效果，这些效果通常需要离屏渲染。</li>
-<li><strong>透明度（Opacity）</strong>：当视图的alpha值小于1或使用了CALayer的opacity属性时，如果有复杂混合层级，可能触发离屏渲染。</li>
-<li><strong>遮罩（Masking）</strong>：使用CALayer的mask属性或UIView的maskView时，遮罩效果通常需要离屏渲染。</li>
-<li><strong>非默认混合模式</strong>：当视图或图层使用非默认的混合模式（如multiply、screen、overlay等）时，系统可能需要在离屏缓冲区中进行混合操作。</li>
-<li><strong>多重渲染目标（Multiple Render Passes）</strong>：需要多次渲染才能完成的效果，如复杂动画、多重叠加效果等，可能需要离屏缓冲区进行中间结果的存储和合并。</li>
-</ol>
-<h3 id="为什么某些效果不行："><a href="#为什么某些效果不行：" class="headerlink" title="为什么某些效果不行："></a>为什么某些效果不行：</h3><p>某些效果需要在渲染过程中进行多次像素级的处理，这<strong>在帧缓冲区的单次渲染流程中难以实现</strong>。例如，阴影效果需要在原始图层渲染后，再在其周围绘制额外的阴影像素，这涉及到对已经渲染的像素进行二次处理，因此需要在离屏缓冲区中先进行渲染，然后再与主帧缓冲区的内容合并。</p>
-<h3 id="优化建议："><a href="#优化建议：" class="headerlink" title="优化建议："></a>优化建议：</h3><ul>
-<li><strong>避免不必要的离屏渲染</strong>：例如，对于圆角效果，可以考虑使用系统提供的圆角属性，而不是通过离屏渲染实现。</li>
-<li><strong>合理利用视图层级关系</strong>：在iOS中，视图层级关系会影响渲染的优先级，可以通过调整视图的层级来优化渲染性能。</li>
-<li><strong>使用offscreen rendering进行调试</strong>：通过打开offscreen rendering的调试选项，可以观察到应用在进行离屏渲染时的具体情况，帮助定位性能瓶颈。</li>
-</ul>
-<p>通过深入理解离屏渲染的原理并采取有效的优化措施，可以提升应用的性能和用户体验。在实际开发中，应尽量避免不必要的离屏渲染操作，合理利用视图层级关系和Metal API进行自定义渲染，从而打造出流畅、高效的iOS应用。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-更新机制/" data-id="cm1p887jr0186zwr4sstjtc3f" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-②布局" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-②布局/" class="article-date">
-  <time datetime="2022-03-16T05:35:04.620Z" itemprop="datePublished">2022-03-16</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-视图-②布局"><a href="#必备知识架构-视图-②布局" class="headerlink" title="必备知识架构-视图-②布局"></a>必备知识架构-视图-②布局</h1><p>[toc]</p>
-<h2 id="一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority"><a href="#一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority" class="headerlink" title="一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority"></a>一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority</h2><p>看一下下面的例子，看给出的例子约束是否完整？</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UILabel *label = [[UILabel alloc] init];</span><br><span class="line"> label.font = [UIFont systemFontOfSize:15];</span><br><span class="line"> label.text = @&quot;Hello&quot;;</span><br><span class="line"> [self.view addSubview:label];</span><br><span class="line"> [label mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">     make.left.equalTo(self.view.mas_left).offset(16);</span><br><span class="line">     make.top.equalTo(self.view.mas_top).offset(16);</span><br><span class="line"> &#125;];</span><br></pre></td></tr></table></figure>
-<p>这里只定义了两个约束，left 和 top，只够计算出frame的originX和orginY，没有width和height。那么是不是属于不完整的约束呢？其实在这里给出的约束已经是完整的了。因为对于UILabel这个控件而言 ，只要通过其font和text系统就可以计算出Label该有的长度和宽度。这里的长度和宽度就是UILabel的intrinsic content size（固有属性）。</p>
-<p>Intrinsic Content Size, 通俗来讲，就是控件(UIButton,UILabel,UIImageView)能根据它们的内容(content)计算自己的大小(Size）</p>
-<p>开发中用到的一些控件或视图，本身就自带大小，比如UIButton控件，设置完title后就能知道这个UIButton是文字的大小再加上两个固定的button margin。<br> 像这种控件或视图本身就带有的高度、宽度，就叫做intrinsic content size（固定内容尺寸）。</p>
-<h3 id="2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩"><a href="#2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩" class="headerlink" title="2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩"></a>2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</h3><ul>
-<li><a href="https://www.jianshu.com/p/8e68b82b471a" target="_blank" rel="noopener">浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</a></li>
-</ul>
-<blockquote>
-<p>在 Autolayout 优先级的范围是 1 ~ 1000，创建一个约束，默认的优先级是最高的 1000。</p>
-<p>Content Hugging Priority:<br>该优先级表示一个控件抗被拉伸的优先级。优先级越高，越不容易被拉伸(即越容易保持原状)，默认是251。</p>
-<p>Content Compression Resistance Priority:<br>该优先级表示一个控件抗压缩的优先级。优先级越高，越不容易被压缩(即越容易保持原状)，默认是750。</p>
-</blockquote>
-<p>使用场景：</p>
-<p>当一个视图上有多个 <code>intrinsic content size</code> 的子控件，并且子控件可能会超出父视图的区域时，此属性可控制哪些视图被内容被优先压缩，使其不超出父视图区域。</p>
-<p>场景举例：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>当yellowLable的宽度最多为screenWidth-200。</p>
-<p>则我们想让lable对左右两边的约束性没那么高，可以设置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100).priority(250);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100).priority(250);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>给出一个比较常见的需求：</p>
-<p>在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-②布局/intrinsic content size.png" alt="intrinsic content size"></p>
-<p>目标：我们想让绿色的时间显示全，则应该要压缩前面的titleLabel。也就是要降低titleLabel的抗压缩。</p>
-<p>即</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>UILayoutPriorityRequired：1000</p>
-<p>UILayoutPriorityDefaultHigh：750</p>
-<p>UILayoutPriorityDefaultLow：250</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">//在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</span><br><span class="line">- (UIView *)contentViewWith:(BOOL)b &#123;</span><br><span class="line">    UIView *contentView = [[UIView alloc] init];</span><br><span class="line">    contentView.backgroundColor = [UIColor lightGrayColor];</span><br><span class="line">    </span><br><span class="line">    UILabel *titleLabel = [[UILabel alloc] init];</span><br><span class="line">    titleLabel.backgroundColor = [UIColor redColor];</span><br><span class="line">    titleLabel.text = @&quot;Each of these constraints can have its own priority. By default, &quot;;</span><br><span class="line">    titleLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:titleLabel];</span><br><span class="line">    [titleLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(contentView.mas_top);</span><br><span class="line">        make.left.equalTo(contentView.mas_left).offset(16);</span><br><span class="line">    &#125;];</span><br><span class="line">        </span><br><span class="line">    UILabel *timeLabel = [[UILabel alloc] init];</span><br><span class="line">    timeLabel.backgroundColor = [UIColor greenColor];</span><br><span class="line">    timeLabel.text = @&quot;2017/03/12 18:20:22&quot;;</span><br><span class="line">    timeLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:timeLabel];</span><br><span class="line">    [timeLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(titleLabel.mas_top);</span><br><span class="line">        make.left.equalTo(titleLabel.mas_right).offset(8);</span><br><span class="line">        make.right.lessThanOrEqualTo(contentView.mas_right).offset(-8);</span><br><span class="line">    &#125;];</span><br><span class="line">    </span><br><span class="line">    if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    return contentView;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="二、iOS使用topLayoutGuide和bottomLayoutGuide"><a href="#二、iOS使用topLayoutGuide和bottomLayoutGuide" class="headerlink" title="二、iOS使用topLayoutGuide和bottomLayoutGuide"></a>二、iOS使用topLayoutGuide和bottomLayoutGuide</h2><p>参考文章：<a href="https://www.jianshu.com/p/0086d11d45b7" target="_blank" rel="noopener">iOS使用topLayoutGuide和bottomLayoutGuide</a></p>
-<p>在iOS中，可以使用topLayoutGuide和bottomLayoutGuide来适配屏幕内容，它们是属于UIViewController的属性，配合masonry和SnapKit等约束工具，效果更好。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIView *bottomPayView = [[UIView alloc] init];</span><br><span class="line">bottomPayView.backgroundColor = [UIColor grayColor];</span><br><span class="line">[self.view addSubview:bottomPayView];</span><br><span class="line">[bottomPayView mas_makeConstraints:^(MASConstraintMaker *x) &#123;</span><br><span class="line">        x.height.equalTo(@45);</span><br><span class="line">        x.left.right.equalTo(self.view);</span><br><span class="line">        x.bottom.equalTo(self.mas_bottomLayoutGuide);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"><a href="#三、UITableView自动计算cell高度并缓存，再也不用管高度啦" class="headerlink" title="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"></a>三、UITableView自动计算cell高度并缓存，再也不用管高度啦</h2><p><a href="https://www.jianshu.com/p/64f0e1557562" target="_blank" rel="noopener">UITableView自动计算cell高度并缓存，再也不用管高度啦</a></p>
-<p>用xib加约束和用masonry加代码约束都是可以的。注意约束一定要自上而下加好，让系统知道怎么去计算高度。</p>
-<p>加好约束后，然后告诉tableView自己去适应高度就可以了。有两种写法：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.tableView.rowHeight = <span class="built_in">UITableViewAutomaticDimension</span>;</span><br><span class="line"><span class="keyword">self</span>.tableView.estimatedRowHeight = <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
-<p>或者直接写这个代理方法就可以了</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个的意思就是告诉tableView，你需要自己适应高度，我不给你算啦哈哈哈。但是我们需要告诉它一个大概高度，例如上面的100，理论上这个是可以随便写的，并不影响显示结果，但是越接近真实高度越好。</p>
-<h3 id="可能遇到的问题和解决办法"><a href="#可能遇到的问题和解决办法" class="headerlink" title="可能遇到的问题和解决办法"></a>可能遇到的问题和解决办法</h3><p><strong>1.高度不对</strong><br>有时候有可能运行出来后看到cell的高度显示的不对。这个问题是因为约束没有满足自上而下，从而系统不知道怎么去计算。解决办法就是去修改约束，直到满足为止。一定要好好理解约束啊！</p>
-<p><strong>2.点击状态栏无法滚动到顶部</strong><br>我们知道，如果界面中有UIScrollView的话，点击状态栏会让其滚动到顶部，就像这样：</p>
-<p>但是如果我们用了自动计算高度的方法，又调用了tableView的reloadData方法（例如我们的数据有分页的时候，加载完下一页的数据后会去刷新tableView）。这时候就会出现问题，点击状态栏就有几率不能精确滚动到顶部了：</p>
-<p>解决这个问题的办法是去缓存cell的高度，代码如下：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSMutableDictionary</span> *heightAtIndexPath;<span class="comment">//缓存高度所用字典</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#pragma mark - UITableViewDelegate</span></span><br><span class="line">-(<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = [<span class="keyword">self</span>.heightAtIndexPath objectForKey:indexPath];</span><br><span class="line">    <span class="keyword">if</span>(height)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> height.floatValue;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)tableView:(<span class="built_in">UITableView</span> *)tableView willDisplayCell:(<span class="built_in">UITableViewCell</span> *)cell forRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = @(cell.frame.size.height);</span><br><span class="line">    [<span class="keyword">self</span>.heightAtIndexPath setObject:height forKey:indexPath];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="四、问题"><a href="#四、问题" class="headerlink" title="四、问题"></a>四、问题</h2><h4 id="问题1：使用Masonry的时候进行updateConstraints没有效果"><a href="#问题1：使用Masonry的时候进行updateConstraints没有效果" class="headerlink" title="问题1：使用Masonry的时候进行updateConstraints没有效果"></a>问题1：使用Masonry的时候进行updateConstraints没有效果</h4><p>原因：使用updateConstraints更新的时候必须是makeConstraints里面设置过的约束。但如果只是这样还不行，还需要约束对象匹配才能成功。</p>
-<p>问题详见：<a href="https://blog.csdn.net/wq5201314o/article/details/52184622" target="_blank" rel="noopener">使用Masonry的时候进行updateConstraints没有效果</a></p>
-<h1 id="iOS11适配-Safe-Area"><a href="#iOS11适配-Safe-Area" class="headerlink" title="iOS11适配-Safe Area"></a>iOS11适配-Safe Area</h1><p><a href="https://blog.csdn.net/gaoqinghuadage/article/details/79961750" target="_blank" rel="noopener">iOS11适配-Safe Area</a></p>
-<blockquote>
-<p>在iOS 11，UIViewController中的UIView的topLayoutGuide和bottomLayoutGuide被替换成了新的安全区属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaInsets: UIEdgeInsets &#123; get &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaLayoutGuide: UILayoutGuide &#123; get &#125;12345</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>safeAreaInsets属性意味着屏幕可以被任何方向遮挡，并不只是上下，当iPhone X出现时，我们就明白了为什么我们需要对左右两边也进行缩进。</p>
-</blockquote>
-<p>Masonry动画</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cm1p887gy017wzwr4viv32e2v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/纹理Texture/" data-id="cm2nkn6il018mbur49mze72kt" class="article-share-link">Share</a>
       
       
     </footer>
@@ -720,7 +150,634 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cm1p887dm017jzwr4srmbbzhl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/时间计时器等/" data-id="cm2nkn66y0179bur4laxkppg6" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言Common" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言Common/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.572Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言"><a href="#必备知识架构-①语言" class="headerlink" title="必备知识架构-①语言"></a>必备知识架构-①语言</h1><p>[Toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="Objective-C与C++"></p><p></p>
+<h2 id="面向对象-OOP"><a href="#面向对象-OOP" class="headerlink" title="面向对象(OOP)"></a>面向对象(OOP)</h2><p>面向对象的三个特性：封装、继承和多态。</p>
+<blockquote>
+<p>所谓封装，也就是把客观事物封装成抽象的类；</p>
+<p>所谓多态就是指一个类实例的相同方法在不同情形有不同表现形式。多态机制使具有不同内部结构的对象可以共享相同的外部接口。(或者说是不同对象以自己的方式响应相同的消息的能力叫做多态。)</p>
+</blockquote>
+<p>继承的问题：如果架构工程师写父类，业务工程师实现子类。那么业务工程师很可能不清楚：哪些方法需要被覆盖重载，哪些不需要。如果子类没有覆重方法，而父类提供的只是空方法，就很容易出问题。如果子类在覆重的时候引入了其他不相关逻辑，那么子类对象就显得不够单纯，角色复杂了。</p>
+<blockquote>
+<p>多态面临的四个问题：</p>
+<ul>
+<li><p>父类有部分public的方法是不需要，也不允许子类覆重。</p>
+<p>答：公司内部可以规定:<code>不允许覆盖重载父类中的方法</code>、<code>子类需要实现接口协议中的方法</code>。</p>
+</li>
+<li><p>父类有一些特别的方法是必须要子类去覆重的，在父类的方法其实是个空方法。</p>
+</li>
+<li><p>父类有一些方法即便被覆重，父类原方法还是要执行的。</p>
+</li>
+<li><p>父类有一些方法是可选覆重的，一旦覆重，则以子类为准。</p>
+</li>
+</ul>
+</blockquote>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="2、const-与define使用的区别"><a href="#2、const-与define使用的区别" class="headerlink" title="2、const 与define使用的区别"></a>2、const 与define使用的区别</h4><ul>
+<li>define修饰的变量不指定类型,const的指定类型</li>
+<li>defien修饰的变量每次引用都开辟一次内存,而const只有一份内存</li>
+<li>如果修饰的是代码片段适合用define,如果修饰的是变量适合用const</li>
+</ul>
+<h4 id="6、nil-Nil-NULL-与-NSNull-的区别"><a href="#6、nil-Nil-NULL-与-NSNull-的区别" class="headerlink" title="6、nil, Nil,NULL 与 NSNull 的区别"></a>6、nil, Nil,NULL 与 NSNull 的区别</h4><ul>
+<li>nil 指向一个<strong>对象的指针</strong>为空,在objc.h 的定义如下: <code>NSString *name = nil;</code></li>
+<li>Nil 指向一个<strong>类的指针</strong>为空,定义如下: <code>Class aClass = Nil;</code></li>
+<li>NULL 指向<strong>C类型的指针</strong>为空, 例如: <code>int*pInt = NULL;</code></li>
+<li>NSNull 在Objective-C中是一个类,使用为生成一个空对象<code>[NSNull null];</code>，多用于集合(NSArray,NSDictionary)中值为空的对象</li>
+</ul>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Common/" data-id="cm2nkn6170169bur4sfz2wr0o" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言Swift" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言Swift/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.572Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言Swift"><a href="#必备知识架构-①语言Swift" class="headerlink" title="必备知识架构-①语言Swift"></a>必备知识架构-①语言Swift</h1><p>[Toc]</p>
+<h2 id="一、iOS开发中使用OC和swift的对比"><a href="#一、iOS开发中使用OC和swift的对比" class="headerlink" title="一、iOS开发中使用OC和swift的对比"></a>一、iOS开发中使用OC和swift的对比</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.import的类</span><br><span class="line">OC：某个只要要使用某个类就要将该类import。</span><br><span class="line">swift：如果是用户自己创建类，其他类无需import可以直接使用。pod的一些三方类和系统的一些类，在使用的时候需要import</span><br></pre></td></tr></table></figure>
+<p>Guard语句的语法</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">guard</span> expression <span class="keyword">else</span> &#123; </span><br><span class="line">    <span class="comment">//语句</span></span><br><span class="line">    <span class="comment">//必须包含一个控制语句：return，break，continue或throw。</span></span><br><span class="line">&#125;</span><br><span class="line">这里，expression是一个布尔表达式（返回<span class="literal">true</span>或者<span class="literal">false</span>）。</span><br><span class="line">如果对表达式求值<span class="literal">false</span>，<span class="keyword">guard</span>则执行代码块内的语句。</span><br><span class="line">如果对表达式求值<span class="literal">true</span>，<span class="keyword">guard</span>则从执行中跳过代码块内的语句</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">someFunction</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">guard</span> <span class="literal">false</span> <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">"Condition not met"</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"Condition met"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、【iOS】Swift和OC协议的区别？为何Swift是面向协议的？"><a href="#二、【iOS】Swift和OC协议的区别？为何Swift是面向协议的？" class="headerlink" title="二、【iOS】Swift和OC协议的区别？为何Swift是面向协议的？"></a>二、【iOS】Swift和OC协议的区别？为何Swift是面向协议的？</h2><p><a href="https://blog.csdn.net/hanrovey/article/details/106636624" target="_blank" rel="noopener">【iOS】Swift和OC协议的区别？为何Swift是面向协议的？</a></p>
+<p>相比于OC，Swift 可以做到协议方法的具体实现，而 OC 则不行。</p>
+<blockquote>
+<p>OC中协议<code>（Protocol）</code>类似一个类的接口，只声明，不实现。<br>只能定义公用的一套接口，但不能提供具体的实现方法。也就是说，它只告诉你要做什么，但具体怎么做不关心。具体的实现要在遵守这个协议的类中实现。</p>
+</blockquote>
+<h3 id="OC的Protocol与继承的区别"><a href="#OC的Protocol与继承的区别" class="headerlink" title="OC的Protocol与继承的区别"></a>OC的Protocol与继承的区别</h3><p>继承连同方法的实现也继承了，而protocol只有声明没有实现；<br>protocol能够作用到不同类型的类上。</p>
+<h3 id="OC的Protocol与Category的区别"><a href="#OC的Protocol与Category的区别" class="headerlink" title="OC的Protocol与Category的区别"></a>OC的Protocol与Category的区别</h3><p><code>Category</code>可以给一个类扩充方法，既有申明也有实现；而<code>Protocol</code>只有声明，没有实现。<br> 同：<code>Category</code>和<code>Protocol</code>都可以声明方法，不能声明属性。</p>
+<h2 id="Swift-面试题解"><a href="#Swift-面试题解" class="headerlink" title="Swift 面试题解"></a>Swift 面试题解</h2><h3 id="的作用"><a href="#的作用" class="headerlink" title="?? 的作用"></a>?? 的作用</h3><p>可选值的默认值, 当可选值为nil 的时候, 会返回后面的值. 如<br><code>let someValue = optional1 ?? 0</code></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言Swift/" data-id="cm2nkn619016fbur4ykx90c0a" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/Runtime" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/Runtime/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.572Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Runtime-Interview"><a href="#Runtime-Interview" class="headerlink" title="Runtime_Interview"></a>Runtime_Interview</h1><p>Runtime</p>
+<p>前言：</p>
+<p>  Objective C的runtime技术功能非常强大，能够在运行时获取并修改类的各种信息，包括获取方法列表、属性列表、变量列表，修改方法、属性，增加方法，属性等等，本文对相关的几个要点做了一个小结。</p>
+<p>目录：</p>
+<p>（1）使用class_replaceMethod/class_addMethod函数在运行时对函数进行动态替换或增加新函数</p>
+<p>（2）重载forwardingTargetForSelector，将无法处理的selector转发给其他对象</p>
+<p>（3）重载resolveInstanceMethod，从而在无法处理某个selector时，动态添加一个selector</p>
+<p>（4）使用class_copyPropertyList及property_getName获取类的属性列表及每个属性的名称</p>
+<p>  (5) 使用class_copyMethodList获取类的所有方法列表</p>
+<p>应用：</p>
+<p>viewWillAppear 埋点</p>
+<p>KVO的本质</p>
+<p>问： Category的实现原理，以及Category为什么只能加方法不能直接加属性（需要自己在分类中实现setter、getter方法）?</p>
+<p>答：分类的实现原理是将category中的方法，属性，协议数据放在category_t结构体中，然后将结构体内的方法列表拷贝到类对象的方法列表中。 Category可以添加属性，但是并不会自动生成成员变量及set/get方法。因为category_t结构体中并不存在成员变量。通过之前对对象的分析我们知道成员变量是存放在实例对象中的，并且编译的那一刻就已经决定好了。而分类是在运行时才去加载的。那么我们就无法再程序运行时将分类的成员变量中添加到实例对象的结构体中。因此分类中不可以添加成员变量。</p>
+<h4 id="一些参考"><a href="#一些参考" class="headerlink" title="一些参考"></a>一些参考</h4><p><a href="http://www.cnblogs.com/yswdarren/p/3619303.html" target="_blank" rel="noopener">Objective C运行时（runtime）技术总结</a></p>
+<p>需求1、当项目中，需要继承某一个父类，但是父类中并没有提供我们需要的调用方法，一般情况下，这种时候，我们可能会再派生一个类，或者会直接为这个类写一个分类（category），在这个分类中，我们可以新增或者替换某个方法（注意：不推荐在分类中重写方法，而且也无法通过 super 来获取所谓父类的方法）。大致在这两种情况下，我们可以通过 class_addMethod 来实现我们想要的效果。</p>
+<p>先从一个场景问题带出吧，比如一个应用都是继承于UIViewController，刚开始时候不要求要转屏，到后面才决定加上旋转屏适配，这个时候如果我们去创建一个父类，并让去修改每个类的继承这个方法显然是效率太低了。而且有时候，我们也不想多创个父类，于是我们就只能决定一次过替换掉这些controller里的viewWillAppear:和 willAnimateRotationToInterfaceOrientation:duration:，换成自己的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">+ (void)load &#123;</span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        Class clazz = object_getClass((id)self);</span><br><span class="line">        </span><br><span class="line">        //将系统的resolveInstanceMethod替换成自己的myResolveInstanceMethod，而系统的resolveInstanceMethod方法就是当运行时对象调用了一个找不到的方法的时候系统会去寻找的机制。</span><br><span class="line">        [clazz swizzleMethod:@selector(resolveInstanceMethod:) withMethod:@selector(myResolveInstanceMethod:)];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  用什么方法替换掉什么方法</span><br><span class="line"> *</span><br><span class="line"> *  @param origSel  原方法选择子</span><br><span class="line"> *  @param aftSel   新方法选择子</span><br><span class="line"> */</span><br><span class="line">+ (BOOL)swizzleMethod:(SEL)origSel withMethod:(SEL)aftSel &#123;</span><br><span class="line">	//通过class_getInstanceMethod()拿到对应的Method</span><br><span class="line">    Method originMethod = class_getInstanceMethod(self, origSel);</span><br><span class="line">    Method newMethod = class_getInstanceMethod(self, aftSel);</span><br><span class="line">    </span><br><span class="line">    if(originMethod &amp;&amp; newMethod)&#123; //必须两个Method都要拿到</span><br><span class="line">    	//class_addMethod将本来不存在于被操作的Class里的newMethod的实现添加在被操作的Class里，并使用origSel作为其选择子</span><br><span class="line">        if(class_addMethod(self, origSel, method_getImplementation(newMethod),method_getTypeEncoding(newMethod))) &#123;</span><br><span class="line">        	//当addMethod成功完成后，利用class_replaceMethod换掉method_getImplaementation(oiginMethod)的选择子，将原方法的实现的SEL换成新方法的SEL:aftSel，ok目的达成了。想一想，现在通过旧方法SEL来调用，就会实现新方法的IMP，通过新方法的SEL来调用，就会实现旧方法的IMP。</span><br><span class="line">            class_replaceMethod(self, aftSel, method_getImplementation(originMethod), method_getTypeEncoding(originMethod));</span><br><span class="line">        &#125;</span><br><span class="line">        return YES;</span><br><span class="line">    &#125;</span><br><span class="line">    return NO;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/Runtime/" data-id="cm2nkn63f016obur47gjy30m9" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言-消息转发NSProxy" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-消息转发2"><a href="#必备知识架构-①语言-消息转发2" class="headerlink" title="必备知识架构-①语言-消息转发2"></a>必备知识架构-①语言-消息转发2</h1><p>[toc]</p>
+<h2 id="一、NSProxy"><a href="#一、NSProxy" class="headerlink" title="一、NSProxy"></a>一、NSProxy</h2><p>NSProxy，你可以通过继承它，并重写它的以下两个方法以实现消息转发到另一个实例。说白了，NSProxy专为代理而生（<strong>负责将消息转发到真正的target的代理类</strong>）。从类名来看是代理类，专门负责代理对象转发消息的。相比NSObject类来说NSProxy更轻量级，<strong>通过NSProxy可以帮助Objective-C间接的实现多重继承的功能</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation;</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)sel;</span><br></pre></td></tr></table></figure>
+<h3 id="1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子"><a href="#1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子" class="headerlink" title="1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子"></a>1、通过NSProxy可以帮助Objective-C间接的实现多重继承的功能的例子</h3><p>现在比较流行的说法是用它来模拟多重继承，大致过程就是让它Hold住/包含你要实现多继承的类的对象，然后被hold住的对象的行为定义在接口中，并让Proxy去实现这些接口。然后再转发的时候把消息转发到实现了该接口的对象去执行，这样就好像实现了多重继承一样。<strong>注意</strong>：这个真不是多重继承，只是包含，然后把消息路由到指定的对象而已，其实完全可以用NSObject类来实现。</p>
+<p>天使=人+鸟</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Person *person = [Person new];</span><br><span class="line">Bird *bird = [Bird new];</span><br><span class="line"></span><br><span class="line">id angelProxy = [AngelProxy proxyForObject1:person object2:bird];</span><br><span class="line">[proxy speak];	// 人可以说话</span><br><span class="line">[proxy fly];		// 鸟可以飞</span><br></pre></td></tr></table></figure>
+<p>另一个例子：<a href="https://www.cnblogs.com/vokie/p/9289958.html" target="_blank" rel="noopener">NSProxy的学习使用</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">// AngelProxy.h</span><br><span class="line">#import &lt;Foundation/Foundation.h&gt;</span><br><span class="line"></span><br><span class="line">@interface AngelProxy : NSProxy</span><br><span class="line"></span><br><span class="line">+ (id)proxyForObject1:(id)obj1 object2:(id)obj2;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// AngelProxy.m</span><br><span class="line">#import &quot;AngelProxy.h&quot;</span><br><span class="line"></span><br><span class="line">@interface AngelProxy()</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id target1;</span><br><span class="line">@property (nonatomic, weak) id target2;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation AngelProxy</span><br><span class="line"></span><br><span class="line">- (instancetype)initWithTarget1:(id)obj1 target2:(id)obj2 &#123;</span><br><span class="line">    _target1 = obj1;</span><br><span class="line">    _target2 = obj2;</span><br><span class="line">    </span><br><span class="line">    return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (id)proxyForObject1:(id)obj1 object2:(id)obj2 &#123; </span><br><span class="line">    return [[AngelProxy alloc] initWithTarget1:obj1 target2:obj2];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 重写NSProxy如下两个方法，在处理消息转发时，将消息转发给真正的Target处理</span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)invocation &#123;</span><br><span class="line">    id target;</span><br><span class="line">    if ([_target1 methodSignatureForSelector:invocation.selector]) &#123;</span><br><span class="line">        target = _target1;</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">        target = _target2;</span><br><span class="line">    &#125;</span><br><span class="line">    [invocation invokeWithTarget:target];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)selector &#123;</span><br><span class="line">    NSMethodSignature *sig;</span><br><span class="line">    </span><br><span class="line">    sig = [_target1 methodSignatureForSelector:selector];</span><br><span class="line">    if (sig) &#123;</span><br><span class="line">        return sig;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    sig = [_target2 methodSignatureForSelector:selector];</span><br><span class="line">    return sig;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、NSProxy-和-NSObject-的比较"><a href="#2、NSProxy-和-NSObject-的比较" class="headerlink" title="2、NSProxy 和 NSObject 的比较"></a>2、NSProxy 和 NSObject 的比较</h3><p>相比NSObject，NSProxy更轻量级，做消息转发效率更高。</p>
+<p>NSObject寻找方法顺序：本类-&gt;(父类-)&gt;(动态方法解析)-&gt; 消息转发；<br>NSproxy顺序：本类-&gt;消息转发</p>
+<h3 id="3、NSProxy的用途"><a href="#3、NSProxy的用途" class="headerlink" title="3、NSProxy的用途"></a>3、NSProxy的用途</h3><ol>
+<li><p>AOP面向切片编程</p>
+<p>iOS中面向切片编程一般有两种方式 ，一个是直接基于runtime 的method-Swizzling.还有一种就是基于NSProxy</p>
+</li>
+<li><p>解决NSTimer, CADisplayLink等强引用target引起的无法释放问题。如NSTimer:利用消息转发来断开NSTimer对象与视图之间的强引用关系。初始化NSTimer时把触发事件的target替换成一个单独的对象，然后这个对象中NSTimer的SEL方法触发时让这个方法在当前的视图self中实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">self.timer = [NSTimer timerWithTimeInterval:1 target:self.proxy </span><br><span class="line">              								selector:@selector(timerEvent) userInfo:nil repeats:YES];</span><br><span class="line">[[NSRunLoop currentRunLoop] addTimer:self.timer forMode:NSRunLoopCommonModes];</span><br><span class="line">// 这里我们timer的target使用AYProxy对象，它会实现你这个timer想要实现的timerEvent消息转发给self。从而避免了循环引用</span><br></pre></td></tr></table></figure>
+<p>协议类代码为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">#import</span><br><span class="line"></span><br><span class="line">@interface AYProxy : NSProxy</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id obj;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">#import &quot;AYProxy.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation AYProxy</span><br><span class="line"></span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector&#123;</span><br><span class="line">   NSMethodSignature *sig = nil;</span><br><span class="line">   sig = [self.obj methodSignatureForSelector:aSelector];</span><br><span class="line">   return sig;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation&#123;</span><br><span class="line">   [anInvocation invokeWithTarget:self.obj];</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<ol start="3">
+<li><p>多重继承</p>
+<p>实现类似CAAnimation类族.</p>
+</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发NSProxy/" data-id="cm2nkn6030163bur4tzuag1li" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-请求拦截NSURLProtocol"><a href="#必备知识架构-①语言-请求拦截NSURLProtocol" class="headerlink" title="必备知识架构-①语言-请求拦截NSURLProtocol"></a>必备知识架构-①语言-请求拦截NSURLProtocol</h1><p>[toc]</p>
+<h2 id="一、NSURLProtocol"><a href="#一、NSURLProtocol" class="headerlink" title="一、NSURLProtocol"></a>一、NSURLProtocol</h2><p>如果开发者自定义的一个 NSURLProtocol 并且注册到 app 中，那么在这个自定义的 NSURLProtocol 中我们可以拦截所有的请求(（注意，不只是webView内的请求，而是整个app内的所有请求）)，进行修改，或者修改 response。即NSURLProtocol这个东西的作用可以让我们在app的内部拦截一切url请求。</p>
+<p><strong>「或者这么说吧： NSURLProtocol 就是一个苹果允许的中间人攻击。」</strong></p>
+<p>注意事项：</p>
+<p>如果我们顺序注册 A B C 三个 Protocol，那么一个 connection 在发送的时候，处理的顺序是 C B A，而且最多只有一个 Protocol 会触发处理。</p>
+<p>拦截 UIWebview 的请求，会有被拒的风险。</p>
+<p>附：</p>
+<blockquote>
+<p>iOS的Foundation框架提供了 URL Loading System 这个库(后面简写为ULS)，所有基于URL（例如http://，https:// ,ftp://这些应用层的传输协议)的协议都可以通过ULS提供的基础类和协议来实现。而ULS库里提供了一个强有力的武器 NSURLProtocol。</p>
+</blockquote>
+<h2 id="NSURLProtocol能做什么？"><a href="#NSURLProtocol能做什么？" class="headerlink" title="NSURLProtocol能做什么？"></a>NSURLProtocol能做什么？</h2><p>举几个例子：</p>
+<ul>
+<li>全局网络请求设置：我们的APP内的所有请求都需要增加公共的头，像这种我们就可以直接通过NSURLProtocol来实现，当然实现的方式有很多种</li>
+<li>自定义 Response （过滤敏感信息）</li>
+<li>再比如我们需要将APP某个API进行一些访问的统计</li>
+<li>再比如我们需要统计APP内的网络请求失败率</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-请求拦截NSURLProtocol/" data-id="cm2nkn60n0166bur4cs8mgjnj" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言-消息转发" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言-消息转发/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言-消息转发"><a href="#必备知识架构-①语言-消息转发" class="headerlink" title="必备知识架构-①语言-消息转发"></a>必备知识架构-①语言-消息转发</h1><p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJBaseHelper/CJBaseHelper/HookCJHelper" target="_blank" rel="noopener">CJBaseHelper/HookCJHelper</a>》</p>
+<blockquote>
+<p>pod search CJBaseHelper</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165215629.png" alt="image-20240822165215629"></p>
+<blockquote>
+<p>库的使用方法，见我简书中的以下文章：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/5013d7bcddb5" target="_blank" rel="noopener">iOS 获取当前正在显示的视图控制器ViewController(最全)</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/cc715c5b594c" target="_blank" rel="noopener">iOS 拦截篇(一)：拦截H5通过<input>标签选取的图片</a></p>
+</li>
+</ul>
+</blockquote>
+</blockquote>
+<p>《<a href="https://github.com/dvlproad/CJUIKit/tree/master/CJHook" target="_blank" rel="noopener">CJHook</a>》</p>
+<blockquote>
+<p>pod search CJHook</p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言-消息转发/image-20240822165517533.png" alt="image-20240822165517533"></p>
+</blockquote>
+<h2 id="在调用原始方法之前插入额外的执行逻辑"><a href="#在调用原始方法之前插入额外的执行逻辑" class="headerlink" title="在调用原始方法之前插入额外的执行逻辑"></a>在调用原始方法之前插入额外的执行逻辑</h2><h3 id="1、使用场景"><a href="#1、使用场景" class="headerlink" title="1、使用场景"></a>1、使用场景</h3><ol>
+<li><p><strong>日志记录与监控</strong>： 在方法执行前后添加日志记录，可以帮助开发者监控应用的行为，特别是在调试和性能分析时。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)swizzleMethod:(Class)class withSelector:(SEL)selector &#123;</span><br><span class="line">    Method originalMethod = class_getInstanceMethod(class, selector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(id self) &#123;</span><br><span class="line">         NSLog(@&quot;Before method execution&quot;);</span><br><span class="line">         ((void(*)(id, SEL))originalIMP)(self, selector);</span><br><span class="line">         NSLog(@&quot;After method execution&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="2、调用"><a href="#2、调用" class="headerlink" title="2、调用"></a>2、调用</h3><p>以在<strong>进入个人主页前，需要先判断是否登录</strong>为例</p>
+<p>常规：使用<strong>Util式、使用宏</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">    // 在调用原始方法之前执行的代码（进入个人主页前，需要先判断是否登录）</span><br><span class="line">    bool canPush = [LoginCheckerUtil checkLogin];</span><br><span class="line">  	if (!canPush) return;</span><br><span class="line">    </span><br><span class="line">    MineHomeViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[self.navigationController pushViewController:viewController animated:YES];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>改进(改进后发现，其实可读性不高，所以还不如不这么改）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">// LoginCheckUtil.m</span><br><span class="line">#define NeedLoginAnnotation(Class originalSelOwnerClass, SEL originalSelector) \</span><br><span class="line">HookCJHelper_addPreExecutionToClassMethod(originalSelOwnerClass, originalSelector, [LoginCheckUtil class], @selector(loginCheckMethod));</span><br><span class="line">class LoginCheckUtil: NSObject &#123;</span><br><span class="line">	+ (bool)loginCheckMethod &#123;</span><br><span class="line">	  if (UserManager.isLogin) &#123;</span><br><span class="line">      return YES;</span><br><span class="line">    &#125;</span><br><span class="line">    LoginViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">		[topVC pushViewController:viewController animated:YES];</span><br><span class="line">    return NO;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// HomeViewController.m</span><br><span class="line">+ (void) initialize &#123;</span><br><span class="line">	@NeedLoginAnnotation([self class], @selector(goMineHomePage))	// 在 + (void) initialize 中调用</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3、内部核心代码"><a href="#3、内部核心代码" class="headerlink" title="3、内部核心代码"></a>3、内部核心代码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">// 在调用原始方法之前插入额外的执行逻辑</span><br><span class="line">bool HookCJHelper_addPreExecutionToClassMethod(Class originalSelOwnerClass, SEL originalSelector, Class preExecSelOwnerClass, SEL preExecutionSelector) &#123;</span><br><span class="line">  	// 原始方法检查</span><br><span class="line">    if (!originalSelOwnerClass || !class_getClassMethod(originalSelOwnerClass, originalSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    Method originalMethod = class_getClassMethod(originalSelOwnerClass, originalSelector);</span><br><span class="line">    IMP originalIMP = method_getImplementation(originalMethod);</span><br><span class="line">    if (!originalIMP) &#123;</span><br><span class="line">    		return false;</span><br><span class="line">   	&#125;</span><br><span class="line">    </span><br><span class="line">  	// 要插入的方法</span><br><span class="line">    if (!preExecSelOwnerClass || !class_getClassMethod(preExecSelOwnerClass, preExecutionSelector)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 创建新的方法实现</span><br><span class="line">    IMP newIMP = imp_implementationWithBlock(^(Class self) &#123;</span><br><span class="line">      // 调用额外的逻辑（预执行类方法）</span><br><span class="line">      ((void(*)(Class, SEL))objc_msgSend)(preExecSelOwnerClass, preExecutionSelector);</span><br><span class="line">      // 调用原始的类方法</span><br><span class="line">      ((void(*)(Class, SEL))originalIMP)(self, originalSelector);</span><br><span class="line">  	&#125;);</span><br><span class="line"></span><br><span class="line">    // 替换原始方法的实现为新的实现</span><br><span class="line">    method_setImplementation(originalMethod, newIMP);</span><br><span class="line"></span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>什么时候会报<code>unrecognized selector</code>的异常</li>
+</ol>
+<ul>
+<li><p>当调用该对象上某个方法，而该对象上没有实现这个方法的时候。可以通过<code>消息转发</code>进行解决，流程见下图</p>
+<p><img src="https:////upload-images.jianshu.io/upload_images/1948913-f236e31f679fe683.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/597" alt="img"></p>
+<p>image</p>
+</li>
+<li><p><code>OC</code>在向一个对象发送消息时，<code>runtime</code>库会根据对象的<code>isa</code>指针找到该对象实际所属的类，然后<strong>在该类中的方法列表以及其父类方法列表中寻找方法运行，如果在最顶层的父类中依然找不到相应的方法时，程序在运行时会挂掉并抛出异常<code>unrecognized selector sent to XXX</code></strong><br><strong>但是在这之前，OC的运行时会给出三次拯救程序崩溃的机会</strong></p>
+</li>
+<li><p>Method resolution（<strong>消息动态解析</strong>）<br><code>OC</code>运行时会调用<code>+resolveInstanceMethod:</code>或者<code>+resolveClassMethod:</code>，让你有机会提供一个函数实现。如果你添加了函数，那运行时系统就会重新启动一次消息发送的过程，否则，运行时就会移到下一步，消息转发（<code>Message Forwarding</code>）</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重写 resolveInstanceMethod: 添加对象方法实现</span></span><br><span class="line">+ (<span class="built_in">BOOL</span>)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">    <span class="comment">// 如果是执行 run 函数，就动态解析，指定新的 IMP</span></span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// class: 给哪个类添加方法</span></span><br><span class="line">        <span class="comment">// SEL: 添加哪个方法</span></span><br><span class="line">        <span class="comment">// IMP: 方法实现 =&gt; 函数 =&gt; 函数入口 =&gt; 函数名</span></span><br><span class="line">        <span class="comment">// type: 方法类型：void用v来表示，id参数用@来表示，SEL用:来表示</span></span><br><span class="line">        class_addMethod(<span class="keyword">self</span>, sel, (IMP)runMethod, <span class="string">"v@:@"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//新的 run 函数</span></span><br><span class="line"><span class="keyword">void</span> runMethod(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd, <span class="built_in">NSNumber</span> *meter) &#123;</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"跑了%@"</span>, meter);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ul>
+<li><p>Fast forwarding（<strong>消息接受者重定向</strong>）<br>  如果目标对象实现了<code>-forwardingTargetForSelector:</code>，<code>Runtime</code>这时就会调用这个方法，给你把这个消息<strong>转发给其他对象</strong>的机会。只要这个方法返回的不是<code>nil</code>和<code>self</code>，整个消息发送的过程就会被重启，当然发送的对象会变成你返回的那个对象。否则，就会继续<code>Normal Fowarding</code>。 这里叫<code>Fast</code>，只是为了区别下一步的转发机制。因为这一步不会创建任何新的对象，但下一步转发会创建一个<code>NSInvocation</code>对象，所以相对更快点</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 消息接受者重定向</span></span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector&#123;</span><br><span class="line">    <span class="keyword">if</span> (aSelector == <span class="meta">@selector(run:)</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> [[Person alloc] <span class="keyword">init</span>];</span><br><span class="line">        <span class="comment">// 返回 Person 对象，让 Person 对象接收这个消息</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> forwardingTargetForSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Normal forwarding（<strong>消息重定向</strong>）<br>这一步是<code>Runtime</code>最后一次给你挽救的机会。首先它会发送<code>-methodSignatureForSelector:</code>消息获得函数的参数和返回值类型。如果<code>-methodSignatureForSelector:</code>返回<code>nil</code>，<code>Runtime</code>则会发出<code>-doesNotRecognizeSelector:</code>消息，程序这时也就挂掉了。如果返回了一个函数签名，<code>Runtime</code>就会创建一个<code>NSInvocation</code>对象并发送<code>-forwardInvocation:</code>消息给目标对象</li>
+</ul>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取函数的参数和返回值类型，返回签名</span></span><br><span class="line">- (<span class="built_in">NSMethodSignature</span> *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">    <span class="keyword">if</span> ([<span class="built_in">NSStringFromSelector</span>(aSelector) isEqualToString:<span class="string">@"run:"</span>]) &#123;</span><br><span class="line">        <span class="keyword">return</span> [<span class="built_in">NSMethodSignature</span> signatureWithObjCTypes:<span class="string">"v@:@"</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> [<span class="keyword">super</span> methodSignatureForSelector:aSelector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 消息重定向</span></span><br><span class="line">- (<span class="keyword">void</span>)forwardInvocation:(<span class="built_in">NSInvocation</span> *)anInvocation &#123;</span><br><span class="line">    <span class="comment">// 从 anInvocation 中获取消息</span></span><br><span class="line">    SEL sel = anInvocation.selector;</span><br><span class="line">    <span class="keyword">if</span> (sel == <span class="built_in">NSSelectorFromString</span>(<span class="string">@"run:"</span>)) &#123;</span><br><span class="line">        <span class="comment">// 1\. 指定当前类的一个方法作为IMP</span></span><br><span class="line">        <span class="comment">// anInvocation.selector = @selector(readBook:);</span></span><br><span class="line">        <span class="comment">// [anInvocation invoke];</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 2\. 指定其他类来执行这个IMP</span></span><br><span class="line">        Person *p = [[Person alloc] init];</span><br><span class="line">        <span class="comment">// 判断 Person 对象方法是否可以响应 sel</span></span><br><span class="line">        <span class="keyword">if</span>([p respondsToSelector:sel]) &#123;</span><br><span class="line">            <span class="comment">// 若可以响应，则将消息转发给其他对象处理</span></span><br><span class="line">            [anInvocation invokeWithTarget:p];</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 若仍然无法响应，则报错：找不到响应方法</span></span><br><span class="line">            [<span class="keyword">self</span> doesNotRecognizeSelector:sel];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        [<span class="keyword">super</span> forwardInvocation:anInvocation];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)doesNotRecognizeSelector:(SEL)aSelector &#123;</span><br><span class="line">    [<span class="keyword">super</span> doesNotRecognizeSelector:aSelector];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>既然<code>-forwardingTargetForSelector:</code>和<code>-forwardInvocation:</code>都可以将消息转发给其他对象处理，那么两者的区别在哪？</strong><br>区别就在于<code>-forwardingTargetForSelector:</code>只能将消息转发给一个对象。而<code>-forwardInvocation:</code>可以把消息存储，在你觉得合适的时机转发出去，或者不处理这个消息。修改消息的target，selector，参数等。将消息转发给多个对象</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言-消息转发/" data-id="cm2nkn618016cbur43n6zj64s" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/1语言/1语言" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/1语言/1语言/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.562Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-①语言"><a href="#必备知识架构-①语言" class="headerlink" title="必备知识架构-①语言"></a>必备知识架构-①语言</h1><p>[Toc]</p>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
+<p></p><p id="目录"></p><p></p>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><a href="#Objective-C">一、为什么说Objective-C是一门动态的语言？</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">1、为什么说Objective-C是一门动态的语言</span><br><span class="line">①、概念介绍</span><br><span class="line">②、Objective-c的动态性</span><br><span class="line">Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言。</span><br><span class="line">ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">Objective-C的动态性，主要体现在3个方面：动态类型、动态绑定、动态载入。</span><br><span class="line">&gt;</span><br><span class="line">2、消息转发</span><br><span class="line">3、为什么说 Objective-C 没有真正的私有方法和私有变量</span><br><span class="line">4、消息结构</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#Runtime">二、Runtime</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、浅谈runtime运行时机制</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#KVC与KVO">三、KVC与KVO</a></p>
+</li>
+<li><p><a href="Objective-C与C++">四、Objective-C与C++</a></p>
+</li>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、#import、#include、@class](#import、#include、@class</span><br><span class="line">2、const 与define使用的区别</span><br><span class="line">3、==、 isEqualToString、isEqual区别</span><br><span class="line">4、字符串的比较</span><br><span class="line">5、isMemberOfClass 和 isKindOfClass 的联系和区别</span><br><span class="line">6、nil, Nil,NULL 与 NSNull 的区别</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p></p><p id="Objective-C"></p><p></p>
+<h2 id="一、为什么说Objective-C是一门动态的语言？"><a href="#一、为什么说Objective-C是一门动态的语言？" class="headerlink" title="一、为什么说Objective-C是一门动态的语言？"></a>一、为什么说Objective-C是一门动态的语言？</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="问：我们说的OC是动态运行时语言是什么意思？"><a href="#问：我们说的OC是动态运行时语言是什么意思？" class="headerlink" title="问：我们说的OC是动态运行时语言是什么意思？"></a>问：我们说的OC是动态运行时语言是什么意思？</h4><blockquote>
+<p>1、之所以叫做动态，是因为必须到运行时(run time)才会做一些事情。主要是将数据类型的确定由编译时，【推迟到了运行时】。简单来说, 运行时机制使我们直到运行时才去决定一个对象的类别,以及调用该类别对象指定方法。</p>
+<p><code>所以说NSString *obj = [[NSData alloc] init] 在编译时是NSString类型，在运行时是NSData类型。</code></p>
+<p>2、另外，OC还可以通过Runtime 这个运行时机制，在运行时【动态的添加】变量、方法、类等。</p>
+</blockquote>
+<h4 id="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"><a href="#1、Objective-C是一门”动态”的语言，动态语言是什么意思？" class="headerlink" title="1、Objective-C是一门”动态”的语言，动态语言是什么意思？"></a>1、Objective-C是一门”动态”的语言，动态语言是什么意思？</h4><p>OC中的对象，都是用指针表示<br>OC中方法的调用，是基于消息机制实现</p>
+<h6 id="①、”动态”概念介绍"><a href="#①、”动态”概念介绍" class="headerlink" title="①、”动态”概念介绍"></a>①、”动态”概念介绍</h6><blockquote>
+<p>（1）动态类型语言：动态类型语言是指<strong>在运行期间才去做数据类型检查</strong>的语言，Python和Ruby就是一种典型的动态类型语言，其他的各种脚本语言如VBScript也多少属于动态类型语言。（自己概括为动态语言指的是不需要在编译时确定所有的东西，在运行时还可以动态的添加变量、方法和类，而<strong>Objective-C 可以通过Runtime 这个运行时机制，在运行时动态的添加变量、方法、类等，所以说Objective-C 是一门动态的语言</strong>）</p>
+<p>（2）静态类型语言：静态类型语言与动态类型语言刚好相反，它的数据类型是在编译其间检查的，也就是说在写程序时要声明所有变量的数据类型，C/C++是静态类型语言的典型代表，其他的静态类型语言还有C#、JAVA等。</p>
+<figure class="highlight plain"><figcaption><span>*obj </span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">###### ②、Objective-c的动态性</span><br><span class="line">Objective-C的动态性，让程序在运行时判断其该有的行为，而不是像c等静态语言在编译构建时就确定下来。**Objective-C的动态性主要体现在3个方面：动态类型、动态绑定、动态载入**。</span><br><span class="line"></span><br><span class="line">&gt; 以下内容来自：[OC是动态运行时语言是什么意思？什么是动态识别，动态绑定？](https://www.cnblogs.com/dxb123456/p/5525343.html)</span><br><span class="line">&gt; </span><br><span class="line">* 1.动态类型：如id类型。</span><br><span class="line">  &gt;</span><br><span class="line">  简单点的如id类型在编译器编译的时候是不能被识别的，要等到运行时(run time)，即程序运行的时候才会根据语境来识别。</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>  id obj = someInstance;<br>  if ([obj isKindOfClass:someClass]) {<br>    someClass <em>classSpecifiedInstance = (someClass </em>)obj;<br>  }<br>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">* 2.动态绑定：</span><br><span class="line">  &gt;在OC中，其实是没有函数的概念的，我们叫“消息机制”，所谓的函数调用就是给对象发送一条消息。</span><br><span class="line">  **OC可以先跳过编译，在运行时才决定要调用什么方法，需要传什么参数进去，这就是动态绑定**。要实现他就必须用SEL变量绑定一个方法。最终形成的这个SEL变量就代表一个方法的引用。(这里要注意一点：SEL并不是C里面的函数指针，虽然很像，但真心不是函数指针。SEL变量只是一个整数，他是该方法的ID，@selector()就是取类方法的编号。以前的函数调用，是根据函数名，也就是 字符串去查找函数体。但现在，我们是根据一个ID整数来查找方法，整数的查找字自然要比字符串的查找快得多！所以，动态绑定的特定不仅方便，而且效率更高。)</span><br><span class="line"></span><br><span class="line">* 3.动态载入。</span><br><span class="line">  </span><br><span class="line">  &gt;根据需求加载所需要的资源，这点很容易理解，对于iOS开发来说，基本就是根据不同的机型做适配。最经典的例子就是在Retina设备上加载@2x的图片，而在老一些的普通屏设备上加载原图。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">笔试题：对于语句`NSString *obj = [[NSData alloc] init];` obj在编译时和运行时分别是什么类型的对象?</span><br><span class="line"></span><br><span class="line">  &gt; 答:编译时是NSString的类型；运行时是NSData类型的对象。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#### 2、怎么理解Objective-C&quot;运行时&quot;</span><br><span class="line"></span><br><span class="line">基于Runtime的消息传递机制</span><br><span class="line"></span><br><span class="line">**ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制。</span><br><span class="line">什么是消息传递？消息传递不就和C语言的函数调用一个意思么?**</span><br><span class="line"></span><br><span class="line">&gt;在C语言中，我们调用函数时，必须先声明函数（或者自上而下），而实际上，声明函数就是获取函数地址，调用函数就是直接跳到地址执行，代码在被编译器解析、优化后，便是成为一堆汇编代码，然后连接各种库，完了生成可执行的代码（即是静态的）。</span><br><span class="line">&gt;</span><br><span class="line">&gt;在ObjC中，首先要搞清楚为什么不用Function Call 而用 Messaging 呢？一般调用函数（方法），讲的就是object对象，</span><br><span class="line">&gt;</span><br><span class="line">&gt;事情证明，在编译阶段，oc可以调用任何函数，即使这个函数并未实现，只要申明过就不会报错，而c语言在编译阶段或报错</span><br><span class="line"></span><br><span class="line">###### </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 1，给分类添加属性</span><br><span class="line"></span><br><span class="line">OC分类不能添加属性，如果你在分类中添加了属性，编译器就会报警告。（记得导入 #import &lt;objc/runtime.h&gt;）</span><br><span class="line"></span><br><span class="line">// UIButton+CJMoreProperty.h</span><br><span class="line"></span><br><span class="line">![runtime添加属性](1语言/runtime_add1.png)</span><br><span class="line"></span><br><span class="line">//  UIButton+CJMoreProperty.m</span><br><span class="line">![runtime添加属性](1语言/runtime_add2.png)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">为分类添加属性，就用运用到OC的运行时来解决。</span><br><span class="line"></span><br><span class="line">```csharp</span><br><span class="line">// 设置关联</span><br><span class="line">objc_setAssociatedObject(id _Nonnull object, const void * _Nonnull key,</span><br><span class="line">                         id _Nullable value, objc_AssociationPolicy policy)</span><br><span class="line">// 通过关联获取属性</span><br><span class="line">objc_getAssociatedObject(id _Nonnull object, const void * _Nonnull key)</span><br><span class="line">    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);</span><br></pre></td></tr></table></figure></p>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/runtime_add3.png" alt="runtime添加属性"></p>
+<h4 id="2、消息转发"><a href="#2、消息转发" class="headerlink" title="2、消息转发"></a>2、消息转发</h4><p><strong>ObjC之所以说是面向Runtime的语言，最重要的特征是其消息传递机制</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Runtime的特性主要是消息(方法)传递，如果消息(方法)在对象中找不到，就进行转发。</span><br><span class="line">1.1系统首先找到消息的接收对象，然后通过对象的isa找到它的类。</span><br><span class="line">1.2在它的类中查找method_list，是否有selector方法。</span><br><span class="line">1.3没有则查找父类的method_list。</span><br><span class="line">1.4找到对应的method，执行它的IMP。</span><br><span class="line">1.5转发IMP的return值。</span><br><span class="line"></span><br><span class="line">如果找遍了父类，仍没找到方法，则报错。当然我们也可以通过消息转发，去其他类中寻找。</span><br></pre></td></tr></table></figure>
+<p>延展：消息转发机制</p>
+<blockquote>
+<p><strong>因为在运行期还可以继续向类中添加方法，所以编译器在编译时还无法确定类中是否有某个方法的实现。对于类无法处理一个消息就会触发消息转发机制。</strong></p>
+</blockquote>
+<p>消息转发步骤(如果前一套方案实现后一套方法就不会执行)</p>
+<blockquote>
+<p>内容来自：<a href="http://www.cocoachina.com/ios/20150604/12013.html" target="_blank" rel="noopener">轻松学习之 Objective-C消息转发</a></p>
+<p>方案一：首先，系统会调用resolveInstanceMethod(当然，如果这个方法是一个类方法，就会调用resolveClassMethod)让你自己为这个方法增加实现</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (BOOL)resolveInstanceMethod:(SEL)sel &#123;</span><br><span class="line">	if (sel == @selector(run)) &#123;</span><br><span class="line">		class_addMethod(self, sel, (IMP)run, @&quot;v@:&quot;);</span><br><span class="line">		return YES;</span><br><span class="line">	&#125;</span><br><span class="line">	return [super resolveInstanceMethod:sel];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">+ (BOOL)resolveClassMethod:(SEL)sel</span><br></pre></td></tr></table></figure>
+<blockquote>
+</blockquote>
+<p>方案二：如果不去对方案一的resolveInstanceMethod做任何处理，直接调用父类方法。可以看到，系统已经来到了forwardingTargetForSelector方法，这个方法返回你需要转发消息的对象。</p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//返回你需要转发消息的对象</span><br><span class="line">- (id)forwardingTargetForSelector:(SEL)aSelector &#123;</span><br><span class="line">	return [[Car alloc] init];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+</blockquote>
+<p>方案三：如果如果我们也不实现forwardingTargetForSelector，系统就会调用方案三的两个方法methodSignatureForSelector和forwardInvocation。其中methodSignatureForSelector用来生成方法签名，这个签名就是给forwardInvocation中的参数NSInvocation调用的。</p>
+<blockquote>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">//生成方法签名</span><br><span class="line">- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector &#123;</span><br><span class="line">	NSString *sel = NSStringFromSelector(selector);</span><br><span class="line">	//判断你要转发的SEL</span><br><span class="line">	if ([sel isEqualToString:@&quot;run&quot;]) &#123;</span><br><span class="line">		//为你的转发方法手动生成签名</span><br><span class="line">		return [NSMethodSignature signatureWithObjCType:@&quot;v@:&quot;];</span><br><span class="line">	&#125;</span><br><span class="line">	return [super methodSignatureForSelector:selector];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 附：关于生成签名的类型&quot;v@:&quot;解释一下。每一个方法会默认隐藏两个参数，self、_cmd，self代表方法调用者，_cmd代表这个方法的SEL，签名类型就是用来描述这个方法的返回值、参数的，v代表返回值为void，@表示self，:表示_cmd。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)forwardInvocation:(NSInvocation *)anInvocation &#123;</span><br><span class="line">	SEL selector = [anInvocation selector];</span><br><span class="line">	//新建需要转发消息的对象</span><br><span class="line">	Car *car = [[Car alloc] init];</span><br><span class="line">	if ([car respondsToSelector:selector]) &#123;</span><br><span class="line">		//唤醒这个方法</span><br><span class="line">		[invocation invokeWithTarget:car];</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>消息转发分为两大阶段：</p>
+<blockquote>
+<p>“动态方法解析”：先征询接收者，所属的类，能否动态添加方法，来处理这个消息，若可以则结束，如不能则继续往下走 </p>
+<p>“完整的消息转发机制”：<br>请接收者看看有没其他对象能处理这条消息，若有，就把这个消息转发给那个对象然后结束<br>运行时系统会把与消息有关细节全部封装到NSInvocation 对象中，再给对象最后一次机会，令其设法解决当前还未处理的这条消息</p>
+</blockquote>
+<p>其他文章：<a href="https://blog.csdn.net/onlyou930/article/details/7449102" target="_blank" rel="noopener">NSInvocation简单使用</a></p>
+<blockquote>
+<p>在 iOS中可以直接调用 某个对象的消息 方式有2中<br>一种是performSelector:withObject:<br>再一种就是NSInvocation<br>第一种方式比较简单，能完成简单的调用。但是对于&gt;2个的参数或者有返回值的处理，那就需要做些额外工作才能搞定。那么在这种情况下，我们就可以使用NSInvocation来进行这些相对复杂的操作。<br>NSInvocation可以处理参数、返回值。会java的人都知道凡是操作，其实NSInvocation就相当于反射操作。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//如果此消息有参数需要传入，那么就需要按照如下方法进行参数设置，需要注意的是，atIndex的下标必须从2开始。原因为：0 1 两个参数已经被target 和selector占用</span><br><span class="line">if (strcmp(retType, @encode(BOOL)) == 0) &#123;</span><br><span class="line">        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSig];</span><br><span class="line">        [invocation setArgument:&amp;params atIndex:2];</span><br><span class="line">        [invocation setSelector:action];</span><br><span class="line">        [invocation setTarget:target];</span><br><span class="line">        [invocation invoke];</span><br><span class="line">        BOOL result = 0;</span><br><span class="line">        [invocation getReturnValue:&amp;result];</span><br><span class="line">        return @(result);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="3、为什么说-Objective-C-没有真正的私有方法和私有变量"><a href="#3、为什么说-Objective-C-没有真正的私有方法和私有变量" class="headerlink" title="3、为什么说 Objective-C 没有真正的私有方法和私有变量"></a>3、为什么说 Objective-C 没有真正的私有方法和私有变量</h4><blockquote>
+<p>以下内容摘自：<a href="https://www.jianshu.com/p/ef25a31e3112" target="_blank" rel="noopener">为什么说 Objective-C 没有真正的私有方法和私有变量</a></p>
+<p>私有的定义：私有是指只能够在本类内部使用或访问，但是不能在类的外部被访问。</p>
+<p><strong>在 Objective-C 中，对象调用方法是以发送消息的形式实现的</strong>。所有方法的调用最终都会转化为发送消息的形式，原型如下：</p>
+<p>id objc_msgSend(id self, SEL op, …)</p>
+<p>Objective-C 为什么能够实现访问「私有方法」呢？其实这跟 Objective-C 语言的动态特性有密切的关系，对象在运行的时候才会去查找方法。Objective-C 对象有一个 isa 指针指向其父类，在向该实例发送消息的时候，若它自己不能识别回到父类中去查找该消息。</p>
+<p>综上，OC中其实并无真正意义上的的私有方法和私有属性。但是在实际使用中，我们应遵守规则，不能调用的方法，不调用。</p>
+</blockquote>
+<h4 id="4、消息结构"><a href="#4、消息结构" class="headerlink" title="4、消息结构"></a>4、消息结构</h4><p>Objective-C 使用的是 “消息结构” 并非 “函数调用”。（使用消息结构的的语言，其运行时所应执行的代码由运行期决定；而使用函数调用的语言，则由编译器决定）</p>
+<blockquote>
+<p>以下内容摘自：<a href="https://blog.csdn.net/dan_163/article/details/38268957" target="_blank" rel="noopener">OC消息机制和动态运行时</a></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">struct objc_class</span><br><span class="line">&#123;</span><br><span class="line">    Class isa;</span><br><span class="line">    Class super_class;     //父类</span><br><span class="line">    const char* name;    //类名</span><br><span class="line">    long version;            //版本信息</span><br><span class="line">    long info;                 //类信息</span><br><span class="line">    long instance_size;                                    //实例大小</span><br><span class="line">    struct objc_ivar_list *ivars;                        //实例参数链表</span><br><span class="line">    struct objc_method_list *methodLists;     //方法链表</span><br><span class="line">    struct objc_cache *cache;                         //方法缓存</span><br><span class="line">    struct objc_protocol_list *protocols;        //协议链表</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p></p><p id="Runtime"></p><p></p>
+<h2 id="二、Runtime"><a href="#二、Runtime" class="headerlink" title="二、Runtime"></a>二、Runtime</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>Runtime 4种用法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1)替换系统方法,[数组越界苹果就会直接crash](http://blog.csdn.net/u012103785/article/details/50817876)</span><br><span class="line">2)字典转model,</span><br><span class="line">3)归档, </span><br><span class="line">4)万能控制器跳转</span><br></pre></td></tr></table></figure>
+<p><a href="https://blog.csdn.net/zzzzzdddddxxxxx/article/details/53542441" target="_blank" rel="noopener">你会遇到的runtime面试题（详）</a></p>
+<h6 id="OBJC-ASSOCIATION-ASSIGN造成的崩溃"><a href="#OBJC-ASSOCIATION-ASSIGN造成的崩溃" class="headerlink" title="OBJC_ASSOCIATION_ASSIGN造成的崩溃"></a>OBJC_ASSOCIATION_ASSIGN造成的崩溃</h6><p>objc_setAssociatedObject 关联对象的学习<br>为<code>CJKeyboardAvoidingTableView</code>增加<code>cjKeyboardAvoidingOffset</code>属性的时候，使用OBJC_ASSOCIATION_ASSIGN而造成崩溃，参考FDTemplateLayoutCell源码，改成使用OBJC_ASSOCIATION_RETAIN，问题解决。原因是</p>
+<p>详情查询：<a href="https://www.cnblogs.com/someonelikeyou/p/7162613.html" target="_blank" rel="noopener">objc_setAssociatedObject 关联对象的学习</a></p>
+<h4 id="1、浅谈runtime运行时机制"><a href="#1、浅谈runtime运行时机制" class="headerlink" title="1、浅谈runtime运行时机制"></a>1、浅谈runtime运行时机制</h4><p><a href="http://www.cnblogs.com/guoxiao/p/3583432.html" target="_blank" rel="noopener">浅谈runtime运行时机制02-runtime简单使用</a></p>
+<p>OC是运行时语言，只有在程序运行时，才会去确定对象的类型，并调用类与对象相应的方法。利用runtime机制让我们可以在程序运行时动态修改类、对象中的所有属性、方法。</p>
+<p><a href="http://blog.csdn.net/liujinlongxa/article/details/46293705" target="_blank" rel="noopener">iOS运行时初探-使用运行时机制向Category中添加属性</a></p>
+<p>在一般情况下，我们是不能向Category中添加属性的，只能添加方法，但有些情况向，我们确实需要向Category中添加属性。而且很多系统的API也有一些在Category添加属性的情况，例如我们属性的UITableView的section和row属性，就是定义在一个名为NSIndexPath的分类里的，如下：<br><img src="http://img.blog.csdn.net/20150531230308155" alt="使用运行时机制向Category中添加属性"><br>那这到底是怎么实现的呢？</p>
+<h1 id="load-initialize的区别"><a href="#load-initialize的区别" class="headerlink" title="+load +initialize的区别"></a>+load +initialize的区别</h1><p> \1. load方法只会调用一次</p>
+<p> \2. +(void)load方法:程序一运行就会把所有的类加载进内存,调用这个方法</p>
+<p>   (表叙:只要程序一运行,就会调用类的load方法,目的:把这个类加载进内存)</p>
+<p> \3. <strong>load是只要类所在文件被引用就会被调用,而initialize是在类或者其子类的第一个方法被调用前调用,所以没有被引用进项目,就不会调用load方法,但即使类文件只被引用进来,而没有使用,那么initialize也不会被调用</strong></p>
+<ul>
+<li><p>+load方法的调用是在main() 函数之前。load 方法内部一般用来实现 Method Swizzle（面向切面AOP变成）</p>
+<blockquote>
+<p>调用main() 函数之前的什么时候？答：+load方法会再这个类或者其分类被添加到运行时的时候调用。</p>
+<p>附：所有类的 load 方法都会被调用，先调用父类、再调用子类，多个分类会按照Compile Sources 顺序加载。</p>
+</blockquote>
+</li>
+<li><p>initialize一般在main()函数之后。Initialize方法一般用来初始化全局变量或者静态变量。</p>
+<blockquote>
+<p>问是在main() 函数之后的什么时候？答：在第一次主动使用当前类的时候。</p>
+<p>附：initialize一般在main()函数之后的情况是什么？A类的 load 方法中调用 B 类的类方法，导致在调用A的Load 方法之前，会先调用一下B类的initialize 方法，但是B类的load 方法还是按照 Compile Source 顺序进行加载</p>
+<p>附2：Initialize 方法会被覆盖，子类父类分类中只会执行一个</p>
+</blockquote>
+</li>
+<li><p>load和initialize都不能主动调用。</p>
+</li>
+<li><p>initialize不是init，initialize在程序运行过程中，它会在你程序中每个类调用仅一次initialize。这个调用的时间发生在你的类接收到消息之前，但是在它的父类接收到initialize之后。<br>init则是你手动初始化几次就调用几次，和普通方法一样</p>
+</li>
+</ul>
+<p><a name="KVC与KVO"></a></p>
+<h2 id="三、KVC与KVO"><a href="#三、KVC与KVO" class="headerlink" title="三、KVC与KVO"></a>三、KVC与KVO</h2><h3 id="1、KVO"><a href="#1、KVO" class="headerlink" title="1、KVO"></a>1、KVO</h3><p><a href="http://blog.csdn.net/yuquan0821/article/details/6646400/" target="_blank" rel="noopener">KVO的概述与使用</a> 内容如下</p>
+<p>一、概述</p>
+<p>KVO,即键值观察者（key-value-observing），它提供一种观察者的机制，当指定的对象的属性被修改后，则对象就会接受到通知。简单的说就是每次指定的被观察的对象的属性被修改后，KVO就会自动通知相应的观察者了。</p>
+<p>二、KVO原理/本质</p>
+<p>Aspect 的实现很想 KVO的本质：详见 <a href="https://blog.wyan.vip/2023/11/Aspect_and_forwardInvocation.html" target="_blank" rel="noopener">Aspect 与 消息转发</a></p>
+<p>① <code>KVO</code>是使用<code>isa-swizzling</code>的技术实现的：<strong>当某个类的对象第一次被观察时，系统<em>在运行时会通过Runtime动态创建一个该类的派生类</em>，并将这个对象的isa指针指向这个派生类，派生类的isa指针指向原来的类，这样修改对象a的属性即对象a调用set方法就会变成是调用的是NSKVONotifying_A这个类的set方法。</strong></p>
+<p>②<strong>随后在该派生类中重写了该对象的setter方法，并且在setter方法中实现了通知的机制。</strong></p>
+<p>派生类重写了class方法，以“欺骗”外部调用者他就是原先那个类。系统将这个类的isa指针指向新的派生类，因此该对象也就是新的派生类的对象了。因而该对象调用setter就会调用重写的setter，从而激活键值通知机制。此外派生类还重写了delloc方法来释放资源。</p>
+<blockquote>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="meta">#pragma mark - 注册观察者 - 函数式编程</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)cjl_addObserver:(<span class="built_in">NSObject</span> *)observer forKeyPath:(<span class="built_in">NSString</span> *)keyPath handleBlock:(LGKVOBlock)block &#123;</span><br><span class="line">&gt;   	......</span><br><span class="line">&gt;     <span class="comment">//2、动态生成子类</span></span><br><span class="line">&gt;     Class newClass = [<span class="keyword">self</span> createChildClassWithKeyPath:keyPath];</span><br><span class="line">&gt;     object_setClass(<span class="keyword">self</span>, newClass); <span class="comment">// 将self的isa指向由原有类改为指向创建出来的派生类/中间类</span></span><br><span class="line">&gt;     </span><br><span class="line">&gt;   	<span class="comment">// 给子类NSKVONotifying_A添加方法一个名为setterSel的方法，这个方法的实现是cjl_setter。</span></span><br><span class="line">&gt;     SEL setterSel = <span class="built_in">NSSelectorFromString</span>(setterForGetter(keyPath));</span><br><span class="line">&gt;     Method method = class_getInstanceMethod([<span class="keyword">self</span> <span class="keyword">class</span>], setterSel);</span><br><span class="line">&gt;     <span class="keyword">const</span> <span class="keyword">char</span> *type = method_getTypeEncoding(method);</span><br><span class="line">&gt;     class_addMethod(newClass, setterSel, (IMP)cjl_setter, type); </span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">static</span> <span class="keyword">void</span> cjl_setter(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd, <span class="keyword">id</span> newValue)&#123;</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; </span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="meta">#pragma mark - 动态生成子类</span></span><br><span class="line">&gt; - (Class)createChildClass &#123;</span><br><span class="line">&gt;   	<span class="comment">// 动态创建子类</span></span><br><span class="line">&gt;     <span class="built_in">NSString</span> *oldClassName = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);	<span class="comment">//获取原本的类名   </span></span><br><span class="line">&gt;     <span class="built_in">NSString</span> *newClassName = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"NSKVONotifying_%@"</span>, oldClassName];<span class="comment">//拼接新的类名</span></span><br><span class="line">&gt;     Class newClass = objc_allocateClassPair([<span class="keyword">self</span> <span class="keyword">class</span>], newClassName.UTF8String, <span class="number">0</span>);</span><br><span class="line">&gt;     objc_registerClassPair(newClass);</span><br><span class="line">&gt;     <span class="comment">// 给子类NSKVONotifying_A添加方法一个名为class的方法，这个方法的实现是cjl_class。</span></span><br><span class="line">&gt;     SEL classSel = <span class="keyword">@selector</span>(<span class="keyword">class</span>);</span><br><span class="line">&gt;     Method classMethod = class_getInstanceMethod([<span class="keyword">self</span> <span class="keyword">class</span>], classSel);</span><br><span class="line">&gt;     <span class="keyword">const</span> <span class="keyword">char</span> *classType = method_getTypeEncoding(classMethod);</span><br><span class="line">&gt;     class_addMethod(newClass, classSel, (IMP)cjl_class, classType);</span><br><span class="line">&gt;   </span><br><span class="line">&gt;     <span class="keyword">return</span> newClass;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; Class cjl_class(<span class="keyword">id</span> <span class="keyword">self</span>, SEL _cmd)&#123;</span><br><span class="line">&gt;     <span class="keyword">return</span> class_getSuperclass(object_getClass(<span class="keyword">self</span>));<span class="comment">//通过[self class]获取会造成死循环</span></span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>以上实现参考自：<a href="https://juejin.cn/post/6949586633830187045?from=search-suggest" target="_blank" rel="noopener">iOS-底层原理 23：KVO 底层原理  自定义KVO</a> 、 <a href="https://juejin.cn/post/6939858821581897741" target="_blank" rel="noopener">iOS 探究 OC对象、isa指针及KVO实现原理</a></p>
+<p>其他参考：<a href="https://blog.csdn.net/u014247354/article/details/78403567" target="_blank" rel="noopener">KVO原理及自定义KVO</a></p>
+</blockquote>
+<p>答. 当一个对象使用了KVO监听，iOS系统会修改这个对象的isa指针，改为指向一个全新的通过Runtime动态创建的子类，子类拥有自己的set方法实现，set方法实现内部会顺序调用<strong>willChangeValueForKey方法、原来的setter方法实现、didChangeValueForKey方法，而didChangeValueForKey方法内部又会调用监听器的observeValueForKeyPath:ofObject:change:context:监听方法。</strong></p>
+<blockquote>
+<p>如何手动触发KVO 答. 被监听的属性的值被修改时，就会自动触发KVO。如果想要手动触发KVO，则需要我们自己调用<strong>willChangeValueForKey和didChangeValueForKey</strong>方法即可在不改变属性值的情况下手动触发KVO，并且这两个方法缺一不可。</p>
+</blockquote>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/e59bb8f59302" target="_blank" rel="noopener">iOS开发 – KVO的实现原理与具体应用</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/chy305chy/article/details/51793373" target="_blank" rel="noopener">iOS学习——KVO底层实现机制探究</a></p>
+</li>
+<li><a href="https://www.jianshu.com/p/aa996ddc0e85" target="_blank" rel="noopener">教你一行代码使用 KVO（Facebook 出品 FBKVOController 源码使用及解读）</a></li>
+</ul>
+<h2 id="isa指针"><a href="#isa指针" class="headerlink" title="isa指针"></a>isa指针</h2><p><strong>isa是结构体指针，只要是OC对象都有isa</strong></p>
+<ol>
+<li>实例对象的isa指向它的类对象。</li>
+<li>类对象的isa指向元类对象（元类是类的类，它存储了类的方法和属性信息。<strong>为什么要设计元类，为了复用消息传递功能</strong>）。</li>
+</ol>
+<blockquote>
+<p>当调用对象方法时，实例对象内存并没有包含对象方法，而是通过它内部的isa指针找到它的类对象，从而在类对象中找到对象方法的实现进行调用；</p>
+<p>当调用类方法时，类对象并没有类方法的信息，而是通过类对象的isa找到元类对象，最后找到类方法的实现进行调用</p>
+<ol>
+<li>instance调用对象方法的轨迹：isa找到class，方法不存在，就通过superclass找父类</li>
+<li>class调用类方法的轨迹：isa找meta-class，方法不存在，就通过superclass找父类</li>
+</ol>
+</blockquote>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/isa&amp;superclass.awebp" alt="isa&amp;superclass"></p>
+<p>三、使用方法</p>
+<p>系统框架已经支持KVO，所以程序员在使用的时候非常简单。</p>
+<ol>
+<li>注册，指定被观察者的属性，</li>
+<li>实现回调方法</li>
+<li>移除观察</li>
+</ol>
+<p>四，实例:</p>
+<p>假设一个场景,股票的价格显示在当前屏幕上，当股票价格更改的时候，实时显示更新其价格。</p>
+<h3 id="2、KVC"><a href="#2、KVC" class="headerlink" title="2、KVC"></a>2、KVC</h3><p> KVC 就是键值编码（key-value-coding)</p>
+<p>KVC 的主要作用：</p>
+<p>（1）通过键值路径为对象的属性赋值。主要是可以为私有的属性赋值。</p>
+<p>（2）通过键值路径获取属性的值。主要是可以通过key获得私有属性的值。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// valueForKeyPath:（多级访问，不仅可以对当前对象属性进行赋值，也可以对“深层”对象的属性进行取值）</span><br><span class="line">	Person *person1 = [[Person alloc] init];</span><br><span class="line">	person1.name = @&quot;李四&quot;;</span><br><span class="line">	person1.car.name = @&quot;BMW&quot;;</span><br><span class="line">	NSString *carName = [person valueForKeyPath:@&quot;car.name&quot;];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 当集合中元素类型一致，可以通过KVC的getter方法valueForKeyPath：来获取所有集合元素中的属性，生成一个新的元素属性集合。（这里的集合一般为NSArray，NSSet，不包括NSDictionary）</span><br><span class="line">  NSArray *personArray = [NSArray arrayWithObjects:person1, nil];</span><br><span class="line"></span><br><span class="line">	NSArray *personNameArray = [personArray valueForKeyPath:@&quot;name&quot;];</span><br><span class="line">	NSArray *carNameArray = [personArray valueForKeyPath:@&quot;car.name&quot;];</span><br></pre></td></tr></table></figure>
+<p>其他参考资料：</p>
+<ul>
+<li><a href="https://www.cnblogs.com/huadeng/p/7064382.html" target="_blank" rel="noopener">KVC与KVO</a></li>
+<li><a href="https://www.jianshu.com/p/45cbd324ea65" target="_blank" rel="noopener">KVC是怎么寻找Key的</a></li>
+</ul>
+<p></p><p id="Objective-C与C++"></p><p></p>
+<h2 id="四、Objective-C和C"><a href="#四、Objective-C和C" class="headerlink" title="四、Objective-C和C++"></a>四、Objective-C和C++</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、Objective-C与C-之间的差异"><a href="#1、Objective-C与C-之间的差异" class="headerlink" title="1、Objective-C与C++之间的差异"></a>1、Objective-C与C++之间的差异</h4><blockquote>
+<p>最大的区别就是Objective C的成员函数调用是基于动态绑定的，类本身并没有限制对象可以有什么函数。相对于C++类会规定好成员有什么函数。这使得Objective C的灵活性很大，但是执行效率也很低。</p>
+</blockquote>
+<h4 id="2、Object-c的类可以多重继承么"><a href="#2、Object-c的类可以多重继承么" class="headerlink" title="2、Object-c的类可以多重继承么?"></a>2、Object-c的类可以多重继承么?</h4><p>答: Object-c的类不可以多重继承；</p>
+<p>面向对象(OOP)</p>
+<p>面向对象的三个特性：封装、继承和多态(没有继承就没有多态)。</p>
+<blockquote>
+<p>所谓封装，也就是把客观事物封装成抽象的类；</p>
+<p>所谓多态就是指一个类实例的相同方法在不同情形有不同表现形式。多态机制使具有不同内部结构的对象可以共享相同的外部接口。</p>
+</blockquote>
+<p>没有继承就没有多态。代码的体现：父类类型的指针指向子类对象。</p>
+<p>没使用多态前：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)printWithBlack:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line">- (<span class="keyword">void</span>)printWithColor:(Printer *)printer &#123;</span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[person printWithBlack:blackPrint]; <span class="comment">//调用黑白打印机  </span></span><br><span class="line">[person printWithColor:colorPrint]; <span class="comment">//调用彩色打印机</span></span><br></pre></td></tr></table></figure>
+<p>使用多态后：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Person.m</span><br><span class="line">- (<span class="keyword">void</span>)print:(Printer *)printer &#123;  </span><br><span class="line">     [printer print];  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用时候：</span></span><br><span class="line">Printer *p1 = [[ColorPrinter alloc] init];  </span><br><span class="line">Printer *p2 = [[BlackPrinter alloc] init];  </span><br><span class="line"></span><br><span class="line">[person doPrint:p1];  </span><br><span class="line">[person doPrint:p2];</span><br></pre></td></tr></table></figure>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<h4 id="1、-import、-include、-class"><a href="#1、-import、-include、-class" class="headerlink" title="1、#import、#include、@class"></a>1、#import、#include、@class</h4><p>可参考：<a href="http://www.jianshu.com/p/7e0dee7f84b2" target="_blank" rel="noopener">#import、#include、@class、#import&lt;&gt;和#import””的区别</a></p>
+<p>1、<code>#import</code>介绍：<br>In the C language, the #include pre-compile directive always causes a file’s contents to be inserted into the source. at that point, Objective-C has the equivalent #import directive except each file is included only once per compilation unit, obviating（去除） the need for include guards.</p>
+<p>即在C语言中，<code>#include</code>预编译指令经常引起一个文件的被重复引用。基于这一点，OC有一个等价的预编译指令<code>#import</code>来防止文件重复导入。所以OC给出来的新的预处理指令import是防止重复导入，避免程序员去书写头文件卫士，降低程序员的负担。</p>
+<p>2、#import和#include的异同点：</p>
+<p>①#include是C语言中的，需要条件编译语句控制重复包含问题。</p>
+<p>②在Objective-C中，#import是OC中对#include的改进版本，#import使得我们不需要写条件编译语句就可以确保引用的文件只会被包含一次，不会陷入递归版包含的问题。即<strong>import与#include比较的优点：会自动防止重复导入，使得不会引起交叉编译</strong></p>
+<pre><code>#import不会引起交叉编译的问题。因为在Objective-C中会存在C/C++和Object-C混编的问题，如果用#include引入头文件，会导致交叉编译。
+</code></pre><p>举例：三个文件①文件A.h、②文件B.h、③文件C.h。其中文件C.h需要引入A.h、B.h,而文件B.h也需要引入文件A.h,这样在C.h中就重复引用了A.h两次，使用#import可以进行优化</p>
+<p>3、#import和#include的相同点：</p>
+<p>①都可以用在OC程序中起到导入文件的作用</p>
+<p>②同样的 包含系统文件都是&lt;&gt;，是包本地文件都用””<br>例如：系统文件#import&lt;Foundation/Foundation.h&gt;, #include&lt;stdio.h&gt;<br>​     本地文件#import”test.h”, #include”test.h”</p>
+<p>到底该如何选择使用呢<br>一般来说，你包含的是C语言中的文件就用#include，你用的是OC中的文件就用#import</p>
+<p>4、<strong>#import与@class二者的区别</strong></p>
+<blockquote>
+<p>#import会链入该头文件的全部信息，包括实体变量和方法等；而@class只是告诉编译器，其后面声明的名称是类的名称，至于这些类是如何定义的，暂时不用考虑。在头文件中， 一般只需要知道被引用的类的名称就可以了。不需要知道其内部的实体变量和方法，所以在头文件中一般使用@class来声明这个名称是类的名称。 而在实现类里面，因为会用到这个引用类的内部的实体变量和方法，所以需要使用#import来包含这个被引用类的头文件。</p>
+</blockquote>
+<p>附：@class能解决循环包含的问题：当两个类文件有循环依赖关系 (A引用B,B引用A)时，需要用@class</p>
+<p>5、<strong>import&lt;&gt; 和 import””</strong><br>①&lt;&gt; : 引用系统文件，它用于对系统自带的头文件的引用，编译器会在系统文件目录下去查找该文件.</p>
+<p>②””: 用户自定义的文件用双引号引用，编译器首先会在用户目录下查找，然后到安装目录中查</p>
+<h4 id="4、字符串的比较"><a href="#4、字符串的比较" class="headerlink" title="4、字符串的比较"></a>4、字符串的比较</h4><blockquote>
+<p><img src="/iOS/3必备知识架构/1语言/1语言/字符串compare.png" alt="字符串compare">;<br>字符串compare的比较是一个字符串一个字符串比较的，所以才会出现1814比860小的错误情况。</p>
+</blockquote>
+<h4 id="5、isMemberOfClass-和-isKindOfClass-的联系和区别"><a href="#5、isMemberOfClass-和-isKindOfClass-的联系和区别" class="headerlink" title="5、isMemberOfClass 和 isKindOfClass 的联系和区别"></a>5、isMemberOfClass 和 isKindOfClass 的联系和区别</h4><ul>
+<li><p>联系:两者都能检测一个对象是不是某个类的成员</p>
+</li>
+<li><p>区别:isKindOfClass不仅能确定一个对象是不是某个类(即不算父类)的成员,也能确定一个对象是否是派生自该类的类的成员,而isMemberOfClass只能做到前者.</p>
+</li>
+</ul>
+<p>a.为什么基本类型和C数据类型的修饰用assign？</p>
+<p>因为基本数据类型不是对象，不需要引用计数，所以使用assign（附：在内存中创建和使用后，在一个方法体结束后就被删除。）。</p>
+<h2 id="iOS-NS-CG-CF前缀代表什么意思"><a href="#iOS-NS-CG-CF前缀代表什么意思" class="headerlink" title="iOS NS/CG/CF前缀代表什么意思"></a>iOS NS/CG/CF前缀代表什么意思</h2><p>NS/CG/CF前缀代表什么意思。</p>
+<p>回答：NS是前缀，代表它是来自Cocoa Foundation框架，这个框架是OC的基础库</p>
+<blockquote>
+<p>UI—UIKit框架，UI库<br>CF—Core Foundation框架<br>NS—Cocoa Foundation框架，OC的基础库。<br>CG—CoreGraphics.frameworks框架，用于渲染的库。<br>CA—CoreAnimation.frameworks框架</p>
+</blockquote>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p><a href="#目录">&lt; 返回目录</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/1语言/1语言/" data-id="cm2nkn62t016lbur4dqrygs5d" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/10其他/知识架构--即时通信" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/10其他/知识架构--即时通信/" class="article-date">
+  <time datetime="2022-03-16T05:35:04.561Z" itemprop="datePublished">2022-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="知识架构–即时通信"><a href="#知识架构–即时通信" class="headerlink" title="知识架构–即时通信"></a>知识架构–即时通信</h1><p>以下内容摘自：<a href="https://blog.csdn.net/lybeen2007/article/details/49486439" target="_blank" rel="noopener">开发即时通信是选择UDP还是TCP协议</a></p>
+<blockquote>
+<p>大规模即时通讯软件的总体架构：</p>
+<p>1。以UDP协议作为主要数据传输协议</p>
+<p>2。服务端使用一个数据库保存信息（分布式数据库）</p>
+<p>3。服务端是是分布式的，通过异步多线程技术，集群服务等 通过服务器集群共同运行服务端，对外进行海量信息处理（转发，暂存，广播消息）</p>
+<p>4。客户端也属于分布式应用程序，具有一些服务端的功能 在进行语言，视频，文件传输的时候，可由服务端协调 在两个客户端直接进行点对点通信</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/10其他/知识架构--即时通信/" data-id="cm2nkn602015xbur443p294wn" class="article-share-link">Share</a>
       
       
     </footer>
@@ -745,7 +802,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第七章：技术选型/">第七章：技术选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第八章：页面加载相关/">第八章：页面加载相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第六章：通用业务规范/">第六章：通用业务规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：基础框架设计及接口文档/">第四章：基础框架设计及接口文档</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/">Architecture</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第一章：架构相关/">第一章：架构相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第七章：技术选型/">第七章：技术选型</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第三章：基础规范/">第三章：基础规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第九章：监控相关/">第九章：监控相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第二章：框架相关/">第二章：框架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第八章：页面加载相关/">第八章：页面加载相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第六章：通用业务规范/">第六章：通用业务规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Architecture/第四章：基础框架设计及接口文档/">第四章：基础框架设计及接口文档</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/无瑕疵的混编登录页/">无瑕疵的混编登录页</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第一章：Flutter入门/">第一章：Flutter入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第七章：规范/">第七章：规范</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第三章：原生项目与Flutter的交互/">第三章：原生项目与Flutter的交互</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第九章：框架升级/">第九章：框架升级</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第二章：集成Flutter到原生项目/">第二章：集成Flutter到原生项目</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第五章：详解/">第五章：详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第八章：状态管理/">第八章：状态管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第六章：进阶/">第六章：进阶</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第四章：Flutter登录页实战/">第四章：Flutter登录页实战</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/第零章：Flutter源码/">第零章：Flutter源码</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/QA/">QA</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/README/">README</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/React/">React</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/React/第一章：React入门/">第一章：React入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/">ReactNative</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：ReactNative入门/">第一章：ReactNative入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第一章：React入门/">第一章：React入门</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第五章：ReactNative详解/">第五章：ReactNative详解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第八章：ReactNative实践/">第八章：ReactNative实践</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactNative/第六章：ReactNative进阶/">第六章：ReactNative进阶</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/">Script</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Mac快速操作/">Mac快速操作</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Script/Shell/">Shell</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/">Weex</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Weex/第一章：Weex入门/">第一章：Weex入门</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/Swift/">Swift</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/混编/">混编</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/移动分析/">移动分析</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/自动化/">自动化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/证书发版/">证书发版</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/npmjs/">npmjs</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/上架相关/">上架相关</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/代码管理/">代码管理</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全与破解/">安全与破解</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/">实用工具</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/ChatGPT/">ChatGPT</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/GitBook/">GitBook</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Hexo/">Hexo</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Jenkins/">Jenkins</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/MySQL/">MySQL</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/XAMPP/">XAMPP</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/Zentao/">Zentao</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/实用工具/其他小工具/">其他小工具</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/工作常识/">工作常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/技术常识/">技术常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/生活常识/">生活常识</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/电脑使用/">电脑使用</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/">管理相关</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/管理相关/第一章：账号管理/">第一章：账号管理</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/编程工具/">编程工具</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/">跨平台</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/跨平台/第一章：混编事项说明/">第一章：混编事项说明</a></li></ul></li></ul>
     </div>
   </div>
 
@@ -755,7 +812,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5与app交互/">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/打包/">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/搜索相关/">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/权限相关/">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/架构模式/">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/瘦身/">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac快速操作/">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/React/">React</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5与app交互/">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/上架相关/">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/交互/">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/埋点/">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基类/">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全/">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/实用工具/">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/工作常识/">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/打包/">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/技术常识/">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/抓包/">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/搜索相关/">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文档管理/">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/权限相关/">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/架构模式/">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/环境搭建/">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/生活常识/">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/电脑使用/">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/瘦身/">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/登录页实战/">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/破解/">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/移动分析/">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/管理相关/">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/编程工具/">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/自动化/">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/请求/">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/跨平台/">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/路由及跳转/">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云/">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阿里云oss/">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集成/">集成</a></li></ul>
     </div>
   </div>
 
@@ -765,7 +822,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 16.67px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 11.67px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 19.17px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
+      <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.83px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.33px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.33px;">Git</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 14.17px;">Jenkins</a> <a href="/tags/Mac快速操作/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/Python/" style="font-size: 11.67px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/React/" style="font-size: 10.83px;">React</a> <a href="/tags/ReactNative/" style="font-size: 15.83px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.67px;">Shell</a> <a href="/tags/Swift/" style="font-size: 12.5px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5与app交互/" style="font-size: 12.5px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 17.5px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.83px;">npmjs</a> <a href="/tags/上架相关/" style="font-size: 10px;">上架相关</a> <a href="/tags/交互/" style="font-size: 12.5px;">交互</a> <a href="/tags/埋点/" style="font-size: 10.83px;">埋点</a> <a href="/tags/基类/" style="font-size: 10.83px;">基类</a> <a href="/tags/安全/" style="font-size: 14.17px;">安全</a> <a href="/tags/实用工具/" style="font-size: 16.67px;">实用工具</a> <a href="/tags/工作常识/" style="font-size: 10px;">工作常识</a> <a href="/tags/打包/" style="font-size: 10px;">打包</a> <a href="/tags/技术常识/" style="font-size: 13.33px;">技术常识</a> <a href="/tags/抓包/" style="font-size: 10px;">抓包</a> <a href="/tags/搜索相关/" style="font-size: 10px;">搜索相关</a> <a href="/tags/文档管理/" style="font-size: 14.17px;">文档管理</a> <a href="/tags/权限相关/" style="font-size: 10px;">权限相关</a> <a href="/tags/架构模式/" style="font-size: 11.67px;">架构模式</a> <a href="/tags/环境搭建/" style="font-size: 10.83px;">环境搭建</a> <a href="/tags/生活常识/" style="font-size: 10px;">生活常识</a> <a href="/tags/电脑使用/" style="font-size: 10px;">电脑使用</a> <a href="/tags/瘦身/" style="font-size: 11.67px;">瘦身</a> <a href="/tags/登录页实战/" style="font-size: 12.5px;">登录页实战</a> <a href="/tags/破解/" style="font-size: 11.67px;">破解</a> <a href="/tags/移动分析/" style="font-size: 11.67px;">移动分析</a> <a href="/tags/管理相关/" style="font-size: 11.67px;">管理相关</a> <a href="/tags/编程工具/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/自动化/" style="font-size: 11.67px;">自动化</a> <a href="/tags/请求/" style="font-size: 10.83px;">请求</a> <a href="/tags/跨平台/" style="font-size: 19.17px;">跨平台</a> <a href="/tags/路由及跳转/" style="font-size: 11.67px;">路由及跳转</a> <a href="/tags/阿里云/" style="font-size: 10px;">阿里云</a> <a href="/tags/阿里云oss/" style="font-size: 13.33px;">阿里云oss</a> <a href="/tags/集成/" style="font-size: 11.67px;">集成</a>
     </div>
   </div>
 
@@ -787,15 +844,7 @@
       <ul>
         
           <li>
-            <a href="/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/iOS/3必备知识架构/2内存/2内存-②循环引用/">(no title)</a>
-          </li>
-        
-          <li>
-            <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/">(no title)</a>
+            <a href="/Architecture架构/架构相关/3组件化/5框架设计模式-⑦组件化/">框架设计模式-⑦组件化</a>
           </li>
         
           <li>
@@ -803,7 +852,15 @@
           </li>
         
           <li>
-            <a href="/电脑使用/旧电脑数据清理/">(no title)</a>
+            <a href="/总目录/">总目录</a>
+          </li>
+        
+          <li>
+            <a href="/安全/网络加密/">网络接口数据安全的【攻与防大全】</a>
+          </li>
+        
+          <li>
+            <a href="/Architecture架构/监控相关/灰度系统/">灰度系统</a>
           </li>
         
       </ul>
