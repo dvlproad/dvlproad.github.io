@@ -72,307 +72,6 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-iOS/3必备知识架构/2内存/2内存-②Block" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/2内存-②Block/" class="article-date">
-  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/3必备知识架构/2内存/2内存-②Block/">内存-②Block</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="内存-②Block"><a href="#内存-②Block" class="headerlink" title="内存-②Block"></a>内存-②Block</h1><p>[toc]</p>
-<h2 id="iOS-Block本质"><a href="#iOS-Block本质" class="headerlink" title="iOS-Block本质"></a>iOS-Block本质</h2><p><a href="https://www.jianshu.com/p/4e79e9a0dd82" target="_blank" rel="noopener">iOS-Block本质</a></p>
-<p>block本质上也是一个OC对象，它内部也有个isa指针，最终继承NSObject。</p>
-<p>如</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NSGlobalBlock &lt;--__NSGlobalBlock &lt;--NSBlock &lt;-- NSObject</span><br></pre></td></tr></table></figure>
-<h4 id="Q：block有哪几种类型-及-各类型的block在内存中如何分配的？"><a href="#Q：block有哪几种类型-及-各类型的block在内存中如何分配的？" class="headerlink" title="Q：block有哪几种类型 及 各类型的block在内存中如何分配的？"></a>Q：block有哪几种类型 及 各类型的block在内存中如何分配的？</h4><p>block的类型，取决于isa指针，可以通过调用class方法或者isa指针查看具体类型，最终都是继承自NSBlock类型。</p>
-<p><strong>堆</strong>：动态分配内存，需要程序员自己申请，程序员自己管理</p>
-<p><strong>栈</strong>：自动分配内存，自动销毁，先入后出，栈上的内容存在自动销毁的情况</p>
-<ul>
-<li><p><strong>NSGlobalBlock </strong> 在数据区</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">void (^block1)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block1&quot;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><strong>NSMallocBlock </strong> 在堆区</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age1 = 1;</span><br><span class="line">void (^block2)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block2:%d&quot;, age1);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><strong>NSStackBlock </strong> 在栈区</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age2 = 2;</span><br><span class="line">NSLog(@&quot;%@&quot;, [^&#123;</span><br><span class="line">        NSLog(@&quot;block3:%d&quot;, age2);</span><br><span class="line">    &#125; class]);</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>附：打印block类型<code>NSLog(@&quot;%@&quot;, [block1 class]);</code></p>
-<h2 id="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"><a href="#问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？" class="headerlink" title="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"></a>问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？</h2><p>有Person类如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;Person.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation Person</span><br><span class="line"></span><br><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;Person dealloc&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-<p>了解解题的基础知识：</p>
-<h4 id="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block"><a href="#1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block" class="headerlink" title="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)"></a>1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)</h4><ul>
-<li>如果block在<code>栈</code>空间，不管外部变量是强引用还是弱引用，block都会弱引用访问对象</li>
-<li>如果block在<code>堆</code>空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</li>
-</ul>
-<p>2、GCD API的方法参数block，在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上。</p>
-<h4 id="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"><a href="#附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？" class="headerlink" title="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"></a>附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？</h4><ul>
-<li><p>1.block作为函数返回值时</p>
-</li>
-<li><p>2.将block赋值给__strong指针时</p>
-</li>
-<li><p>3.block作为Cocoa API中方法名含有usingBlock的方法参数时</p>
-</li>
-<li><p>4.block作为GCD API的方法参数时</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        </span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h3 id="1、问：-下列代码中的Person的对象什么时候才销毁？"><a href="#1、问：-下列代码中的Person的对象什么时候才销毁？" class="headerlink" title="1、问： 下列代码中的Person的对象什么时候才销毁？"></a>1、问： 下列代码中的Person的对象什么时候才销毁？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;age:%d&quot;, person.age);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>答：方法代码执行完就person就销毁了</p>
-<h3 id="2、问：以下gcd的block中引用-Person的对象什么时候才销毁？"><a href="#2、问：以下gcd的block中引用-Person的对象什么时候才销毁？" class="headerlink" title="2、问：以下gcd的block中引用 Person的对象什么时候才销毁？"></a>2、问：以下gcd的block中引用 Person的对象什么时候才销毁？</h3><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">-(<span class="keyword">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = <span class="number">10</span>;</span><br><span class="line">    </span><br><span class="line">  	<span class="comment">// 不使用__weak修饰</span></span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2.0</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        <span class="built_in">NSLog</span>(<span class="string">@"age:%d"</span>, person.age);	<span class="comment">// 堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。</span></span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"touchesBegan"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>答：</p>
-<p>1、gcd的block默认会做copy操作，即dispatch_after的block是堆block。</p>
-<p>2、我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。</p>
-<p>所以这里外部的Person没有声明为__weak，所以堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。(如果没有gcd)</p>
-<h3 id="3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？"><a href="#3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？" class="headerlink" title="3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？"></a>3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？</h3><p>续答：此时上述的代码会变为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">  	// 不使用__weak修饰</span><br><span class="line">    __weak Person *weakPerson = person;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;person:%p&quot;, weakPerson);	// 当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。所以此处person 是 nil，打印的%p地址，是0x0。</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;touchesBegan&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>同样，还是我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。所以当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。即上述的输出结果是</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">person 是 nil，打印的%p地址，是0x0。</span><br></pre></td></tr></table></figure>
-<h3 id="4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放"><a href="#4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放" class="headerlink" title="4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放"></a>4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放</h3><h4 id="Q：block的属性修饰词为什么是copy？"><a href="#Q：block的属性修饰词为什么是copy？" class="headerlink" title="Q：block的属性修饰词为什么是copy？"></a>Q：block的属性修饰词为什么是copy？</h4><p>block一旦没有进行copy操作，就不会在堆上<br>block在堆上，程序员就可以对block做内存管理等操作，可以控制block的生命周期</p>
-<h4 id="Q：当block被copy到堆时，对-block修饰的变量做了什么？"><a href="#Q：当block被copy到堆时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block被copy到堆时，对__block修饰的变量做了什么？"></a>Q：当block被copy到堆时，对__block修饰的变量做了什么？</h4><ul>
-<li>会调用block内部的copy函数</li>
-<li>copy函数内部会调用_Block_object_assign函数</li>
-<li>_Block_object_assign函数会对__block变量形成强引用（retain）</li>
-<li>对于__block 修饰的变量 assign函数对其强引用；对于外部对象 assign函数根据外部如何引用而引用</li>
-</ul>
-<h4 id="Q：当block从堆中移除时，对-block修饰的变量做了什么？"><a href="#Q：当block从堆中移除时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block从堆中移除时，对__block修饰的变量做了什么？"></a>Q：当block从堆中移除时，对__block修饰的变量做了什么？</h4><ul>
-<li>会调用block内部的dispose函数</li>
-<li>dispose函数内部会调用_Block_object_dispose函数</li>
-<li>_Block_object_dispose函数会自动释放引用的__block变量（release）</li>
-</ul>
-<h2 id="二、-block修饰符"><a href="#二、-block修饰符" class="headerlink" title="二、__block修饰符"></a>二、__block修饰符</h2><h4 id="Q：-block-int-age-10，系统做了哪些？"><a href="#Q：-block-int-age-10，系统做了哪些？" class="headerlink" title="Q：__block int age = 10，系统做了哪些？"></a>Q：<code>__block</code> int age = 10，系统做了哪些？</h4><h4 id="Q：-block-修饰符作用？"><a href="#Q：-block-修饰符作用？" class="headerlink" title="Q：__block 修饰符作用？"></a>Q：__block 修饰符作用？</h4>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②Block/" data-id="cm2nkn642016ubur4ttgg0lbc" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/2内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" class="article-date">
-  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/">内存-③内存泄漏定位</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="内存-③内存泄漏定位"><a href="#内存-③内存泄漏定位" class="headerlink" title="内存-③内存泄漏定位"></a>内存-③内存泄漏定位</h1><p>未整合的文章：</p>
-<ul>
-<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
-<li><a href="https://blog.csdn.net/mr_zhangrmwork/article/details/76210448" target="_blank" rel="noopener">xcode8 使用Instruments检测定位并解决iOS内存泄露</a></li>
-</ul>
-<p></p><p id="目录"></p><p></p>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><a href="#重要文章">重要文章</a></li>
-<li><a href="#Analyze">一、Analyze—静态分析</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、常见的三种泄露情形</span><br><span class="line">(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &apos;number&apos; is never read。翻译一下：存储在&apos;number&apos;里的值从未被读取过。</span><br><span class="line">(2)、创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line">(3)、调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into &apos;subImageRef&apos;。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</span><br><span class="line">&gt;</span><br><span class="line">2、.....</span><br><span class="line">&gt;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#Leaks">二、Leaks—内存泄露</a></p>
-</li>
-<li><p><a href="#dealloc">三、ARC下的dealloc</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、ARC下dealloc的使用</span><br><span class="line">ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</span><br><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br><span class="line">&gt;</span><br><span class="line">2、controller 不能释放，不走dealloc方法的几种可能</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p>以下内容摘自：<a href="https://www.cnblogs.com/lisaloveyou1900/p/5383760.html" target="_blank" rel="noopener">iOS性能优化之内存管理：Analyze、Leaks、Allocations的使用和案例代码</a></p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>内存空间的划分: 我们知道，一个进程占用的内存空间，包含5种不同的数据区：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">（1）BSS段：通常是存放未初始化的全局变量；</span><br><span class="line">（2）数据段：通常是存放已初始化的全局变量。</span><br><span class="line">（3）代码段：通常是存放程序执行代码。</span><br><span class="line">（4）堆：通常是用于存放进程运行中被动态分配的内存段，OC对象（所有继承自NSObject的对象）就存放在堆里。</span><br><span class="line">（5）栈：由编译器自动分配释放，存放函数的参数值，局部变量等值。</span><br></pre></td></tr></table></figure>
-<p>栈内存是系统来管理的，因此我们常说的内存管理，指的是堆内存的管理，也就是所有OC对象的创建和销毁的管理。</p>
-<p>伴随着iOS5的到来，苹果推出了ARC（自动引用计数）技术，此模式下编译器会自动在合适的地方插入retain、release、autorelease语句，也就是说编译器会自动生成内存管理的代码，解放了广大程序猿的双手，也基本上避免了内存泄露问题，但是呢…</p>
-<p>内存泄露的定义是：用动态存储分配函数动态开辟的空间，在使用完毕后未释放，结果导致一直占据该内存单元。直到程序结束。（其实说白了就是该内存空间使用完毕之后未回收）。</p>
-<p>在iOS应用中的内存泄露，原因一般有循环引用、错用Strong/copy等。</p>
-<p></p><p id="重要文章"></p><p></p>
-<h2 id="重要文章"><a href="#重要文章" class="headerlink" title="重要文章"></a>重要文章</h2><ul>
-<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
-<li><a href="https://www.jianshu.com/p/b72d0a442342" target="_blank" rel="noopener">iOS 内存泄漏的查找</a></li>
-<li><a href="https://www.jianshu.com/p/33bda0eed3aa?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation" target="_blank" rel="noopener">iOS 内存泄漏监测自动化</a></li>
-</ul>
-<p></p><p id="Analyze"></p><p></p>
-<h2 id="一、Analyze—静态分析"><a href="#一、Analyze—静态分析" class="headerlink" title="一、Analyze—静态分析"></a>一、Analyze—静态分析</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>顾名思义，静态分析不需要运行程序，就能检查到存在内存泄露的地方。</p>
-<p>使用方法：打开Xcode，command + shift + B；或者Xcode - Product - Analyze；</p>
-<h3 id="1、常见的三种泄露情形："><a href="#1、常见的三种泄露情形：" class="headerlink" title="1、常见的三种泄露情形："></a>1、常见的三种泄露情形：</h3><blockquote>
-</blockquote>
-<p>（1）创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to ‘number’ is never read。翻译一下：存储在’number’里的值从未被读取过。</p>
-<blockquote>
-</blockquote>
-<p>（2）创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to ‘str’ during its initialization is never read</p>
-<blockquote>
-</blockquote>
-<p>（3）调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into ‘subImageRef’。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</p>
-<p>贴上三种常见情形的Demo代码，如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> /**</span><br><span class="line"> * 情 形 一：创建了一个对象，但是并没有使用。</span><br><span class="line"> * 提示信息：Value Stored to &apos;number&apos; is never read</span><br><span class="line"> * 翻译一下：存储在&apos;number&apos;里的值从未被读取过，</span><br><span class="line"> */</span><br><span class="line">- (void)leakOne &#123;</span><br><span class="line">    NSString *str1 = [NSString string];</span><br><span class="line">    NSNumber *number;</span><br><span class="line">    number = @(str1.length);</span><br><span class="line">    /*</span><br><span class="line">     说我们没有读取过它，那就读取一下，比如打开下面这句代码，对它发送class消息，就不再会有这个提示了。</span><br><span class="line">     当然最好的方法还是将有关number的代码都删掉，因为，你只对number赋值，又不使用，那干嘛创建出来呢。</span><br><span class="line">     这是一个比较常见和典型的错误，也很容易检查出来</span><br><span class="line">     */</span><br><span class="line">    // [number class];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 二：创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。</span><br><span class="line"> * 提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line"> */</span><br><span class="line">- (void)leakTwo &#123;</span><br><span class="line">    NSString *str = [NSString string]; // 创建并初始化str，此时已经有一个内存单元保存str初始化的值</span><br><span class="line">    // NSString *str; // 这样就内存不泄露，因为str是可变的，只需要先声明就行。</span><br><span class="line">    // printf(&quot;str前 = %p\n&quot;,str);</span><br><span class="line">    str = @&quot;ceshi&quot;;             // str被改变了，指向了&quot;ceshi&quot;所在的地址，指针改变了，但之前保存初始化值的内存空间还未释放，保存str初始化值的内存单元泄露了。</span><br><span class="line">    // printf(&quot;str后 = %p\n&quot;,str); // 指针改变了</span><br><span class="line">    [str class];</span><br><span class="line">     </span><br><span class="line">    // 再举两个例子，同理</span><br><span class="line">     </span><br><span class="line">    NSArray *arr = [NSArray array];</span><br><span class="line">    // printf(&quot;arr前 = %p\n&quot;,arr);</span><br><span class="line">    // NSArray *arr;            // 这样就内存不泄露</span><br><span class="line">    arr = @[@&quot;1&quot;,@&quot;2&quot;];</span><br><span class="line">    // printf(&quot;arr后 = %p\n&quot;,arr); // 指针改变了</span><br><span class="line">    [arr class];</span><br><span class="line">     </span><br><span class="line">    CGRect rect = self.view.frame;</span><br><span class="line">    // CGRect rect = CGRectZero; // 这样就内存不泄露</span><br><span class="line">    rect = CGRectMake(0, 0, 0, 0);</span><br><span class="line">    NSLog(@&quot;rect = %@&quot;,NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 三：调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。</span><br><span class="line"> * 提示信息：Potential leak of an object stored into &apos;subImageRef&apos;</span><br><span class="line"> * 翻译一下：subImageRef对象的内存单元有潜在的泄露风险</span><br><span class="line"> */</span><br><span class="line">- (void)leakThree &#123;</span><br><span class="line">    CGRect rect = CGRectMake(0, 0, 50, 50);</span><br><span class="line">    UIImage *image;</span><br><span class="line">    CGImageRef subImageRef = CGImageCreateWithImageInRect(image.CGImage, rect); // subImageRef 引用计数 + 1;</span><br><span class="line">     </span><br><span class="line">    UIImage* smallImage = [UIImage imageWithCGImage:subImageRef];</span><br><span class="line">     </span><br><span class="line">    // 应该调用对应的函数，让subImageRef的引用计数减1,就不会泄露了</span><br><span class="line">    // CGImageRelease(subImageRef);</span><br><span class="line">     </span><br><span class="line">    [smallImage class];</span><br><span class="line">    UIGraphicsEndImageContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>自己遇到的实例:</p>
-<blockquote>
-<p>情形2：<a href="https://blog.csdn.net/sinat_30898863/article/details/51142127" target="_blank" rel="noopener">静态检测内存泄露Analyze－－Value stored to ‘dataArr’ during its initialization is never read</a><br>即初始化的时候开辟了一块内存，却始终没用到，导致该块内存泄漏</p>
-</blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NSMutableArray *tempMutArr = [NSMutableArray arrayWithCapacity:0];</span><br><span class="line">   if ([self.clickedButtonTpye isEqualToString:KClickedButtonTypeLast]) &#123;</span><br><span class="line">       tempMutArr = self.lastDataSourceArr;</span><br><span class="line">   &#125;else&#123;</span><br><span class="line">       tempMutArr = self.hotDataSourceArr;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-<p><a name="Leaks"></a></p>
-<h2 id="二、Leaks—内存泄露"><a href="#二、Leaks—内存泄露" class="headerlink" title="二、Leaks—内存泄露"></a>二、Leaks—内存泄露</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<ul>
-<li><p><a href="https://wereadteam.github.io/2016/02/22/MLeaksFinder/" target="_blank" rel="noopener">MLeaksFinder：精准 iOS 内存泄露检测工具</a></p>
-<blockquote>
-<p>项目 <a href="https://github.com/Zepo/MLeaksFinder/blob/master/MLeaksFinder/UIViewController%2BMemoryLeak.m" target="_blank" rel="noopener">UIViewController+MemoryLeak.m     NSObject+MemoryLeak.m</a></p>
-<p>原理：MLeaksFinder 一开始从 UIViewController 入手。我们知道，当一个 UIViewController 被 pop 或 dismiss 后，该 UIViewController 包括它的 view，view 的 subviews 等等将很快被释放（除非你把它设计成单例，或者持有它的强引用，但一般很少这样做）。于是，我们只需在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 UIViewController，它的 view，view 的 subviews 等等是否还存在。</p>
-<p>即我们hook <code>viewDidDisappear:</code> 和 <code>dismissViewControllerAnimated: completion:</code> 都去执行NSObject的<code>willDealloc</code>方法。</p>
-<p>在NSObject的<code>willDealloc</code>方法中，隔2秒后再去尝试调用另一个方法<code>assertNotDealloc</code>。如果UIViewController已经被成功释放，则肯定是 nil 执行 assertNotDealloc，即assertNotDealloc不会被执行，也就不会弹出内存泄露的弹窗。反之，若UIViewController没有释放，则会弹出内存泄露的弹窗。</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">// UIViewController+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_viewDidDisappear:(<span class="built_in">BOOL</span>)animated &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_viewDidDisappear:animated];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">if</span> ([objc_getAssociatedObject(<span class="keyword">self</span>, kHasBeenPoppedKey) boolValue]) &#123;</span><br><span class="line">&gt;         [<span class="keyword">self</span> willDealloc];</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_dismissViewControllerAnimated:(<span class="built_in">BOOL</span>)flag completion:(<span class="keyword">void</span> (^)(<span class="keyword">void</span>))completion &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_dismissViewControllerAnimated:flag completion:completion];</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     [dismissedViewController willDealloc];</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">// NSObject+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="built_in">BOOL</span>)willDealloc &#123;</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     __<span class="keyword">weak</span> <span class="keyword">id</span> weakSelf = <span class="keyword">self</span>;</span><br><span class="line">&gt;     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         __<span class="keyword">strong</span> <span class="keyword">id</span> strongSelf = weakSelf;</span><br><span class="line">&gt;         [strongSelf assertNotDealloc];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)assertNotDealloc &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> ([MLeakedObjectProxy isAnyObjectLeakedAtPtrs:[<span class="keyword">self</span> parentPtrs]]) &#123;</span><br><span class="line">&gt;         <span class="keyword">return</span>;</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     [MLeakedObjectProxy addLeakedObject:<span class="keyword">self</span>];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="built_in">NSString</span> *className = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);</span><br><span class="line">&gt;     <span class="built_in">NSLog</span>(<span class="string">@"Possibly Memory Leak.\nIn case that %@ should not be dealloced, override -willDealloc in %@ by returning NO.\nView-ViewController stack: %@"</span>, className, className, [<span class="keyword">self</span> viewStack]);</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-</blockquote>
-</li>
-<li><p><a href="https://maxieewong.com/Flutter%20%E8%87%AA%E5%8A%A8%E5%8C%96%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B.html" target="_blank" rel="noopener">自动化内存泄漏检测</a> 项目 <a href="https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121" target="_blank" rel="noopener">https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121</a></p>
-<blockquote>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">///Such as WebSocket is delay close connect.</span></span><br><span class="line">&gt; <span class="keyword">const</span> <span class="built_in">int</span> _defaultCheckLeakDelay = <span class="number">500</span>;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">typedef</span> ShouldAddedRoute = <span class="built_in">bool</span> <span class="built_in">Function</span>(Route route);</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">///NavigatorObserver</span></span><br><span class="line">&gt; <span class="class"><span class="keyword">class</span> <span class="title">LeakNavigatorObserver</span> <span class="keyword">extends</span> <span class="title">NavigatorObserver</span> </span>&#123;</span><br><span class="line">&gt;   <span class="keyword">final</span> ShouldAddedRoute? shouldCheck;</span><br><span class="line">&gt;   <span class="keyword">final</span> <span class="built_in">int</span> checkLeakDelay;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="comment">///[callback] if 'null',the all route can added to LeakDetector.</span></span><br><span class="line">&gt;   <span class="comment">///if not 'null', returns ‘true’, then this route will be added to the LeakDetector.</span></span><br><span class="line">&gt;   LeakNavigatorObserver(</span><br><span class="line">&gt;       &#123;<span class="keyword">this</span>.checkLeakDelay = _defaultCheckLeakDelay, <span class="keyword">this</span>.shouldCheck&#125;);</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPop(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPush(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _add(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didRemove(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didReplace(&#123;Route? newRoute, Route? oldRoute&#125;) &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> (newRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _add(newRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     <span class="keyword">if</span> (oldRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _remove(oldRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt;   ......</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-</blockquote>
-</li>
-<li><p><a href="https://docs.flutter.cn/community/tutorials/memory-leak-monitoring-on-flutter" target="_blank" rel="noopener">快手 Flutter 上的内存泄漏监控</a></p>
-</li>
-</ul>
-<p>Leaks是动态的内存泄露检查工具，需要一边运行程序，一边检测。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak1.jpg" alt="内存泄漏Leak1"></p>
-</blockquote>
-<p>先不切换到Call Trees，先看看Statistics(统计数据)下的情况</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak2.jpg" alt="内存泄漏Leak2"><br>Allocation中我们主要关注的是Persistent和Persistent Bytes，分别表示当前时间段，申请了但是还没释放的内存数量和大小。</p>
-</blockquote>
-<p>切换到Call Trees后世这样的</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak3.jpg" alt="内存泄漏Leak3"></p>
-</blockquote>
-<h4 id="项目中遇到过的内存泄漏"><a href="#项目中遇到过的内存泄漏" class="headerlink" title="项目中遇到过的内存泄漏"></a>项目中遇到过的内存泄漏</h4><p>这里我们不是去查看<code>Call Tree</code>,而是查看<code>Cycles &amp; Roots</code>。</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位1.jpg" alt="循环引用定位1"></p>
-<p>点击标记4处为黑色，即代表该处会发生内存泄漏，双击进入代码，如图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位2.jpg" alt="循环引用定位2"><br>果然存在内存泄漏</p>
-</blockquote>
-<p>自己遇到的其他例子：</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_1.jpg" alt="Leak_mine_1"><br>开始不明白为什么这个变量会内存泄漏后面才能白，其实_priceDetailModel这个本身已经用OrderPriceDetailModel赋值过一次了，而这里你又赋值了一次，导致多了一个。代码情况如下两个图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_2.jpg" alt="Leak_mine_2"><br>又在set方法中生成了一个地址<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_3.jpg" alt="Leak_mine_3"></p>
-</blockquote>
-<p><a name="dealloc"></a></p>
-<h2 id="三、ARC下的dealloc"><a href="#三、ARC下的dealloc" class="headerlink" title="三、ARC下的dealloc"></a>三、ARC下的dealloc</h2><h4 id="1、ARC下dealloc的使用"><a href="#1、ARC下dealloc的使用" class="headerlink" title="1、ARC下dealloc的使用"></a>1、ARC下dealloc的使用</h4><p>ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br></pre></td></tr></table></figure>
-<h6 id="1-、通知的观察者-或KVO的观察者；"><a href="#1-、通知的观察者-或KVO的观察者；" class="headerlink" title="(1)、通知的观察者,或KVO的观察者；"></a>(1)、通知的观察者,或KVO的观察者；</h6><blockquote>
-<p>由于通知中心是系统的一个单例,你在注册通知的观察者时,实际上是在通知中心注册的,</p>
-</blockquote>
-<p>这时,即使ARC下系统帮我们释放了对象,但是在通知中心的观察还是没有移除,那么当有</p>
-<blockquote>
-</blockquote>
-<p>该通知时,依然会尝试调用该对象的接受通知的方法,这可能会导致一些问题.</p>
-<h6 id="2-、对象强委托-引用的解除；"><a href="#2-、对象强委托-引用的解除；" class="headerlink" title="(2)、对象强委托/引用的解除；"></a>(2)、对象强委托/引用的解除；</h6><blockquote>
-<p>对于其他的对象来把你当做委托 delegate时,并且是 强引用时,即时你自身被释放,但是引用你的对象依然还在,</p>
-</blockquote>
-<p>这时需要在引用你的对象移除该delegate</p>
-<h6 id="3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。"><a href="#3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。" class="headerlink" title="(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。"></a>(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</h6><blockquote>
-<p>一个对象,如一个ViewController在销毁之前有可能需要和server打交道;</p>
-</blockquote>
-<p>这时我们也可以在dealloc中写</p>
-<h4 id="2、controller-不能释放，不走dealloc方法的几种可能"><a href="#2、controller-不能释放，不走dealloc方法的几种可能" class="headerlink" title="2、controller 不能释放，不走dealloc方法的几种可能"></a>2、controller 不能释放，不走dealloc方法的几种可能</h4><p>主要原因还是循环引用，引起的内存泄漏。</p>
-<p>详情参考：<a href="https://blog.csdn.net/flg1554112450/article/details/70228353" target="_blank" rel="noopener">controller 不能释放，不走dealloc方法的4种可能</a></p>
-<p></p><p id="Time Profile"></p><p></p>
-<h2 id="四、Time-Profile"><a href="#四、Time-Profile" class="headerlink" title="四、Time Profile"></a>四、Time Profile</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p>详情参考：<a href="http://www.cocoachina.com/ios/20160805/17300.html" target="_blank" rel="noopener">instrument Time Profiler总结</a></p>
-<p>使用Time Profile前有两点需要注意的地方：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、一定要使用真机调试</span><br><span class="line">2、应用程序一定要使用发布配置</span><br></pre></td></tr></table></figure>
-<p>图标为黑色头像的就是Time Profiler给我们的提示，有可能存在性能瓶颈的地方</p>
-<blockquote>
-<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/TimeProfile1.png" alt="TimeProfile1"></p>
-</blockquote>
-<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>其他参考材料：</p>
-<p>问：Xcode 运行程序，左侧memory 不显示内存。。</p>
-<blockquote>
-<p>答：运行程序后，xcode 不显示当前使用的内存情况，问题是打开了僵尸–enable zoombie Objects，关闭即可。<br>即打开 product—&gt;SCheme–&gt;EditSCheme –&gt;enable zoombie Objects  取消选中 ok</p>
-</blockquote>
-<p>就可以继续显示了</p>
-<p></p><p id="常见笔试/面试题"></p><p></p>
-<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" data-id="cm2nkn64p016xbur49rmnwu64" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
     <article id="post-iOS/3必备知识架构/2内存/2内存-①基础" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/3必备知识架构/2内存/2内存-①基础/" class="article-date">
@@ -558,7 +257,308 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cm2nkn6590170bur4j7gifkto" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-①基础/" data-id="cm2nl44ba0178zqr45r5u134s" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/2内存/2内存-②Block" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/2内存/2内存-②Block/" class="article-date">
+  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/3必备知识架构/2内存/2内存-②Block/">内存-②Block</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="内存-②Block"><a href="#内存-②Block" class="headerlink" title="内存-②Block"></a>内存-②Block</h1><p>[toc]</p>
+<h2 id="iOS-Block本质"><a href="#iOS-Block本质" class="headerlink" title="iOS-Block本质"></a>iOS-Block本质</h2><p><a href="https://www.jianshu.com/p/4e79e9a0dd82" target="_blank" rel="noopener">iOS-Block本质</a></p>
+<p>block本质上也是一个OC对象，它内部也有个isa指针，最终继承NSObject。</p>
+<p>如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NSGlobalBlock &lt;--__NSGlobalBlock &lt;--NSBlock &lt;-- NSObject</span><br></pre></td></tr></table></figure>
+<h4 id="Q：block有哪几种类型-及-各类型的block在内存中如何分配的？"><a href="#Q：block有哪几种类型-及-各类型的block在内存中如何分配的？" class="headerlink" title="Q：block有哪几种类型 及 各类型的block在内存中如何分配的？"></a>Q：block有哪几种类型 及 各类型的block在内存中如何分配的？</h4><p>block的类型，取决于isa指针，可以通过调用class方法或者isa指针查看具体类型，最终都是继承自NSBlock类型。</p>
+<p><strong>堆</strong>：动态分配内存，需要程序员自己申请，程序员自己管理</p>
+<p><strong>栈</strong>：自动分配内存，自动销毁，先入后出，栈上的内容存在自动销毁的情况</p>
+<ul>
+<li><p><strong>NSGlobalBlock </strong> 在数据区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">void (^block1)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block1&quot;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>NSMallocBlock </strong> 在堆区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age1 = 1;</span><br><span class="line">void (^block2)(void) = ^&#123;</span><br><span class="line">    NSLog(@&quot;block2:%d&quot;, age1);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>NSStackBlock </strong> 在栈区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int age2 = 2;</span><br><span class="line">NSLog(@&quot;%@&quot;, [^&#123;</span><br><span class="line">        NSLog(@&quot;block3:%d&quot;, age2);</span><br><span class="line">    &#125; class]);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>附：打印block类型<code>NSLog(@&quot;%@&quot;, [block1 class]);</code></p>
+<h2 id="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"><a href="#问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？" class="headerlink" title="问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？"></a>问：以下各情况，Person的对象什么时候才销毁？或Person对象在block上是如何操作的？</h2><p>有Person类如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;Person.h&quot;</span><br><span class="line"></span><br><span class="line">@implementation Person</span><br><span class="line"></span><br><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;Person dealloc&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>了解解题的基础知识：</p>
+<h4 id="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block"><a href="#1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？-延伸：引用过后，block内部无法修改auto变量值，除非使用-block" class="headerlink" title="1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)"></a>1、当对象类型的auto变量被block内部访问时，是强引用还是弱引用？(延伸：引用过后，block内部无法修改auto变量值，除非使用__block)</h4><ul>
+<li>如果block在<code>栈</code>空间，不管外部变量是强引用还是弱引用，block都会弱引用访问对象</li>
+<li>如果block在<code>堆</code>空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</li>
+</ul>
+<p>2、GCD API的方法参数block，在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上。</p>
+<h4 id="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"><a href="#附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？" class="headerlink" title="附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？"></a>附：在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上的几种情况？</h4><ul>
+<li><p>1.block作为函数返回值时</p>
+</li>
+<li><p>2.将block赋值给__strong指针时</p>
+</li>
+<li><p>3.block作为Cocoa API中方法名含有usingBlock的方法参数时</p>
+</li>
+<li><p>4.block作为GCD API的方法参数时</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        </span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="1、问：-下列代码中的Person的对象什么时候才销毁？"><a href="#1、问：-下列代码中的Person的对象什么时候才销毁？" class="headerlink" title="1、问： 下列代码中的Person的对象什么时候才销毁？"></a>1、问： 下列代码中的Person的对象什么时候才销毁？</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;age:%d&quot;, person.age);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：方法代码执行完就person就销毁了</p>
+<h3 id="2、问：以下gcd的block中引用-Person的对象什么时候才销毁？"><a href="#2、问：以下gcd的block中引用-Person的对象什么时候才销毁？" class="headerlink" title="2、问：以下gcd的block中引用 Person的对象什么时候才销毁？"></a>2、问：以下gcd的block中引用 Person的对象什么时候才销毁？</h3><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">-(<span class="keyword">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = <span class="number">10</span>;</span><br><span class="line">    </span><br><span class="line">  	<span class="comment">// 不使用__weak修饰</span></span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2.0</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        <span class="built_in">NSLog</span>(<span class="string">@"age:%d"</span>, person.age);	<span class="comment">// 堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。</span></span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@"touchesBegan"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答：</p>
+<p>1、gcd的block默认会做copy操作，即dispatch_after的block是堆block。</p>
+<p>2、我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。</p>
+<p>所以这里外部的Person没有声明为__weak，所以堆block会对Person强引用，故而也就只有block销毁时候Person才会被释放。这里是2秒后销毁。(如果没有gcd)</p>
+<h3 id="3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？"><a href="#3、续问：如果上述Person被添加上-weak修饰，那Person什么时候释放？会造成什么问题？" class="headerlink" title="3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？"></a>3、续问：如果上述Person被添加上__weak修饰，那Person什么时候释放？会造成什么问题？</h3><p>续答：此时上述的代码会变为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-(void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">    Person *person = [[Person alloc] init];</span><br><span class="line">    person.age = 10;</span><br><span class="line">    </span><br><span class="line">  	// 不使用__weak修饰</span><br><span class="line">    __weak Person *weakPerson = person;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;person:%p&quot;, weakPerson);	// 当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。所以此处person 是 nil，打印的%p地址，是0x0。</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;touchesBegan&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样，还是我们知道<code>如果block在堆空间，如果外部强引用，block内部也是强引用；如果外部弱引用，block内部也是弱引用</code>。所以当Person被添加上__weak修饰后，堆block会对Person弱引用。而在touchesBegan函数结束后，由于Person就会被释放，所以2秒后gcd无法捕捉到Person的后果。即上述的输出结果是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">person 是 nil，打印的%p地址，是0x0。</span><br></pre></td></tr></table></figure>
+<h3 id="4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放"><a href="#4、上述代码使用-weak后，变量被释放了，那怎么防止block持有的对象提前释放" class="headerlink" title="4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放"></a>4、上述代码使用__weak后，变量被释放了，那怎么防止block持有的对象提前释放</h3><h4 id="Q：block的属性修饰词为什么是copy？"><a href="#Q：block的属性修饰词为什么是copy？" class="headerlink" title="Q：block的属性修饰词为什么是copy？"></a>Q：block的属性修饰词为什么是copy？</h4><p>block一旦没有进行copy操作，就不会在堆上<br>block在堆上，程序员就可以对block做内存管理等操作，可以控制block的生命周期</p>
+<h4 id="Q：当block被copy到堆时，对-block修饰的变量做了什么？"><a href="#Q：当block被copy到堆时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block被copy到堆时，对__block修饰的变量做了什么？"></a>Q：当block被copy到堆时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的copy函数</li>
+<li>copy函数内部会调用_Block_object_assign函数</li>
+<li>_Block_object_assign函数会对__block变量形成强引用（retain）</li>
+<li>对于__block 修饰的变量 assign函数对其强引用；对于外部对象 assign函数根据外部如何引用而引用</li>
+</ul>
+<h4 id="Q：当block从堆中移除时，对-block修饰的变量做了什么？"><a href="#Q：当block从堆中移除时，对-block修饰的变量做了什么？" class="headerlink" title="Q：当block从堆中移除时，对__block修饰的变量做了什么？"></a>Q：当block从堆中移除时，对__block修饰的变量做了什么？</h4><ul>
+<li>会调用block内部的dispose函数</li>
+<li>dispose函数内部会调用_Block_object_dispose函数</li>
+<li>_Block_object_dispose函数会自动释放引用的__block变量（release）</li>
+</ul>
+<h2 id="二、-block修饰符"><a href="#二、-block修饰符" class="headerlink" title="二、__block修饰符"></a>二、__block修饰符</h2><h4 id="Q：-block-int-age-10，系统做了哪些？"><a href="#Q：-block-int-age-10，系统做了哪些？" class="headerlink" title="Q：__block int age = 10，系统做了哪些？"></a>Q：<code>__block</code> int age = 10，系统做了哪些？</h4><h4 id="Q：-block-修饰符作用？"><a href="#Q：-block-修饰符作用？" class="headerlink" title="Q：__block 修饰符作用？"></a>Q：__block 修饰符作用？</h4>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②Block/" data-id="cm2nl44bt017bzqr4xp789zmi" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/2内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" class="article-date">
+  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/">内存-③内存泄漏定位</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="内存-③内存泄漏定位"><a href="#内存-③内存泄漏定位" class="headerlink" title="内存-③内存泄漏定位"></a>内存-③内存泄漏定位</h1><p>未整合的文章：</p>
+<ul>
+<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
+<li><a href="https://blog.csdn.net/mr_zhangrmwork/article/details/76210448" target="_blank" rel="noopener">xcode8 使用Instruments检测定位并解决iOS内存泄露</a></li>
+</ul>
+<p></p><p id="目录"></p><p></p>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><a href="#重要文章">重要文章</a></li>
+<li><a href="#Analyze">一、Analyze—静态分析</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、常见的三种泄露情形</span><br><span class="line">(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &apos;number&apos; is never read。翻译一下：存储在&apos;number&apos;里的值从未被读取过。</span><br><span class="line">(2)、创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line">(3)、调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into &apos;subImageRef&apos;。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</span><br><span class="line">&gt;</span><br><span class="line">2、.....</span><br><span class="line">&gt;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#Leaks">二、Leaks—内存泄露</a></p>
+</li>
+<li><p><a href="#dealloc">三、ARC下的dealloc</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、ARC下dealloc的使用</span><br><span class="line">ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</span><br><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br><span class="line">&gt;</span><br><span class="line">2、controller 不能释放，不走dealloc方法的几种可能</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#常见笔试/面试题">常见笔试/面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p>以下内容摘自：<a href="https://www.cnblogs.com/lisaloveyou1900/p/5383760.html" target="_blank" rel="noopener">iOS性能优化之内存管理：Analyze、Leaks、Allocations的使用和案例代码</a></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>内存空间的划分: 我们知道，一个进程占用的内存空间，包含5种不同的数据区：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">（1）BSS段：通常是存放未初始化的全局变量；</span><br><span class="line">（2）数据段：通常是存放已初始化的全局变量。</span><br><span class="line">（3）代码段：通常是存放程序执行代码。</span><br><span class="line">（4）堆：通常是用于存放进程运行中被动态分配的内存段，OC对象（所有继承自NSObject的对象）就存放在堆里。</span><br><span class="line">（5）栈：由编译器自动分配释放，存放函数的参数值，局部变量等值。</span><br></pre></td></tr></table></figure>
+<p>栈内存是系统来管理的，因此我们常说的内存管理，指的是堆内存的管理，也就是所有OC对象的创建和销毁的管理。</p>
+<p>伴随着iOS5的到来，苹果推出了ARC（自动引用计数）技术，此模式下编译器会自动在合适的地方插入retain、release、autorelease语句，也就是说编译器会自动生成内存管理的代码，解放了广大程序猿的双手，也基本上避免了内存泄露问题，但是呢…</p>
+<p>内存泄露的定义是：用动态存储分配函数动态开辟的空间，在使用完毕后未释放，结果导致一直占据该内存单元。直到程序结束。（其实说白了就是该内存空间使用完毕之后未回收）。</p>
+<p>在iOS应用中的内存泄露，原因一般有循环引用、错用Strong/copy等。</p>
+<p></p><p id="重要文章"></p><p></p>
+<h2 id="重要文章"><a href="#重要文章" class="headerlink" title="重要文章"></a>重要文章</h2><ul>
+<li><a href="https://blog.csdn.net/clovejq/article/details/78689759" target="_blank" rel="noopener">iOS检测内存泄漏的方法</a></li>
+<li><a href="https://www.jianshu.com/p/b72d0a442342" target="_blank" rel="noopener">iOS 内存泄漏的查找</a></li>
+<li><a href="https://www.jianshu.com/p/33bda0eed3aa?utm_campaign=maleskine&amp;utm_content=note&amp;utm_medium=seo_notes&amp;utm_source=recommendation" target="_blank" rel="noopener">iOS 内存泄漏监测自动化</a></li>
+</ul>
+<p></p><p id="Analyze"></p><p></p>
+<h2 id="一、Analyze—静态分析"><a href="#一、Analyze—静态分析" class="headerlink" title="一、Analyze—静态分析"></a>一、Analyze—静态分析</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>顾名思义，静态分析不需要运行程序，就能检查到存在内存泄露的地方。</p>
+<p>使用方法：打开Xcode，command + shift + B；或者Xcode - Product - Analyze；</p>
+<h3 id="1、常见的三种泄露情形："><a href="#1、常见的三种泄露情形：" class="headerlink" title="1、常见的三种泄露情形："></a>1、常见的三种泄露情形：</h3><blockquote>
+</blockquote>
+<p>（1）创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to ‘number’ is never read。翻译一下：存储在’number’里的值从未被读取过。</p>
+<blockquote>
+</blockquote>
+<p>（2）创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to ‘str’ during its initialization is never read</p>
+<blockquote>
+</blockquote>
+<p>（3）调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into ‘subImageRef’。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</p>
+<p>贴上三种常见情形的Demo代码，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> /**</span><br><span class="line"> * 情 形 一：创建了一个对象，但是并没有使用。</span><br><span class="line"> * 提示信息：Value Stored to &apos;number&apos; is never read</span><br><span class="line"> * 翻译一下：存储在&apos;number&apos;里的值从未被读取过，</span><br><span class="line"> */</span><br><span class="line">- (void)leakOne &#123;</span><br><span class="line">    NSString *str1 = [NSString string];</span><br><span class="line">    NSNumber *number;</span><br><span class="line">    number = @(str1.length);</span><br><span class="line">    /*</span><br><span class="line">     说我们没有读取过它，那就读取一下，比如打开下面这句代码，对它发送class消息，就不再会有这个提示了。</span><br><span class="line">     当然最好的方法还是将有关number的代码都删掉，因为，你只对number赋值，又不使用，那干嘛创建出来呢。</span><br><span class="line">     这是一个比较常见和典型的错误，也很容易检查出来</span><br><span class="line">     */</span><br><span class="line">    // [number class];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 二：创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。</span><br><span class="line"> * 提示信息：Value Stored to &apos;str&apos; during its initialization is never read</span><br><span class="line"> */</span><br><span class="line">- (void)leakTwo &#123;</span><br><span class="line">    NSString *str = [NSString string]; // 创建并初始化str，此时已经有一个内存单元保存str初始化的值</span><br><span class="line">    // NSString *str; // 这样就内存不泄露，因为str是可变的，只需要先声明就行。</span><br><span class="line">    // printf(&quot;str前 = %p\n&quot;,str);</span><br><span class="line">    str = @&quot;ceshi&quot;;             // str被改变了，指向了&quot;ceshi&quot;所在的地址，指针改变了，但之前保存初始化值的内存空间还未释放，保存str初始化值的内存单元泄露了。</span><br><span class="line">    // printf(&quot;str后 = %p\n&quot;,str); // 指针改变了</span><br><span class="line">    [str class];</span><br><span class="line">     </span><br><span class="line">    // 再举两个例子，同理</span><br><span class="line">     </span><br><span class="line">    NSArray *arr = [NSArray array];</span><br><span class="line">    // printf(&quot;arr前 = %p\n&quot;,arr);</span><br><span class="line">    // NSArray *arr;            // 这样就内存不泄露</span><br><span class="line">    arr = @[@&quot;1&quot;,@&quot;2&quot;];</span><br><span class="line">    // printf(&quot;arr后 = %p\n&quot;,arr); // 指针改变了</span><br><span class="line">    [arr class];</span><br><span class="line">     </span><br><span class="line">    CGRect rect = self.view.frame;</span><br><span class="line">    // CGRect rect = CGRectZero; // 这样就内存不泄露</span><br><span class="line">    rect = CGRectMake(0, 0, 0, 0);</span><br><span class="line">    NSLog(@&quot;rect = %@&quot;,NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 三：调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。</span><br><span class="line"> * 提示信息：Potential leak of an object stored into &apos;subImageRef&apos;</span><br><span class="line"> * 翻译一下：subImageRef对象的内存单元有潜在的泄露风险</span><br><span class="line"> */</span><br><span class="line">- (void)leakThree &#123;</span><br><span class="line">    CGRect rect = CGRectMake(0, 0, 50, 50);</span><br><span class="line">    UIImage *image;</span><br><span class="line">    CGImageRef subImageRef = CGImageCreateWithImageInRect(image.CGImage, rect); // subImageRef 引用计数 + 1;</span><br><span class="line">     </span><br><span class="line">    UIImage* smallImage = [UIImage imageWithCGImage:subImageRef];</span><br><span class="line">     </span><br><span class="line">    // 应该调用对应的函数，让subImageRef的引用计数减1,就不会泄露了</span><br><span class="line">    // CGImageRelease(subImageRef);</span><br><span class="line">     </span><br><span class="line">    [smallImage class];</span><br><span class="line">    UIGraphicsEndImageContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>自己遇到的实例:</p>
+<blockquote>
+<p>情形2：<a href="https://blog.csdn.net/sinat_30898863/article/details/51142127" target="_blank" rel="noopener">静态检测内存泄露Analyze－－Value stored to ‘dataArr’ during its initialization is never read</a><br>即初始化的时候开辟了一块内存，却始终没用到，导致该块内存泄漏</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NSMutableArray *tempMutArr = [NSMutableArray arrayWithCapacity:0];</span><br><span class="line">   if ([self.clickedButtonTpye isEqualToString:KClickedButtonTypeLast]) &#123;</span><br><span class="line">       tempMutArr = self.lastDataSourceArr;</span><br><span class="line">   &#125;else&#123;</span><br><span class="line">       tempMutArr = self.hotDataSourceArr;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p><a name="Leaks"></a></p>
+<h2 id="二、Leaks—内存泄露"><a href="#二、Leaks—内存泄露" class="headerlink" title="二、Leaks—内存泄露"></a>二、Leaks—内存泄露</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<ul>
+<li><p><a href="https://wereadteam.github.io/2016/02/22/MLeaksFinder/" target="_blank" rel="noopener">MLeaksFinder：精准 iOS 内存泄露检测工具</a></p>
+<blockquote>
+<p>项目 <a href="https://github.com/Zepo/MLeaksFinder/blob/master/MLeaksFinder/UIViewController%2BMemoryLeak.m" target="_blank" rel="noopener">UIViewController+MemoryLeak.m     NSObject+MemoryLeak.m</a></p>
+<p>原理：MLeaksFinder 一开始从 UIViewController 入手。我们知道，当一个 UIViewController 被 pop 或 dismiss 后，该 UIViewController 包括它的 view，view 的 subviews 等等将很快被释放（除非你把它设计成单例，或者持有它的强引用，但一般很少这样做）。于是，我们只需在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 UIViewController，它的 view，view 的 subviews 等等是否还存在。</p>
+<p>即我们hook <code>viewDidDisappear:</code> 和 <code>dismissViewControllerAnimated: completion:</code> 都去执行NSObject的<code>willDealloc</code>方法。</p>
+<p>在NSObject的<code>willDealloc</code>方法中，隔2秒后再去尝试调用另一个方法<code>assertNotDealloc</code>。如果UIViewController已经被成功释放，则肯定是 nil 执行 assertNotDealloc，即assertNotDealloc不会被执行，也就不会弹出内存泄露的弹窗。反之，若UIViewController没有释放，则会弹出内存泄露的弹窗。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment">// UIViewController+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_viewDidDisappear:(<span class="built_in">BOOL</span>)animated &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_viewDidDisappear:animated];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">if</span> ([objc_getAssociatedObject(<span class="keyword">self</span>, kHasBeenPoppedKey) boolValue]) &#123;</span><br><span class="line">&gt;         [<span class="keyword">self</span> willDealloc];</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)swizzled_dismissViewControllerAnimated:(<span class="built_in">BOOL</span>)flag completion:(<span class="keyword">void</span> (^)(<span class="keyword">void</span>))completion &#123;</span><br><span class="line">&gt;     [<span class="keyword">self</span> swizzled_dismissViewControllerAnimated:flag completion:completion];</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     [dismissedViewController willDealloc];</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment">// NSObject+MemoryLeak.m</span></span><br><span class="line">&gt; - (<span class="built_in">BOOL</span>)willDealloc &#123;</span><br><span class="line">&gt;     ......</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     __<span class="keyword">weak</span> <span class="keyword">id</span> weakSelf = <span class="keyword">self</span>;</span><br><span class="line">&gt;     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">&gt;         __<span class="keyword">strong</span> <span class="keyword">id</span> strongSelf = weakSelf;</span><br><span class="line">&gt;         [strongSelf assertNotDealloc];</span><br><span class="line">&gt;     &#125;);</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; - (<span class="keyword">void</span>)assertNotDealloc &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> ([MLeakedObjectProxy isAnyObjectLeakedAtPtrs:[<span class="keyword">self</span> parentPtrs]]) &#123;</span><br><span class="line">&gt;         <span class="keyword">return</span>;</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     [MLeakedObjectProxy addLeakedObject:<span class="keyword">self</span>];</span><br><span class="line">&gt;     </span><br><span class="line">&gt;     <span class="built_in">NSString</span> *className = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);</span><br><span class="line">&gt;     <span class="built_in">NSLog</span>(<span class="string">@"Possibly Memory Leak.\nIn case that %@ should not be dealloced, override -willDealloc in %@ by returning NO.\nView-ViewController stack: %@"</span>, className, className, [<span class="keyword">self</span> viewStack]);</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+</blockquote>
+</li>
+<li><p><a href="https://maxieewong.com/Flutter%20%E8%87%AA%E5%8A%A8%E5%8C%96%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B.html" target="_blank" rel="noopener">自动化内存泄漏检测</a> 项目 <a href="https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121" target="_blank" rel="noopener">https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121</a></p>
+<blockquote>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="comment"><span class="markdown">///Such as WebSocket is delay close connect.</span></span></span><br><span class="line">&gt; <span class="keyword">const</span> <span class="built_in">int</span> _defaultCheckLeakDelay = <span class="number">500</span>;</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="keyword">typedef</span> ShouldAddedRoute = <span class="built_in">bool</span> <span class="built_in">Function</span>(Route route);</span><br><span class="line">&gt; </span><br><span class="line">&gt; <span class="comment"><span class="markdown">///NavigatorObserver</span></span></span><br><span class="line">&gt; <span class="class"><span class="keyword">class</span> <span class="title">LeakNavigatorObserver</span> <span class="keyword">extends</span> <span class="title">NavigatorObserver</span> </span>&#123;</span><br><span class="line">&gt;   <span class="keyword">final</span> ShouldAddedRoute? shouldCheck;</span><br><span class="line">&gt;   <span class="keyword">final</span> <span class="built_in">int</span> checkLeakDelay;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="comment"><span class="markdown">///[callback] if 'null',</span>the<span class="markdown"> all route can added to LeakDetector.</span></span></span><br><span class="line">&gt;   <span class="comment"><span class="markdown">///if not 'null', returns ‘true’, then this route </span>will<span class="markdown"> be added to </span>the<span class="markdown"> LeakDetector.</span></span></span><br><span class="line">&gt;   LeakNavigatorObserver(</span><br><span class="line">&gt;       &#123;<span class="keyword">this</span>.checkLeakDelay = _defaultCheckLeakDelay, <span class="keyword">this</span>.shouldCheck&#125;);</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPop(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didPush(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _add(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didRemove(Route route, Route? previousRoute) &#123;</span><br><span class="line">&gt;     _remove(route);</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt;   <span class="meta">@override</span></span><br><span class="line">&gt;   <span class="keyword">void</span> didReplace(&#123;Route? newRoute, Route? oldRoute&#125;) &#123;</span><br><span class="line">&gt;     <span class="keyword">if</span> (newRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _add(newRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;     <span class="keyword">if</span> (oldRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">&gt;       _remove(oldRoute);</span><br><span class="line">&gt;     &#125;</span><br><span class="line">&gt;   &#125;</span><br><span class="line">&gt;   ......</span><br><span class="line">&gt; &#125;</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+</blockquote>
+</li>
+<li><p><a href="https://docs.flutter.cn/community/tutorials/memory-leak-monitoring-on-flutter" target="_blank" rel="noopener">快手 Flutter 上的内存泄漏监控</a></p>
+</li>
+</ul>
+<p>Leaks是动态的内存泄露检查工具，需要一边运行程序，一边检测。</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak1.jpg" alt="内存泄漏Leak1"></p>
+</blockquote>
+<p>先不切换到Call Trees，先看看Statistics(统计数据)下的情况</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak2.jpg" alt="内存泄漏Leak2"><br>Allocation中我们主要关注的是Persistent和Persistent Bytes，分别表示当前时间段，申请了但是还没释放的内存数量和大小。</p>
+</blockquote>
+<p>切换到Call Trees后世这样的</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak3.jpg" alt="内存泄漏Leak3"></p>
+</blockquote>
+<h4 id="项目中遇到过的内存泄漏"><a href="#项目中遇到过的内存泄漏" class="headerlink" title="项目中遇到过的内存泄漏"></a>项目中遇到过的内存泄漏</h4><p>这里我们不是去查看<code>Call Tree</code>,而是查看<code>Cycles &amp; Roots</code>。</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位1.jpg" alt="循环引用定位1"></p>
+<p>点击标记4处为黑色，即代表该处会发生内存泄漏，双击进入代码，如图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/循环引用定位2.jpg" alt="循环引用定位2"><br>果然存在内存泄漏</p>
+</blockquote>
+<p>自己遇到的其他例子：</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_1.jpg" alt="Leak_mine_1"><br>开始不明白为什么这个变量会内存泄漏后面才能白，其实_priceDetailModel这个本身已经用OrderPriceDetailModel赋值过一次了，而这里你又赋值了一次，导致多了一个。代码情况如下两个图：<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_2.jpg" alt="Leak_mine_2"><br>又在set方法中生成了一个地址<br><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/Leak_mine_3.jpg" alt="Leak_mine_3"></p>
+</blockquote>
+<p><a name="dealloc"></a></p>
+<h2 id="三、ARC下的dealloc"><a href="#三、ARC下的dealloc" class="headerlink" title="三、ARC下的dealloc"></a>三、ARC下的dealloc</h2><h4 id="1、ARC下dealloc的使用"><a href="#1、ARC下dealloc的使用" class="headerlink" title="1、ARC下dealloc的使用"></a>1、ARC下dealloc的使用</h4><p>ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br></pre></td></tr></table></figure>
+<h6 id="1-、通知的观察者-或KVO的观察者；"><a href="#1-、通知的观察者-或KVO的观察者；" class="headerlink" title="(1)、通知的观察者,或KVO的观察者；"></a>(1)、通知的观察者,或KVO的观察者；</h6><blockquote>
+<p>由于通知中心是系统的一个单例,你在注册通知的观察者时,实际上是在通知中心注册的,</p>
+</blockquote>
+<p>这时,即使ARC下系统帮我们释放了对象,但是在通知中心的观察还是没有移除,那么当有</p>
+<blockquote>
+</blockquote>
+<p>该通知时,依然会尝试调用该对象的接受通知的方法,这可能会导致一些问题.</p>
+<h6 id="2-、对象强委托-引用的解除；"><a href="#2-、对象强委托-引用的解除；" class="headerlink" title="(2)、对象强委托/引用的解除；"></a>(2)、对象强委托/引用的解除；</h6><blockquote>
+<p>对于其他的对象来把你当做委托 delegate时,并且是 强引用时,即时你自身被释放,但是引用你的对象依然还在,</p>
+</blockquote>
+<p>这时需要在引用你的对象移除该delegate</p>
+<h6 id="3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。"><a href="#3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。" class="headerlink" title="(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。"></a>(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</h6><blockquote>
+<p>一个对象,如一个ViewController在销毁之前有可能需要和server打交道;</p>
+</blockquote>
+<p>这时我们也可以在dealloc中写</p>
+<h4 id="2、controller-不能释放，不走dealloc方法的几种可能"><a href="#2、controller-不能释放，不走dealloc方法的几种可能" class="headerlink" title="2、controller 不能释放，不走dealloc方法的几种可能"></a>2、controller 不能释放，不走dealloc方法的几种可能</h4><p>主要原因还是循环引用，引起的内存泄漏。</p>
+<p>详情参考：<a href="https://blog.csdn.net/flg1554112450/article/details/70228353" target="_blank" rel="noopener">controller 不能释放，不走dealloc方法的4种可能</a></p>
+<p></p><p id="Time Profile"></p><p></p>
+<h2 id="四、Time-Profile"><a href="#四、Time-Profile" class="headerlink" title="四、Time Profile"></a>四、Time Profile</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p>详情参考：<a href="http://www.cocoachina.com/ios/20160805/17300.html" target="_blank" rel="noopener">instrument Time Profiler总结</a></p>
+<p>使用Time Profile前有两点需要注意的地方：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、一定要使用真机调试</span><br><span class="line">2、应用程序一定要使用发布配置</span><br></pre></td></tr></table></figure>
+<p>图标为黑色头像的就是Time Profiler给我们的提示，有可能存在性能瓶颈的地方</p>
+<blockquote>
+<p><img src="/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/Instruments/TimeProfile1.png" alt="TimeProfile1"></p>
+</blockquote>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>其他参考材料：</p>
+<p>问：Xcode 运行程序，左侧memory 不显示内存。。</p>
+<blockquote>
+<p>答：运行程序后，xcode 不显示当前使用的内存情况，问题是打开了僵尸–enable zoombie Objects，关闭即可。<br>即打开 product—&gt;SCheme–&gt;EditSCheme –&gt;enable zoombie Objects  取消选中 ok</p>
+</blockquote>
+<p>就可以继续显示了</p>
+<p></p><p id="常见笔试/面试题"></p><p></p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试/面试题"></a>常见笔试/面试题</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+<p></p><p id="END"></p><p></p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
+<p><a href="#目录">&lt; 返回目录</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-③内存泄漏定位/" data-id="cm2nl44ce017ezqr4t8nwemkj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -717,7 +717,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cm2nkn65u0173bur4vnqd4xhp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用/" data-id="cm2nl44cx017hzqr4byfcvcap" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -862,7 +862,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/" data-id="cm2nkn66d0176bur4wjh2wic3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/2内存/2内存-②循环引用Timer/" data-id="cm2nl44dh017kzqr46l65tvp4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1044,107 +1044,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cm2nkn6d8017ybur4h6sc35dc" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/3必备知识架构/3视图/3视图-②布局" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/3必备知识架构/3视图/3视图-②布局/" class="article-date">
-  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/3必备知识架构/3视图/3视图-②布局/">视图-②布局</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="视图-②布局"><a href="#视图-②布局" class="headerlink" title="视图-②布局"></a>视图-②布局</h1><p>[toc]</p>
-<h2 id="一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority"><a href="#一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority" class="headerlink" title="一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority"></a>一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority</h2><p>看一下下面的例子，看给出的例子约束是否完整？</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UILabel *label = [[UILabel alloc] init];</span><br><span class="line"> label.font = [UIFont systemFontOfSize:15];</span><br><span class="line"> label.text = @&quot;Hello&quot;;</span><br><span class="line"> [self.view addSubview:label];</span><br><span class="line"> [label mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">     make.left.equalTo(self.view.mas_left).offset(16);</span><br><span class="line">     make.top.equalTo(self.view.mas_top).offset(16);</span><br><span class="line"> &#125;];</span><br></pre></td></tr></table></figure>
-<p>这里只定义了两个约束，left 和 top，只够计算出frame的originX和orginY，没有width和height。那么是不是属于不完整的约束呢？其实在这里给出的约束已经是完整的了。因为对于UILabel这个控件而言 ，只要通过其font和text系统就可以计算出Label该有的长度和宽度。这里的长度和宽度就是UILabel的intrinsic content size（固有属性）。</p>
-<p>Intrinsic Content Size, 通俗来讲，就是控件(UIButton,UILabel,UIImageView)能根据它们的内容(content)计算自己的大小(Size）</p>
-<p>开发中用到的一些控件或视图，本身就自带大小，比如UIButton控件，设置完title后就能知道这个UIButton是文字的大小再加上两个固定的button margin。<br> 像这种控件或视图本身就带有的高度、宽度，就叫做intrinsic content size（固定内容尺寸）。</p>
-<h3 id="2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩"><a href="#2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩" class="headerlink" title="2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩"></a>2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</h3><ul>
-<li><a href="https://www.jianshu.com/p/8e68b82b471a" target="_blank" rel="noopener">浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</a></li>
-</ul>
-<blockquote>
-<p>在 Autolayout 优先级的范围是 1 ~ 1000，创建一个约束，默认的优先级是最高的 1000。</p>
-<p>Content Hugging Priority:<br>该优先级表示一个控件抗被拉伸的优先级。优先级越高，越不容易被拉伸(即越容易保持原状)，默认是251。</p>
-<p>Content Compression Resistance Priority:<br>该优先级表示一个控件抗压缩的优先级。优先级越高，越不容易被压缩(即越容易保持原状)，默认是750。</p>
-</blockquote>
-<p>使用场景：</p>
-<p>当一个视图上有多个 <code>intrinsic content size</code> 的子控件，并且子控件可能会超出父视图的区域时，此属性可控制哪些视图被内容被优先压缩，使其不超出父视图区域。</p>
-<p>场景举例：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>当yellowLable的宽度最多为screenWidth-200。</p>
-<p>则我们想让lable对左右两边的约束性没那么高，可以设置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100).priority(250);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100).priority(250);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>给出一个比较常见的需求：</p>
-<p>在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</p>
-<p><img src="/iOS/3必备知识架构/3视图/3视图-②布局/intrinsic content size.png" alt="intrinsic content size"></p>
-<p>目标：我们想让绿色的时间显示全，则应该要压缩前面的titleLabel。也就是要降低titleLabel的抗压缩。</p>
-<p>即</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>UILayoutPriorityRequired：1000</p>
-<p>UILayoutPriorityDefaultHigh：750</p>
-<p>UILayoutPriorityDefaultLow：250</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">//在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</span><br><span class="line">- (UIView *)contentViewWith:(BOOL)b &#123;</span><br><span class="line">    UIView *contentView = [[UIView alloc] init];</span><br><span class="line">    contentView.backgroundColor = [UIColor lightGrayColor];</span><br><span class="line">    </span><br><span class="line">    UILabel *titleLabel = [[UILabel alloc] init];</span><br><span class="line">    titleLabel.backgroundColor = [UIColor redColor];</span><br><span class="line">    titleLabel.text = @&quot;Each of these constraints can have its own priority. By default, &quot;;</span><br><span class="line">    titleLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:titleLabel];</span><br><span class="line">    [titleLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(contentView.mas_top);</span><br><span class="line">        make.left.equalTo(contentView.mas_left).offset(16);</span><br><span class="line">    &#125;];</span><br><span class="line">        </span><br><span class="line">    UILabel *timeLabel = [[UILabel alloc] init];</span><br><span class="line">    timeLabel.backgroundColor = [UIColor greenColor];</span><br><span class="line">    timeLabel.text = @&quot;2017/03/12 18:20:22&quot;;</span><br><span class="line">    timeLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:timeLabel];</span><br><span class="line">    [timeLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(titleLabel.mas_top);</span><br><span class="line">        make.left.equalTo(titleLabel.mas_right).offset(8);</span><br><span class="line">        make.right.lessThanOrEqualTo(contentView.mas_right).offset(-8);</span><br><span class="line">    &#125;];</span><br><span class="line">    </span><br><span class="line">    if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    return contentView;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="二、iOS使用topLayoutGuide和bottomLayoutGuide"><a href="#二、iOS使用topLayoutGuide和bottomLayoutGuide" class="headerlink" title="二、iOS使用topLayoutGuide和bottomLayoutGuide"></a>二、iOS使用topLayoutGuide和bottomLayoutGuide</h2><p>参考文章：<a href="https://www.jianshu.com/p/0086d11d45b7" target="_blank" rel="noopener">iOS使用topLayoutGuide和bottomLayoutGuide</a></p>
-<p>在iOS中，可以使用topLayoutGuide和bottomLayoutGuide来适配屏幕内容，它们是属于UIViewController的属性，配合masonry和SnapKit等约束工具，效果更好。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIView *bottomPayView = [[UIView alloc] init];</span><br><span class="line">bottomPayView.backgroundColor = [UIColor grayColor];</span><br><span class="line">[self.view addSubview:bottomPayView];</span><br><span class="line">[bottomPayView mas_makeConstraints:^(MASConstraintMaker *x) &#123;</span><br><span class="line">        x.height.equalTo(@45);</span><br><span class="line">        x.left.right.equalTo(self.view);</span><br><span class="line">        x.bottom.equalTo(self.mas_bottomLayoutGuide);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"><a href="#三、UITableView自动计算cell高度并缓存，再也不用管高度啦" class="headerlink" title="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"></a>三、UITableView自动计算cell高度并缓存，再也不用管高度啦</h2><p><a href="https://www.jianshu.com/p/64f0e1557562" target="_blank" rel="noopener">UITableView自动计算cell高度并缓存，再也不用管高度啦</a></p>
-<p>用xib加约束和用masonry加代码约束都是可以的。注意约束一定要自上而下加好，让系统知道怎么去计算高度。</p>
-<p>加好约束后，然后告诉tableView自己去适应高度就可以了。有两种写法：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.tableView.rowHeight = <span class="built_in">UITableViewAutomaticDimension</span>;</span><br><span class="line"><span class="keyword">self</span>.tableView.estimatedRowHeight = <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
-<p>或者直接写这个代理方法就可以了</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个的意思就是告诉tableView，你需要自己适应高度，我不给你算啦哈哈哈。但是我们需要告诉它一个大概高度，例如上面的100，理论上这个是可以随便写的，并不影响显示结果，但是越接近真实高度越好。</p>
-<h3 id="可能遇到的问题和解决办法"><a href="#可能遇到的问题和解决办法" class="headerlink" title="可能遇到的问题和解决办法"></a>可能遇到的问题和解决办法</h3><p><strong>1.高度不对</strong><br>有时候有可能运行出来后看到cell的高度显示的不对。这个问题是因为约束没有满足自上而下，从而系统不知道怎么去计算。解决办法就是去修改约束，直到满足为止。一定要好好理解约束啊！</p>
-<p><strong>2.点击状态栏无法滚动到顶部</strong><br>我们知道，如果界面中有UIScrollView的话，点击状态栏会让其滚动到顶部，就像这样：</p>
-<p>但是如果我们用了自动计算高度的方法，又调用了tableView的reloadData方法（例如我们的数据有分页的时候，加载完下一页的数据后会去刷新tableView）。这时候就会出现问题，点击状态栏就有几率不能精确滚动到顶部了：</p>
-<p>解决这个问题的办法是去缓存cell的高度，代码如下：</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSMutableDictionary</span> *heightAtIndexPath;<span class="comment">//缓存高度所用字典</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#pragma mark - UITableViewDelegate</span></span><br><span class="line">-(<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = [<span class="keyword">self</span>.heightAtIndexPath objectForKey:indexPath];</span><br><span class="line">    <span class="keyword">if</span>(height)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> height.floatValue;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)tableView:(<span class="built_in">UITableView</span> *)tableView willDisplayCell:(<span class="built_in">UITableViewCell</span> *)cell forRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = @(cell.frame.size.height);</span><br><span class="line">    [<span class="keyword">self</span>.heightAtIndexPath setObject:height forKey:indexPath];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="四、问题"><a href="#四、问题" class="headerlink" title="四、问题"></a>四、问题</h2><h4 id="问题1：使用Masonry的时候进行updateConstraints没有效果"><a href="#问题1：使用Masonry的时候进行updateConstraints没有效果" class="headerlink" title="问题1：使用Masonry的时候进行updateConstraints没有效果"></a>问题1：使用Masonry的时候进行updateConstraints没有效果</h4><p>原因：使用updateConstraints更新的时候必须是makeConstraints里面设置过的约束。但如果只是这样还不行，还需要约束对象匹配才能成功。</p>
-<p>问题详见：<a href="https://blog.csdn.net/wq5201314o/article/details/52184622" target="_blank" rel="noopener">使用Masonry的时候进行updateConstraints没有效果</a></p>
-<h1 id="iOS11适配-Safe-Area"><a href="#iOS11适配-Safe-Area" class="headerlink" title="iOS11适配-Safe Area"></a>iOS11适配-Safe Area</h1><p><a href="https://blog.csdn.net/gaoqinghuadage/article/details/79961750" target="_blank" rel="noopener">iOS11适配-Safe Area</a></p>
-<blockquote>
-<p>在iOS 11，UIViewController中的UIView的topLayoutGuide和bottomLayoutGuide被替换成了新的安全区属性。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaInsets: UIEdgeInsets &#123; get &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaLayoutGuide: UILayoutGuide &#123; get &#125;12345</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>safeAreaInsets属性意味着屏幕可以被任何方向遮挡，并不只是上下，当iPhone X出现时，我们就明白了为什么我们需要对左右两边也进行缩进。</p>
-</blockquote>
-<p>Masonry动画</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cm2nkn6ds0180bur4dgc9wgew" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质/" data-id="cm2nl44el017qzqr4zrxks5ry" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1277,7 +1177,107 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cm2nkn6ey0186bur4svs8r9i3" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-①本质RunLoop/" data-id="cm2nl44fp017vzqr4bfiqvo4a" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/3必备知识架构/3视图/3视图-②布局" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/3必备知识架构/3视图/3视图-②布局/" class="article-date">
+  <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">2019-04-28</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/3必备知识架构/3视图/3视图-②布局/">视图-②布局</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="视图-②布局"><a href="#视图-②布局" class="headerlink" title="视图-②布局"></a>视图-②布局</h1><p>[toc]</p>
+<h2 id="一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority"><a href="#一、Intrinsic-Content-Size-Content-Hugging-Priority和Content-Compression-Resistance-Priority" class="headerlink" title="一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority"></a>一、Intrinsic Content Size,Content Hugging Priority和Content Compression Resistance Priority</h2><p>看一下下面的例子，看给出的例子约束是否完整？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UILabel *label = [[UILabel alloc] init];</span><br><span class="line"> label.font = [UIFont systemFontOfSize:15];</span><br><span class="line"> label.text = @&quot;Hello&quot;;</span><br><span class="line"> [self.view addSubview:label];</span><br><span class="line"> [label mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">     make.left.equalTo(self.view.mas_left).offset(16);</span><br><span class="line">     make.top.equalTo(self.view.mas_top).offset(16);</span><br><span class="line"> &#125;];</span><br></pre></td></tr></table></figure>
+<p>这里只定义了两个约束，left 和 top，只够计算出frame的originX和orginY，没有width和height。那么是不是属于不完整的约束呢？其实在这里给出的约束已经是完整的了。因为对于UILabel这个控件而言 ，只要通过其font和text系统就可以计算出Label该有的长度和宽度。这里的长度和宽度就是UILabel的intrinsic content size（固有属性）。</p>
+<p>Intrinsic Content Size, 通俗来讲，就是控件(UIButton,UILabel,UIImageView)能根据它们的内容(content)计算自己的大小(Size）</p>
+<p>开发中用到的一些控件或视图，本身就自带大小，比如UIButton控件，设置完title后就能知道这个UIButton是文字的大小再加上两个固定的button margin。<br> 像这种控件或视图本身就带有的高度、宽度，就叫做intrinsic content size（固定内容尺寸）。</p>
+<h3 id="2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩"><a href="#2、浅谈-iOS-AutoLayout-中-Label-的抗拉伸和抗压缩" class="headerlink" title="2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩"></a>2、浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</h3><ul>
+<li><a href="https://www.jianshu.com/p/8e68b82b471a" target="_blank" rel="noopener">浅谈 iOS AutoLayout 中 Label 的抗拉伸和抗压缩</a></li>
+</ul>
+<blockquote>
+<p>在 Autolayout 优先级的范围是 1 ~ 1000，创建一个约束，默认的优先级是最高的 1000。</p>
+<p>Content Hugging Priority:<br>该优先级表示一个控件抗被拉伸的优先级。优先级越高，越不容易被拉伸(即越容易保持原状)，默认是251。</p>
+<p>Content Compression Resistance Priority:<br>该优先级表示一个控件抗压缩的优先级。优先级越高，越不容易被压缩(即越容易保持原状)，默认是750。</p>
+</blockquote>
+<p>使用场景：</p>
+<p>当一个视图上有多个 <code>intrinsic content size</code> 的子控件，并且子控件可能会超出父视图的区域时，此属性可控制哪些视图被内容被优先压缩，使其不超出父视图区域。</p>
+<p>场景举例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>当yellowLable的宽度最多为screenWidth-200。</p>
+<p>则我们想让lable对左右两边的约束性没那么高，可以设置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[yellowLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">  make.center.equalTo(self.view);</span><br><span class="line">  make.left.equalTo(self.view).offset(100).priority(250);</span><br><span class="line">  make.right.equalTo(self.view).offset(-100).priority(250);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<p>给出一个比较常见的需求：</p>
+<p>在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</p>
+<p><img src="/iOS/3必备知识架构/3视图/3视图-②布局/intrinsic content size.png" alt="intrinsic content size"></p>
+<p>目标：我们想让绿色的时间显示全，则应该要压缩前面的titleLabel。也就是要降低titleLabel的抗压缩。</p>
+<p>即</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>UILayoutPriorityRequired：1000</p>
+<p>UILayoutPriorityDefaultHigh：750</p>
+<p>UILayoutPriorityDefaultLow：250</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">//在同一行中显示标题和时间，时间必须显示完全，标题如果太长就截取可显示的部分，剩余的用…表示。</span><br><span class="line">- (UIView *)contentViewWith:(BOOL)b &#123;</span><br><span class="line">    UIView *contentView = [[UIView alloc] init];</span><br><span class="line">    contentView.backgroundColor = [UIColor lightGrayColor];</span><br><span class="line">    </span><br><span class="line">    UILabel *titleLabel = [[UILabel alloc] init];</span><br><span class="line">    titleLabel.backgroundColor = [UIColor redColor];</span><br><span class="line">    titleLabel.text = @&quot;Each of these constraints can have its own priority. By default, &quot;;</span><br><span class="line">    titleLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:titleLabel];</span><br><span class="line">    [titleLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(contentView.mas_top);</span><br><span class="line">        make.left.equalTo(contentView.mas_left).offset(16);</span><br><span class="line">    &#125;];</span><br><span class="line">        </span><br><span class="line">    UILabel *timeLabel = [[UILabel alloc] init];</span><br><span class="line">    timeLabel.backgroundColor = [UIColor greenColor];</span><br><span class="line">    timeLabel.text = @&quot;2017/03/12 18:20:22&quot;;</span><br><span class="line">    timeLabel.font = [UIFont systemFontOfSize:17];</span><br><span class="line">    [contentView addSubview:timeLabel];</span><br><span class="line">    [timeLabel mas_makeConstraints:^(MASConstraintMaker *make) &#123;</span><br><span class="line">        make.top.equalTo(titleLabel.mas_top);</span><br><span class="line">        make.left.equalTo(titleLabel.mas_right).offset(8);</span><br><span class="line">        make.right.lessThanOrEqualTo(contentView.mas_right).offset(-8);</span><br><span class="line">    &#125;];</span><br><span class="line">    </span><br><span class="line">    if (b) &#123;</span><br><span class="line">        [timeLabel setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">        // 或</span><br><span class="line">        //[titleLabel setContentHuggingPriority:UILayoutPriorityFittingSizeLevel forAxis:UILayoutConstraintAxisHorizontal];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    return contentView;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="二、iOS使用topLayoutGuide和bottomLayoutGuide"><a href="#二、iOS使用topLayoutGuide和bottomLayoutGuide" class="headerlink" title="二、iOS使用topLayoutGuide和bottomLayoutGuide"></a>二、iOS使用topLayoutGuide和bottomLayoutGuide</h2><p>参考文章：<a href="https://www.jianshu.com/p/0086d11d45b7" target="_blank" rel="noopener">iOS使用topLayoutGuide和bottomLayoutGuide</a></p>
+<p>在iOS中，可以使用topLayoutGuide和bottomLayoutGuide来适配屏幕内容，它们是属于UIViewController的属性，配合masonry和SnapKit等约束工具，效果更好。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIView *bottomPayView = [[UIView alloc] init];</span><br><span class="line">bottomPayView.backgroundColor = [UIColor grayColor];</span><br><span class="line">[self.view addSubview:bottomPayView];</span><br><span class="line">[bottomPayView mas_makeConstraints:^(MASConstraintMaker *x) &#123;</span><br><span class="line">        x.height.equalTo(@45);</span><br><span class="line">        x.left.right.equalTo(self.view);</span><br><span class="line">        x.bottom.equalTo(self.mas_bottomLayoutGuide);</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+<h2 id="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"><a href="#三、UITableView自动计算cell高度并缓存，再也不用管高度啦" class="headerlink" title="三、UITableView自动计算cell高度并缓存，再也不用管高度啦"></a>三、UITableView自动计算cell高度并缓存，再也不用管高度啦</h2><p><a href="https://www.jianshu.com/p/64f0e1557562" target="_blank" rel="noopener">UITableView自动计算cell高度并缓存，再也不用管高度啦</a></p>
+<p>用xib加约束和用masonry加代码约束都是可以的。注意约束一定要自上而下加好，让系统知道怎么去计算高度。</p>
+<p>加好约束后，然后告诉tableView自己去适应高度就可以了。有两种写法：</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.tableView.rowHeight = <span class="built_in">UITableViewAutomaticDimension</span>;</span><br><span class="line"><span class="keyword">self</span>.tableView.estimatedRowHeight = <span class="number">100</span>;</span><br></pre></td></tr></table></figure>
+<p>或者直接写这个代理方法就可以了</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个的意思就是告诉tableView，你需要自己适应高度，我不给你算啦哈哈哈。但是我们需要告诉它一个大概高度，例如上面的100，理论上这个是可以随便写的，并不影响显示结果，但是越接近真实高度越好。</p>
+<h3 id="可能遇到的问题和解决办法"><a href="#可能遇到的问题和解决办法" class="headerlink" title="可能遇到的问题和解决办法"></a>可能遇到的问题和解决办法</h3><p><strong>1.高度不对</strong><br>有时候有可能运行出来后看到cell的高度显示的不对。这个问题是因为约束没有满足自上而下，从而系统不知道怎么去计算。解决办法就是去修改约束，直到满足为止。一定要好好理解约束啊！</p>
+<p><strong>2.点击状态栏无法滚动到顶部</strong><br>我们知道，如果界面中有UIScrollView的话，点击状态栏会让其滚动到顶部，就像这样：</p>
+<p>但是如果我们用了自动计算高度的方法，又调用了tableView的reloadData方法（例如我们的数据有分页的时候，加载完下一页的数据后会去刷新tableView）。这时候就会出现问题，点击状态栏就有几率不能精确滚动到顶部了：</p>
+<p>解决这个问题的办法是去缓存cell的高度，代码如下：</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">strong</span>) <span class="built_in">NSMutableDictionary</span> *heightAtIndexPath;<span class="comment">//缓存高度所用字典</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#pragma mark - UITableViewDelegate</span></span><br><span class="line">-(<span class="built_in">CGFloat</span>)tableView:(<span class="built_in">UITableView</span> *)tableView estimatedHeightForRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = [<span class="keyword">self</span>.heightAtIndexPath objectForKey:indexPath];</span><br><span class="line">    <span class="keyword">if</span>(height)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> height.floatValue;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="keyword">void</span>)tableView:(<span class="built_in">UITableView</span> *)tableView willDisplayCell:(<span class="built_in">UITableViewCell</span> *)cell forRowAtIndexPath:(<span class="built_in">NSIndexPath</span> *)indexPath</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">NSNumber</span> *height = @(cell.frame.size.height);</span><br><span class="line">    [<span class="keyword">self</span>.heightAtIndexPath setObject:height forKey:indexPath];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、问题"><a href="#四、问题" class="headerlink" title="四、问题"></a>四、问题</h2><h4 id="问题1：使用Masonry的时候进行updateConstraints没有效果"><a href="#问题1：使用Masonry的时候进行updateConstraints没有效果" class="headerlink" title="问题1：使用Masonry的时候进行updateConstraints没有效果"></a>问题1：使用Masonry的时候进行updateConstraints没有效果</h4><p>原因：使用updateConstraints更新的时候必须是makeConstraints里面设置过的约束。但如果只是这样还不行，还需要约束对象匹配才能成功。</p>
+<p>问题详见：<a href="https://blog.csdn.net/wq5201314o/article/details/52184622" target="_blank" rel="noopener">使用Masonry的时候进行updateConstraints没有效果</a></p>
+<h1 id="iOS11适配-Safe-Area"><a href="#iOS11适配-Safe-Area" class="headerlink" title="iOS11适配-Safe Area"></a>iOS11适配-Safe Area</h1><p><a href="https://blog.csdn.net/gaoqinghuadage/article/details/79961750" target="_blank" rel="noopener">iOS11适配-Safe Area</a></p>
+<blockquote>
+<p>在iOS 11，UIViewController中的UIView的topLayoutGuide和bottomLayoutGuide被替换成了新的安全区属性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaInsets: UIEdgeInsets &#123; get &#125;</span><br><span class="line">&gt; </span><br><span class="line">&gt; @available(iOS 11.0, *)</span><br><span class="line">&gt; open var safeAreaLayoutGuide: UILayoutGuide &#123; get &#125;12345</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>safeAreaInsets属性意味着屏幕可以被任何方向遮挡，并不只是上下，当iPhone X出现时，我们就明白了为什么我们需要对左右两边也进行缩进。</p>
+</blockquote>
+<p>Masonry动画</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②布局/" data-id="cm2nl44g8017yzqr4kzhcy10w" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1356,7 +1356,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cm2nkn6fi0188bur4ogr82188" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-②生命周期/" data-id="cm2nl44gs0181zqr45ushrutp" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -1423,7 +1423,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cm2nkn6g3018bbur4m2bn11gl" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/3必备知识架构/3视图/3视图-③跳转/" data-id="cm2nl44hd0184zqr4b0bckoxh" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>

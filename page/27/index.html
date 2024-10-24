@@ -72,6 +72,91 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"><a href="#必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题"></a>必备知识架构-第三方库SDWebImage①缓存-①缓存不更新问题</h1><p>[Toc]</p>
+<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>后台图片内容换了，但是<code>url</code>还是老的，手机就用了缓存，没有从后台更新图片。</p>
+<p>主要问题表现在哪里呢？<br>很多app都有用户的概念，用户一般都会有头像，基本上都上传到服务器上，而服务器往往也支持在pc端更新头像（比如微博、QQ等）。<br>如果你的头像使用SDWebImage设置的，那么你会发现，pc端更新头像后，客户端可能（往往）不会自动更新！！！</p>
+<h2 id="二、解决"><a href="#二、解决" class="headerlink" title="二、解决"></a>二、解决</h2><p>问：使用<code>SDWebImage</code>如何加载url不变，但图片已经变化的图片。</p>
+<p>答：解决方法可以有如下几种：</p>
+<ol>
+<li><p>让服务器更新url，也就是说服务器端如果更新了头像，那么就生成新的url(推荐)</p>
+<blockquote>
+<p>后台给的<code>url</code>中增加字段，表示图片是否更新，比如增加一个<code>timestamp</code>字段.图片更新了，就更新下这个字段；<br>对客户端来说，只要这个<code>timestamp</code>字段变了，整个<code>url</code>就不一样了，就会从网络取图片。比如<code>http://xxx/xx? timestamp=xxx</code><br>也可以添加图片文件的<code>md5</code>来表示文件是否更新，比如<code>http://xxx/xx? md5=xxx</code>。并且<code>md5</code>比时间戳要好，这是强校验。时间戳在服务器回滚或者服务器重启的时候会有特殊的逻辑。不过大多数时候时间戳也够用了。<br>====这个方案客户端不用改，后台改动也不会太大。====强烈推荐</p>
+</blockquote>
+</li>
+<li><p>客户端只使用内存缓存，不使用磁盘缓存，那么下次启动时候就会重新下载，从而得到最新的了。(缺点：本次使用过程中没能看到最新图片。且即使之后下载到最新图片了，由于只使用内存缓存，不使用磁盘缓存。导致程序关闭又打开之后，缓存就没了，需要访问网络，重新加载图片)</p>
+<blockquote>
+<p><code>SDWebImageCacheMemoryOnly</code>这个参数对解决这个问题有帮助，只用内存缓存，不用磁盘缓存，<code>App</code>关了再开，肯定会重新下载，不会出现服务器和手机缓存图片不一致的情况。</p>
+</blockquote>
+</li>
+<li><p>客户端使用SDWebImageRefreshCached，同时让服务器端支持cache-control。</p>
+<blockquote>
+<p><code>SDWebImageRefreshCached</code>，这个参数就是为了解决url没变但是服务器图片改变的问题，很适合当前的场景。方案就是磁盘缓存不自己实现了，直接使用<code>NSURLCache</code>。记得<code>AFNetworking</code>的大神<code>Matt</code>就曾经嘲笑过<code>SDWebImage</code>的缓存是多此一举，还不如系统的<code>NSURLCache</code>好用。</p>
+<h4 id="SDWebImageRefreshCached参数设置之后，会怎么样？"><a href="#SDWebImageRefreshCached参数设置之后，会怎么样？" class="headerlink" title="SDWebImageRefreshCached参数设置之后，会怎么样？"></a><code>SDWebImageRefreshCached</code>参数设置之后，会怎么样？</h4><ul>
+<li><p>不使用<code>SDWebImage</code>提供的内存缓存和硬盘缓存</p>
+</li>
+<li><p>采用<code>NSURLCache</code>提供的缓存，默认情况下有效时间只有5秒</p>
+</li>
+<li><p>图片不一致的问题是解决了，不过效果跟不使用缓存差别不大。个人建议这个参数还是不要用为好，为了一个小特性，丢掉了<code>SDWebImage</code>最核心的特色。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt;   [imageview sd_setImageWithURL:[NSURL URLWithString:url]	</span><br><span class="line">&gt;    						 placeholderImage:nil</span><br><span class="line">&gt;    											options:SDWebImageRefreshCached];</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</blockquote>
+</li>
+<li><p>不使用SDWebImage，自己控制缓存，用系统API实现（NSURLCache）实现。（缺点还是和3一样，得服务端配合更改。）</p>
+<blockquote>
+<p>主要也是和使用<code>SDWebImageRefreshCached</code>时候一样，会涉及到<code>Cache-Control(设定缓存有效时间，默认是5s)</code>、<code>Last-Modified/If-Modified-Since(时间戳)</code>、<code>Etag/If-None-Match(标签，一般用MD5值)</code>。</p>
+</blockquote>
+</li>
+</ol>
+<p>附：其他options</p>
+<p><code>SDWebImageRetryFailed</code>表示就算下载失败也会再次尝试（不把下载失败的的<code>url</code>加入黑名单）</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/8cc494e77507" target="_blank" rel="noopener">SDWebImage如何加载url不变，但图片已经变化的图片</a></li>
+<li><a href="https://www.jianshu.com/p/145ffa299eff" target="_blank" rel="noopener">SDWebImage：缓存不更新问题</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-③缓存不更新问题/" data-id="cm2nl44rt019azqr49gbs0yth" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介" class="article article-type-post" itemscope="" itemprop="blogPost">
   <div class="article-meta">
     <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" class="article-date">
@@ -113,7 +198,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cm2nkn6kb018ubur4zi2kz1e1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-①简介/" data-id="cm2nl44sd019dzqr41fq46nk2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -218,7 +303,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cm2nkn6kx018xbur4u2l6qaeo" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage②请求-②避免重复请求问题/" data-id="cm2nl44sx019gzqr4v0j6fco0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -264,7 +349,86 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm2nkn6lh0190bur4tvwcob81" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage④其他/" data-id="cm2nl44ti019jzqr4a6y0w217" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache" class="article article-type-post" itemscope="" itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" class="article-date">
+  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/">第三方库SDWebImage①缓存-①NSCache</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="必备知识架构-第三方库SDWebImage①缓存-①NSCache"><a href="#必备知识架构-第三方库SDWebImage①缓存-①NSCache" class="headerlink" title="必备知识架构-第三方库SDWebImage①缓存-①NSCache"></a>必备知识架构-第三方库SDWebImage①缓存-①NSCache</h1><p>[toc]</p>
+<h2 id="一、NSCache的认识"><a href="#一、NSCache的认识" class="headerlink" title="一、NSCache的认识"></a>一、NSCache的认识</h2><h3 id="1、为什么内存缓存要基于-NSCache？"><a href="#1、为什么内存缓存要基于-NSCache？" class="headerlink" title="1、为什么内存缓存要基于 NSCache？"></a>1、为什么内存缓存要基于 NSCache？</h3><p>NSCache和NSMutableDictionary，它们是iOS中常用的两个缓存类，基本上相同，都是<strong>健-值形式的内存缓存方式</strong>。</p>
+<p>1、<code>NSCache</code>的使用很方便，提供了类似可变字典的使用方式，但它比可变字典更适用于实现缓存，最重要的原因为<strong><code>NSCache</code>是线程安全的，使用<code>NSMutableDictionary</code>自定义实现缓存时需要考虑加锁和释放锁</strong>，<code>NSCache</code>已经帮我们做好了这一步，即在开发者自己不编写加锁代码的前提下，多个线程便可以同时访问NSCache。</p>
+<p>2、其次，在内存不足时<code>NSCache</code>会自动释放存储的对象，不需要手动干预，如果是自定义实现需要监听内存状态然后做进一步的删除对象的操作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">@interface NSCache &lt;KeyType, ObjectType&gt; : NSObject &#123;</span><br><span class="line">@private</span><br><span class="line">    id _delegate;</span><br><span class="line">    void *_private[5];</span><br><span class="line">    void *_reserved;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@property (copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@property (nullable, assign) id&lt;NSCacheDelegate&gt; delegate;</span><br><span class="line"></span><br><span class="line">- (nullable ObjectType)objectForKey:(KeyType)key;</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key; // 0 cost</span><br><span class="line">- (void)setObject:(ObjectType)obj forKey:(KeyType)key cost:(NSUInteger)g;</span><br><span class="line">- (void)removeObjectForKey:(KeyType)key;</span><br><span class="line"></span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">// NSCache可以指定缓存的限额，当缓存超出限额自动释放内存</span><br><span class="line">// ①对象缓存可持有最大的数量 ，默认是0 没有限制），一旦超出限额，会自动删除之前添加的缓存数据</span><br><span class="line">@property NSUInteger countLimit;	// limits are imprecise/not strict</span><br><span class="line">// ②缓存中可持有的最大空间 默认是0（没有限制）</span><br><span class="line">@property NSUInteger totalCostLimit;	// limits are imprecise/not strict</span><br><span class="line"></span><br><span class="line">// 管理丢弃内容</span><br><span class="line">// 是否可以自动缓存清除可丢弃的内容，默认是YES</span><br><span class="line">@property BOOL evictsObjectsWithDiscardedContent;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>3、还有一点就是<strong><code>NSCache</code>的<code>key</code>不需要实现<code>NSCopying</code>协议</strong>，因为<code>NSCache</code>的键<code>key</code>不会被复制/拷贝。在键key不支持拷贝操作的情况下，该类用起来比字典更方便。</p>
+<h3 id="2、NSCache什么时候会删除缓存中的对象"><a href="#2、NSCache什么时候会删除缓存中的对象" class="headerlink" title="2、NSCache什么时候会删除缓存中的对象"></a>2、NSCache什么时候会删除缓存中的对象</h3><p><code>NSCache</code>删除缓存中的对象会在以下情形中发生:</p>
+<ul>
+<li>NSCache缓存对象自身被释放</li>
+<li>手动调用<code>removeObjectForKey:</code>或<code>removeAllObjects</code>方法</li>
+<li>缓存中对象的个数大于countLimit，或缓存中对象的总cost值大于totalCostLimit</li>
+<li>程序进入后台后</li>
+<li>收到系统的内存警告</li>
+</ul>
+<h2 id="二、SDMemoryCache的认识"><a href="#二、SDMemoryCache的认识" class="headerlink" title="二、SDMemoryCache的认识"></a>二、SDMemoryCache的认识</h2><p>以上已说明内存缓存要基于 NSCache，所以SDMemoryCache要继承于NSCache，源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// SDMemoryCache.h</span><br><span class="line">  </span><br><span class="line">/**</span><br><span class="line"> A memory cache which auto purge the cache on memory warning and support weak cache.</span><br><span class="line"> */</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt; // 请注意这里除继承 NSCache &lt;KeyType, ObjectType&gt; 外，还有一个 与 SDMemoryCache 类名同名的 &lt;SDMemoryCache&gt; 协议</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>可以看出类<code>@interface SDMemoryCache</code>还要遵守<code>&lt;SDMemoryCache&gt;</code>协议。虽然类<code>@interface SDMemoryCache</code>没提供什么方法，但与 SDMemoryCache 类名同名的<code>&lt;SDMemoryCache&gt;</code>协议提供了。</p>
+<p><code>&lt;SDMemoryCache&gt;</code>协议源码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A protocol to allow custom memory cache used in SDImageCache.</span><br><span class="line"> */</span><br><span class="line">@protocol SDMemoryCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line"></span><br><span class="line">- (nonnull instancetype)initWithConfig:(nonnull SDImageCacheConfig *)config;</span><br><span class="line"></span><br><span class="line">- (nullable id)objectForKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key;</span><br><span class="line"></span><br><span class="line">- (void)setObject:(nullable id)object forKey:(nonnull id)key cost:(NSUInteger)cost;</span><br><span class="line"></span><br><span class="line">- (void)removeObjectForKey:(nonnull id)key;</span><br><span class="line">- (void)removeAllObjects;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？"><a href="#1、为什么另外建了个与类名SDMemoryCache同名的-lt-SDMemoryCache-gt-协议，并把方法提到了-lt-SDMemoryCache-gt-协议中？" class="headerlink" title="1、为什么另外建了个与类名SDMemoryCache同名的&lt;SDMemoryCache&gt;协议，并把方法提到了&lt;SDMemoryCache&gt;协议中？"></a>1、为什么另外建了个与类名SDMemoryCache同名的<code>&lt;SDMemoryCache&gt;</code>协议，并把方法提到了<code>&lt;SDMemoryCache&gt;</code>协议中？</h3><p>答：为了当你想要要使用自定义的缓存类的时候，可以不用继承<code>@interface SDMemoryCache</code>，而只需遵循<code>&lt;SDMemoryCache&gt;</code>协议的方便。</p>
+<p>《<a href="../../../Architecture架构/架构相关/2设计模式/设计模式-①概览.md">设计模式-①概览.md</a>》</p>
+<blockquote>
+<p>// 开闭原则：对扩展开放，对修改封闭.<br>// 里氏替换原则:应用程序中任何父类对象出现的地方，我们都可以用其子类的对象来替换，并且可以保证原有程序的逻辑行为和正确性。因为这里父类是抽象类，所以肯定遵守里氏替换原则。</p>
+</blockquote>
+<h3 id="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"><a href="#2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？" class="headerlink" title="2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？"></a>2、内存缓存SDMemoryCache、磁盘缓存SDDiskCache的基类各是什么？</h3><p>答：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// 内存类</span><br><span class="line">@interface SDMemoryCache &lt;KeyType, ObjectType&gt; : NSCache &lt;KeyType, ObjectType&gt; &lt;SDMemoryCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 磁盘缓存类</span><br><span class="line">@interface SDDiskCache : NSObject &lt;SDDiskCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">- (void)moveCacheDirectoryFromPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h2 id="三、内存缓存的设计"><a href="#三、内存缓存的设计" class="headerlink" title="三、内存缓存的设计"></a>三、内存缓存的设计</h2><h3 id="1、SDImageCache"><a href="#1、SDImageCache" class="headerlink" title="1、SDImageCache"></a>1、SDImageCache</h3><p>含<code>id&lt;SDMemoryCache&gt; memoryCache;</code>和<code>id&lt;SDDiskCache&gt; diskCache;</code></p>
+<p>一个SDImageCache对象，由内存和磁盘共同控制缓存。控制的策略由<code>SDImageCacheConfig</code>类来定制。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">@interface SDImageCache : NSObject</span><br><span class="line"></span><br><span class="line">#pragma mark - Properties</span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) SDImageCacheConfig *config;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDMemoryCache&gt; memoryCache;</span><br><span class="line">@property (nonatomic, strong, readonly, nonnull) id&lt;SDDiskCache&gt; diskCache;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nonnull, readonly) NSString *diskCachePath;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) SDImageCacheAdditionalCachePathBlock additionalCachePathBlock;</span><br><span class="line"></span><br><span class="line">#pragma mark - Singleton and initialization</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Returns global shared cache instance</span><br><span class="line"> */</span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCache *sharedImageCache;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Init a new cache store with a specific namespace</span><br><span class="line"> *</span><br><span class="line"> * @param ns The namespace to use for this cache store</span><br><span class="line"> */</span><br><span class="line">- (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;</span><br></pre></td></tr></table></figure>
+<p>同时SDImageCache还有个类目</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCache.h</span><br><span class="line">@interface SDImageCache (SDImageCache) &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">// SDImageCacheDefine.h</span><br><span class="line">@protocol SDImageCache &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>内存和磁盘共同控制缓存策略定制类SDImageCacheConfig</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">// SDImageCacheConfig.h</span><br><span class="line">@interface SDImageCacheConfig : NSObject &lt;NSCopying&gt;</span><br><span class="line"></span><br><span class="line">// 是否使用内存做缓存，默认为YES</span><br><span class="line">@property (assign, nonatomic) BOOL shouldCacheImagesInMemory;</span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;</span><br><span class="line"></span><br><span class="line">// 缓存图片的最长时间，单位是秒，默认是缓存一周</span><br><span class="line">@property (assign, nonatomic) NSTimeInterval maxDiskAge;</span><br><span class="line">// 缓存占用最大的空间，单位是字节</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxDiskSize;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCost;</span><br><span class="line">@property (assign, nonatomic) NSUInteger maxMemoryCount;</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * The attribute which the clear cache will be checked against when clearing the disk cache</span><br><span class="line"> * Default is Modified Date</span><br><span class="line"> */</span><br><span class="line">@property (assign, nonatomic) SDImageCacheConfigExpireType diskCacheExpireType;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="2、SDImageCachesManager"><a href="#2、SDImageCachesManager" class="headerlink" title="2、SDImageCachesManager"></a>2、SDImageCachesManager</h3><p>管理NSArray&lt;id<sdimagecache>&gt; *caches;</sdimagecache></p>
+<p>一张图片就是一份SDImageCache元素对象。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> A caches manager to manage multiple caches.</span><br><span class="line"> */</span><br><span class="line">@interface SDImageCachesManager : NSObject &lt;SDImageCache&gt;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, class, readonly, nonnull) SDImageCachesManager *sharedManager;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy queryOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy storeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy removeOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy containsOperationPolicy;</span><br><span class="line">@property (nonatomic, assign) SDImageCachesManagerOperationPolicy clearOperationPolicy;</span><br><span class="line"></span><br><span class="line">@property (nonatomic, copy, nullable) NSArray&lt;id&lt;SDImageCache&gt;&gt; *caches; // 一张图片就是一份SDImageCache元素对象。</span><br><span class="line"></span><br><span class="line">- (void)addCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line">- (void)removeCache:(nonnull id&lt;SDImageCache&gt;)cache;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<p>### </p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-①NSCache/" data-id="cm2nl44u3019mzqr4bh2y1lfr" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -328,148 +492,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cm2nkn6m30193bur42iis24yg" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/数据库FMDB/数据库-①FMDB/">数据库-①FMDB</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1><p>[toc]</p>
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31" target="_blank" rel="noopener">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643" target="_blank" rel="noopener">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB数据安全1.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998" target="_blank" rel="noopener">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/数据库FMDB/数据库-①FMDB/" data-id="cm2nkn6mo0196bur4r9i3cygo" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking" class="article article-type-post" itemscope="" itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" class="article-date">
-  <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">2019-04-26</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/">第三方网络库AFNetworking</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="必备知识架构-第三方网络库AFNetworking"><a href="#必备知识架构-第三方网络库AFNetworking" class="headerlink" title="必备知识架构-第三方网络库AFNetworking"></a>必备知识架构-第三方网络库AFNetworking</h1><p>[toc]</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure" target="_blank" rel="noopener">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure" target="_blank" rel="noopener">Android知识库</a></p>
-<h1 id="AFNetworking源码解析与面试考点思考"><a href="#AFNetworking源码解析与面试考点思考" class="headerlink" title="AFNetworking源码解析与面试考点思考"></a>AFNetworking源码解析与面试考点思考</h1><p><a href="https://www.jianshu.com/p/4c169c127c70" target="_blank" rel="noopener">AFNetworking源码解析与面试考点思考</a></p>
-<h2 id="八、多线程–第三方库AFNetworking"><a href="#八、多线程–第三方库AFNetworking" class="headerlink" title="八、多线程–第三方库AFNetworking"></a>八、多线程–第三方库AFNetworking</h2><blockquote>
-<p><a href="#目录">&lt; 返回目录</a></p>
-</blockquote>
-<h4 id="1、AFNetworking源码解析"><a href="#1、AFNetworking源码解析" class="headerlink" title="1、AFNetworking源码解析"></a>1、AFNetworking源码解析</h4><ul>
-<li><a href="https://www.cnblogs.com/Jordandan/p/6223089.html" target="_blank" rel="noopener">AFNetworking 3.0 使用详解 和 源码解析实现原理</a></li>
-</ul>
-<h4 id="2、AFNetworking的线程和信号量问题"><a href="#2、AFNetworking的线程和信号量问题" class="headerlink" title="2、AFNetworking的线程和信号量问题"></a>2、AFNetworking的线程和信号量问题</h4><ul>
-<li><a href="http://www.cocoachina.com/bbs/read.php?tid=1695717" target="_blank" rel="noopener">AFNetworking的线程和信号量问题</a></li>
-</ul>
-<h3 id="AFNetworking3-0后为什么不再需要常驻线程？"><a href="#AFNetworking3-0后为什么不再需要常驻线程？" class="headerlink" title="AFNetworking3.0后为什么不再需要常驻线程？"></a>AFNetworking3.0后为什么不再需要常驻线程？</h3><p><a href="http://www.cocoachina.com/articles/25225" target="_blank" rel="noopener">AFNetworking3.0后为什么不再需要常驻线程？</a></p>
-<p><strong>B.一个请求一条线程</strong></p>
-<p>如果来一个请求开辟一条线程，设置runloop保活线程，等待结果回调。这种方式理论上是可行的，但是你也看到了，线程开销太大了。（PASS）</p>
-<p><strong>C.一条常驻线程</strong></p>
-<p>只开辟一条子线程，设置runloop使线程常驻。所有的请求在这个线程上发起、同时也<strong>在这个线程上处理回调</strong>。</p>
-<p>线程保活的代码</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="keyword">void</span>)aliveThread &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        [[<span class="built_in">NSThread</span> currentThread] setName:<span class="string">@"AFNetworking"</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">NSRunLoop</span> *runLoop = [<span class="built_in">NSRunLoop</span> currentRunLoop];</span><br><span class="line">        [runLoop addPort:[<span class="built_in">NSMachPort</span> port] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">        [runLoop run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们知道主线程一直是保活的；而新建的子线程默认是没有添加Runloop的，因此给这个线程添加了一个runloop，并且加了一个NSMachPort，来防止这个新建的线程由于没有活动直接退出。</p>
-<h4 id="AFNetworking一些API介绍"><a href="#AFNetworking一些API介绍" class="headerlink" title="AFNetworking一些API介绍"></a>AFNetworking一些API介绍</h4><p>必知点：AFNetworking框架默认请求类型<code>requestSerializer</code>和响应类型<code>responseSerializer</code>都是JSON格式的，即默认请求类型为<code>AFJSONRequestSerializer</code>，默认相应类型为<code>AFJSONResponseSerializer</code>。</p>
-<h6 id="1、关于请求类型及请求参数的书写"><a href="#1、关于请求类型及请求参数的书写" class="headerlink" title="1、关于请求类型及请求参数的书写"></a>1、关于请求类型及请求参数的书写</h6><p>所以在进行请求时候，我们必须根据自己请求的参数类型parameters，对AFNetworking的请求类型进行设置。主要设置为：</p>
-<ol>
-<li>如果请求参数是字典类型<code>NSDictionary</code>，则请求类型应设置<code>AFHTTPRequestSerializer</code>。</li>
-<li>如果请求参数是JSON类型，则请求类型应设置<code>AFJSONRequestSerializer</code>。</li>
-</ol>
-<p>因为设置的类型不同，AFNetworking会根据设置的类型执行该类型下面对应的<code>- (NSURLRequest *)requestBySerializingRequest:(NSURLRequest *)request withParameters:(id)parameters error:(NSError *__autoreleasing *)error</code>方法。</p>
-<p>其中</p>
-<p>AFHTTPRequestSerializer对参数会有如下第496行的处理<code>query = AFQueryStringFromParameters(parameters);</code>该处理为将字典类型转为一串请求的字符串格式。</p>
-<p>AFJSONRequestSerializer对参数的处理主要为第1260行的<br><code>[mutableRequest setHTTPBody:[NSJSONSerialization dataWithJSONObject:parameters options:self.writingOptions error:error]];</code></p>
-<h6 id="2、关于响应类型及响应response"><a href="#2、关于响应类型及响应response" class="headerlink" title="2、关于响应类型及响应response"></a>2、关于响应类型及响应response</h6><p>响应的时候，<code>AFURLSessionManager</code>其会调用<code>AFURLSessionManagerTaskDelegate</code>协议，执行该协议里第292的<code>responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&amp;serializationError];</code>可以看出这里会根据我们设置的不同响应类型，调用该响应类型下的</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- (id)responseObjectForResponse:(NSURLResponse *)response</span><br><span class="line">                           data:(NSData *)data</span><br><span class="line">                          error:(NSError *__autoreleasing *)error</span><br></pre></td></tr></table></figure>
-<p>所以，这里我们衍生出一个继承自AFJSONResponseSerializer的<strong>CJJSONResponseSerializer</strong>的新响应类型，重写该方法，用来处理服务端返回的JSON不是标准的json格式的问题，即主要处理AFNetworking 3840的错误。</p>
-<p></p><p id="END"></p><p></p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><blockquote>
-<p>&lt; <a href="#目录">返回目录</a></p>
-</blockquote>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/第三方库/网络库AFNetworking/第三方网络库AFNetworking/" data-id="cm2nkn6nt019cbur4ozg1m51b" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/第三方库/图片库SDWebImage/SDWebImage①缓存-②缓存原理/" data-id="cm2nl44uo019pzqr4omd87rz8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -515,7 +538,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm2nkn2fy0021bur4uboxxuel" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/优化/提示语优化/" data-id="cm2nl40np002czqr46e117w9y" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/">Architecture</a></li></ul>
@@ -700,7 +723,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm2nkn47000o7bur4qbq9b1ik" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/自动化/iOS进阶_打包/" data-id="cm2nl42f000olzqr40c3onzm3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -757,7 +780,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm2nkn47300ohbur4wkjwiplu" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS证书/" data-id="cm2nl42f100oozqr48p0d9206" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
@@ -841,7 +864,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm2nkn47600oqbur49zsfyqxs" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/进阶/iOS进阶_推送模拟/" data-id="cm2nl42f300ozzqr4ntn6s50f" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>

@@ -23,7 +23,7 @@
 <meta property="og:image" content="https://dvlproad.github.io/安全/网络加密/加密方式_非对称.png">
 <meta property="og:image" content="https://dvlproad.github.io/安全/网络加密/steganography_lbs.png">
 <meta property="og:image" content="https://dvlproad.github.io/安全/网络加密/md5在线解密.png">
-<meta property="og:updated_time" content="2024-09-25T17:54:34.509Z">
+<meta property="og:updated_time" content="2024-10-24T17:48:11.405Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="网络接口数据安全的【攻与防大全】">
 <meta name="twitter:description" content="[toc] 一、对数据加密的概述1、安全的数据传输是什么样的数据传输：都是使用密文（客户端提供加密的参数，服务端提供加密的结果）。 【客户端提供加密的参数】：需要在客户端加密后，上传到服务端，并在服务端对其进行解密，以确认传过来的参数。 【服务端提供加密的结果】：需要在服务端加密后，返回给客户端，并在客户端对其进行解密，以确认传过来的结果。  若要了解加密方式可查看下文【附1：加密的方式有哪些】">
@@ -237,34 +237,21 @@
 <h2 id="附2：如何在客户端安全的保存密钥AESKey"><a href="#附2：如何在客户端安全的保存密钥AESKey" class="headerlink" title="附2：如何在客户端安全的保存密钥AESKey"></a>附2：如何在客户端安全的保存密钥AESKey</h2><p>如果密钥是来源于客户端，那如何在客户端安全的保存密钥？</p>
 <h3 id="1、密钥在代码上-内部"><a href="#1、密钥在代码上-内部" class="headerlink" title="1、密钥在代码上(内部)"></a>1、密钥在代码上(内部)</h3><h4 id="1-1、存放密码的常见的代码"><a href="#1-1、存放密码的常见的代码" class="headerlink" title="1.1、存放密码的常见的代码"></a>1.1、存放密码的常见的代码</h4><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#define kSecret <span class="meta-string">"abcd1234"</span></span></span><br><span class="line"></span><br><span class="line"> <span class="comment">// 或者</span></span><br><span class="line"> <span class="keyword">const</span> <span class="keyword">char</span>* kSecret = <span class="string">"abcd1234"</span>;</span><br></pre></td></tr></table></figure>
 <p>这是非常危险的，因为常量会被直接编译到可执行文件的data段，只要对生成的可执行文件使用<code>strings</code>、<code>otool</code>等命令就可以dump出原始字符串。</p>
-<h4 id="1-2、对密码加加密"><a href="#1-2、对密码加加密" class="headerlink" title="1.2、对密码加加密"></a>1.2、对密码加加密</h4><p>仍然存</p>
+<h4 id="1-2、对密码加密"><a href="#1-2、对密码加密" class="headerlink" title="1.2、对密码加密"></a>1.2、对密码加密</h4><p>仍然存</p>
 <p>1、类的代码层面</p>
 <figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 方法1：密码在可执行文件的data段，且是明文</span></span><br><span class="line"><span class="meta">#define kSecret <span class="meta-string">"abcd1234"</span></span></span><br><span class="line"><span class="keyword">void</span> getSecret &#123;</span><br><span class="line">	<span class="keyword">return</span> kSecret</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法2：密码在可执行文件的data段，虽是明文，但取到的值要再经过一层你自己知道的方法解密</span></span><br><span class="line"><span class="meta">#define kSecret <span class="meta-string">"\x7e\x77\x64\x3c\xa7\xd4\x6d\x46\x29\x8b\xe3\x23\x9f\x1a\x5c\xdb"</span>;  // 使用aes加密后的</span></span><br><span class="line"><span class="meta">#define kAESKey	<span class="meta-string">"abcdefgh12345678"</span>;</span></span><br><span class="line"><span class="keyword">char</span>* getSecret() &#123;</span><br><span class="line">	<span class="keyword">return</span> decryptSecretByAESKey(kSecret, kAESKey);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 方法2的优化：内部代码使用额外包在宏(kAppSecret)上，由于宏没有明确的入口，使得静态分析相比直接调用函数形式的getSecret更加不容易被破解。</span></span><br><span class="line"><span class="meta">#define kAppSecret                                          \</span></span><br><span class="line">(&#123;                                                          \</span><br><span class="line">    <span class="keyword">char</span>* buf = decryptSecretByAESKey(kSecret, kAESKey);		\</span><br><span class="line">    [<span class="built_in">NSString</span> stringWithUTF8String:buf];					    			\</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-<p>附：<strong><a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/" target="_blank" rel="noopener">宏定义的两个技巧：</a></strong></p>
-<blockquote>
-<ul>
-<li>带返回值的宏</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&gt; #define SOME_MACRO \ </span><br><span class="line">&gt; (&#123;                 \</span><br><span class="line">&gt; 	expression;      \</span><br><span class="line">&gt; &#125;)</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
+<p>附：带返回值的宏的写法 见<strong><a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/" target="_blank" rel="noopener">宏定义的两个技巧：</a></strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#define SOME_MACRO \ </span><br><span class="line">(&#123;                 \</span><br><span class="line">	expression;      \</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
 <p>最后一个表达式的值就是宏的返回值，使用时更像函数的返回值。</p>
-<ul>
-<li>局部标签</li>
-</ul>
-<p>局部标签用<code>__label__</code>定义。如果标签<code>end</code>没有<code>__label__</code>修饰，在同一个函数中多次使用<code>kAppSecret</code>将产生编译错误，因为宏展开后相当于定义了多个<code>end</code>标签，标签重复定义。</p>
-</blockquote>
 <p>2、类本身（可包含类中的函数名）</p>
 <p>因为objc代码的动态性，编译器会在binary中留下类名、函数名等信息，这些信息是可以被<code>class-dump-z</code>等工具提取的，友好的命名让程序猿更方便，但同时也方便了破解者。对安全相关的重要模块类，可以故意混淆类名，让人不容易轻易联想到该的真实目的。</p>
 <p>PS、更多混淆知识可看我写的另一篇文章：<a href="https://www.jianshu.com/p/ccfe5623483d" target="_blank" rel="noopener">iOS APP安全加固方案(一、代码混淆CodeObfuscation)</a></p>
 <h3 id="2、密钥保存在外部"><a href="#2、密钥保存在外部" class="headerlink" title="2、密钥保存在外部"></a>2、密钥保存在外部</h3><h4 id="2-1、密钥保存在Keychain"><a href="#2-1、密钥保存在Keychain" class="headerlink" title="2.1、密钥保存在Keychain"></a>2.1、密钥保存在Keychain</h4><p>密钥保存在Keychain并不安全，iOS越狱后可以导出Keychain的内容。应该尽量避免存放重要信息(如：token、用户名、密码等)在Keychain中，即使要存放，也一定要加密后存放。参考：<a href="http://blog.csdn.net/yiyaaixuexi/article/details/18404343" target="_blank" rel="noopener">iOS安全攻防（九）：使用Keychain-Dumper导出keychain数据</a></p>
 <h4 id="2-2、密钥保存在文件"><a href="#2-2、密钥保存在文件" class="headerlink" title="2.2、密钥保存在文件"></a>2.2、密钥保存在文件</h4><p>保存在app bundle、plist等配置文件更不安全，但可以使用隐写术等方式迷惑hackers。</p>
-<blockquote>
-<p><strong>*Xcode打包时会对png图片做特殊处理，如果将密码携带在png中，可能会在使用的时候无法复原。</strong>当然现在的隐写术非常多，不只是图片能作为载体，视频、音乐等文件都可以，隐写的方法也多种多样，选择适合自己的就行，据说基地组织就是通过岛国电影传递信息的。*</p>
-</blockquote>
 <h5 id="2-2-1、隐写术"><a href="#2-2-1、隐写术" class="headerlink" title="2.2.1、隐写术"></a>2.2.1、隐写术</h5><ul>
 <li><a href="https://blog.csdn.net/wpgdream/article/details/126497352" target="_blank" rel="noopener">隐写术，图片中隐藏的秘密！</a></li>
 </ul>
+<p>隐写术的载体：相比视频、音乐等文件，通常选择使用图片这种占用空间小的文件，但<strong>因为Xcode打包时会对png图片做特殊处理，如果将密码携带在png中，可能会在使用的时候无法复原。所以若非确定的隐写方法，则建议用bmp图片。</strong></p>
 <p>本节点【如何防止客户端被破解/密钥的保护】部分内容摘自/参考：<a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/" target="_blank" rel="noopener">如何防止客户端被破解</a></p>
 <p><strong>LSB算法</strong>：LSB全称为 Least Significant Bit（最低有效位），是一种常被用做图片隐写的算法。为了避免我们对图片进行的处理可能会在压缩的过程中被破坏，建议在无压缩的bmp图片上实现。（png图片是无损压缩，jpg图片是有损压缩。）</p>
 <blockquote>
@@ -377,7 +364,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm2nkn2gu002tbur4wql1yuyz" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/安全/网络加密/" data-id="cm2nl40ow003zzqr4elk6c54v" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全/">安全</a></li></ul>
