@@ -72,11 +72,11 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-iOS/第三方库/图片库SDWebImage/SDWebImage④其他" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E5%9B%BE%E7%89%87%E5%BA%93SDWebImage/SDWebImage%E2%91%A3%E5%85%B6%E4%BB%96/">
+    <a href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/">
       <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-26</time>
     </a>
     <span class="article-updated"> · 更新于 2021-12-17</span>
@@ -95,7 +95,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E5%9B%BE%E7%89%87%E5%BA%93SDWebImage/SDWebImage%E2%91%A3%E5%85%B6%E4%BB%96/">第三方库SDWebImage①缓存-①缓存不更新问题</a>
+      <a class="article-title" href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/">数据库-①FMDB</a>
     </h1>
   
 
@@ -104,16 +104,37 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="必备知识架构-第三方库SDWebImage③其他"><a href="#必备知识架构-第三方库SDWebImage③其他" class="headerlink" title="必备知识架构-第三方库SDWebImage③其他"></a>必备知识架构-第三方库SDWebImage③其他</h1>
-<p><a href="https://blog.csdn.net/applelg/article/details/81293013">iOS - 主线程调度在应用中的小技巧</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - 宏定义</span><br><span class="line">#ifndef dispatch_queue_async_safe</span><br><span class="line">#define dispatch_queue_async_safe(queue, block)\</span><br><span class="line">if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(queue)) &#123;\</span><br><span class="line">block();\</span><br><span class="line">&#125; else &#123;\</span><br><span class="line">dispatch_async(queue, block);\</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifndef dispatch_main_async_safe</span><br><span class="line">#define dispatch_main_async_safe(block) dispatch_queue_async_safe(dispatch_get_main_queue(), block)</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+        <h1 id="必备知识架构-数据库-①FMDB"><a href="#必备知识架构-数据库-①FMDB" class="headerlink" title="必备知识架构-数据库-①FMDB"></a>必备知识架构-数据库-①FMDB</h1>
+<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
+<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
+<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31">FMDB 中的多线程处理</a></p>
+<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643">FMDatabaseQueue为何会线程安全的一点心得</a></p>
+<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
 
-<p><code>dispatch_queue_get_label</code>：返回创建队列时为队列指定的标签。</p>
+<p>queue inDatabase:的本质如下：</p>
+<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB%E6%95%B0%E6%8D%AE%E5%AE%89%E5%85%A81.jpg" alt="FMDB数据安全1"></p>
+<p>_queue的初始化为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
+
+<p>FMDB是怎么处理线程安全的？</p>
+<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
+<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
+<p>FMDB是支持数据库事务的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998">为什么要从FMDB迁移到WCDB？</a></p>
+<p>表结构</p>
+<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
 <h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E5%9B%BE%E7%89%87%E5%BA%93SDWebImage/SDWebImage%E2%91%A3%E5%85%B6%E4%BB%96/" data-id="cmpfiffnl017867r46r14a97c" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/" data-id="cmpfj3ubp0178c7r45wp66l4p" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -199,7 +220,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E7%BD%91%E7%BB%9C%E5%BA%93AFNetworking/%E7%AC%AC%E4%B8%89%E6%96%B9%E7%BD%91%E7%BB%9C%E5%BA%93AFNetworking/" data-id="cmpfiffnm017f67r4bnntgx13" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E7%BD%91%E7%BB%9C%E5%BA%93AFNetworking/%E7%AC%AC%E4%B8%89%E6%96%B9%E7%BD%91%E7%BB%9C%E5%BA%93AFNetworking/" data-id="cmpfj3ubp017fc7r4esd307mx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -427,7 +448,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/UI%E6%8F%90%E7%A4%BA%E8%A7%84%E8%8C%83/" data-id="cmpfifflt008q67r4gwh8deam" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/UI%E6%8F%90%E7%A4%BA%E8%A7%84%E8%8C%83/" data-id="cmpfj3ua40099c7r434na09h4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -506,7 +527,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%AF%81%E4%B9%A6/" data-id="cmpfiffmd00mv67r4gtpx96zx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%AF%81%E4%B9%A6/" data-id="cmpfj3uao00mcc7r46u4uhi3l" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -594,7 +615,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E6%8E%A8%E9%80%81%E6%A8%A1%E6%8B%9F/" data-id="cmpfiffmd00n567r4emmugu15" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E6%8E%A8%E9%80%81%E6%A8%A1%E6%8B%9F/" data-id="cmpfj3uao00moc7r40otp1soq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -670,7 +691,59 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%B8%8A%E6%98%BE%E7%A4%BA%E4%BA%8C%E7%BB%B4%E7%A0%81%E5%9B%BE%E7%89%87/" data-id="cmpfiffmg00p367r44uuq9jox" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%B8%8A%E6%98%BE%E7%A4%BA%E4%BA%8C%E7%BB%B4%E7%A0%81%E5%9B%BE%E7%89%87/" data-id="cmpfj3uaw00s1c7r49vvx33in" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-工具开发/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">
+      <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-24</time>
+    </a>
+    <span class="article-updated"> · 更新于 2020-09-28</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>►<a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">第4节、Jenkins使用问题常见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf">Jenkins自定义构建参数使用</a></p>
+<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
+<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/" data-id="cmpfj3uaw00s9c7r42ol09mln" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
@@ -812,59 +885,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98%E5%B8%B8%E8%A7%81/" data-id="cmpfiffmg00p767r4d2dl85ev" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-工具开发/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">
-      <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-24</time>
-    </a>
-    <span class="article-updated"> · 更新于 2020-09-28</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>►<a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">第4节、Jenkins使用问题常见</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf">Jenkins自定义构建参数使用</a></p>
-<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
-<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/" data-id="cmpfiffmg00pa67r48og32prp" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98%E5%B8%B8%E8%A7%81/" data-id="cmpfj3uax00sec7r4es0n2ltp" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
@@ -1063,7 +1084,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E6%89%93%E5%8C%85%E8%87%AA%E5%8A%A8%E5%8C%96/iOS%E8%BF%9B%E9%98%B6_%E6%89%93%E5%8C%85/" data-id="cmpfiffn000wp67r48vdy1300" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E6%89%93%E5%8C%85%E8%87%AA%E5%8A%A8%E5%8C%96/iOS%E8%BF%9B%E9%98%B6_%E6%89%93%E5%8C%85/" data-id="cmpfj3ub200vtc7r4bir86fs8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li></ul>
@@ -1303,7 +1324,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9AConfiguration/" data-id="cmpfiffmd00my67r42dufdngn" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9AConfiguration/" data-id="cmpfj3uao00mhc7r41s8j7dpm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>

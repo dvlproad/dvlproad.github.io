@@ -72,6 +72,105 @@
       <div class="outer">
         <section id="main">
   
+      <article id="post-Flutter/常见问题/Flutter iOS 点击状态栏回到顶部" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20iOS%20%E7%82%B9%E5%87%BB%E7%8A%B6%E6%80%81%E6%A0%8F%E5%9B%9E%E5%88%B0%E9%A1%B6%E9%83%A8/">
+      <time datetime="2022-04-23T15:07:00.000Z" itemprop="datePublished">发表于 2022-04-23</time>
+    </a>
+    <span class="article-updated"> · 更新于 2022-04-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20iOS%20%E7%82%B9%E5%87%BB%E7%8A%B6%E6%80%81%E6%A0%8F%E5%9B%9E%E5%88%B0%E9%A1%B6%E9%83%A8/">Flutter iOS 点击状态栏回到顶部</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="一、会回到顶部的原理"><a href="#一、会回到顶部的原理" class="headerlink" title="一、会回到顶部的原理"></a>一、会回到顶部的原理</h2><p>ios中一个常见的交互是：点击顶部栏时，自动将当前的滚动区滚到顶部。在flutter中，大部分时候这件事是“自然完成”的，但是也有时候会遇到这个行为失效的情况。要解决这个问题首先自然是要看这个feature是如何实现的。<br> 其实大部分都是Scaffold里面干的事：<br> Scaffold里有这样一段代码:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (themeData.platform) &#123;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.iOS:</span><br><span class="line">    _addIfNonNull(</span><br><span class="line">      children,</span><br><span class="line">      <span class="built_in">GestureDetector</span>(</span><br><span class="line">        behavior: HitTestBehavior.opaque,</span><br><span class="line">        onTap: _handleStatusBarTap,</span><br><span class="line">        <span class="comment">// iOS accessibility automatically adds scroll-to-top to the clock in the status bar</span></span><br><span class="line">        excludeFromSemantics: <span class="literal">true</span>,</span><br><span class="line">      ),</span><br><span class="line">      _ScaffoldSlot.statusBar,</span><br><span class="line">      removeLeftPadding: <span class="literal">false</span>,</span><br><span class="line">      removeTopPadding: <span class="literal">true</span>,</span><br><span class="line">      removeRightPadding: <span class="literal">false</span>,</span><br><span class="line">      removeBottomPadding: <span class="literal">true</span>,</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.android:</span><br><span class="line">  <span class="keyword">case</span> TargetPlatform.fuchsia:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里命名很舒服，可以直接看出来在干什么：如果是ios的话，那就给Scaffold加一个在状态栏上的点击区，点击的话就会触发一个函数，这个函数干的事情如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="type">ScrollController</span> <span class="variable">_primaryScrollController</span> <span class="operator">=</span> ScrollController();</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">_handleStatusBarTap</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (_primaryScrollController.hasClients) &#123;</span><br><span class="line">    _primaryScrollController.animateTo(</span><br><span class="line">      <span class="number">0.0</span>,</span><br><span class="line">      duration: const <span class="title function_">Duration</span><span class="params">(milliseconds: <span class="number">300</span>)</span>,</span><br><span class="line">      curve: Curves.linear, <span class="comment">// TODO(ianh): Use a more appropriate curve.</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>也就是，Scaffold会提供一个默认的ScrollController，而点击顶部栏会使得这个controller滚到顶部，在ScrollView的build函数中则会取这个controller:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line">Widget build(BuildContext context) &#123;</span><br><span class="line">  <span class="keyword">final</span> List&lt;Widget&gt; slivers = buildSlivers(context);</span><br><span class="line">  <span class="keyword">final</span> AxisDirection axisDirection = getDirection(context);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 注意，此处的primary不是传入的primary，</span></span><br><span class="line">  <span class="comment">// primary = primary ?? controller == null &amp;&amp; identical(scrollDirection, Axis.vertical)</span></span><br><span class="line">  <span class="keyword">final</span> ScrollController scrollController = primary</span><br><span class="line">    ? PrimaryScrollController.of(context)</span><br><span class="line">    : controller;</span><br><span class="line">  <span class="keyword">final</span> Scrollable scrollable = Scrollable(</span><br><span class="line">    dragStartBehavior: dragStartBehavior,</span><br><span class="line">    axisDirection: axisDirection,</span><br><span class="line">    controller: scrollController,</span><br><span class="line">    physics: physics,</span><br><span class="line">    semanticChildCount: semanticChildCount,</span><br><span class="line">    viewportBuilder: (BuildContext context, ViewportOffset offset) &#123;</span><br><span class="line">      <span class="keyword">return</span> buildViewport(context, offset, axisDirection, slivers);</span><br><span class="line">    &#125;,</span><br><span class="line">  );</span><br><span class="line">  <span class="keyword">return</span> primary &amp;&amp; scrollController != <span class="literal">null</span></span><br><span class="line">    ? PrimaryScrollController.none(child: scrollable)</span><br><span class="line">    : scrollable;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果指定controller的话，就不会使用PrimaryScrollview，如果不指定的话，则在primary为true时使用PrimaryController，而默认情况下controller为null，primary为true，因此一个裸体的ListView是会相应屏幕点击的。<br> 知道了原理，就很容易分析自己代码里出的问题是什么，常见的可能就是：<br> 1、没加Scaffold，这个其实并不常见（自相矛盾草），不过可以检查一下，一般总是会有Scaffold的<br> 2、真正常见的：指定了controller，如果自己创建了一个Controller丢给ScrollView，那必然是会失效的。但是使用controller又是一个很常见且重要的需求，怎么办呢？也很简单，就是不要自己创建新的ScrollController，而是直接取PrimaryScrollController.of(context)这个controller，对其进行自己要做的操作。<br> 3、相对不太常见且需要分析具体代码的：多个Scaffold导致的冲突。<br> 注意到其实flutter里的这个点击状态栏并不是真的点击了状态栏，而是点击了“Scaffold提供的位于状态栏的可点击区域”，也就是说，如果有多个Scaffold就会有多个这样的区域。实际情况是，只有最内部的Scaffold的状态栏会有响应，而如果ScrollView所处位置取到的和点击的Scaffold不一致，自然也就不会有滚动到顶部的feature</p>
+<h2 id="二、错误示例"><a href="#二、错误示例" class="headerlink" title="二、错误示例"></a>二、错误示例</h2><p>今天遇到ios点击状态栏无法回到顶部（原理在文章后）的问题。研究后发现，Scaffold组件虽然会自带这个功能。但使用时候，必须遵循指定规则才行。</p>
+<p>我们以点击 TapStatusNormalPage 上的状态栏返回顶部来举例。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// tap_status_normal_page.dart</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&#x27;package:flutter/material.dart&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TapStatusNormalPage</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> TapStatusNormalPage(&#123;Key key&#125;) : <span class="keyword">super</span>(key: key);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;TapStatusNormalPage&gt; createState() =&gt; _TapStatusNormalPageState();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_TapStatusNormalPageState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">TapStatusNormalPage</span>&gt; </span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold( <span class="comment">// 注意这个页面已经包了 Scaffold 了</span></span><br><span class="line">      appBar: AppBar(</span><br><span class="line">        title: <span class="keyword">const</span> Text(<span class="string">&#x27;状态栏点击-Normal5&#x27;</span>),</span><br><span class="line">      ),</span><br><span class="line">      body: ListView.builder(</span><br><span class="line">        itemCount: <span class="number">200</span>,</span><br><span class="line">        itemBuilder: (context, index) &#123;</span><br><span class="line">          <span class="keyword">return</span> Text(<span class="string">&#x27;<span class="subst">$index</span>&#x27;</span>);</span><br><span class="line">        &#125;,</span><br><span class="line">      ),</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"><a href="#错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。" class="headerlink" title="错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。"></a>错误一：如果Scaffold里面又套了一个Scaffold，那么这个回到顶部就会失效。</h3><p>失效示例1：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">&#x27;package:flutter/material.dart&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">HomePage</span> <span class="title">extends</span> <span class="title">StatelessWidget</span> &#123;</span><br><span class="line">  @override</span><br><span class="line">  <span class="function">Widget <span class="title">build</span>(<span class="params">BuildContext context</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Scaffold(</span><br><span class="line">      body: TapStatusNormalPage(), <span class="comment">// 失效原因：TapStatusNormalPage里已经有 Scaffold 了</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况，点击状态栏便不会回到顶部，我们需要保证的就是每个页面仅有一个Scaffold。</p>
+<h3 id="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"><a href="#错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部" class="headerlink" title="错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部"></a>错误二：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</h3><p>失效示例2：</p>
+<p>虽然home里只有一个 Scaffold ，但app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ScreenUtilInit(</span><br><span class="line">    designSize: <span class="keyword">const</span> Size(<span class="number">375</span>, <span class="number">812</span>),</span><br><span class="line">    builder: () =&gt; MaterialApp(</span><br><span class="line">      navigatorKey: navigatorKey,</span><br><span class="line">      title: <span class="string">&#x27;wish&#x27;</span>,</span><br><span class="line">      home: TapStatusNormalPage(),</span><br><span class="line">      builder: EasyLoading.init(builder: (context, widget) &#123;</span><br><span class="line">        <span class="keyword">return</span> MediaQuery(</span><br><span class="line">          <span class="comment">///<span class="language-markdown">设置文字大小不随系统设置改变</span></span></span><br><span class="line">          data: MediaQuery.of(context).copyWith(textScaleFactor: <span class="number">1.0</span>),</span><br><span class="line">          <span class="comment">// child: Scaffold( // 注意：app的builder的Widget生成，如果child再多余包Scaffold会导致点击状态栏无法回到顶部</span></span><br><span class="line">          <span class="comment">//   resizeToAvoidBottomInset: false,</span></span><br><span class="line">          <span class="comment">//   body: widget,</span></span><br><span class="line">          <span class="comment">// ),</span></span><br><span class="line">          child: widget, <span class="comment">// OK</span></span><br><span class="line">        );</span><br><span class="line">      &#125;),</span><br><span class="line">    ),</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="错误三：一说要滚动就自定义controller"><a href="#错误三：一说要滚动就自定义controller" class="headerlink" title="错误三：一说要滚动就自定义controller"></a>错误三：一说要滚动就自定义controller</h3><p>点击页面上的某个按钮，让页面上的列表滚动到顶部（不需要自定义controller）。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">PrimaryScrollController.of(context).jumpTo(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PrimaryScrollController.of(context).animateTo(</span><br><span class="line">            <span class="number">0</span>,</span><br><span class="line">            duration: <span class="keyword">const</span> <span class="built_in">Duration</span>(milliseconds: <span class="number">300</span>),</span><br><span class="line">            curve: Curves.linear,</span><br><span class="line">          );</span><br></pre></td></tr></table></figure>
+
+
+
+<p>如果还要监听滚动</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> didChangeDependencies() &#123;</span><br><span class="line">   <span class="keyword">super</span>.didChangeDependencies();</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">if</span> (!_hasEverInitListener) &#123;</span><br><span class="line">     PrimaryScrollController.of(context).addListener(_handleScrollViewEvent);</span><br><span class="line">     _hasEverInitListener = <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="meta">@override</span></span><br><span class="line"> <span class="keyword">void</span> deactivate() &#123;</span><br><span class="line">   <span class="keyword">super</span>.deactivate();</span><br><span class="line">   PrimaryScrollController.of(context).removeListener(_handleScrollViewEvent);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">_handleScrollViewEvent() &#123;</span><br><span class="line">   <span class="comment">// 滚动距离</span></span><br><span class="line">   <span class="built_in">double</span> offsetY = PrimaryScrollController.of(context).offset;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+<h3 id="错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views"><a href="#错误四：Another-exception-was-thrown-ScrollController-attached-to-multiple-scroll-views" class="headerlink" title="错误四：Another exception was thrown: ScrollController attached to multiple scroll views."></a>错误四：Another exception was thrown: ScrollController attached to multiple scroll views.</h3><p>问题：</p>
+<p>flutter_swiper：Another exception was thrown: ScrollController attached to multiple scroll views</p>
+<p>翻译一下：引发了另一个异常：ScrollController连接到多个滚动视图。</p>
+<p>原因：</p>
+<p>Flutter Swiper是一个轮播图组件，内部包含一个Widget List，当这个Widget List数量大于1，就可能会有这种情况</p>
+<p>解决方案：给Swiper加一个Key即可解决</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">return</span> <span class="selector-tag">Container</span>(</span><br><span class="line">     <span class="attribute">child</span>: <span class="built_in">AspectRatio</span>(</span><br><span class="line">       <span class="attribute">aspectRatio</span>: <span class="number">1.5</span> / <span class="number">1</span>, <span class="comment">// 宽高比450/300</span></span><br><span class="line">       <span class="attribute">child</span>: <span class="built_in">Swiper</span>(</span><br><span class="line">         <span class="attribute">key</span>: <span class="built_in">UniqueKey</span>(), <span class="comment">// 这个必须添加，代表唯一</span></span><br><span class="line">         <span class="attribute">itemBuilder</span>: (BuildContext context, int index) &#123;</span><br><span class="line">           return new Image.<span class="built_in">network</span>(</span><br><span class="line">             imgList[index][<span class="string">&#x27;url&#x27;</span>],</span><br><span class="line">             <span class="attribute">fit</span>: BoxFit.fill,</span><br><span class="line">           );</span><br><span class="line">         &#125;,</span><br><span class="line">         <span class="attribute">itemCount</span>: imgList.length,</span><br><span class="line">         <span class="attribute">pagination</span>: new <span class="built_in">SwiperPagination</span>(),</span><br><span class="line">         <span class="attribute">control</span>: new <span class="built_in">SwiperControl</span>(),</span><br><span class="line">         <span class="attribute">autoplay</span>: true,</span><br><span class="line">       ),</span><br><span class="line">     ),</span><br><span class="line">   );</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20iOS%20%E7%82%B9%E5%87%BB%E7%8A%B6%E6%80%81%E6%A0%8F%E5%9B%9E%E5%88%B0%E9%A1%B6%E9%83%A8/" data-id="cmpfj3uag00h2c7r47st2e6cw" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
       <article id="post-Flutter/常见问题/Flutter 拖曳排序" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -113,149 +212,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20%E6%8B%96%E6%9B%B3%E6%8E%92%E5%BA%8F/" data-id="cmpfiffm500h167r48694d6gz" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-Flutter/常见问题/Flutter 最常出现的错误" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20%E6%9C%80%E5%B8%B8%E5%87%BA%E7%8E%B0%E7%9A%84%E9%94%99%E8%AF%AF/">
-      <time datetime="2022-04-23T15:07:00.000Z" itemprop="datePublished">发表于 2022-04-23</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Flutter/">Flutter</a>►<a class="article-category-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20%E6%9C%80%E5%B8%B8%E5%87%BA%E7%8E%B0%E7%9A%84%E9%94%99%E8%AF%AF/">Flutter 最常出现的错误</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h2 id="典型错误一：无法掌握的Future"><a href="#典型错误一：无法掌握的Future" class="headerlink" title="典型错误一：无法掌握的Future"></a>典型错误一：无法掌握的Future</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;markNeedsBuild&#39; was called on null.</code></p>
-<p>这个错误常出现在异步任务（Future）处理，比如某个页面请求一个网络API数据，根据数据刷新 Widget State。</p>
-<p>异步任务结束在页面被pop之后，但没有检查State 是否还是 <code>mounted</code>，继续调用 <code>setState</code> 就会出现这个错误。</p>
-<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>一段很常见的获取网络数据的代码，调用 <code>requestApi()</code>，等待Future从中获取<code>response</code>，进而<code>setState</code>刷新 Widget：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State&lt;AWidget&gt; &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    setState(()&#123;</span><br><span class="line">      this.data = response.data;</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<h3 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>response</code> 的获取为<code>async-await</code>异步任务，完全有可能在<code>AWidgetState</code>被 <code>dispose</code>之后才等到返回，那时候和该<code>State</code> 绑定的 <code>Element</code> 已经不在了。故而在<code>setState</code>时需要容错。</p>
-<h3 id="解决办法：-setState之前检查是否-mounted"><a href="#解决办法：-setState之前检查是否-mounted" class="headerlink" title="解决办法： setState之前检查是否 mounted"></a>解决办法： <code>setState</code>之前检查是否 <code>mounted</code></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">class AWidgetState extends State &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  <span class="keyword">var</span> data;</span><br><span class="line">  void loadData() async &#123;</span><br><span class="line">    <span class="keyword">var</span> response = await requestApi(...);</span><br><span class="line">    <span class="keyword">if</span> (mounted) &#123;</span><br><span class="line">      setState(()&#123;</span><br><span class="line">        this.data = response.data;</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这个<code>mounted</code>检查很重要，其实只要涉及到异步还有各种回调(callback)，都不要忘了检查该值。</p>
-<p>比如，在 <code>FrameCallback</code>里执行一个动画(AnimationController)：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  WidgetsBinding.instance.addPostFrameCallback((_) &#123;</span><br><span class="line">    <span class="keyword">if</span> (mounted) _animationController.forward();</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>AnimationController</code>有可能随着 State 一起 <code>dispose</code>了，但是<code>FrameCallback</code>仍然会被执行，进而导致异常。</p>
-<p>又比如，在动画监听的回调里搞点事：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@override</span><br><span class="line">void initState()&#123;</span><br><span class="line">  _animationController.animation.addListener(_handleAnimationTick);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">void _handleAnimationTick() &#123;</span><br><span class="line">  <span class="keyword">if</span> (mounted) updateWidget(...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>同样的在<code>_handleAnimationTick</code>被回调前，State 也有可能已经被<code>dispose</code>了。</p>
-<p>如果你还不理解为什么，请仔细回味一下<code>Event loop</code> 还有复习一下 Dart 的线程模型。</p>
-<h2 id="典型错误二：Navigator-of-context-是个-null"><a href="#典型错误二：Navigator-of-context-是个-null" class="headerlink" title="典型错误二：Navigator.of(context) 是个 null"></a>典型错误二：Navigator.of(context) 是个 null</h2><p>典型错误信息：<code>NoSuchMethodError: The method &#39;pop&#39; was called on null.</code></p>
-<p>常在 <code>showDialog</code> 后处理 dialog 的 pop() 出现。</p>
-<h3 id="示例代码-1"><a href="#示例代码-1" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个方法里获取网络数据，为了更好的提示用户，会先弹一个 loading 窗，之后再根据数据执行别的操作…</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// show loading dialog on request data</span></span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> Center(</span><br><span class="line">      child: CircularIndicator(),</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"><span class="comment">// got it, pop dialog</span></span><br><span class="line">Navigator.of(context).pop();</span><br></pre></td></tr></table></figure>
-
-<h3 id="原因分析："><a href="#原因分析：" class="headerlink" title="原因分析："></a>原因分析：</h3><p>出错的原因在于—— Android 原生的返回键：虽然代码指定了<code>barrierDismissible: false</code>，用户不可以点半透明区域关闭弹窗，但当用户点击返回键时，Flutter 引擎代码会调用 <code>NavigationChannel.popRoute()</code>，最终这个 loading dialog 甚至包括页面也被关掉，进而导致<code>Navigator.of(context)</code>返回的是<code>null</code>，因为该<code>context</code>已经被<code>unmount</code>，从一个已经凋零的树叶上是找不到它的根的，于是错误出现。</p>
-<p>另外，代码里的<code>Navigator.of(context)</code> 所用的<code>context</code>也不是很正确，它其实是属于<code>showDialog</code>调用者的而非 dialog 所有，理论上应该用<code>builder</code>里传过来的<code>context</code>，沿着错误的树干虽然也能找到根，但实际上不是那么回事，特别是当你的APP里有<code>Navigator</code>嵌套时更应该注意。</p>
-<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>首先，确保 <code>Navigator.of(context)</code> 的 <code>context</code> 是 dialog 的<code>context</code>；其次，检查 <code>null</code>，以应对被手动关闭的情况。</p>
-<p><code>showDialog</code> 时传入 <code>GlobalKey</code>，通过 <code>GlobalKey</code>去获取正确的<code>context</code>。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">GlobalKey key = GlobalKey();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">showDialog&lt;void&gt;(</span><br><span class="line">  context: context,</span><br><span class="line">  barrierDismissible: <span class="literal">false</span>,</span><br><span class="line">  builder: (_) &#123;</span><br><span class="line">    <span class="keyword">return</span> KeyedSubtree(</span><br><span class="line">      key: key,</span><br><span class="line">      child: Center(</span><br><span class="line">        child: CircularIndicator(),</span><br><span class="line">      )</span><br><span class="line">    );</span><br><span class="line">  &#125;,</span><br><span class="line">);</span><br><span class="line"><span class="keyword">var</span> data = (await requestApi(...)).data;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> (key.currentContext != null) &#123;</span><br><span class="line">  Navigator.of(key.currentContext)?.pop();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>key.currentContext</code> 为<code>null</code>意为着该 dialog 已经被<code>dispose</code>，亦即已经从 WidgetTree 中<code>unmount</code>。</p>
-<p>其实，类似的<code>XXX.of(context)</code>方法在 Flutter 代码里很常见，比如 <code>MediaQuery.of(context)</code>、<code>Theme.of(context)</code>、<code>DefaultTextStyle.of(context)</code>，<code>DefaultAssetBundle.of(context)</code>等等，都要注意传入的<code>context</code>是来自正确节点的，否则会有惊喜在等你。</p>
-<p>写 Flutter 代码时，脑海里一定要对<code>context</code>的树干脉络有清晰的认知，如果你还不是很理解<code>context</code>，可以看看 《深入理解BuildContext》 - Vadaski。</p>
-<h2 id="典型错误三：ScrollController-里薛定谔的-position"><a href="#典型错误三：ScrollController-里薛定谔的-position" class="headerlink" title="典型错误三：ScrollController 里薛定谔的 position"></a>典型错误三：ScrollController 里薛定谔的 position</h2><p>在获取<code>ScrollController</code>的<code>position</code>、<code>offset</code>，或者调用<code>jumpTo()</code>等方法时，常出现<code>StateError</code>错误。</p>
-<p>错误信息：<code>StateError Bad state: Too many elements</code>，<code>StateError Bad state: No element</code></p>
-<h3 id="示例代码-2"><a href="#示例代码-2" class="headerlink" title="示例代码"></a>示例代码</h3><p>在某个按钮点击后，通过<code>ScrollController</code> 控制<code>ListView</code>滚动到开头：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="原因分析-1"><a href="#原因分析-1" class="headerlink" title="原因分析"></a>原因分析</h3><p>先看<code>ScrollController</code>的源码：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  @protected</span><br><span class="line">  Iterable&lt;ScrollPosition&gt; get positions =&gt; _positions;</span><br><span class="line">  final List&lt;ScrollPosition&gt; _positions = &lt;ScrollPosition&gt;[];</span><br><span class="line"> </span><br><span class="line">  double get offset =&gt; position.pixels;</span><br><span class="line"> </span><br><span class="line">  ScrollPosition get position &#123;</span><br><span class="line">    assert(_positions.isNotEmpty, <span class="string">&#x27;ScrollController not attached to any scroll views.&#x27;</span>);</span><br><span class="line">    assert(_positions.length == <span class="number">1</span>, <span class="string">&#x27;ScrollController attached to multiple scroll views.&#x27;</span>);</span><br><span class="line">    <span class="keyword">return</span> _positions.single;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<p>很明显，<code>ScrollController</code> 的 <code>offest</code> 是从 <code>position</code> 中获得，而<code>position</code> 则是来自变量 <code>_positions</code>。</p>
-<p><code>StateError</code>错误，就是<code>_positions.single</code> 这一行抛出：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">abstract class Iterable&lt;E&gt; &#123;</span><br><span class="line">  <span class="comment">//...</span></span><br><span class="line">  E get single &#123;</span><br><span class="line">    Iterator&lt;E&gt; it = iterator;</span><br><span class="line">    <span class="keyword">if</span> (!it.moveNext()) throw IterableElementError.noElement();</span><br><span class="line">    E result = it.current;</span><br><span class="line">    <span class="keyword">if</span> (it.moveNext()) throw IterableElementError.tooMany();</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">//...</span></span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<p>那么问题来了，这个<code>_positions</code> 为什么忽而一滴不剩，忽而却嫌它给的太多了呢？ˊ_&gt;ˋ</p>
-<p>还是要回到 <code>ScrollController</code> 的源码里找找。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">class ScrollController extends ChangeNotifier &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  void attach(ScrollPosition position) &#123;</span><br><span class="line">    assert(!_positions.contains(position));</span><br><span class="line">    _positions.add(position);</span><br><span class="line">    position.addListener(notifyListeners);</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  void detach(ScrollPosition position) &#123;</span><br><span class="line">    assert(_positions.contains(position));</span><br><span class="line">    position.removeListener(notifyListeners);</span><br><span class="line">    _positions.remove(position);</span><br><span class="line">  &#125;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<ol>
-<li><p>为什么没有数据(No element)： <code>ScrollController</code>还没有 <code>attach</code> 一个 <code>position</code>。原因有两个：一个可能是还没被 mount 到树上(没有被<code>Scrollable</code>使用到)；另外一个就是已经被 <code>detach</code>了。</p>
-</li>
-<li><p>为什么多了(Too many elements)： <code>ScrollController</code>还没来得及 <code>detach</code>旧的 <code>position</code>，就又<code>attach</code>了一个新的。原因多半是因为<code>ScrollController</code>的用法不对，同一时间被多个 <code>Scrollable</code>关注到了。</p>
-</li>
-</ol>
-<h3 id="解决办法-1"><a href="#解决办法-1" class="headerlink" title="解决办法"></a>解决办法</h3><p>针对 No element 错误，只需判断一下 <code>_positions</code>是不是空的就行了，即<code>hasClients</code>。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"><span class="comment">// 回到开头</span></span><br><span class="line">void _handleTap() &#123;</span><br><span class="line">  <span class="keyword">if</span>(_primaryScrollController.hasClients &amp;&amp; _primaryScrollController.offset &gt; <span class="number">0</span>) _primaryScrollController.jumpTo(<span class="number">0.0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>针对 Too many elements 错误，确保<code>ScrollController</code>只会被一个 <code>Scrollable</code>绑定，别让它劈腿了，且被正确 <code>dispose()</code>：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">class WidgetState extends State &#123;</span><br><span class="line">  final ScrollController _primaryScrollController = ScrollController();</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> ListView.builder(</span><br><span class="line">      controller: _primaryScrollController,</span><br><span class="line">      itemCount: _itemCount,</span><br><span class="line">      itemBuilder: _buildItem,</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  <span class="type">int</span> get _itemCount =&gt; ...;</span><br><span class="line">  Widget _buildItem(context, index) =&gt; ...;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  @override</span><br><span class="line">  void dispose() &#123;</span><br><span class="line">    super.dispose();</span><br><span class="line">    _primaryScrollController.dispose();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="典型错误四：四处碰壁-null"><a href="#典型错误四：四处碰壁-null" class="headerlink" title="典型错误四：四处碰壁 null"></a>典型错误四：四处碰壁 null</h2><p>Dart 这个语言可静可动，类型系统也独树一帜。万物都可以赋值<code>null</code>，就导致写惯了 Java 代码的同志们常常因为<code>bool</code> <code>int</code> <code>double</code>这种看起来是”primitive”的类型被<code>null</code>附体而头晕。</p>
-<p>典型错误信息：</p>
-<ul>
-<li><code>Failed assertion: boolean expression must not be null</code></li>
-<li><code>NoSuchMethodError: The method &#39;&gt;&#39; was called on null.</code></li>
-<li><code>NoSuchMethodError: The method &#39;+&#39; was called on null.</code></li>
-<li><code>NoSuchMethodError: The method &#39;*&#39; was called on null.</code></li>
-</ul>
-<h3 id="示例代码-3"><a href="#示例代码-3" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，较常发生在使用服务端返回的数据model时。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="type">int</span> id;</span><br><span class="line">  final <span class="type">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">&#x27;name&#x27;</span>],</span><br><span class="line">    this.id = json[<span class="string">&#x27;id&#x27;</span>],</span><br><span class="line">    this.hasNew = json[<span class="string">&#x27;has_new&#x27;</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">StyleItem item = StyleItem.fromJson(jsonDecode(...));</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Widget build(StyleItem item) &#123;</span><br><span class="line">  <span class="keyword">if</span> (item.hasNew &amp;&amp; item.id &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> Text(item.name);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> SizedBox.shrink();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="原因分析-2"><a href="#原因分析-2" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>StyleItem.fromJson()</code> 对数据没有容错处理，应当认为 map 里的value都有可能是 <code>null</code>。</p>
-<h3 id="解决办法：容错"><a href="#解决办法：容错" class="headerlink" title="解决办法：容错"></a>解决办法：容错</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class StyleItem &#123;</span><br><span class="line">  final String name;</span><br><span class="line">  final <span class="type">int</span> id;</span><br><span class="line">  final <span class="type">bool</span> hasNew;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  StyleItem.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.name = json[<span class="string">&#x27;name&#x27;</span>],</span><br><span class="line">    this.id = json[<span class="string">&#x27;id&#x27;</span>] ?? <span class="number">0</span>,</span><br><span class="line">    this.hasNew = json[<span class="string">&#x27;has_new&#x27;</span>] ?? <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>一定要习惯 Dart 的类型系统，什么都有可能是<code>null</code>，比如下面一段代码，你细品有几处可能报错：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Test &#123;</span><br><span class="line">  double fraction(Rect boundsA, Rect boundsB) &#123;</span><br><span class="line">    double areaA = boundsA.width * boundsA.height;</span><br><span class="line">    double areaB = boundsB.width * boundsB.height;</span><br><span class="line">    <span class="keyword">return</span> areaA / areaB;</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  void requestData(params, void onDone(data)) &#123;</span><br><span class="line">    _requestApi(params).then((response) =&gt; onDone(response.data));</span><br><span class="line">  &#125;</span><br><span class="line"> </span><br><span class="line">  Future&lt;dynamic&gt; _requestApi(params) =&gt; ...;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>小提示，<code>onDone()</code>也可以是<code>null</code> ＞﹏＜。</p>
-<p>在和原生用 <code>MethodChannel</code>传数据时更要特别注意，小心驶得万年船。</p>
-<h2 id="典型错误五：泛型里的-dynamic-一点也不-dynamic"><a href="#典型错误五：泛型里的-dynamic-一点也不-dynamic" class="headerlink" title="典型错误五：泛型里的 dynamic 一点也不 dynamic"></a>典型错误五：泛型里的 dynamic 一点也不 dynamic</h2><p>典型错误信息：</p>
-<ul>
-<li><code>type &#39;List&lt;dynamic&gt;&#39; is not a subtype of type &#39;List&lt;int&gt;&#39;</code></li>
-<li><code>type &#39;_InternalLinkedHashMap&lt;dynamic, dynamic&gt;&#39; is not a subtype of type &#39;Map&lt;String, String&gt;&#39;</code></li>
-</ul>
-<p>常发生在给某个List、Map 变量赋值时。</p>
-<h3 id="示例代码-4"><a href="#示例代码-4" class="headerlink" title="示例代码"></a>示例代码</h3><p>这种错误，也较常发生在使用服务端返回的数据model时。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="type">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = json[<span class="string">&#x27;ids&#x27;</span>],</span><br><span class="line">    this.ext= json[<span class="string">&#x27;ext&#x27;</span>];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">var</span> json = jsonDecode(<span class="string">&quot;&quot;</span><span class="string">&quot;&#123;&quot;</span>ids<span class="string">&quot;: [1,2,3], &quot;</span>ext<span class="string">&quot;: &#123;&quot;</span>key<span class="string">&quot;: &quot;</span>value<span class="string">&quot;&#125;&#125;&quot;</span><span class="string">&quot;&quot;</span>);</span><br><span class="line">Model m = Model.fromJson(json);</span><br></pre></td></tr></table></figure>
-
-<h3 id="原因分析-3"><a href="#原因分析-3" class="headerlink" title="原因分析"></a>原因分析</h3><p><code>jsonDecode()</code>这个方法转换出来的map的泛型是<code>Map&lt;String, dynamic&gt;</code>，意为 value 可能是任何类型(dynamic)，当 value 是容器类型时，它其实是<code>List&lt;dynamic&gt;</code>或者<code>Map&lt;dynamic, dynamic&gt;</code>等等。</p>
-<p>而 Dart 的类型系统中，虽然<code>dynamic</code>可以代表所有类型，在赋值时，如果数据类型事实上匹配（运行时类型相等）是可以被自动转换，但泛型里 <code>dynamic</code> 是不可以自动转换的。可以认为 <code>List&lt;dynamic&gt;</code> 和 <code>List&lt;int&gt;</code>是两种运行时类型。</p>
-<h3 id="解决办法：使用-List-from-Map-from"><a href="#解决办法：使用-List-from-Map-from" class="headerlink" title="解决办法：使用 List.from, Map.from"></a>解决办法：使用 List.from, Map.from</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class Model &#123;</span><br><span class="line">  final List&lt;<span class="type">int</span>&gt; ids;</span><br><span class="line">  final Map&lt;String, String&gt; ext;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  Model.fromJson(Map&lt;String, dynamic&gt; json):</span><br><span class="line">    this.ids = List.from(json[<span class="string">&#x27;ids&#x27;</span>] ?? <span class="keyword">const</span> []),</span><br><span class="line">    this.ext= Map.from(json[<span class="string">&#x27;ext&#x27;</span>] ?? <span class="keyword">const</span> &#123;&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20%E6%9C%80%E5%B8%B8%E5%87%BA%E7%8E%B0%E7%9A%84%E9%94%99%E8%AF%AF/" data-id="cmpfiffm500h467r4cs5c08hy" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/Flutter%20%E6%8B%96%E6%9B%B3%E6%8E%92%E5%BA%8F/" data-id="cmpfj3uag00h6c7r4ekh3fioe" class="article-share-link">Share</a>
       
       
     </footer>
@@ -362,7 +319,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98/" data-id="cmpfiffmf00o467r4evt11yf4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98/" data-id="cmpfj3uaq00o8c7r4hytr7g07" class="article-share-link">Share</a>
       
       
     </footer>
@@ -442,7 +399,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E6%96%B9%E5%BC%8F/" data-id="cmpfiffmf00o767r47rz77c70" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E6%96%B9%E5%BC%8F/" data-id="cmpfj3uaq00obc7r4gw267z7o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -552,7 +509,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/Threads/Flutter_Dart/Future/" data-id="cmpfiffn000wx67r4ay2k7f37" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/Threads/Flutter_Dart/Future/" data-id="cmpfj3ub400wpc7r44k9rhs1t" class="article-share-link">Share</a>
       
       
     </footer>
@@ -610,7 +567,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E8%AE%BE%E7%BD%AE/" data-id="cmpfifflp005167r44ma6gfly" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E8%AE%BE%E7%BD%AE/" data-id="cmpfj3u9y004fc7r451j4epfw" class="article-share-link">Share</a>
       
       
     </footer>
@@ -664,7 +621,183 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A2%E7%8E%AF/" data-id="cmpfifflo004l67r47t8ofmu5" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A2%E7%8E%AF/" data-id="cmpfj3u9z0057c7r4bqli5a6p" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-数据结构/9数据结构-②二叉树" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/">
+      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
+    </a>
+    <span class="article-updated"> · 更新于 2026-05-18</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/">9数据结构-②二叉树</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1>
+<blockquote>
+<p>Here are main question we will ask during interview:<br>1.Data Structure:<br>a.linked lists<br>b.Stacks<br>c.Queues<br>d.binary trees<br>e.hash tables<br>2.Algorithms:<br>a.Sort (like quick sort and merge sort), binary search, greedy algorithms.<br>b.Binary tree(like traversal, construction, manipulation..)<br>You can find more to do exercises on <a href="https://leetcode.com/">https://leetcode.com/</a></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">以下是我们在面试中要问的主要问题：</span><br><span class="line"></span><br><span class="line">1.数据结构：</span><br><span class="line">a、 链接列表</span><br><span class="line">b、 堆栈</span><br><span class="line">c、 队列</span><br><span class="line">d、 二叉树</span><br><span class="line">e、 哈希表</span><br><span class="line"></span><br><span class="line">2.算法：</span><br><span class="line">a、 排序（像快速排序和合并排序），二进制搜索，贪婪算法。</span><br><span class="line">b、 二叉树（比如遍历、构造、操作…）</span><br><span class="line"></span><br><span class="line">你可以找到更多的练习https://leetcode.com/</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
+<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="二叉树"></p>
+<p>在二叉树中，一个元素也称作一个结点。</p>
+<blockquote>
+<p>节点:二叉树中每个元素都称为节点。</p>
+</blockquote>
+<p>叶子结点：就是出度为0的结点，就是没有子结点的结点。</p>
+<h2 id="二、几种二叉树"><a href="#二、几种二叉树" class="headerlink" title="二、几种二叉树"></a>二、几种二叉树</h2><p><a href="https://www.cnblogs.com/-citywall123/p/11788764.html">满二叉树、完全二叉树、平衡二叉树、最优二叉树</a></p>
+<h3 id="1、完全二叉树"><a href="#1、完全二叉树" class="headerlink" title="1、完全二叉树"></a>1、完全二叉树</h3><p>若设二叉树的深度为k，除第 k 层外，其它各层 (1～k-1) 的结点数都达到最大个数，第k 层所有的结点都<strong>连续集中在最左边</strong>，这就是完全二叉树。</p>
+<h3 id="2、满二叉树"><a href="#2、满二叉树" class="headerlink" title="2、满二叉树"></a>2、满二叉树</h3><p>一个二叉树，如果每一个层的结点数都达到最大值，则这个二叉树就是满二叉树。</p>
+<p>也就是说，如果一个二叉树的层数为K，且结点总数是(2^k) -1 ，则它就是满二叉树。</p>
+<p>满二叉树的第i层上有2</p>
+<p><img src="https://bkimg.cdn.bcebos.com/formula/16caf8be3a55b3d5cffcc3cff4245aae.svg" alt="img"></p>
+<p> 个结点 (i≥1)。</p>
+<p>满二叉树肯定是完全二叉树，而完全二叉树不一定是满二叉树。</p>
+<h3 id="3、平衡二叉树"><a href="#3、平衡二叉树" class="headerlink" title="3、平衡二叉树"></a>3、平衡二叉树</h3><p><a href="https://baijiahao.baidu.com/s?id=1646617486319372351&wfr=spider&for=pc">一文读懂平衡二叉树｜技术头条</a></p>
+<p>二叉搜索树（Binary Search Tree），又叫二叉排序树，简单而言就是左子树上所有节点的值均小于根节点的值，而右子树上所有结点的值均大于根节点的值，左小右大，并不是乱序，因此得名二叉排序树。</p>
+<p> <img src="https://pics0.baidu.com/feed/9922720e0cf3d7ca3a57dd116fa0320c6a63a97d.png?token=5501bf9c3284d38423dfc047fa7bec94&s=79A834724182D945487C11DA030070B1" alt="二叉搜索树"></p>
+<p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
+<p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
+<p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
+<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91_%E9%93%BE%E8%A1%A8.png" alt="二叉搜索树_链表"></p>
+<p><img src="/Screenshots/%E5%B9%B3%E8%A1%A1%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="平衡二叉树"></p>
+<h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a></p>
+<p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
+<p><strong>概念1：什么是路径？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的所有结点，被我们称为两个结点之间的路径。</p>
+<p><strong>概念2：什么是路径长度？</strong></p>
+<p>在一棵树中，从一个结点到另一个结点所经过的“边”的数量，被我们称为两个结点之间的路径长度。</p>
+<p><strong>概念3：什么是结点的带权路径长度？</strong></p>
+<p>结点的带权路径长度，是指树的【根结点到该结点的路径长度】和【该结点权重】的【乘积】。</p>
+<p><strong>概念4：什么是树的带权路径长度？</strong></p>
+<p>在一棵树中，【所有】【叶子结点】的带权路径长度之和，被称为树的带权路径长度，也被简称为WPL。</p>
+<p>哈夫曼树（Huffman Tree）是在叶子结点和权重确定的情况下，带权路径长度最小的二叉树，也被称为最优二叉树。</p>
+<p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
+<p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
+<p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
+<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%91.png" alt="哈弗曼树"> </p>
+<p><code>1*3+3*3+4*2+6*2+8*2=48</code>														<code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
+<p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
+<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%912.png" alt="哈弗曼树2"></p>
+<p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
+<p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
+<h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/%E6%A0%91%E7%9A%84%E9%81%8D%E5%8E%86">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
+<p>参考文章：<a href="https://www.cnblogs.com/lanhaicode/p/10390147.html">二叉树的遍历（前序、中序、后序、已知前中序求后序、已知中后序求前序）</a></p>
+<p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
+<p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
+<p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
+<img src="Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;" />
+
+<ul>
+<li>前序遍历结果：GDAFEMHZ</li>
+<li>中序遍历结果：ADEFGHMZ</li>
+<li>后序遍历结果：AEFDHZMG</li>
+</ul>
+<h2 id="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"><a href="#进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）" class="headerlink" title="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"></a>进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）</h2><p><strong>1、前序遍历的第一元素是整个二叉树的根节点</strong></p>
+<p><strong>2、中序遍历中根节点的左边的元素是左子树，根节点右边的元素是右子树</strong></p>
+<p><strong>3、后序遍历的最后一个元素是整个二叉树的根节点</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/" data-id="cmpfj3u9z004tc7r4eg7p3cy5" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-数据结构/9数据结构-②链表" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/">
+      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
+    </a>
+    <span class="article-updated"> · 更新于 2026-05-18</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/">9数据结构-②链表</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1>
+<h2 id="一、单链表"><a href="#一、单链表" class="headerlink" title="一、单链表"></a>一、单链表</h2><ul>
+<li><a href="https://blog.csdn.net/qq_29542611/article/details/79054098">算法面试题：如何判断单链表中是否存在环</a></li>
+</ul>
+<p>我们都知道单链表中结点都是一个结点指向下一个结点这样一个一个链接起来的，直到尾结点的指针域没有指向，单链表就到此结束了。</p>
+<p>题目：已知下列是一个有环的单链表，请问<strong>如何判断单链表是否存在环</strong></p>
+<p><img src="https://img-blog.csdn.net/20180113231431726?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcXFfMjk1NDI2MTE=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="有环的单链表"></p>
+<p>分析：把环想象成操作。</p>
+<p>则我们通过使用快慢指针判断单链表是否存在环。<br>使用slow、fast 2个指针，slow慢指针每次向前走1步，fast快指针每次向前走2步，<br>若存在环的话，必定存在某个时候 slow &#x3D; fast 快慢指针相遇。<br>list 带头结点的单链表<br>返回值 &gt;0:存在环返回环的位置	0:不存在环</p>
+<p><strong>在相遇点，由于两个指针继续一个走一步，一个走两步，当再次相遇时，走一步的指针所走过的节点数记为环&#x2F;操场的长度。</strong></p>
+<p><em><strong>*那么问题来了，既然知道该单链表是代码单链表，那么我怎样将其还原为正常单链表呢？*</strong></em></p>
+<h2 id="带环单链表去掉环"><a href="#带环单链表去掉环" class="headerlink" title="带环单链表去掉环"></a>带环单链表去掉环</h2><p><strong>我们只需要将尾结点的next指针域置为NULL就还原为正常单链表了</strong>。我们怎样找到尾结点呢？请看代码。</p>
+<ol>
+<li><em>去掉单链表中的环，将尾结点的next域置位空。</em></li>
+<li><em>环位置结点之后的结点，判断其next域是否为环结点，如果是环节点，说明是尾结点</em></li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/" data-id="cmpfj3u9z004zc7r404kc18mr" class="article-share-link">Share</a>
       
       
     </footer>
@@ -834,169 +967,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/" data-id="cmpfiffln004567r48ppg0zrt" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-数据结构/9数据结构-②二叉树" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-18</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/">9数据结构-②二叉树</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1>
-<blockquote>
-<p>Here are main question we will ask during interview:<br>1.Data Structure:<br>a.linked lists<br>b.Stacks<br>c.Queues<br>d.binary trees<br>e.hash tables<br>2.Algorithms:<br>a.Sort (like quick sort and merge sort), binary search, greedy algorithms.<br>b.Binary tree(like traversal, construction, manipulation..)<br>You can find more to do exercises on <a href="https://leetcode.com/">https://leetcode.com/</a></p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">以下是我们在面试中要问的主要问题：</span><br><span class="line"></span><br><span class="line">1.数据结构：</span><br><span class="line">a、 链接列表</span><br><span class="line">b、 堆栈</span><br><span class="line">c、 队列</span><br><span class="line">d、 二叉树</span><br><span class="line">e、 哈希表</span><br><span class="line"></span><br><span class="line">2.算法：</span><br><span class="line">a、 排序（像快速排序和合并排序），二进制搜索，贪婪算法。</span><br><span class="line">b、 二叉树（比如遍历、构造、操作…）</span><br><span class="line"></span><br><span class="line">你可以找到更多的练习https://leetcode.com/</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
-<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="二叉树"></p>
-<p>在二叉树中，一个元素也称作一个结点。</p>
-<blockquote>
-<p>节点:二叉树中每个元素都称为节点。</p>
-</blockquote>
-<p>叶子结点：就是出度为0的结点，就是没有子结点的结点。</p>
-<h2 id="二、几种二叉树"><a href="#二、几种二叉树" class="headerlink" title="二、几种二叉树"></a>二、几种二叉树</h2><p><a href="https://www.cnblogs.com/-citywall123/p/11788764.html">满二叉树、完全二叉树、平衡二叉树、最优二叉树</a></p>
-<h3 id="1、完全二叉树"><a href="#1、完全二叉树" class="headerlink" title="1、完全二叉树"></a>1、完全二叉树</h3><p>若设二叉树的深度为k，除第 k 层外，其它各层 (1～k-1) 的结点数都达到最大个数，第k 层所有的结点都<strong>连续集中在最左边</strong>，这就是完全二叉树。</p>
-<h3 id="2、满二叉树"><a href="#2、满二叉树" class="headerlink" title="2、满二叉树"></a>2、满二叉树</h3><p>一个二叉树，如果每一个层的结点数都达到最大值，则这个二叉树就是满二叉树。</p>
-<p>也就是说，如果一个二叉树的层数为K，且结点总数是(2^k) -1 ，则它就是满二叉树。</p>
-<p>满二叉树的第i层上有2</p>
-<p><img src="https://bkimg.cdn.bcebos.com/formula/16caf8be3a55b3d5cffcc3cff4245aae.svg" alt="img"></p>
-<p> 个结点 (i≥1)。</p>
-<p>满二叉树肯定是完全二叉树，而完全二叉树不一定是满二叉树。</p>
-<h3 id="3、平衡二叉树"><a href="#3、平衡二叉树" class="headerlink" title="3、平衡二叉树"></a>3、平衡二叉树</h3><p><a href="https://baijiahao.baidu.com/s?id=1646617486319372351&wfr=spider&for=pc">一文读懂平衡二叉树｜技术头条</a></p>
-<p>二叉搜索树（Binary Search Tree），又叫二叉排序树，简单而言就是左子树上所有节点的值均小于根节点的值，而右子树上所有结点的值均大于根节点的值，左小右大，并不是乱序，因此得名二叉排序树。</p>
-<p> <img src="https://pics0.baidu.com/feed/9922720e0cf3d7ca3a57dd116fa0320c6a63a97d.png?token=5501bf9c3284d38423dfc047fa7bec94&s=79A834724182D945487C11DA030070B1" alt="二叉搜索树"></p>
-<p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
-<p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
-<p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
-<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91_%E9%93%BE%E8%A1%A8.png" alt="二叉搜索树_链表"></p>
-<p><img src="/Screenshots/%E5%B9%B3%E8%A1%A1%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="平衡二叉树"></p>
-<h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a></p>
-<p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
-<p><strong>概念1：什么是路径？</strong></p>
-<p>在一棵树中，从一个结点到另一个结点所经过的所有结点，被我们称为两个结点之间的路径。</p>
-<p><strong>概念2：什么是路径长度？</strong></p>
-<p>在一棵树中，从一个结点到另一个结点所经过的“边”的数量，被我们称为两个结点之间的路径长度。</p>
-<p><strong>概念3：什么是结点的带权路径长度？</strong></p>
-<p>结点的带权路径长度，是指树的【根结点到该结点的路径长度】和【该结点权重】的【乘积】。</p>
-<p><strong>概念4：什么是树的带权路径长度？</strong></p>
-<p>在一棵树中，【所有】【叶子结点】的带权路径长度之和，被称为树的带权路径长度，也被简称为WPL。</p>
-<p>哈夫曼树（Huffman Tree）是在叶子结点和权重确定的情况下，带权路径长度最小的二叉树，也被称为最优二叉树。</p>
-<p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
-<p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
-<p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
-<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%91.png" alt="哈弗曼树"> </p>
-<p><code>1*3+3*3+4*2+6*2+8*2=48</code>														<code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
-<p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
-<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%912.png" alt="哈弗曼树2"></p>
-<p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
-<p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
-<h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/%E6%A0%91%E7%9A%84%E9%81%8D%E5%8E%86">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
-<p>参考文章：<a href="https://www.cnblogs.com/lanhaicode/p/10390147.html">二叉树的遍历（前序、中序、后序、已知前中序求后序、已知中后序求前序）</a></p>
-<p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
-<p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
-<p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
-<img src="Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;" />
-
-<ul>
-<li>前序遍历结果：GDAFEMHZ</li>
-<li>中序遍历结果：ADEFGHMZ</li>
-<li>后序遍历结果：AEFDHZMG</li>
-</ul>
-<h2 id="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"><a href="#进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）" class="headerlink" title="进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）"></a>进入正题，已知两种遍历结果求另一种遍历结果（其实就是重构二叉树）</h2><p><strong>1、前序遍历的第一元素是整个二叉树的根节点</strong></p>
-<p><strong>2、中序遍历中根节点的左边的元素是左子树，根节点右边的元素是右子树</strong></p>
-<p><strong>3、后序遍历的最后一个元素是整个二叉树的根节点</strong></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/" data-id="cmpfifflo004967r47opzh0ra" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-数据结构/9数据结构-②堆栈" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-18</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">9数据结构-②堆栈</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1>
-<h2 id="一、Stack"><a href="#一、Stack" class="headerlink" title="一、Stack"></a>一、Stack</h2><p>stack翻译为栈，时STL中实现的一个后进先出的容器。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" data-id="cmpfifflo004f67r4hvw0bfls" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/" data-id="cmpfj3u9z0051c7r4flhrbfjr" class="article-share-link">Share</a>
       
       
     </footer>
