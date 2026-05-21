@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>业务中的算法 | dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="[toc] 问题背景电商商品选择常用以下场景：  衣服、手机的选择 奶茶的定制选择  UI 层处理要求  当用户选择某些属性后，怎么计算每个(自身+其他)属性的可选&#x2F;可替换的项 属性都选中后 → 自动锁定 SKU，显示库存、价格等    你觉得这两种场景是一样的吗？后台能用一个结构返回选项关系吗？如果一个电商平台既要支持衣服、手机等商品、也要支持奶茶等商品，请问应该怎么做？ 在解答这些问">
+<meta property="og:type" content="article">
+<meta property="og:title" content="业务中的算法">
+<meta property="og:url" content="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="[toc] 问题背景电商商品选择常用以下场景：  衣服、手机的选择 奶茶的定制选择  UI 层处理要求  当用户选择某些属性后，怎么计算每个(自身+其他)属性的可选&#x2F;可替换的项 属性都选中后 → 自动锁定 SKU，显示库存、价格等    你觉得这两种场景是一样的吗？后台能用一个结构返回选项关系吗？如果一个电商平台既要支持衣服、手机等商品、也要支持奶茶等商品，请问应该怎么做？ 在解答这些问">
+<meta property="og:locale">
+<meta property="og:image" content="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/product_iPhone1.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/product_coffee1.jpeg">
+<meta property="og:image" content="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/product_kuailefansu.png">
+<meta property="article:published_time" content="2025-07-11T09:05:41.000Z">
+<meta property="article:modified_time" content="2025-07-22T08:56:12.000Z">
+<meta property="article:author" content="dvlproad">
+<meta property="article:tag" content="算法与数学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/product_iPhone1.jpg">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-算法与数学/9业务中的算法" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/">
+      <time datetime="2025-07-11T09:05:41.000Z" itemprop="datePublished">发表于 2025-07-11</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-07-22</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/">算法与数学</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      业务中的算法
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>电商商品选择常用以下场景：</p>
+<ul>
+<li>衣服、手机的选择</li>
+<li>奶茶的定制选择</li>
+</ul>
+<p><strong>UI 层处理要求</strong></p>
+<ul>
+<li>当用户选择某些属性后，怎么计算每个(自身+其他)属性的可选&#x2F;可替换的项</li>
+<li>属性都选中后 → 自动锁定 SKU，显示库存、价格等</li>
+</ul>
+<p><img src="/算法与数学/9业务中的算法/product_iPhone1.jpg"  style="zoom:15%;" /> <img src="/算法与数学/9业务中的算法/product_coffee1.jpeg"  style="zoom:25%;" /><img src="/算法与数学/9业务中的算法/product_kuailefansu.png" style="zoom:15%;" /></p>
+<p>你觉得这两种场景是一样的吗？后台能用一个结构返回选项关系吗？如果一个电商平台既要支持衣服、手机等商品、也要支持奶茶等商品，请问应该怎么做？</p>
+<p>在解答这些问题前，我们需要先了解他们之前的场景需求。</p>
+<p>衣服、手机的场景：可能出现某种尺寸或者型号的商品没有库存或没有生产，从而不能选了。</p>
+<p>奶茶的场景：每个选项都可以选择</p>
+<h2 id="一、电商-App-的服装选择"><a href="#一、电商-App-的服装选择" class="headerlink" title="一、电商 App 的服装选择"></a>一、电商 App 的服装选择</h2><h3 id="1、需求描述"><a href="#1、需求描述" class="headerlink" title="1、需求描述"></a>1、需求描述</h3><p>在电商 App（如淘宝、京东、Uniqlo、ZARA）中，用户在商品详情页选择衣服时，常常需要选择：</p>
+<ul>
+<li><strong>颜色（color）</strong>：红色、蓝色、黑色</li>
+<li><strong>尺码（size）</strong>：S、M、L、XL</li>
+<li><strong>性别（gender）</strong>：男款、女款</li>
+<li><strong>款式（style）</strong>：连帽、无帽</li>
+<li><strong>厚度（thickness）</strong>：常规、加厚</li>
+</ul>
+<p>但并不是所有组合都可用，比如</p>
+<ul>
+<li>有些颜色根本没有男款，eg: 红色没有男款</li>
+<li>有些款式只支持 M&#x2F;L 没有 S，eg：男款没有S</li>
+<li>有些组合明明理论上能配，但没生产</li>
+</ul>
+<p>🌟 所以，你无法通过规则自动推导哪些选项合法，只能靠后台上架商品时的 <code>SKU 列表</code> 明确枚举出所有合法组合。</p>
+<h3 id="2、推荐的数据结构"><a href="#2、推荐的数据结构" class="headerlink" title="2、推荐的数据结构"></a>2、推荐的数据结构</h3><p><strong>枚举 SKU（库存单位）仍然是电商领域最主流、最稳定、最易维护的方式</strong>，即便维度变多（颜色、尺码、款式、性别、厚薄、材质等），只要是商品销售中的“最终可买组合”，都建议通过 SKU 列表来做过滤。</p>
+<p>原因：电商的核心业务单位就是 <strong>SKU</strong></p>
+<p>每个实际的商品组合（即将被购买的那个具体“衣服”）就是一个 SKU：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx商品&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;base_price&quot;</span><span class="punctuation">:</span> <span class="number">12.0</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sku_list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;skuId&quot;</span><span class="punctuation">:</span> <span class="string">&quot;sku_abc123&quot;</span><span class="punctuation">,</span>               <span class="comment">// SKU（库存单位）ID，唯一标识</span></span><br><span class="line">      <span class="attr">&quot;spuId&quot;</span><span class="punctuation">:</span> <span class="string">&quot;spu_abc&quot;</span><span class="punctuation">,</span>	<span class="comment">// 关联的 SPU ID，表示这个 SKU 是哪个 SPU（商品）的一部分。</span></span><br><span class="line">      <span class="attr">&quot;attributes&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span>                       <span class="comment">// 商品属性</span></span><br><span class="line">        <span class="attr">&quot;color&quot;</span><span class="punctuation">:</span> <span class="string">&quot;黑色&quot;</span><span class="punctuation">,</span>                    <span class="comment">// 颜色（红 / 黑 / 白）</span></span><br><span class="line">        <span class="attr">&quot;size&quot;</span><span class="punctuation">:</span> <span class="string">&quot;L&quot;</span><span class="punctuation">,</span>                       <span class="comment">// 尺码（S / M / L / XL）</span></span><br><span class="line">        <span class="attr">&quot;gender&quot;</span><span class="punctuation">:</span> <span class="string">&quot;女款&quot;</span><span class="punctuation">,</span>                   <span class="comment">// 性别（适合男款/女款）</span></span><br><span class="line">        <span class="attr">&quot;style&quot;</span><span class="punctuation">:</span> <span class="string">&quot;连帽&quot;</span><span class="punctuation">,</span>                    <span class="comment">// 款式（如：连帽、无帽）</span></span><br><span class="line">        <span class="attr">&quot;thickness&quot;</span><span class="punctuation">:</span> <span class="string">&quot;加厚&quot;</span>                 <span class="comment">// 厚度（如：常规、加厚）</span></span><br><span class="line">      <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;stock&quot;</span><span class="punctuation">:</span> <span class="number">5</span><span class="punctuation">,</span>                           <span class="comment">// 库存数量</span></span><br><span class="line">      <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">199</span>                        	<span class="comment">// 商品价格</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="comment">// 继续组合...</span></span><br><span class="line">  <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>所以上诉电商的问题本质：<strong>多属性组合的有效性筛选</strong></p>
+<p>这正是一个典型的 <strong>多维交叉过滤（multi-dimensional filtering）</strong> 或称 <strong>SKU（库存单位）选择问题</strong>。</p>
+<p><strong>如何管理 SPU 和 SKU 的关系</strong>：</p>
+<p>在电商领域，<strong>SPU（Standard Product Unit，标准产品单元）</strong> 和 <strong>SKU（Stock Keeping Unit，库存单位）</strong> 是两个非常重要的概念。它们的关系是 <strong>SKU 包含在 SPU 中</strong>，而 <strong>SPU</strong> 是用于描述一个商品的通用属性，<strong>SKU</strong> 则是根据具体的属性组合（如颜色、尺码等）生成的具体库存项。</p>
+<ol>
+<li><strong>SPU 表</strong>：主要存储商品的核心信息和基础属性。</li>
+<li><strong>SKU 表</strong>：存储每个商品的具体变体，包括颜色、尺码、价格、库存等详细信息。</li>
+</ol>
+<p>数据库关系图：</p>
+<ul>
+<li><p><strong>SPU 表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>spuId</th>
+<th>name</th>
+<th>brand</th>
+<th>category</th>
+<th>material</th>
+<th>style</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>spu_001</td>
+<td>T恤</td>
+<td>Nike</td>
+<td>运动服</td>
+<td>棉</td>
+<td>连帽</td>
+<td>舒适的运动款</td>
+</tr>
+</tbody></table>
+</li>
+<li><p><strong>SKU 表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>skuId</th>
+<th>spuId</th>
+<th>color</th>
+<th>size</th>
+<th>gender</th>
+<th>style</th>
+<th>price</th>
+<th>stock</th>
+<th>weight</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>sku_001</td>
+<td>spu_001</td>
+<td>红色</td>
+<td>S</td>
+<td>女款</td>
+<td>连帽</td>
+<td>199.0</td>
+<td>10</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>sku_002</td>
+<td>spu_001</td>
+<td>蓝色</td>
+<td>M</td>
+<td>女款</td>
+<td>无帽</td>
+<td>209.0</td>
+<td>20</td>
+<td>0.6</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h3 id="3、操作逻辑"><a href="#3、操作逻辑" class="headerlink" title="3、操作逻辑"></a>3、操作逻辑</h3><h4 id="3-1、入参：选择时候的变量定义"><a href="#3-1、入参：选择时候的变量定义" class="headerlink" title="3.1、入参：选择时候的变量定义"></a>3.1、入参：选择时候的变量定义</h4><p>为方便演示，我们假设结构如下</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> skuList = [</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku1&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">color</span>: <span class="string">&#x27;红&#x27;</span>, <span class="attr">size</span>: <span class="string">&#x27;S&#x27;</span>, <span class="attr">gender</span>: <span class="string">&#x27;女款&#x27;</span>, <span class="attr">thickness</span>: <span class="string">&#x27;常规&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku2&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">color</span>: <span class="string">&#x27;红&#x27;</span>, <span class="attr">size</span>: <span class="string">&#x27;M&#x27;</span>, <span class="attr">gender</span>: <span class="string">&#x27;男款&#x27;</span>, <span class="attr">thickness</span>: <span class="string">&#x27;常规&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku3&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">color</span>: <span class="string">&#x27;红&#x27;</span>, <span class="attr">size</span>: <span class="string">&#x27;M&#x27;</span>, <span class="attr">gender</span>: <span class="string">&#x27;女款&#x27;</span>, <span class="attr">thickness</span>: <span class="string">&#x27;加厚&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku4&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">color</span>: <span class="string">&#x27;黑&#x27;</span>, <span class="attr">size</span>: <span class="string">&#x27;M&#x27;</span>, <span class="attr">gender</span>: <span class="string">&#x27;男款&#x27;</span>, <span class="attr">thickness</span>: <span class="string">&#x27;加厚&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku5&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">color</span>: <span class="string">&#x27;黑&#x27;</span>, <span class="attr">size</span>: <span class="string">&#x27;L&#x27;</span>, <span class="attr">gender</span>: <span class="string">&#x27;男款&#x27;</span>, <span class="attr">thickness</span>: <span class="string">&#x27;加厚&#x27;</span> &#125;&#125;,</span><br><span class="line">];</span><br><span class="line"><span class="comment">// 红色只有 S、M，没有L； 红色S只有女款，没有男款</span></span><br></pre></td></tr></table></figure>
+
+<p>场景举例：</p>
+<ol>
+<li><p>用户原本选择：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">oldSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;黑&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;M&quot;</span> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>用户进行操作：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;color&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;红&quot;</span> &#125; <span class="comment">// 用户选择颜色 `&quot;红&quot;`</span></span><br><span class="line"><span class="comment">// 如果用户取消某项（如取消颜色选择）怎么办？</span></span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;color&quot;</span>, <span class="attr">value</span>: <span class="literal">null</span> &#125; <span class="comment">// 用户取消颜色 `&quot;红&quot;`		</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>合并出新选项：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">newSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;M&quot;</span> &#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h4 id="3-2、核心逻辑：当用户选择某些属性后，怎么计算每个-自身-其他-属性的可选-可替换的项"><a href="#3-2、核心逻辑：当用户选择某些属性后，怎么计算每个-自身-其他-属性的可选-可替换的项" class="headerlink" title="3.2、核心逻辑：当用户选择某些属性后，怎么计算每个(自身+其他)属性的可选&#x2F;可替换的项"></a>3.2、核心逻辑：当用户选择某些属性后，怎么计算每个(自身+其他)属性的可选&#x2F;可替换的项</h4><p>这些就可以用来禁用&#x2F;置灰 UI 上不可选的项。</p>
+<h5 id="3-2-1、核心逻辑思路"><a href="#3-2-1、核心逻辑思路" class="headerlink" title="3.2.1、核心逻辑思路"></a>3.2.1、核心逻辑思路</h5><p>我们以下面操作为例</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">oldSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;S&quot;</span>, <span class="attr">gender</span>: <span class="string">&quot;女款&quot;</span> &#125;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;thickness&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;常规&quot;</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>得到</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">newSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;S&quot;</span>, <span class="attr">gender</span>: <span class="string">&quot;女款&quot;</span>, <span class="attr">thickness</span>:<span class="string">&quot;常规&quot;</span> &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>颜色的可替换&#x2F;选择项计算过程如下，</p>
+<p>①去掉 newSelected 中的  color，得到 { size: “S”, gender: “女款”, thickness:”常规” }</p>
+<p>②在 skuList 中过滤出符合条件的所有 sku</p>
+<p>③从过滤出来的这些SKU中提取 color 的所有可能值，去重后即为color分类的 validOption</p>
+<h5 id="3-2-2、核心逻辑示例"><a href="#3-2-2、核心逻辑示例" class="headerlink" title="3.2.2、核心逻辑示例"></a>3.2.2、核心逻辑示例</h5><p>场景: 初始无选择 -&gt; 选择”红” -&gt; 选择”S” -&gt; 选择”女款” -&gt; 切为”常规”</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 场景1:</span></span><br><span class="line">oldSelected = &#123;&#125; <span class="comment">// 初始无选择</span></span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;color&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;红&quot;</span> &#125;, <span class="comment">// 用户选择 &quot;红&quot;</span></span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span> &#125;,</span><br><span class="line">  <span class="attr">selectedSKU</span>: <span class="literal">null</span>, <span class="comment">// 未全选，不匹配具体 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">color</span>: [<span class="string">&quot;红&quot;</span>, <span class="string">&quot;黑&quot;</span>], <span class="comment">// 可以切换颜色</span></span><br><span class="line">    <span class="attr">size</span>: [<span class="string">&quot;S&quot;</span>, <span class="string">&quot;M&quot;</span>], <span class="comment">// 红色只有 S、M，没有L</span></span><br><span class="line">    <span class="attr">gender</span>: [<span class="string">&quot;男款&quot;</span>, <span class="string">&quot;女款&quot;</span>],</span><br><span class="line">    <span class="attr">thickness</span>: [<span class="string">&quot;常规&quot;</span>, <span class="string">&quot;加厚&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景2:</span></span><br><span class="line">oldSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span> &#125;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;size&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;S&quot;</span> &#125;</span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;S&quot;</span> &#125;, <span class="comment">// 当前选择状态</span></span><br><span class="line">  <span class="attr">selectedSKU</span>: <span class="literal">null</span>, <span class="comment">// 未全选，无匹配 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">color</span>: [<span class="string">&quot;红&quot;</span>, <span class="string">&quot;黑&quot;</span>], <span class="comment">// 可以切换颜色</span></span><br><span class="line">    <span class="attr">size</span>: [<span class="string">&quot;S&quot;</span>, <span class="string">&quot;M&quot;</span>], <span class="comment">// 红色只有 S、M，没有L</span></span><br><span class="line">    <span class="attr">gender</span>: [<span class="string">&quot;女款&quot;</span>], <span class="comment">// 红S 下只有 女款</span></span><br><span class="line">    <span class="attr">thickness</span>: [<span class="string">&quot;常规&quot;</span>, <span class="string">&quot;加厚&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景34:</span></span><br><span class="line">oldSelected = &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;S&quot;</span>, <span class="attr">gender</span>: <span class="string">&quot;女款&quot;</span> &#125;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;thickness&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;常规&quot;</span> &#125;</span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">color</span>: <span class="string">&quot;红&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;S&quot;</span>, <span class="attr">gender</span>: <span class="string">&quot;女款&quot;</span>, <span class="attr">thickness</span>:<span class="string">&quot;常规&quot;</span> &#125;, <span class="comment">// 当前选择状态</span></span><br><span class="line">  <span class="attr">selectedSKU</span>: &#123; <span class="attr">id</span>: <span class="string">&#x27;sku1&#x27;</span>, <span class="attr">attributes</span>: &#123; ... &#125;&#125;, <span class="comment">// 匹配的唯一 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">color</span>: [<span class="string">&quot;红&quot;</span>, <span class="string">&quot;黑&quot;</span>], <span class="comment">// 可以切换颜色</span></span><br><span class="line">    <span class="attr">size</span>: [<span class="string">&quot;S&quot;</span>, <span class="string">&quot;M&quot;</span>], <span class="comment">// 红色只有 S、M，没有L</span></span><br><span class="line">    <span class="attr">gender</span>: [<span class="string">&quot;女款&quot;</span>], <span class="comment">// 红S 下只有 女款</span></span><br><span class="line">    <span class="attr">thickness</span>: [<span class="string">&quot;常规&quot;</span>, <span class="string">&quot;加厚&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3、结果：若用户所有属性都选了，就直接定位-SKU"><a href="#3-3、结果：若用户所有属性都选了，就直接定位-SKU" class="headerlink" title="3.3、结果：若用户所有属性都选了，就直接定位 SKU"></a>3.3、结果：若用户所有属性都选了，就直接定位 SKU</h4><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> selected = &#123; <span class="attr">color</span>: <span class="string">&quot;黑&quot;</span>, <span class="attr">size</span>: <span class="string">&quot;M&quot;</span> &#125;;</span><br><span class="line"><span class="keyword">const</span> sku = validSKUs.<span class="title function_">find</span>(<span class="function"><span class="params">sku</span> =&gt;</span> sku.<span class="property">color</span> === selected.<span class="property">color</span> &amp;&amp; sku.<span class="property">size</span> === selected.<span class="property">size</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// sku.skuId === &quot;sku6&quot;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="4、操作逻辑的代码实现"><a href="#4、操作逻辑的代码实现" class="headerlink" title="4、操作逻辑的代码实现"></a>4、操作逻辑的代码实现</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 更新 SKU 选择状态，并返回可选项和匹配的 SKU</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; <span class="variable">oldSelected</span> - 当前已选的属性（如 `&#123; cupSize: &quot;大杯&quot;, temperature: &quot;冰&quot; &#125;`）</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; <span class="variable">change</span> - 用户新选择的属性（如 `&#123; category: &quot;sweetness&quot;, value: &quot;无糖&quot; &#125;`）</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Array</span>&#125; <span class="variable">skuList</span> - 所有 SKU 数据（如 `[&#123; id: &quot;sku1&quot;, attributes: &#123; ... &#125; &#125;, ...]`）</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@returns</span> &#123;<span class="type">Object</span>&#125; - 返回新的选择状态、可选项和匹配的 SKU</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">updateSKUState</span>(<span class="params">oldSelected, change, skuList</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (!skuList || skuList.<span class="property">length</span> === <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> &#123; <span class="attr">selected</span>: oldSelected, <span class="attr">selectedSKU</span>: <span class="literal">null</span>, <span class="attr">validOptions</span>: &#123;&#125; &#125;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 1. 更新选择</span></span><br><span class="line">  <span class="keyword">const</span> newSelected = &#123; ...oldSelected, [change.<span class="property">category</span>]: change.<span class="property">value</span> &#125;;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 2. 计算所有可能的属性分类</span></span><br><span class="line">  <span class="keyword">const</span> attributeKeys = <span class="title class_">Object</span>.<span class="title function_">keys</span>(skuList[<span class="number">0</span>].<span class="property">attributes</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 3. 核新逻辑：计算每个分类在其他分类选择或未选择情况下的可选/可替换值（动态计算，不固定已选属性）</span></span><br><span class="line">  <span class="comment">// ①、对每个属性分类 attrKey，临时排除它自身（避免自我约束）。</span></span><br><span class="line">	<span class="comment">// ②、根据其他已选属性过滤 skuList，得到符合条件的SKU。</span></span><br><span class="line">	<span class="comment">// ③、从这些SKU中提取 attrKey 的所有可能值，去重后存入 validOptions。</span></span><br><span class="line">  <span class="keyword">const</span> validOptions = &#123;&#125;;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">let</span> attrKey <span class="keyword">of</span> attributeKeys) &#123;</span><br><span class="line">    <span class="comment">// 3.1 临时忽略当前属性，计算剩余约束下的可选值</span></span><br><span class="line">    <span class="keyword">const</span> tempSelected = &#123; ...newSelected &#125;;</span><br><span class="line">    <span class="keyword">delete</span> tempSelected[attrKey]; <span class="comment">// 排除当前属性，避免自我约束</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3.2 计算当前属性的可选值（基于其他已选属性的约束）</span></span><br><span class="line">    <span class="keyword">const</span> availableValues = [</span><br><span class="line">      ...<span class="keyword">new</span> <span class="title class_">Set</span>(</span><br><span class="line">        skuList</span><br><span class="line">          .<span class="title function_">filter</span>(<span class="function"><span class="params">sku</span> =&gt;</span></span><br><span class="line">            <span class="title class_">Object</span>.<span class="title function_">entries</span>(tempSelected).<span class="title function_">every</span>(<span class="function">(<span class="params">[k, v]</span>) =&gt;</span> !v || sku.<span class="property">attributes</span>[k] === v)</span><br><span class="line">          )</span><br><span class="line">          .<span class="title function_">map</span>(<span class="function"><span class="params">sku</span> =&gt;</span> sku.<span class="property">attributes</span>[attrKey]) <span class="comment">// 从每个 SKU 中提取指定值，生成一个新数组。</span></span><br><span class="line">        <span class="comment">// .map() 数组高阶函数，对数组中的每个元素执行回调函数，并返回一个新数组。</span></span><br><span class="line">        </span><br><span class="line">      )</span><br><span class="line">    ];</span><br><span class="line">    validOptions[attrKey] = availableValues;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 4. 检查是否匹配到唯一 SKU</span></span><br><span class="line">  <span class="keyword">const</span> isAllSelected = attributeKeys.<span class="title function_">every</span>(<span class="function"><span class="params">key</span> =&gt;</span> newSelected[key]);</span><br><span class="line">  <span class="keyword">const</span> selectedSKU = isAllSelected</span><br><span class="line">    ? skuList.<span class="title function_">find</span>(<span class="function"><span class="params">sku</span> =&gt;</span></span><br><span class="line">        attributeKeys.<span class="title function_">every</span>(<span class="function"><span class="params">attrKey</span> =&gt;</span> sku.<span class="property">attributes</span>[attrKey] === newSelected[attrKey])</span><br><span class="line">      )</span><br><span class="line">    : <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> &#123;</span><br><span class="line">    <span class="attr">selected</span>: newSelected,</span><br><span class="line">    selectedSKU,</span><br><span class="line">    validOptions, <span class="comment">// 返回所有属性的动态可选值（包括已选属性）</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="二、普通奶茶下单"><a href="#二、普通奶茶下单" class="headerlink" title="二、普通奶茶下单"></a>二、普通奶茶下单</h2><p>我们将电商衣服的选择扩展到奶茶下单中，</p>
+<p><strong>杯型（单选）</strong>：大杯、超大杯<br><strong>温度（单选）</strong>：冰<br><strong>糖度（单选）</strong>：标准甜、少糖、无糖</p>
+<p>示例：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> skuList = [</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku11&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;大杯&#x27;</span>, <span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;标准甜&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku12&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;大杯&#x27;</span>, <span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;少糖&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku13&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;大杯&#x27;</span>, <span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;无糖&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku21&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;超大杯&#x27;</span>,<span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;标准甜&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku22&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;超大杯&#x27;</span>, <span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;少糖&#x27;</span> &#125;&#125;,</span><br><span class="line">  &#123; <span class="attr">id</span>: <span class="string">&#x27;sku23&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;超大杯&#x27;</span>, <span class="attr">temperature</span>: <span class="string">&#x27;冰&#x27;</span>, <span class="attr">sweetness</span>: <span class="string">&#x27;无糖&#x27;</span> &#125;&#125;</span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景: 初始无选择 -&gt; 选择&quot;大杯&quot; -&gt; 选择&quot;冰&quot; -&gt; 选择&quot;标准甜&quot; -&gt; 切为&quot;无糖&quot;</span></span><br><span class="line"><span class="comment">// 场景1: 初始无选择 -&gt; 选择&quot;大杯&quot;</span></span><br><span class="line">oldSelected = &#123;&#125; <span class="comment">// 初始无选择</span></span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;cupSize&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;大杯&quot;</span> &#125;, <span class="comment">// 用户选择 &quot;大杯&quot;</span></span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span> &#125;,</span><br><span class="line">  <span class="attr">selectedSKU</span>: <span class="literal">null</span>, <span class="comment">// 未全选，不匹配具体 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>], <span class="comment">// 可以切换杯型</span></span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],         <span class="comment">// 只有 &quot;冰&quot; 可选（因为 &quot;大杯&quot; 只有 &quot;冰&quot;）</span></span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>] <span class="comment">// 所有甜度可选</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景2:</span></span><br><span class="line">oldSelected = &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span> &#125;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;temperature&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;冰&quot;</span> &#125;</span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span> &#125;, <span class="comment">// 当前选择状态</span></span><br><span class="line">  <span class="attr">selectedSKU</span>: <span class="literal">null</span>, <span class="comment">// 未全选，无匹配 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>],</span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景3:</span></span><br><span class="line">oldSelected = &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span> &#125;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;sweetness&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;标准甜&quot;</span> &#125;</span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>, <span class="attr">sweetness</span>: <span class="string">&quot;标准甜&quot;</span> &#125;,</span><br><span class="line">  <span class="attr">selectedSKU</span>: &#123; <span class="attr">id</span>: <span class="string">&quot;sku13&quot;</span>, <span class="attr">attributes</span>: &#123; ... &#125; &#125;, <span class="comment">// 匹配到唯一 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>], <span class="comment">// 仍可切换杯型</span></span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],        <span class="comment">// 温度固定（只有 &quot;冰&quot;）</span></span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>] <span class="comment">// 仍可切换甜度</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 场景4:</span></span><br><span class="line">oldSelected = &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>, <span class="attr">sweetness</span>: <span class="string">&quot;标准甜&quot;</span> &#125;;</span><br><span class="line">change = &#123; <span class="attr">category</span>: <span class="string">&quot;sweetness&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;无糖&quot;</span> &#125;;</span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selected</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>, <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span> &#125;, <span class="comment">// 当前选择状态</span></span><br><span class="line">  <span class="attr">selectedSKU</span>: &#123; <span class="attr">id</span>: <span class="string">&#x27;sku13&#x27;</span>, <span class="attr">attributes</span>: &#123; ... &#125;&#125;, <span class="comment">// 匹配的唯一 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>],</span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看出当奶茶的所有属性都可以选择的时候，我们得到的 validOptions 为</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>],</span><br><span class="line">  <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">  <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这也相当于是验证了我们不需要做此计算。</p>
+<p>所以理论上可简化为</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx商品&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sku_list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    </span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;categories&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    cupSize<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;大杯&quot;</span><span class="punctuation">,</span> <span class="string">&quot;超大杯&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    temperature<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;冰&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    sweetness<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;标准甜&quot;</span><span class="punctuation">,</span> <span class="string">&quot;少糖&quot;</span><span class="punctuation">,</span> <span class="string">&quot;无糖&quot;</span><span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1、推荐结构"><a href="#1、推荐结构" class="headerlink" title="1、推荐结构"></a>1、推荐结构</h3><p>但不同杯型价格不同，所以更合适的结构是下面这样：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx商品&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sku_list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="punctuation">&#123;</span> id<span class="punctuation">:</span> &#x27;sku11&#x27;<span class="punctuation">,</span> attributes<span class="punctuation">:</span> <span class="punctuation">&#123;</span> cupSize<span class="punctuation">:</span> &#x27;大杯&#x27;<span class="punctuation">&#125;</span><span class="punctuation">,</span> <span class="attr">&quot;stock&quot;</span><span class="punctuation">:</span> <span class="number">10</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">990</span><span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span> id<span class="punctuation">:</span> &#x27;sku21&#x27;<span class="punctuation">,</span> attributes<span class="punctuation">:</span> <span class="punctuation">&#123;</span> cupSize<span class="punctuation">:</span>&#x27;超大杯&#x27;<span class="punctuation">&#125;</span><span class="punctuation">,</span> <span class="attr">&quot;stock&quot;</span><span class="punctuation">:</span> <span class="number">8</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">1199</span><span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;categories&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    temperature<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;冰&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    sweetness<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;标准甜&quot;</span><span class="punctuation">,</span> <span class="string">&quot;少糖&quot;</span><span class="punctuation">,</span> <span class="string">&quot;无糖&quot;</span><span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>即可以任意切换且不影响价格的放在categories中，其他放在sku_list中。</p>
+<h3 id="2、其他可能结构"><a href="#2、其他可能结构" class="headerlink" title="2、其他可能结构"></a>2、其他可能结构</h3><p>也有些会设计成下面这样子，完全不用sku。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx商品&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;base_price&quot;</span><span class="punctuation">:</span> <span class="number">990</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sku_list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    </span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;categories&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;杯型&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;choices&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;大杯&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;超大杯&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">200</span> <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;温度&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;choices&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;冰&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;甜度&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;choices&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;标准甜&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;少糖&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;无糖&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;香草+3元&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;extra_price&quot;</span><span class="punctuation">:</span> <span class="number">300</span> <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3、其他思考"><a href="#3、其他思考" class="headerlink" title="3、其他思考"></a>3、其他思考</h3><p>问：如果选择糖的时候，有的需要增加费用，结果怎么提供？</p>
+<p>答：方法①用sku列表时，将糖添加到sku中 或者 方法②不用sku列表时，为糖增加 extra_price。</p>
+<h3 id="4、小结"><a href="#4、小结" class="headerlink" title="4、小结"></a>4、小结</h3><p><strong>推荐结构：可以任意切换且不影响价格的单选放在categories中，其他放在sku_list中。</strong></p>
+<h2 id="三、扩展奶茶下单"><a href="#三、扩展奶茶下单" class="headerlink" title="三、扩展奶茶下单"></a>三、扩展奶茶下单</h2><p><strong>杯型（单选）</strong>：超大杯、大杯、中杯<br><strong>温度（单选）</strong>：正常冰、少冰、热<br><strong>糖度（单选）</strong>：标准甜、少甜、微甜、无糖<br><strong>加料（多选）</strong>：珍珠、葡萄、芋圆、椰果、不另外加</p>
+<h3 id="1、需求分析"><a href="#1、需求分析" class="headerlink" title="1、需求分析"></a>1、需求分析</h3><h4 id="1-1、功能要求分析"><a href="#1-1、功能要求分析" class="headerlink" title="1.1、功能要求分析"></a>1.1、功能要求分析</h4><ol>
+<li><strong>分类与选项定义：</strong><ul>
+<li><strong>杯型、温度、糖度</strong>：单选</li>
+<li><strong>加料</strong>：多选</li>
+<li>不同杯型，价格不一样</li>
+</ul>
+</li>
+<li><strong>规则限制：</strong><ul>
+<li>选择“无糖”时，加料只能选择“不另外加”，其他全部置灰禁用</li>
+<li>选择“热”时，加料不能选“葡萄”</li>
+</ul>
+</li>
+</ol>
+<p>请问应该怎么设计数据结构和实现”选择某个分类后自动刷新其他分类可选项并置灰不可选项目”的功能。 </p>
+<h4 id="1-2、奶茶系统推荐结构"><a href="#1-2、奶茶系统推荐结构" class="headerlink" title="1.2、奶茶系统推荐结构"></a>1.2、奶茶系统推荐结构</h4><p><strong>核心思路：</strong></p>
+<ul>
+<li><strong>SKU 负责枚举“杯型 + 温度 + 糖度”这种固定组合</strong>（一般对应定价逻辑）</li>
+<li><strong>加料</strong>是用户行为的动态选项，作为 <strong>“附加项”附加到 SKU 上</strong><ul>
+<li>不影响 SKU 的价格&#x2F;库存</li>
+<li>有自己的校验规则（如「无糖」限制加料）</li>
+</ul>
+</li>
+</ul>
+<p>实际电商和点单系统中常用的做法 ——<br> <strong>将「确定的可枚举组合」用 SKU 管理，<br> 将「不确定的动态选项」如加料、附加服务用“附加项”来处理。</strong></p>
+<p><strong>加料不放在SKU中，是因为组合数量会爆炸且冗余</strong>：</p>
+<ul>
+<li><p>假设每类属性都有 4 个值，加料 5 个（多选），组合数可能是：</p>
+<p>3（杯型） × 3（温度） × 4（糖度） × 2⁵（加料多选组合） &#x3D; 3 × 3 × 4 × 32 &#x3D; 1,152 种</p>
+</li>
+</ul>
+<h3 id="2、结构🧱设计拆分"><a href="#2、结构🧱设计拆分" class="headerlink" title="2、结构🧱设计拆分"></a>2、结构🧱设计拆分</h3><h4 id="2-1、SKU-定义：仅含主选项"><a href="#2-1、SKU-定义：仅含主选项" class="headerlink" title="2.1、SKU 定义：仅含主选项"></a>2.1、<strong>SKU 定义</strong>：仅含主选项</h4><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;xxx商品&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sku_list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="punctuation">&#123;</span> id<span class="punctuation">:</span> &#x27;sku11&#x27;<span class="punctuation">,</span> attributes<span class="punctuation">:</span> <span class="punctuation">&#123;</span> cupSize<span class="punctuation">:</span> &#x27;大杯&#x27;<span class="punctuation">&#125;</span><span class="punctuation">,</span> <span class="attr">&quot;stock&quot;</span><span class="punctuation">:</span> <span class="number">10</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">990</span><span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span> id<span class="punctuation">:</span> &#x27;sku21&#x27;<span class="punctuation">,</span> attributes<span class="punctuation">:</span> <span class="punctuation">&#123;</span> cupSize<span class="punctuation">:</span>&#x27;超大杯&#x27;<span class="punctuation">&#125;</span><span class="punctuation">,</span> <span class="attr">&quot;stock&quot;</span><span class="punctuation">:</span> <span class="number">8</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">1199</span><span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;categories&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    temperature<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;冰&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    sweetness<span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;标准甜&quot;</span><span class="punctuation">,</span> <span class="string">&quot;少糖&quot;</span><span class="punctuation">,</span> <span class="string">&quot;无糖&quot;</span><span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2、可多选的附加项（加料）定义"><a href="#2-2、可多选的附加项（加料）定义" class="headerlink" title="2.2、可多选的附加项（加料）定义"></a>2.2、<strong>可多选的附加项（加料）定义</strong></h4><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">const categories = <span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;toppings&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;multi&quot;</span><span class="punctuation">,</span>  <span class="comment">// 多选</span></span><br><span class="line">    <span class="attr">&quot;options&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">      <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;珍珠&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;value&quot;</span><span class="punctuation">:</span> <span class="string">&quot;pearl&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">1</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;葡萄&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;value&quot;</span><span class="punctuation">:</span> <span class="string">&quot;grape&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">2</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;芋圆&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;value&quot;</span><span class="punctuation">:</span> <span class="string">&quot;taro&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">1.5</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;椰果&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;value&quot;</span><span class="punctuation">:</span> <span class="string">&quot;coconut&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">1</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="punctuation">&#123;</span> <span class="attr">&quot;label&quot;</span><span class="punctuation">:</span> <span class="string">&quot;不另外加&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;value&quot;</span><span class="punctuation">:</span> <span class="string">&quot;none&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;price&quot;</span><span class="punctuation">:</span> <span class="number">0</span> <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3、规则系统（限制附加项选择）"><a href="#2-3、规则系统（限制附加项选择）" class="headerlink" title="2.3、规则系统（限制附加项选择）"></a>2.3、<strong>规则系统</strong>（限制附加项选择）</h4><figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> rules = [</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">if</span>: &#123; <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span> &#125;,</span><br><span class="line">    <span class="attr">thenEnableOnly</span>: &#123;</span><br><span class="line">      <span class="attr">toppings</span>: [<span class="string">&quot;none&quot;</span>]</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">if</span>: &#123; <span class="attr">temperature</span>: <span class="string">&quot;热&quot;</span> &#125;,</span><br><span class="line">    <span class="attr">thenDisable</span>: &#123;</span><br><span class="line">      <span class="attr">toppings</span>: [<span class="string">&quot;grape&quot;</span>]</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">];</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4、总结设计优势与场景类似"><a href="#2-4、总结设计优势与场景类似" class="headerlink" title="2.4、总结设计优势与场景类似"></a>2.4、总结设计优势与场景类似</h4><table>
+<thead>
+<tr>
+<th>部分</th>
+<th>用法</th>
+<th>优点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SKU</strong></td>
+<td>负责主商品的组合（杯型、温度、糖度）</td>
+<td>✅ 易管理，价格统一，库存精准</td>
+</tr>
+<tr>
+<td><strong>附加项</strong></td>
+<td>处理加料等用户增值选项</td>
+<td>✅ 动态扩展，多选灵活，价格单独计算</td>
+</tr>
+<tr>
+<td><strong>规则系统</strong></td>
+<td>控制选择互斥&#x2F;可选性等逻辑</td>
+<td>✅ 易维护、可配置、逻辑分离</td>
+</tr>
+</tbody></table>
+<p>使用场景类似</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SKU 管控</th>
+<th>附加项管理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>衣服</td>
+<td>颜色、尺码、版型</td>
+<td>印花、刺绣、包装</td>
+</tr>
+<tr>
+<td>手机下单</td>
+<td>颜色、存储、处理器</td>
+<td>贴膜、延保、耳机</td>
+</tr>
+<tr>
+<td>奶茶&#x2F;披萨点单</td>
+<td>杯型、糖度、温度</td>
+<td>加料、备注、打包</td>
+</tr>
+<tr>
+<td>机票&#x2F;酒店预订</td>
+<td>舱位、房型、套餐</td>
+<td>行李、早餐、保险、接送</td>
+</tr>
+</tbody></table>
+<hr>
+<p>如你所见：<strong>“SKU + 附加项 + 规则”</strong> 是一种高扩展、高灵活的标准模型 ✅</p>
+<h3 id="3、代码实现"><a href="#3、代码实现" class="headerlink" title="3、代码实现"></a>3、代码实现</h3><p>把 <strong>加料</strong> 从 SKU 属性中拿出来，变成了“附加项”：</p>
+<p>拆成两个更新模块更合理：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">updateSKUState</span>(<span class="params">oldSelectedAttrs, change, skuList</span>) &#123;</span><br><span class="line">  <span class="comment">// 👇 仅用于处理单选项（杯型、温度、糖度）,适合“所有选项都是 SKU 属性（单选）”的场景</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">updateAddOnsState</span>(<span class="params">newSelectedAttrs, oldSelectedAddOns, rules</span>) &#123;</span><br><span class="line">  <span class="comment">// 👇 根据 SKU 选项 + 附加项 + 规则动态返回：</span></span><br><span class="line">  <span class="comment">// 可选加料、禁用项、自动取消逻辑等</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>分别用于：</p>
+<ol>
+<li>处理 SKU 属性变化（杯型、温度、糖度）</li>
+<li>处理加料（附加项）的可选项、禁用项和自动取消逻辑</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>方法名</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>updateSKUState</code></td>
+<td>处理 SKU 类单选属性变化，筛选可选项，找出精确 SKU</td>
+</tr>
+<tr>
+<td><code>updateAddOnsState</code></td>
+<td>根据规则动态控制加料的禁用项，并移除当前选择中无效的加料选项</td>
+</tr>
+</tbody></table>
+<h4 id="3-1、updateSKUState-—-处理-SKU-单选属性变化"><a href="#3-1、updateSKUState-—-处理-SKU-单选属性变化" class="headerlink" title="3.1、updateSKUState — 处理 SKU 单选属性变化"></a>3.1、<code>updateSKUState</code> — 处理 SKU 单选属性变化</h4><p>步骤1：用户选择&#x2F;替换基础属性（调用 <code>updateSKUState</code>）</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> oldSelected = &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>, <span class="attr">sweetness</span>: <span class="string">&quot;标准甜&quot;</span> &#125;;</span><br><span class="line"><span class="keyword">const</span> change = &#123; <span class="attr">category</span>: <span class="string">&quot;sweetness&quot;</span>, <span class="attr">value</span>: <span class="string">&quot;无糖&quot;</span> &#125;; <span class="comment">// 切为&quot;无糖&quot;</span></span><br><span class="line">得到</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">selectedAttrs</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>, <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>, <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span> &#125;, <span class="comment">// 当前选择状态</span></span><br><span class="line">  <span class="attr">selectedSKU</span>: &#123; <span class="attr">id</span>: <span class="string">&#x27;sku13&#x27;</span>, <span class="attr">attributes</span>: &#123; ... &#125;&#125;, <span class="comment">// 匹配的唯一 SKU</span></span><br><span class="line">  <span class="attr">validOptions</span>: &#123;</span><br><span class="line">    <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>],</span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2、-updateAddOnsState-—-处理加料限制规则（多选）"><a href="#3-2、-updateAddOnsState-—-处理加料限制规则（多选）" class="headerlink" title="3.2、 updateAddOnsState — 处理加料限制规则（多选）"></a>3.2、 <code>updateAddOnsState</code> — 处理加料限制规则（多选）</h4><p>步骤2：根据当前属性更新附加选项（调用 <code>updateAddOnsState</code>）</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> selectedAttrs = &#123;</span><br><span class="line">  	<span class="attr">cupSize</span>: <span class="string">&quot;大杯&quot;</span>,</span><br><span class="line">    <span class="attr">temperature</span>: <span class="string">&quot;冰&quot;</span>,</span><br><span class="line">    <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">const</span> selectedAddOns = [<span class="string">&quot;椰果&quot;</span>];</span><br><span class="line"><span class="keyword">const</span> rules = [</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">if</span>: &#123; <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span> &#125;,            <span class="comment">// 条件：选择&quot;无糖&quot;</span></span><br><span class="line">    <span class="attr">thenDisable</span>: &#123; <span class="attr">toppings</span>: [<span class="string">&quot;珍珠&quot;</span>] &#125;   <span class="comment">// 则禁用&quot;珍珠&quot;（无糖奶茶不能加珍珠）</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">if</span>: &#123; <span class="attr">temperature</span>: <span class="string">&quot;热&quot;</span> &#125;,            <span class="comment">// 条件：选择&quot;热饮&quot;</span></span><br><span class="line">    <span class="attr">thenEnableOnly</span>: &#123; <span class="attr">toppings</span>: [<span class="string">&quot;红豆&quot;</span>, <span class="string">&quot;布丁&quot;</span>] &#125; <span class="comment">// 则只能加&quot;红豆&quot;或&quot;布丁&quot;</span></span><br><span class="line">  &#125;</span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算可用的附加项</span></span><br><span class="line"><span class="keyword">const</span> enabledAddOns = <span class="title function_">updateAddOnsState</span>(selectedAttrs, selectedAddOns, rules);</span><br><span class="line"><span class="comment">// 结果：</span></span><br><span class="line"><span class="comment">// enabledAddOns = [&quot;红豆&quot;, &quot;布丁&quot;, &quot;椰果&quot;] // &quot;珍珠&quot; 不能点</span></span><br></pre></td></tr></table></figure>
+
+<p>方法实现：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">updateAddOnsState</span>(<span class="params">selectedSKUAttributes, selectedAddOns, rules</span>) &#123;</span><br><span class="line">  <span class="keyword">const</span> allToppings = categories.<span class="property">toppings</span>.<span class="property">options</span>.<span class="title function_">map</span>(<span class="function"><span class="params">opt</span> =&gt;</span> opt.<span class="property">value</span> || opt);</span><br><span class="line">  <span class="keyword">let</span> enabledAddOns = <span class="keyword">new</span> <span class="title class_">Set</span>(allToppings); <span class="comment">// 默认全部可用</span></span><br><span class="line">  <span class="keyword">let</span> allowOnlySet = <span class="literal">null</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">let</span> rule <span class="keyword">of</span> rules) &#123;</span><br><span class="line">    <span class="comment">// 判断该规则是否符合当前选择状态，比如：`if: &#123; sweetness: &quot;无糖&quot; &#125;`，当前选择的 `sweetness` 也是 `&quot;无糖&quot;`，则满足。</span></span><br><span class="line">    <span class="keyword">const</span> isMatched = <span class="title class_">Object</span>.<span class="title function_">entries</span>(rule.<span class="property">if</span>).<span class="title function_">every</span>(</span><br><span class="line">      <span class="function">(<span class="params">[key, value]</span>) =&gt;</span> selectedSKUAttributes[key] === value</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (isMatched) &#123;</span><br><span class="line">      <span class="comment">// 如果命中了 thenEnableOnly，记录允许的列表（唯一优先）</span></span><br><span class="line">      <span class="keyword">if</span> (rule.<span class="property">thenEnableOnly</span> &amp;&amp; rule.<span class="property">thenEnableOnly</span>.<span class="property">toppings</span>) &#123;</span><br><span class="line">        allowOnlySet = <span class="keyword">new</span> <span class="title class_">Set</span>(rule.<span class="property">thenEnableOnly</span>.<span class="property">toppings</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// 在没有 thenEnableOnly 优先时候，如果命中了 thenDisable，则从默认的全部中删掉禁用的</span></span><br><span class="line">      <span class="keyword">if</span> (!allowOnlySet &amp;&amp; rule.<span class="property">thenDisable</span> &amp;&amp; rule.<span class="property">thenDisable</span>.<span class="property">toppings</span>) &#123;</span><br><span class="line">        rule.<span class="property">thenDisable</span>.<span class="property">toppings</span>.<span class="title function_">forEach</span>(<span class="function"><span class="params">opt</span> =&gt;</span> enabledAddOns.<span class="title function_">delete</span>(opt));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果有 thenEnableOnly，就直接使用它来作为最终可用选项</span></span><br><span class="line">  <span class="keyword">if</span> (allowOnlySet) &#123;</span><br><span class="line">    enabledAddOns = allowOnlySet;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Array</span>.<span class="title function_">from</span>(enabledAddOns);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从普通奶茶下单示例中，我们可以看出当奶茶的所有属性都可以选择的时候，我们得到的 validOptions 为</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">cupSize</span>: [<span class="string">&quot;大杯&quot;</span>, <span class="string">&quot;超大杯&quot;</span>],</span><br><span class="line">  <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">  <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这也相当于是验证了我们不需要做此计算。</p>
+<p>所以，理论上 cupSize 、 temperature 、 sweetness 等就没必要通过sku方式获得。但当这其中有属性会应影响价格时候（如cupSize），就还是得放在sku中。所以最后推荐的结构如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;spu_id&quot;</span>: <span class="string">&quot;xxx&quot;</span>,</span><br><span class="line">  <span class="string">&quot;name&quot;</span>: <span class="string">&quot;xxx商品&quot;</span>,</span><br><span class="line">  <span class="string">&quot;sku_list&quot;</span>: [</span><br><span class="line">    &#123; <span class="attr">id</span>: <span class="string">&#x27;sku11&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>: <span class="string">&#x27;大杯&#x27;</span>&#125;, <span class="string">&quot;stock&quot;</span>: <span class="number">10</span>, <span class="string">&quot;price&quot;</span>: <span class="number">990</span>&#125;,</span><br><span class="line">    &#123; <span class="attr">id</span>: <span class="string">&#x27;sku21&#x27;</span>, <span class="attr">attributes</span>: &#123; <span class="attr">cupSize</span>:<span class="string">&#x27;超大杯&#x27;</span>&#125;, <span class="string">&quot;stock&quot;</span>: <span class="number">8</span>, <span class="string">&quot;price&quot;</span>: <span class="number">1199</span>&#125;</span><br><span class="line">  ],</span><br><span class="line">  <span class="string">&quot;categories&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">temperature</span>: [<span class="string">&quot;冰&quot;</span>],</span><br><span class="line">    <span class="attr">sweetness</span>: [<span class="string">&quot;标准甜&quot;</span>, <span class="string">&quot;少糖&quot;</span>, <span class="string">&quot;无糖&quot;</span>]</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;toppings&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;multi&quot;</span>,  <span class="comment">// 多选</span></span><br><span class="line">    <span class="string">&quot;options&quot;</span>: [</span><br><span class="line">      &#123; <span class="string">&quot;label&quot;</span>: <span class="string">&quot;珍珠&quot;</span>, <span class="string">&quot;value&quot;</span>: <span class="string">&quot;pearl&quot;</span>, <span class="string">&quot;price&quot;</span>: <span class="number">1</span> &#125;,</span><br><span class="line">      &#123; <span class="string">&quot;label&quot;</span>: <span class="string">&quot;葡萄&quot;</span>, <span class="string">&quot;value&quot;</span>: <span class="string">&quot;grape&quot;</span>, <span class="string">&quot;price&quot;</span>: <span class="number">2</span> &#125;,</span><br><span class="line">      &#123; <span class="string">&quot;label&quot;</span>: <span class="string">&quot;芋圆&quot;</span>, <span class="string">&quot;value&quot;</span>: <span class="string">&quot;taro&quot;</span>, <span class="string">&quot;price&quot;</span>: <span class="number">1.5</span> &#125;,</span><br><span class="line">      &#123; <span class="string">&quot;label&quot;</span>: <span class="string">&quot;椰果&quot;</span>, <span class="string">&quot;value&quot;</span>: <span class="string">&quot;coconut&quot;</span>, <span class="string">&quot;price&quot;</span>: <span class="number">1</span> &#125;,</span><br><span class="line">      &#123; <span class="string">&quot;label&quot;</span>: <span class="string">&quot;不另外加&quot;</span>, <span class="string">&quot;value&quot;</span>: <span class="string">&quot;none&quot;</span>, <span class="string">&quot;price&quot;</span>: <span class="number">0</span> &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;toppings_rules&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">if</span>: &#123; <span class="attr">sweetness</span>: <span class="string">&quot;无糖&quot;</span> &#125;,            <span class="comment">// 条件：选择&quot;无糖&quot;</span></span><br><span class="line">      <span class="attr">thenDisable</span>: &#123; <span class="attr">toppings</span>: [<span class="string">&quot;珍珠&quot;</span>] &#125;   <span class="comment">// 则禁用&quot;珍珠&quot;（无糖奶茶不能加珍珠）</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">if</span>: &#123; <span class="attr">temperature</span>: <span class="string">&quot;热&quot;</span> &#125;,            <span class="comment">// 条件：选择&quot;热饮&quot;</span></span><br><span class="line">      <span class="attr">thenEnableOnly</span>: &#123; <span class="attr">toppings</span>: [<span class="string">&quot;红豆&quot;</span>, <span class="string">&quot;布丁&quot;</span>] &#125; <span class="comment">// 则只能加&quot;红豆&quot;或&quot;布丁&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">	]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用此结构，在衣服、手机选择时候也仍然使用。</p>
+<p>使用的计算详见上文。</p>
+<p>使用有效 SKU 列表：电商场景主流方案，直接枚举合法组合，性能好，扩展性强</p>
+<p>使用 <code>rules</code> + <code>if/thenDisable</code>：比较适合你之前描述的“条件式限制”，用于逻辑明确的选项限制</p>
+<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E4%B8%9A%E5%8A%A1%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/" data-id="cmpfam9sq005ecgjj10dyelg2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/%E5%B8%B8%E8%AF%86%E7%B1%BB/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/%E7%BB%93%E5%A9%9A%E7%9B%B8%E5%85%B3%E5%B8%B8%E8%AF%86/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          结婚相关常识
+        
+      </div>
+    </a>
+  
+  
+    <a href="/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/Telegram/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Telegram</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list">
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Architecture/">Architecture</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/">第一章：架构相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">第三章：基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/">第四章：基础框架设计及接口文档</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E9%80%9A%E7%94%A8%E4%B8%9A%E5%8A%A1%E8%A7%84%E8%8C%83/">第六章：通用业务规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">第七章：技术选型</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E9%A1%B5%E9%9D%A2%E5%8A%A0%E8%BD%BD%E7%9B%B8%E5%85%B3/">第八章：页面加载相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/">第九章：监控相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/QA/">QA</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/Threads/">Threads</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%8A%9F%E8%83%BD%E6%B5%81%E7%A8%8B/">功能流程</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%95%8C%E9%9D%A2%E8%A7%86%E5%9B%BE/">界面视图</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%89%E5%85%A8%E4%B8%8E%E7%A0%B4%E8%A7%A3/">安全与破解</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/AI/">AI</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/">管理相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/">项目列表</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/">行业相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%99%BA%E8%83%BD%E5%AE%B6%E5%B1%85%E7%9B%B8%E5%85%B3/">第一章：智能家居相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/">算法与数学</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Database/">Database</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/iOS/">iOS</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%8A%9F%E8%83%BD%E6%80%A7%E6%8A%80%E6%9C%AF/">功能性技术</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">开发规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/">移动分析</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/">第三方库</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%AF%81%E4%B9%A6%E5%8F%91%E7%89%88/">证书发版</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Android/">Android</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Android/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Flutter/">Flutter</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AFlutter%E5%85%A5%E9%97%A8/">第一章：Flutter入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%9B%86%E6%88%90Flutter%E5%88%B0%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE/">第二章：集成Flutter到原生项目</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE%E4%B8%8EFlutter%E7%9A%84%E4%BA%A4%E4%BA%92/">第三章：原生项目与Flutter的交互</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9AFlutter%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/">第四章：Flutter登录页实战</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E8%AF%A6%E8%A7%A3/">第五章：详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E8%BF%9B%E9%98%B6/">第六章：进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E8%A7%84%E8%8C%83/">第七章：规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">第八章：状态管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/">第九章：框架升级</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/10%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/">10与原生相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/5%E8%AF%A6%E8%A7%A3/">5详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E6%97%A0%E7%91%95%E7%96%B5%E7%9A%84%E6%B7%B7%E7%BC%96%E7%99%BB%E5%BD%95%E9%A1%B5/">无瑕疵的混编登录页</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E9%9B%B6%E7%AB%A0%EF%BC%9AFlutter%E6%BA%90%E7%A0%81/">第零章：Flutter源码</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E8%B7%B5/">项目实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/ReactNative/">ReactNative</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AReactNative%E5%85%A5%E9%97%A8/">第一章：ReactNative入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9AReactNative%E8%AF%A6%E8%A7%A3/">第五章：ReactNative详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9AReactNative%E8%BF%9B%E9%98%B6/">第六章：ReactNative进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9AReactNative%E5%AE%9E%E8%B7%B5/">第八章：ReactNative实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/H5-APP/">H5-APP</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/H5-APP/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/HTML/">HTML</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/2%E6%89%A9%E5%B1%95/">2扩展</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Weex/">Weex</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Weex/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AWeex%E5%85%A5%E9%97%A8/">第一章：Weex入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/">上架相关</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Script/">Script</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/">Mac快速操作</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Python/">Python</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Shell/">Shell</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/">实用工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/ChatGPT/">ChatGPT</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/GitBook/">GitBook</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Hexo/">Hexo</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Terminal/">Terminal</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Zentao/">Zentao</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/%E5%85%B6%E4%BB%96%E5%B0%8F%E5%B7%A5%E5%85%B7/">其他小工具</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/MySQL/">MySQL</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Nginx/">Nginx</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/node/">node</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/protobuf/">protobuf</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/XAMPP/">XAMPP</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/">代码管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/">Git</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/%E5%BA%93%E7%AE%A1%E7%90%86/">库管理</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/">电脑使用</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B8%B8%E8%AF%86%E7%B1%BB/">常识类</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/">编程工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/">科学工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%93%E5%88%A9/">专利</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E8%87%AA%E5%8A%A8%E5%8C%96/">APP自动化</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/npmjs/">npmjs</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/README/">README</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/">后台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9B%B8%E5%85%B3/">第一章：服务器相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/">工作常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/">技术常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/">文档管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AOmniGraffle/">第一章：OmniGraffle</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%A7%8D%EF%BC%9AOmniGraffle/">第一种：OmniGraffle</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/">生活常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/">跨平台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%B7%B7%E7%BC%96%E4%BA%8B%E9%A1%B9%E8%AF%B4%E6%98%8E/">第一章：混编事项说明</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/GitHub/" rel="tag">GitHub</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gitee/" rel="tag">Gitee</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/AI/" style="font-size: 14.12px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.12px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.59px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.82px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.94px;">Git</a> <a href="/tags/GitHub/" style="font-size: 10px;">GitHub</a> <a href="/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.53px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.18px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.18px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.47px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.88px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.18px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.76px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.24px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.59px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.18px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10.59px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.59px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.53px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.65px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 17.06px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.53px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15.29px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 11.18px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.59px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.59px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.18px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.18px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.76px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.18px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 11.18px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.53px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.35px;">编程工具</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.71px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.76px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.59px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.41px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.18px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 12.94px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.18px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 12.94px;">项目整理</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">AI-③opencode会话管理</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">AI Tool-③cc-notify</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">AI Tool-②cc-connect</a>
+          </li>
+        
+          <li>
+            <a href="/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8_PRD/">dvlproad 项目列表 HTML — PRD</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A1Open%20Design/">AI-②Open Design</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2026 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+<script src="/js/search-local.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

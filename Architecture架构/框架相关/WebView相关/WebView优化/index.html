@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>WebView优化 | dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="[toc] 脑图与概览点击查看 webView.xmind 参考文章：  美团技术团队：WebView性能、体验分析与优化 全局WebView 70%以上业务由H5开发，手机QQ Hybrid 的架构如何优化演进？  概念1、当App首次打开时，默认是并不初始化浏览器内核的； 只有当创建WebView实例的时候，才会创建WebView的基础框架。 所以与浏览器不同，App中打开WebView的第一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WebView优化">
+<meta property="og:url" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="[toc] 脑图与概览点击查看 webView.xmind 参考文章：  美团技术团队：WebView性能、体验分析与优化 全局WebView 70%以上业务由H5开发，手机QQ Hybrid 的架构如何优化演进？  概念1、当App首次打开时，默认是并不初始化浏览器内核的； 只有当创建WebView实例的时候，才会创建WebView的基础框架。 所以与浏览器不同，App中打开WebView的第一">
+<meta property="og:locale">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/WebView%E4%BC%98%E5%8C%96/webview_blank_flow.png">
+<meta property="og:image" content="https://dvlproad.github.io/WebView%E4%BC%98%E5%8C%96/image-20240903234945043.png">
+<meta property="og:image" content="https://dvlproad.github.io/WebView%E4%BC%98%E5%8C%96/image-20240903234704466.png">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/WebView%E4%BC%98%E5%8C%96/ViewAddInOneViewController.png">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/WebView%E4%BC%98%E5%8C%96/ViewAddInDiffViewController1.gif">
+<meta property="og:image" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/WebView%E4%BC%98%E5%8C%96/ViewAddInDiffViewController2.gif">
+<meta property="article:published_time" content="2020-03-18T09:08:41.000Z">
+<meta property="article:modified_time" content="2024-04-09T15:58:58.000Z">
+<meta property="article:author" content="dvlproad">
+<meta property="article:tag" content="Architecture">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/WebView%E4%BC%98%E5%8C%96/webview_blank_flow.png">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Architecture架构/框架相关/WebView相关/WebView优化" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/">
+      <time datetime="2020-03-18T09:08:41.000Z" itemprop="datePublished">发表于 2020-03-18</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-04-09</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      WebView优化
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="脑图与概览"><a href="#脑图与概览" class="headerlink" title="脑图与概览"></a>脑图与概览</h2><p>点击查看 <a href="./webView/webView.ximd">webView.xmind</a></p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://tech.meituan.com/2017/06/09/webviewperf.html">美团技术团队：WebView性能、体验分析与优化</a></li>
+<li><a href="https://pss-system.cponline.cnipa.gov.cn/retrieveList?prevPageTit=changgui">全局WebView</a></li>
+<li><a href="https://mp.weixin.qq.com/s/evzDnTsHrAr2b9jcevwBzA">70%以上业务由H5开发，手机QQ Hybrid 的架构如何优化演进？</a></li>
+</ul>
+<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>1、当App首次打开时，默认是并不初始化浏览器内核的；</p>
+<p>只有当创建WebView实例的时候，才会创建WebView的基础框架。</p>
+<p>所以与浏览器不同，<strong>App中打开WebView的第一步并不是建立连接，而是启动浏览器内核</strong>。</p>
+<p>先上结论</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>优化方案</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(初次&#x2F;重复)打开时，加载慢</td>
+<td>webview提前(尽可能多的)初始化+全局化</td>
+<td></td>
+</tr>
+<tr>
+<td>加载中，加载慢</td>
+<td>拦截加载自定义图片(webview_flutter暂不支持)</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="一、-初次-重复-打开时，加载慢：webview提前-尽可能多的-初始化-全局化"><a href="#一、-初次-重复-打开时，加载慢：webview提前-尽可能多的-初始化-全局化" class="headerlink" title="一、(初次&#x2F;重复)打开时，加载慢：webview提前(尽可能多的)初始化+全局化"></a>一、(初次&#x2F;重复)打开时，加载慢：webview提前(尽可能多的)初始化+全局化</h2><p>背景：有一款基于 <a href="https://docs.cocos.com/cocos2d-x/manual/zh/">cocos2d</a> 的app游戏，其每次启动都很慢。（游戏端说是需要加载游戏引擎，而且引擎本身又比较消耗时间。）</p>
+<p>请问1：如何提高初次打开的加载速度？</p>
+<p>请问2：如何做到频繁退出进入游戏，不用都走一遍重新加载的流程呢？</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>问题</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>初次打开，加载慢</td>
+<td>1、webview的在冷启动过后不久的提前初始化<br>2、初始化的时候多多进行可以初始化的部分，如尝试游戏引擎的加载。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>重复打开，加载慢</td>
+<td>webview设为全局变量，重复使用</td>
+</tr>
+</tbody></table>
+<p>优化前后对比小结：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>方法</th>
+<th>存在的问题 VS 改进的好处</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未优化</td>
+<td>每次进入游戏都开启页面，退出游戏都销毁页面。</td>
+<td>使用上述方法，每次退出再进入该页面都会因为需要重新加载引擎，而导致游戏主页内容的显示很慢，从而严重影响app的使用体验。</td>
+</tr>
+<tr>
+<td>优化后</td>
+<td>1、游戏使用一个全局GameWebView(其他WebView不用全局)<br>2、游戏显示使用将webView添加到vc或者window上。</td>
+<td>全局GameWebView不会被销毁，能够重复使用，提升加载速度。<br>①加载过的游戏，下次再进入不用重新重新加载引擎，有效的跳过loading的过程，极大的改善了用户体验。</td>
+</tr>
+</tbody></table>
+<p>附1：游戏引擎能否直接在原生上提前加载？</p>
+<p>答：常见做法：构建出含Cocos的原生工程，然后将自己的功能添加上去。见 <a href="https://docs.cocos.com/creator/3.8/manual/zh/advanced-topics/native-secondary-development.html">Cocos Creator 上原生平台二次开发指南</a></p>
+<p>存在问题：不能自己在原生上添加游戏引擎。 <a href="https://docs.cocos.com/creator/3.8/manual/zh/advanced-topics/engine-customization.html">Cocos Creator 引擎定制工作流程 也只是将其自己编译器创建的项目的引擎定制。</a></p>
+<p>最终结论：游戏引擎没办法在原生上提前自己加载。</p>
+<p>背景：<a href="https://forum.cocos.org/t/topic/134724">如何将 Cocos Creator 构建出来的工程用正确的姿势接入Flutter 工程</a></p>
+<p>附2：一个视图实例被添加后，再被添加到其他地方后的效果</p>
+<p>此需求背景：<a href="../../Architecture%E6%9E%B6%E6%9E%84/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC%E7%9B%B8%E5%85%B3(%E8%B7%AF%E7%94%B1)">《页面跳转相关(路由)》中【四、游戏与app跳转交互优化调研】</a></p>
+<p>测试过程见附录 <a href="#%E6%B5%8B%E8%AF%95%E4%B8%80%E4%B8%AA%E8%A7%86%E5%9B%BE%E5%AE%9E%E4%BE%8B%E8%A2%AB%E6%B7%BB%E5%8A%A0%E5%90%8E%EF%BC%8C%E5%86%8D%E8%A2%AB%E6%B7%BB%E5%8A%A0%E5%88%B0%E5%85%B6%E4%BB%96%E5%9C%B0%E6%96%B9%E5%90%8E%E7%9A%84%E6%95%88%E6%9E%9C">附1：测试一个视图实例被添加后，再被添加到其他地方后的效果</a></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>被使用的方式</th>
+<th>使用的结果</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>一个视图实例添加到一个vc上的两个container上</td>
+<td>视图只显示在后面设置的位置</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>一个视图实例添加到不同viewController</td>
+<td>视图只显示在后面设置的位置。则代表回来的时候需要重新更新视图位置。</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="二、加载中，加载慢"><a href="#二、加载中，加载慢" class="headerlink" title="二、加载中，加载慢"></a>二、加载中，加载慢</h2><h3 id="方案1-进行-Scheme-拦截，利用-WKURLSchemeHandler"><a href="#方案1-进行-Scheme-拦截，利用-WKURLSchemeHandler" class="headerlink" title="方案1: 进行 Scheme 拦截，利用 WKURLSchemeHandler"></a>方案1: 进行 Scheme 拦截，利用 WKURLSchemeHandler</h3><p>解决：<strong>加载自定义图片，将webView的图片数据改为app的图片数据</strong>（Flutter现有的webview_flutter暂时不支持，如要需要自己修改）</p>
+<p>参考文档：</p>
+<ul>
+<li><p><a href="https://github.com/HARlBO/WWDC/blob/master/WWDC2017/Customized-Loading-in-WKWebView.md">WWDC Customized-Loading-in-WKWebView</a></p>
+</li>
+<li><p><a href="https://juejin.cn/post/6844903768442535949">掘金 WWDC2017-Customized Loading in WKWebView</a></p>
+</li>
+<li><p><a href="https://juejin.cn/post/7219490209716158523#heading-12">「拒绝踩坑」唯一一种拦截 WKWebView 资源请求的方式</a> &#x3D;&gt; <a href="https://juejin.cn/post/7223653286465273911">「最佳实践」WebView 预加载与资源缓存</a> &#x3D;&gt; <a href="https://juejin.cn/post/6997294531498475556">WKWebView实现请求拦截，http&#x2F;https&#x2F;file等</a> &#x3D;&gt; <a href="https://github.com/hite/URLSchemeHandlerTest/tree/master">WKURLSchemeHandler 的能与不能</a> 代码示例见 <a href="https://github.com/hite/URLSchemeHandlerTest/blob/master/URLSchemeHandlerTest/ViewController.m">ViewController.m</a></p>
+</li>
+</ul>
+<p>h5中</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">h3</span> <span class="attr">id</span>=<span class="string">&quot;photo&quot;</span>&gt;</span> 自定义图片:canineschool-avatar://photo  <span class="tag">&lt;/<span class="name">h3</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>app中</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> configuration <span class="operator">=</span> <span class="type">WKWebViewConfiguration</span>()</span><br><span class="line">configuration.setURLSchemeHandler(<span class="type">MyCustomSchemeHandler</span>(), forURLScheme: <span class="string">&quot;myScheme&quot;</span>)</span><br><span class="line"><span class="keyword">let</span> webView <span class="operator">=</span> <span class="type">WKWebView</span>(frame: .zero, configuration: configuration)</span><br><span class="line"><span class="comment">// 当WKWebView在加载一个使用&quot;myScheme://&quot;的资源时，就会调用我们的 MyCustomSchemeHandler 来获取数据。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MyCustomSchemeHandler</span>: <span class="title class_ inherited__">NSObject</span>, <span class="title class_ inherited__">WKURLSchemeHandler</span> &#123;</span><br><span class="line">    <span class="keyword">func</span> <span class="title function_">webView</span>(<span class="keyword">_</span> <span class="params">webView</span>: <span class="type">WKWebView</span>, <span class="params">start</span> <span class="params">urlSchemeTask</span>: <span class="type">WKURLSchemeTask</span>) &#123;</span><br><span class="line">      <span class="keyword">var</span> data: <span class="type">Data</span>?</span><br><span class="line">      <span class="keyword">var</span> mimeType <span class="operator">=</span> <span class="string">&quot;application/octet-stream&quot;</span> <span class="comment">// 默认MIME类型</span></span><br><span class="line">        </span><br><span class="line">      <span class="keyword">let</span> url <span class="operator">=</span> urlSchemeTask.request.url<span class="operator">!</span></span><br><span class="line">      <span class="comment">// 判断URL的文件扩展名，如果是图片才进行特殊处理，即将webView的图片数据改为app的图片数据</span></span><br><span class="line">      <span class="keyword">if</span> ([<span class="string">&quot;png&quot;</span>, <span class="string">&quot;jpg&quot;</span>, <span class="string">&quot;jpeg&quot;</span>].contains(url.pathExtension.lowercased()) &#123;</span><br><span class="line">        data <span class="operator">=</span> <span class="type">SDWebImageManager</span>.shared.imageData(forKey: url.absoluteString, options: [])</span><br><span class="line">        mimeType <span class="operator">=</span> url.pathExtension.lowercased() <span class="operator">==</span> <span class="string">&quot;png&quot;</span> <span class="operator">?</span> <span class="string">&quot;image/png&quot;</span> : <span class="string">&quot;image/jpeg&quot;</span>  </span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> url.path.hasSuffix(<span class="string">&quot;.css&quot;</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> localPath <span class="operator">=</span> getOfflinePath(for: url)<span class="comment">//映射到/var/.../offline_packs/css/common.css</span></span><br><span class="line">        <span class="keyword">let</span> data <span class="operator">=</span> <span class="keyword">try?</span> <span class="type">Data</span>(contentsOf: <span class="type">URL</span>(fileURLWithPath: localPath))</span><br><span class="line">        </span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;	<span class="comment">// 对于非图片类型，使用默认响应</span></span><br><span class="line">      &#125;</span><br><span class="line">        </span><br><span class="line">      <span class="comment">// 创建URL响应,向WKWebView提供响应和数据</span></span><br><span class="line">      <span class="keyword">let</span> response <span class="operator">=</span> <span class="type">URLResponse</span>(url: url, mimeType: mimeType, expectedContentLength: data.count, textEncodingName: <span class="literal">nil</span>)</span><br><span class="line">      urlSchemeTask.didReceive(response)</span><br><span class="line">      urlSchemeTask.didReceive(data: validData)</span><br><span class="line">      urlSchemeTask.didFinish()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">func</span> webView(<span class="keyword">_</span> webView: <span class="type">WKWebView</span>, stop urlSchemTask: <span class="type">WKURLSchemeTask</span>) &#123;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>[WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向](#WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向)</p>
+<h3 id="方案2-下载并解压zip，app加载本地静态文件"><a href="#方案2-下载并解压zip，app加载本地静态文件" class="headerlink" title="方案2: 下载并解压zip，app加载本地静态文件"></a>方案2: 下载并解压zip，app加载本地静态文件</h3><p>在WebView中加载本地资源：使用file协议在WebView中加载沙盒目录中的资源。</p>
+<p>跨域问题：</p>
+<p>方法1：在后端设置<strong>CORS</strong>（跨源资源共享）策略，允许来自特定来源的请求。</p>
+<p>方法2：资源通过js来app中获取再回到web中显示。</p>
+<h3 id="方案3：在app中内置一个-WebServer"><a href="#方案3：在app中内置一个-WebServer" class="headerlink" title="方案3：在app中内置一个 WebServer"></a>方案3：在app中内置一个 WebServer</h3><h3 id="其他离线方案："><a href="#其他离线方案：" class="headerlink" title="其他离线方案："></a>其他离线方案：</h3><p><a href="https://www.nowcoder.com/discuss/518917330118750208">iOS离线静态资源包技术方案分析</a></p>
+<p><a href="https://juejin.cn/post/6844903705968377863">Flutter下实现WebView拦截加载离线资源</a></p>
+<h3 id="思考：小程序"><a href="#思考：小程序" class="headerlink" title="思考：小程序"></a>思考：小程序</h3><p>小程序并不是一个简单的、优化过的网页，而是一个<strong>混合架构</strong>，可以理解为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">小程序 = Native原生容器 + WebView渲染 + JS引擎 + 离线包机制</span><br></pre></td></tr></table></figure>
+
+<p>小程序的页面栈管理，像小程序一样支持多页面：</p>
+<ul>
+<li>每个页面独立的WebView</li>
+<li>前进&#x2F;后退时切换WebView而不是重新加载</li>
+<li>保存每个页面的滚动位置和表单状态</li>
+</ul>
+<p>小程序容器的核心精髓：</p>
+<p>核心是要先下载离线包zip，然后用webview加载远程Url映射成用webview加载本地离线包中的html。html中的css、js、图片等资源也映射成本地？然后变成一个路由栈管理加载多个本地的html了？</p>
+<h2 id="三、打开后，白屏"><a href="#三、打开后，白屏" class="headerlink" title="三、打开后，白屏"></a>三、打开后，白屏</h2><h3 id="1、白屏的原因及原理"><a href="#1、白屏的原因及原理" class="headerlink" title="1、白屏的原因及原理"></a>1、白屏的原因及原理</h3><ul>
+<li><p><a href="https://blog.csdn.net/u012413955/article/details/89671301">深入理解WKWebView白屏</a></p>
+<blockquote>
+<p>iOS设备上造成白屏的真正原因只有两个：内存使用过度、进程通信机制出现错误。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="2、白屏的解决"><a href="#2、白屏的解决" class="headerlink" title="2、白屏的解决"></a>2、白屏的解决</h3><blockquote>
+<img src="/Architecture架构/框架相关/WebView相关/WebView优化/webview_blank_flow.png" alt="webview_blank_flow" style="zoom: 50%;" />
+</blockquote>
+<p>理想情况（不一定白屏都会调用到）：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//进程终止(内存消耗过大导致白屏)</span></span><br><span class="line">- (<span class="type">void</span>)webViewWebContentProcessDidTerminate:(<span class="built_in">WKWebView</span> *)webView &#123;</span><br><span class="line">    [webView reload];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其他处理方式：</p>
+<p>白屏的像素判断法：<a href="https://blog.csdn.net/allanGold/article/details/129028790">iOS WKWebView白屏的像素检测方法</a> 或 <a href="https://www.cnblogs.com/qfww/p/13863789.html">iOS WKWebview 白屏的像素检测实现</a></p>
+<p>webview截图 &#x3D;&#x3D;&gt; 缩放图片，为了减少待会遍历的像素点 &#x3D;&#x3D;&gt; 遍历像素点，判断白色像素占比超过95%则认定为白屏</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">totalCount++;</span><br><span class="line"><span class="keyword">if</span> (red == <span class="number">255</span> &amp;&amp; green == <span class="number">255</span> &amp;&amp; blue == <span class="number">255</span>) &#123;</span><br><span class="line">	whiteCount++;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 占比 proportion = (float)whiteCount/totalCount; 如果 占比 &gt;0.95 则认为白屏</span></span><br></pre></td></tr></table></figure>
+
+<p>白屏的 webView的子视图<code>WKCompositingView</code> 不存在的判断法：<a href="https://www.jianshu.com/p/4cd4a76e94d4">白屏时 WKCompositingView 为空</a></p>
+<p>附：WKCompositingView 也是我们在做 <a href="#WebView%E5%90%8C%E5%B1%82%E6%B8%B2%E6%9F%93">WebView同层渲染</a> 的时候经常会遇到的类。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 判断是否白屏</span></span><br><span class="line">- (<span class="type">BOOL</span>)isBlankView:(<span class="built_in">UIView</span>*)view &#123; <span class="comment">// YES：blank</span></span><br><span class="line">    Class wkCompositingView = <span class="built_in">NSClassFromString</span>(<span class="string">@&quot;WKCompositingView&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> ([view isKindOfClass:[wkCompositingView <span class="keyword">class</span>]]) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(<span class="built_in">UIView</span>*subView inview.subviews) &#123;</span><br><span class="line">        <span class="keyword">if</span> (![<span class="keyword">self</span> isBlankView:subView]) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其他解决方案：</p>
+<table>
+<thead>
+<tr>
+<th>白屏判断点</th>
+<th>参考文章</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>webView的 <code>url</code> 、<code> title</code> 、 <code>document.body.innerHTML</code> 为空</td>
+<td><a href="https://www.jianshu.com/p/e5f3ca12a11f">WKWebView 白屏处理</a></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="四、使用中的交互"><a href="#四、使用中的交互" class="headerlink" title="四、使用中的交互"></a>四、使用中的交互</h2><h3 id="1、常规"><a href="#1、常规" class="headerlink" title="1、常规"></a>1、常规</h3><ul>
+<li><a href="./h5js">第1.1节：h5js(app内的h5与app互相调用JS方法及传值)</a></li>
+<li><a href="./h5_open_app">第1.2节：h5 open app(app外的h5直接打开app)</a></li>
+</ul>
+<p>WKWebView 注入js代码： <a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter/tree/master/flutter_webview_kit">001-UIKit-CQDemo-Flutter 中的 flutter_webview_kit</a></p>
+<h3 id="2、全局webView下如何正确返回前一页"><a href="#2、全局webView下如何正确返回前一页" class="headerlink" title="2、全局webView下如何正确返回前一页"></a>2、全局webView下如何正确返回前一页</h3><p>见 《<a href="webview%E7%9A%84%E4%B8%80%E7%94%9F.graffle">webview的一生.graffle</a>》中的【全局webView下如何正确返回前一页】版面</p>
+<p><a name="WebView拦截请求的问题"></a></p>
+<h2 id="五、WebView拦截请求的问题"><a href="#五、WebView拦截请求的问题" class="headerlink" title="五、WebView拦截请求的问题"></a>五、WebView拦截请求的问题</h2><p>阿里云官方文档： <a href="https://help.aliyun.com/zh/dns/ios-webview?spm=a2c4g.11186623.0.0.335146d6SXDXxV">WKWebView使用私有API进行注册拦截请求</a></p>
+<p><a name="WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向"></a></p>
+<h3 id="1、WKURLSchemeHandler-拦截https时引起网络请求也被拦截了，如何重定向"><a href="#1、WKURLSchemeHandler-拦截https时引起网络请求也被拦截了，如何重定向" class="headerlink" title="1、WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向"></a>1、WKURLSchemeHandler 拦截https时引起网络请求也被拦截了，如何重定向</h3><p>当使用<strong>WKURLSchemeHandler</strong>拦截<code>https</code>的图片时候，其自然的也会把网络请求也拦截了，需要将那些网络请求重定向。</p>
+<p><strong>为了区分出不同的https，可以通过获取url地址的扩展名，如 <code>jpg、png、txt、MP4</code>等。</strong></p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="type">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session task:(<span class="built_in">NSURLSessionTask</span> *)task willPerformHTTPRedirection:(<span class="built_in">NSHTTPURLResponse</span> *)response newRequest:(<span class="built_in">NSURLRequest</span> *)request completionHandler:(<span class="type">void</span> (^)(<span class="built_in">NSURLRequest</span> * _Nullable))completionHandler &#123;</span><br><span class="line">    <span class="comment">// 调用 _didPerformRedirection:newRequest: 执行重定向</span></span><br><span class="line">  	<span class="comment">// 拆成 _didPerf ormRe dire ctio n:n ewRe que st: 后倒序得到如下</span></span><br><span class="line">    <span class="built_in">NSArray</span> *privateSelStrArr = @[<span class="string">@&quot;st:&quot;</span>, <span class="string">@&quot;que&quot;</span>, <span class="string">@&quot;ewRe&quot;</span>, <span class="string">@&quot;n:n&quot;</span>, <span class="string">@&quot;ctio&quot;</span>, <span class="string">@&quot;dire&quot;</span>, <span class="string">@&quot;ormRe&quot;</span>, <span class="string">@&quot;_didPerf&quot;</span>];</span><br><span class="line">    <span class="built_in">NSString</span> *selName = [[[privateSelStrArr reverseObjectEnumerator] allObjects] componentsJoinedByString:<span class="string">@&quot;&quot;</span>];</span><br><span class="line">    SEL sel = <span class="built_in">NSSelectorFromString</span>(selName);</span><br><span class="line">    <span class="meta">#<span class="keyword">pragma</span> clang diagnostic push</span></span><br><span class="line">    <span class="meta">#<span class="keyword">pragma</span> clang diagnostic ignored <span class="string">&quot;-Warc-performSelector-leaks&quot;</span></span></span><br><span class="line">    [<span class="keyword">self</span>.schemeTask performSelector:sel withObject:response withObject:request];</span><br><span class="line">    <span class="meta">#<span class="keyword">pragma</span> clang diagnostic pop</span></span><br><span class="line">    completionHandler(request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a name="WebView同层渲染"></a></p>
+<h2 id="六、WebView同层渲染"><a href="#六、WebView同层渲染" class="headerlink" title="六、WebView同层渲染"></a>六、WebView同层渲染</h2><p>原理：</p>
+<p>同层组件的目标是将原生组件渲染在与其他 Web 组件同一层级中。</p>
+<p>在 iOS 中，我们使用 WKWebView 来创建 Web 视图，通常 WKWebView 内核会将多个组件共同渲染到同一个 <strong>WKCompositingView</strong> 上，这个 View 是一个原生的 UIView 子类。但是如果某个 HTML 标签的 style 设置了 <code>overflow: scroll</code> 属性，并且内容超出容器的大小，WKWebView 就会为其单独的创建一个 <strong>WKChildScrollView</strong>，因此我们可以找到这些 View，并和对应的 Web 组件一一关联起来，就可以将原生的组件渲染到这个 View 中，从而实现同层渲染。</p>
+<p><a href="https://xie.infoq.cn/article/e4675760aac5bc0d3406ca4e7">理解 iOS 端的 WebView 同层组件</a></p>
+<h3 id="1、同层渲染需求背景："><a href="#1、同层渲染需求背景：" class="headerlink" title="1、同层渲染需求背景："></a>1、同层渲染需求背景：</h3><blockquote>
+<p>Webview 资源离线化之后不需要从后端拉取资源，省去了资源加载耗时减少等待时间，用户体验得到了明显提升，但受限于 Webview 的天生限制在某些场景下仍然能感受到与原生明显的体验落差。比如输入框弹出键盘时的页面卡顿、图片较多的页面内存占用过从后台回来前台时页面被重新加载、WebP 图片支持碎片化、图片不能跨页共享内存、视频播放组件体验不佳等问题。在 Webview 本身受限的情况下，如何在体验上向原生靠近是我们不得不面对的问题。如果能<strong>将影响用户体验的关键可交互组件用原生组件进行替换</strong>可以从根本上解决体验不如原生的问题。这部分内容我称为： <strong>WebView原生化</strong>。</p>
+<p><strong>Webview 原生化是指把 Webview 内部分占位 DOM 元素用原生组件进行替换</strong>，原生组件与原始 Webview 混合便得到了用户看到的最终界面。</p>
+<p>组件替换有两种方式，<br>蒙层方案：在 Webview 的直接上层添加原生视图蒙层，把原生组件添加到蒙层上占位 DOM 对应的位置。</p>
+<blockquote>
+<p>缺点：当一个原生组件被添另到 Webview 上时它永远处顶层，不会被 Webview 内的弹窗覆盖，在滚动时原生组件会盖住原本应被显示的区域。</p>
+</blockquote>
+<p>同层渲染方案：另一种是将原生组件添加到 Webiview 渲染时与占位 DOM 对应的合成层(独立出来的原生视图)上，下面会对比两种方案的差异。</p>
+<p>以上引用内容摘自：<a href="https://juejin.cn/post/7310786591940935689?from=search-suggest">微信小程序『同层渲染』技术是怎么回事?</a> 强烈建议点开原文再看一遍。</p>
+</blockquote>
+<h3 id="2、同层渲染实现示例"><a href="#2、同层渲染实现示例" class="headerlink" title="2、同层渲染实现示例"></a>2、同层渲染实现示例</h3><p><strong>关键问题：如何映射 DOM 到原生视图？如何在原生视图树中查找 「DOM」</strong></p>
+<p>「同层渲染」则是将原生组件直接渲染到 WebView 层级上。</p>
+<h4 id="2-1、入门简单实现"><a href="#2-1、入门简单实现" class="headerlink" title="2.1、入门简单实现"></a>2.1、入门简单实现</h4><ul>
+<li><p><a href="https://juejin.cn/post/6983653836023922724">同层渲染实现示例</a></p>
+<blockquote>
+<p>具体Demo示例可见<a href="https://github.com/Coder-Star/SameLayerRender">SameLayerRender</a></p>
+</blockquote>
+</li>
+</ul>
+<p>实现步骤：</p>
+<p>1、创建一个可以生成<code>WKChildScrollView</code>原生组件的 DOM 节点</p>
+<p>2、传递给客户端查找到该 DOM 节点对应的 <code>WKChildScrollView</code> 原生组件的必要信息</p>
+<p>3、客户端根据传来的信息找到对应的原生组件，并将原生组件挂载到该 <code>WKChildScrollView</code> 节点上</p>
+<ul>
+<li><a href="https://cloud.tencent.com/developer/article/2203859">理解iOS端的WebView同层组件</a></li>
+</ul>
+<h4 id="2-2、微信小程序实现"><a href="#2-2、微信小程序实现" class="headerlink" title="2.2、微信小程序实现"></a>2.2、微信小程序实现</h4><p><a href="https://developers.weixin.qq.com/miniprogram/dev/framework/runtime/skyline/introduction.html">Skyline 渲染引擎 &#x2F;概览 &#x2F;介绍</a></p>
+<p>（ 微信 Skyline 渲染引擎类似 Flutterr 的 SkyEngine）</p>
+<p><a href="https://developers.weixin.qq.com/miniprogram/dev/component/native-component.html">微信小程序 原生组件说明</a></p>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/image-20240903234945043.png" alt="image-20240903234945043"></p>
+<p><img src="/Architecture架构/框架相关/WebView相关/WebView优化/image-20240903234704466.png" alt="image-20240903234704466"></p>
+<h3 id="3、其他参考文档"><a href="#3、其他参考文档" class="headerlink" title="3、其他参考文档"></a>3、其他参考文档</h3><p><a href="https://juejin.cn/post/6844904163181232136">【必读】前端需要懂的 APP 容器原理</a></p>
+<blockquote>
+<p>容器 URL 统一化建设（一个 URL 地址可按需动态配置渲染成 H5、Native 等页面），小程序容器建设，Flutter 容器建设，容器的快照缓存、预渲染、混合渲染等优化与能力相关建设</p>
+</blockquote>
+<ul>
+<li><a href="https://juejin.cn/post/7250045388852920357">app加载webview&amp;小程序&amp;React Navive&amp;Flutter&amp;原生渲染区别</a></li>
+</ul>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>优化待处理的文章</p>
+<ul>
+<li><a href="https://ramboqiu.github.io/posts/iOS%E7%A7%92%E5%BC%80H5%E5%AE%9E%E6%88%98%E6%80%BB%E7%BB%93/">iOS秒开H5实战总结</a></li>
+</ul>
+<p><a href="https://blog.51cto.com/sdwml/6101197">APP中WebView性能优化</a></p>
+<h1 id="iOS-WebView-H5-调试新姿势"><a href="#iOS-WebView-H5-调试新姿势" class="headerlink" title="iOS WebView&#x2F;H5 调试新姿势"></a>iOS WebView&#x2F;H5 调试新姿势</h1><p><a href="https://testerhome.com/topics/34559"> iOS WebView&#x2F;H5 调试新姿势</a></p>
+<h2 id="附1：测试一个视图实例被添加后，再被添加到其他地方后的效果"><a href="#附1：测试一个视图实例被添加后，再被添加到其他地方后的效果" class="headerlink" title="附1：测试一个视图实例被添加后，再被添加到其他地方后的效果"></a>附1：测试一个视图实例被添加后，再被添加到其他地方后的效果</h2><p><strong>测试代码：详见 <a href="https://gitee.com/dvlproad/AppCommonJSCollect/tree/master/AppCommonJSCollect/AppCommonJSCollect/Module">AppCommonJSCollect 中的 SharedNormalView 、 SharedWebView</a></strong></p>
+<h3 id="1-1、测试一个视图实例添加到一个vc上的两个container上"><a href="#1-1、测试一个视图实例添加到一个vc上的两个container上" class="headerlink" title="1.1、测试一个视图实例添加到一个vc上的两个container上"></a>1.1、测试一个视图实例添加到一个vc上的两个container上</h3><blockquote>
+<img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInOneViewController.png" alt="ViewAddInOneViewController" style="zoom: 10%;" />
+</blockquote>
+<h3 id="1-2、测试一个视图实例添加到不同viewController"><a href="#1-2、测试一个视图实例添加到不同viewController" class="headerlink" title="1.2、测试一个视图实例添加到不同viewController"></a>1.2、测试一个视图实例添加到不同viewController</h3><p>阶段1：进入新页面的时候，使用之前共享的视图</p>
+<p>阶段1结果：虽然第二页复用了第一页中的视图，但是从第二页回来的时候，第一页的视图不见了。</p>
+<blockquote>
+<img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInDiffViewController1.gif" alt="ViewAddInDiffViewController1" style="zoom: 33%;" />
+</blockquote>
+<p>阶段2：在阶段1的基础上，补充回来的时候(viewWillAppear)，需要重新更新视图的布局</p>
+<p>阶段2结果：视图显示正确了</p>
+<blockquote>
+<img src="/Architecture架构/框架相关/WebView相关/WebView优化/ViewAddInDiffViewController2.gif" alt="ViewAddInDiffViewController2" style="zoom: 33%;" />
+</blockquote>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/WebView%E4%BC%98%E5%8C%96/" data-id="cmpfam9u20100cgjj52knb3mg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E6%95%B0%E6%8D%AE%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          埋点数据常见问题
+        
+      </div>
+    </a>
+  
+  
+    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/WebView%E7%9B%B8%E5%85%B3/h5_native_interacte/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">目录</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list">
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Architecture/">Architecture</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/">第一章：架构相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">第三章：基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/">第四章：基础框架设计及接口文档</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E9%80%9A%E7%94%A8%E4%B8%9A%E5%8A%A1%E8%A7%84%E8%8C%83/">第六章：通用业务规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">第七章：技术选型</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E9%A1%B5%E9%9D%A2%E5%8A%A0%E8%BD%BD%E7%9B%B8%E5%85%B3/">第八章：页面加载相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/">第九章：监控相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/QA/">QA</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/Threads/">Threads</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%8A%9F%E8%83%BD%E6%B5%81%E7%A8%8B/">功能流程</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%95%8C%E9%9D%A2%E8%A7%86%E5%9B%BE/">界面视图</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%89%E5%85%A8%E4%B8%8E%E7%A0%B4%E8%A7%A3/">安全与破解</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/AI/">AI</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/">管理相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/">项目列表</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/">行业相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%99%BA%E8%83%BD%E5%AE%B6%E5%B1%85%E7%9B%B8%E5%85%B3/">第一章：智能家居相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/">算法与数学</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Database/">Database</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/iOS/">iOS</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%8A%9F%E8%83%BD%E6%80%A7%E6%8A%80%E6%9C%AF/">功能性技术</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">开发规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/">移动分析</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/">第三方库</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%AF%81%E4%B9%A6%E5%8F%91%E7%89%88/">证书发版</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Android/">Android</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Android/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Flutter/">Flutter</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AFlutter%E5%85%A5%E9%97%A8/">第一章：Flutter入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%9B%86%E6%88%90Flutter%E5%88%B0%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE/">第二章：集成Flutter到原生项目</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE%E4%B8%8EFlutter%E7%9A%84%E4%BA%A4%E4%BA%92/">第三章：原生项目与Flutter的交互</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9AFlutter%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/">第四章：Flutter登录页实战</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E8%AF%A6%E8%A7%A3/">第五章：详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E8%BF%9B%E9%98%B6/">第六章：进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E8%A7%84%E8%8C%83/">第七章：规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">第八章：状态管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/">第九章：框架升级</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/10%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/">10与原生相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/5%E8%AF%A6%E8%A7%A3/">5详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E6%97%A0%E7%91%95%E7%96%B5%E7%9A%84%E6%B7%B7%E7%BC%96%E7%99%BB%E5%BD%95%E9%A1%B5/">无瑕疵的混编登录页</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E9%9B%B6%E7%AB%A0%EF%BC%9AFlutter%E6%BA%90%E7%A0%81/">第零章：Flutter源码</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E8%B7%B5/">项目实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/ReactNative/">ReactNative</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AReactNative%E5%85%A5%E9%97%A8/">第一章：ReactNative入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9AReactNative%E8%AF%A6%E8%A7%A3/">第五章：ReactNative详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9AReactNative%E8%BF%9B%E9%98%B6/">第六章：ReactNative进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9AReactNative%E5%AE%9E%E8%B7%B5/">第八章：ReactNative实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/H5-APP/">H5-APP</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/H5-APP/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/HTML/">HTML</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/2%E6%89%A9%E5%B1%95/">2扩展</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Weex/">Weex</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Weex/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AWeex%E5%85%A5%E9%97%A8/">第一章：Weex入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/">上架相关</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Script/">Script</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/">Mac快速操作</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Python/">Python</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Shell/">Shell</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/">实用工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/ChatGPT/">ChatGPT</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/GitBook/">GitBook</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Hexo/">Hexo</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Terminal/">Terminal</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Zentao/">Zentao</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/%E5%85%B6%E4%BB%96%E5%B0%8F%E5%B7%A5%E5%85%B7/">其他小工具</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/MySQL/">MySQL</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Nginx/">Nginx</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/node/">node</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/protobuf/">protobuf</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/XAMPP/">XAMPP</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/">代码管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/">Git</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/%E5%BA%93%E7%AE%A1%E7%90%86/">库管理</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/">电脑使用</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B8%B8%E8%AF%86%E7%B1%BB/">常识类</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/">编程工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/">科学工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%93%E5%88%A9/">专利</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E8%87%AA%E5%8A%A8%E5%8C%96/">APP自动化</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/npmjs/">npmjs</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/README/">README</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/">后台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9B%B8%E5%85%B3/">第一章：服务器相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/">工作常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/">技术常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/">文档管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AOmniGraffle/">第一章：OmniGraffle</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%A7%8D%EF%BC%9AOmniGraffle/">第一种：OmniGraffle</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/">生活常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/">跨平台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%B7%B7%E7%BC%96%E4%BA%8B%E9%A1%B9%E8%AF%B4%E6%98%8E/">第一章：混编事项说明</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/GitHub/" rel="tag">GitHub</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gitee/" rel="tag">Gitee</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/AI/" style="font-size: 14.12px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.12px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.59px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.82px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.94px;">Git</a> <a href="/tags/GitHub/" style="font-size: 10px;">GitHub</a> <a href="/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.53px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.18px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.18px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.47px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.88px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.18px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.76px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.24px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.59px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.18px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10.59px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.59px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.53px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.65px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 17.06px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.53px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15.29px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 11.18px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.59px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.59px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.18px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.18px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.76px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.18px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 11.18px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.53px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.35px;">编程工具</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.71px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.76px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.59px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.41px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.18px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 12.94px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.18px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 12.94px;">项目整理</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">AI-③opencode会话管理</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">AI Tool-③cc-notify</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">AI Tool-②cc-connect</a>
+          </li>
+        
+          <li>
+            <a href="/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8_PRD/">dvlproad 项目列表 HTML — PRD</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A1Open%20Design/">AI-②Open Design</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2026 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+<script src="/js/search-local.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

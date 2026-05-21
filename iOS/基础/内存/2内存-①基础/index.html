@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>内存-①基础 | dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="①基础[toc] 知识架构iOS知识库 Android知识库  # 目录   一、指针   123456789101112131415161、几个本质2、空指针和未初始化的指针(1)、空指针和未初始化的指针的区别：(2)、为什么指针变量定义时一定要初始化？ 3、野指针与悬空指针(1)、指针与内存的常见使用顺序(2)、内存泄漏的概念(3)、野指针概念(4)、在iOS中野指针的后果(5)、分析野指针的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="内存-①基础">
+<meta property="og:url" content="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A0%E5%9F%BA%E7%A1%80/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="①基础[toc] 知识架构iOS知识库 Android知识库  # 目录   一、指针   123456789101112131415161、几个本质2、空指针和未初始化的指针(1)、空指针和未初始化的指针的区别：(2)、为什么指针变量定义时一定要初始化？ 3、野指针与悬空指针(1)、指针与内存的常见使用顺序(2)、内存泄漏的概念(3)、野指针概念(4)、在iOS中野指针的后果(5)、分析野指针的">
+<meta property="og:locale">
+<meta property="article:published_time" content="2019-04-28T01:27:20.000Z">
+<meta property="article:modified_time" content="2025-08-26T15:39:22.000Z">
+<meta property="article:author" content="dvlproad">
+<meta property="article:tag" content="iOS">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-iOS/基础/内存/2内存-①基础" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A0%E5%9F%BA%E7%A1%80/">
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-08-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      内存-①基础
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="①基础"><a href="#①基础" class="headerlink" title="①基础"></a>①基础</h1>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
+<p id="目录"></p>
+# 目录
+
+<ul>
+<li><a href="#%E6%8C%87%E9%92%88">一、指针</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">1、几个本质</span><br><span class="line"></span><br><span class="line">2、空指针和未初始化的指针</span><br><span class="line">(1)、空指针和未初始化的指针的区别：</span><br><span class="line">(2)、为什么指针变量定义时一定要初始化？ </span><br><span class="line"></span><br><span class="line">3、野指针与悬空指针</span><br><span class="line">(1)、指针与内存的常见使用顺序</span><br><span class="line">(2)、内存泄漏的概念</span><br><span class="line">(3)、野指针概念</span><br><span class="line">(4)、在iOS中野指针的后果</span><br><span class="line">(5)、分析野指针的产生原因及解决办法</span><br><span class="line"></span><br><span class="line">4、iOS NSerror 用双重指针理解</span><br><span class="line"></span><br><span class="line">5、指针和引用的区别</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#%E5%86%85%E5%AD%98">二、内存</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">1、堆和栈的区别?</span><br><span class="line"></span><br><span class="line">2、浅拷贝和深拷贝的区别</span><br><span class="line"></span><br><span class="line">3、分析NSString、NSMutableString等类的copy、mutableCopy</span><br><span class="line">(1)、分别对NSString、NSMutableString进行copy、mutableCopy生成的类型是什么？</span><br><span class="line">(2)、分别对NSString、NSMutableString进行copy、mutableCopy操作，是否会开辟新地址，即是属于深拷贝还是浅拷贝？</span><br><span class="line">(3)、将NSString、NSMutableString变量赋值给用copy、strong修饰的NSString属性的时候，是否会开辟新地址，即是属于深拷贝还是浅拷贝？</span><br><span class="line">(4)、将NSString、NSMutableString变量赋值给用copy、strong修饰的NSMutableString属性的时候，是否会开辟新地址，即是属于深拷贝还是浅拷贝？</span><br><span class="line">(5)、自己代码实现copy修饰符，应该怎么写？？？？</span><br><span class="line"></span><br><span class="line">4、NSCoding和NSCopy</span><br><span class="line">(1)、NSCoding的作用</span><br><span class="line">(2)、NSCopy</span><br><span class="line"></span><br><span class="line">5、@synthesize和@dynamic区别</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#%E5%86%85%E5%AD%98">八、谈谈内存管理、内存泄露、循环引用</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">1、内存管理</span><br><span class="line">(1)、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？</span><br><span class="line">(2)、那怎么知道对象已经没有被引用了呢？</span><br><span class="line">(3)、autorelease、autoreleasepool(自动释放池)</span><br><span class="line">(4)、autoreleasepool(自动释放池)　</span><br><span class="line">(5)、autoreleasepool里面对象的内存什么时候释放? </span><br><span class="line">(6)、runloop、autorelease pool以及线程之间的关系</span><br><span class="line">(7)、自动释放池怎样创建</span><br><span class="line">(8)、自动释放池使用注意</span><br><span class="line">(9)、自动释放池的应用/什么时候要用@autoreleasepool</span><br><span class="line"></span><br><span class="line">2、如何监测内存泄漏</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">自动释放池底层怎么实现?</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><a href="#END">END</a></li>
+</ul>
+<p>常用数据类型占用内存大小</p>
+<ul>
+<li><a href="https://www.cnblogs.com/guozht/p/7929033.html">常用数据类型占用内存大小</a></li>
+</ul>
+<blockquote>
+<p><strong>64位编译器</strong></p>
+<p>char ：1个字节<br>char*(即指针变量): 8个字节<br>short int : 2个字节<br>int： 4个字节<br>unsigned int : 4个字节<br>float: 4个字节<br>double:  8个字节<br><strong>long:  8个字节</strong><br>long long: 8个字节<br>unsigned long: 8个字节</p>
+</blockquote>
+<p id="指针"></p>
+## 一、指针
+> [< 返回目录](#目录)
+
+<h4 id="1、几个本质"><a href="#1、几个本质" class="headerlink" title="1、几个本质"></a>1、几个本质</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">数据类型：</span><br><span class="line">数据类型的本质是固定大小内存的别名。</span><br><span class="line">对变量声明数据类型，是为了告诉编译器分配几个字节的内存。</span><br><span class="line"></span><br><span class="line">变量：</span><br><span class="line">变量的本质是一段内存空间的别名。</span><br><span class="line">也就是给一段内存空间取一个新的名字，就是变量。</span><br><span class="line"></span><br><span class="line">指针：</span><br><span class="line">指针也是一种数据类型，它的值是某一个内存空间的地址。</span><br><span class="line">指针的步长根据它指向的内存空间的数据类型而定。</span><br><span class="line"></span><br><span class="line">数组中[]的本质：假如有数组array，则array[i]等价于*(array+i)，是因为[]对于程序员来讲是友好的，但是编译器最终还是要将它理解为指针，也就是数组作为函数参数时的退化。array[i] ==&gt; array[0+i] ==&gt;*(array+i)</span><br></pre></td></tr></table></figure>
+
+<h4 id="2、空指针和未初始化的指针-野指针"><a href="#2、空指针和未初始化的指针-野指针" class="headerlink" title="2、空指针和未初始化的指针&#x2F;野指针"></a>2、空指针和未初始化的指针&#x2F;野指针</h4><h6 id="1-、空指针和未初始化的指针的区别："><a href="#1-、空指针和未初始化的指针的区别：" class="headerlink" title="(1)、空指针和未初始化的指针的区别："></a>(1)、空指针和未初始化的指针的区别：</h6><blockquote>
+<p><strong>①空指针可以确保不指向任何对象或函数</strong>;<br>而<strong>②未初始化指针则可能指向任何地方，即它所指向的地址就是随机的，也就说此时它是个野指针。（附：如果一个指针的指向对象后来被删除，却未置为空指针nil，则它也是野指针）</strong><br>所以空指针在概念上不同于未初始化的指针。<br>对于malloc在其内存分配的时候，如果内存分配成功，返回的一定不是空指针；但是如果malloc内存分配失败,返回的空指针。而不是一个未初始化的指针。</p>
+</blockquote>
+<p>以下是华为笔试题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">下面有关空指针和未初始化指针，说法错误的是？</span><br><span class="line">A.对0x0这个地址取值是非法的</span><br><span class="line">B.空指针可以确保不指向任何对象或函数; 而未初始化指针则可能指向任何地方。</span><br><span class="line">C.空指针与任何对象或函数的指针值都不相等</span><br><span class="line">D.malloc在其内存分配失败时返回的是一个未初始化的指针</span><br></pre></td></tr></table></figure>
+
+<p>错误答案是D，因malloc内存分配失败，返回的是空指针。详细请查看原文地址<br><a href="https://www.nowcoder.com/questionTerminal/9a24bf403b1c4103a23562d52a2091ea">华为笔试：下面有关空指针和未初始化指针，说法错误的是？</a></p>
+<h6 id="2-、为什么指针变量定义时一定要初始化？"><a href="#2-、为什么指针变量定义时一定要初始化？" class="headerlink" title="(2)、为什么指针变量定义时一定要初始化？"></a>(2)、为什么指针变量定义时一定要初始化？</h6><blockquote>
+<p>答:因为你首先要理解一点.内存空间不是你分配了才可以使用，只是你分配了之后使用才安全。</p>
+<p>为什么要进行对他初始化呢，因为如果你没对它初始化，那么这个指针所指向的地址就是随机的，即此时它是个野指针。这时候如果你引用这个指针并对它做了修改这个指针所指向的内容的操作的话，如果刚好这个指针所指向的内容恰好是另外一个程序的数据的话，那么你原本随意的一个修改，就造成了对另一个程序的数据的修改了，也就会导致另外一个程序可能不能正常运行了。所以使用前一定要进行初始化。</p>
+</blockquote>
+<h4 id="3、野指针与悬空指针"><a href="#3、野指针与悬空指针" class="headerlink" title="3、野指针与悬空指针"></a>3、野指针与悬空指针</h4><p>在C&#x2F;C++等语言中，</p>
+<p>悬空指针（Dangling Pointer）指的是：<strong>一个指针的指向对象已被删除</strong>，那么就成了悬空指针。</p>
+<p><strong>野指针是那些未初始化的指针</strong>。</p>
+<p>有时也把野指针和悬空指针通称悬空指针。<br>而好像在iOS中是通称为野指针。</p>
+<p>以下内容摘自：<a href="https://baike.baidu.com/item/%E8%BF%B7%E9%80%94%E6%8C%87%E9%92%88/6959997?fr=aladdin">百度百科：迷途指针</a></p>
+<blockquote>
+<p>在计算机编程领域中，迷途指针，或称悬空指针、野指针，指的是不指向任何合法的对象的指针。</p>
+<p>当所指向的对象被释放或者收回，但是对该指针没有作任何的修改，以至于该指针仍旧指向已经回收的内存地址，此情况下该指针便称迷途指针。</p>
+<p>若操作系统将这部分已经释放的内存重新分配给另外一个进程，而原来的程序重新引用现在的迷途指针，则将产生无法预料的后果。因为此时迷途指针所指向的内存现在包含的已经完全是不同的数据。通常来说，若原来的程序继续往迷途指针所指向的内存地址写入数据，这些和原来程序不相关的数据将被损坏，进而导致不可预料的程序错误。</p>
+<p>这种类型的程序错误，不容易找到问题的原因，通常会导致存储器区块错误（Linux系统中）和一般保护错误（Windows系统中）。如果操作系统的内存分配器将已经被覆盖的数据区域再分配，就可能会影响系统的稳定性。</p>
+<p>某些编程语言允许未初始化的指针的存在，而这类指针即为野指针。野指针所导致的错误和迷途指针非常相似，但野指针的问题更容易被发现。</p>
+</blockquote>
+<h6 id="1-、指针与内存的常见使用顺序"><a href="#1-、指针与内存的常见使用顺序" class="headerlink" title="(1)、指针与内存的常见使用顺序"></a>(1)、指针与内存的常见使用顺序</h6><p>在堆中申请了一块内存，并用一个指针指向它。<br>一般我们都会在不用的时候先释放该指针指向的内存，再将该指针置为空指针。<br>即一般正确的写法如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//指针变量和指针所指向的内存变量是两个不同的概念</span></span><br><span class="line"><span class="comment">//使用动态内存分为三步</span></span><br><span class="line"><span class="comment">//1.定义时，将指针为定义NULL</span></span><br><span class="line"><span class="comment">//2.释放内存时，把指针变量重新赋值或者NULL</span></span><br><span class="line"><span class="comment">//3.释放内存后，把指针变量赋值为NULL</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main02</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> *p = <span class="literal">NULL</span>;</span><br><span class="line">    p = (<span class="type">int</span> *)<span class="built_in">malloc</span>(<span class="number">4</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">NULL</span>)&#123;</span><br><span class="line">        <span class="built_in">free</span>(p);<span class="comment">//释放P所指向的内存空间,但指针变量p仍然留在栈中,成为了野指针</span></span><br><span class="line">        p = <span class="literal">NULL</span>;<span class="comment">//释放野指针（这是关键，记得释放指针所指向的内存空间后，要释放野指针）</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是<br>①、如果我们在未来始终没有去手动释放掉我们开辟的内存的话，会导致内存泄漏；<br>②、如果释放掉了该内存，却忘了同时释放只想该内存的指针，会导致产生悬空指针或者说是迷途指针，或者有人也称是野指针。<br>③、如果记得释放指针，却忘了释放指针只想的内存(即记得②忘了①)，那么由于指针已经消失，而指针指向的东西还在，那么久永远无法控制这块内存，而导致一定内存泄漏了。</p>
+<h6 id="2-、内存泄漏的概念"><a href="#2-、内存泄漏的概念" class="headerlink" title="(2)、内存泄漏的概念"></a>(2)、内存泄漏的概念</h6><p><strong>内存泄漏（Memory Leak）是指程序中己动态分配的堆内存由于某种原因程序未释放或无法释放，造成系统内存的浪费，导致程序运行速度减慢甚至系统崩溃等严重后果。</strong></p>
+<h6 id="3-、野指针概念"><a href="#3-、野指针概念" class="headerlink" title="(3)、野指针概念"></a>(3)、野指针概念</h6><blockquote>
+<p>C语言: 当我们声明1个指针变量,没有为这个指针变量赋初始值.这个指针变量的值是1个垃圾指针 指向1块随机的内存空间。</p>
+<p>OC语言: 指针指向的对象已经被回收掉了.这个指针就叫做野指针.</p>
+<p><strong>野指针：指向内存被释放的内存或者没有访问权限的内存的指针</strong>。</p>
+</blockquote>
+<p>更详细的概念可查看：<a href="https://baike.baidu.com/item/%E9%87%8E%E6%8C%87%E9%92%88/9654046?fr=aladdin">百度百科——野指针</a></p>
+<h6 id="4-、在iOS中野指针的后果"><a href="#4-、在iOS中野指针的后果" class="headerlink" title="(4)、在iOS中野指针的后果"></a>(4)、在iOS中野指针的后果</h6><p>野指针的后果：崩溃EXC_BAD_ADDRESS</p>
+<h6 id="5-、分析野指针的产生原因及解决办法"><a href="#5-、分析野指针的产生原因及解决办法" class="headerlink" title="(5)、分析野指针的产生原因及解决办法"></a>(5)、分析野指针的产生原因及解决办法</h6><blockquote>
+<p>知识点：任何指针变量刚被创建时不会自动成为NULL指针，它的缺省值是随机的，它会乱指一气。所以，指针变量在创建的同时应当被初始化，要么将指针设置为NULL，要么让它指向合法的内存。</p>
+</blockquote>
+<p>“野指针”的成因主要有：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>）指针变量没有被初始化。(即随机只想的这个指针很有可能只想一块没人用的内存，)</span><br><span class="line"><span class="type">char</span> *p; <span class="comment">//此时p为野指针</span></span><br><span class="line"><span class="comment">//正确的为在声明之后加上 p=new char[10];我们常直接写为一行，即char *p=new char[10];</span></span><br><span class="line"></span><br><span class="line"><span class="number">2</span>）指针p被<span class="built_in">free</span>或者delete之后，没有置为<span class="literal">NULL</span>，让人误以为p是个合法的指针.</span><br><span class="line"><span class="type">char</span> *p=new <span class="type">char</span>[<span class="number">10</span>];  <span class="comment">//指向堆中分配的内存首地址，p存储在栈区</span></span><br><span class="line"><span class="built_in">cin</span>&gt;&gt; p;</span><br><span class="line">delete []p; <span class="comment">//p重新变为野指针</span></span><br><span class="line"><span class="comment">//正确的应该在指针p被free或者delete之后,加上p = Null;</span></span><br><span class="line"></span><br><span class="line"><span class="number">3</span>）指针操作超越了变量的作用范围。</span><br><span class="line"><span class="type">char</span> *p=new <span class="type">char</span>[<span class="number">10</span>]; <span class="comment">//指向堆中分配的内存首地址</span></span><br><span class="line"><span class="built_in">cin</span>&gt;&gt; p;</span><br><span class="line"><span class="built_in">cout</span>&lt;&lt;*(p+<span class="number">10</span>); <span class="comment">//可能输出未知数据</span></span><br></pre></td></tr></table></figure>
+
+<p><a href="https://www.cnblogs.com/tgycoder/p/5661431.html">iOS 关于僵尸对象和僵尸指针的那些事儿</a></p>
+<h4 id="4、iOS-NSerror-用双重指针理解"><a href="#4、iOS-NSerror-用双重指针理解" class="headerlink" title="4、iOS NSerror 用双重指针理解"></a>4、iOS NSerror 用双重指针理解</h4><p>常见代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NSError *error = nil;</span><br><span class="line">[[NSFileManager defaultManager] removeItemAtPath:absoluteFilePath error:&amp;error];</span><br><span class="line">if (error) &#123;</span><br><span class="line">	NSLog(@&quot;删除单个文件的时候出现错误：%@&quot;,error.localizedDescription);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可见，如果我们不是传指针的指针&amp;error,而是传error，那么if(error)中的error就肯定是nil了。那就没用了。</p>
+<p>所以这里传error的指针的原因可简单概括为：<br>因为我们要得到一个新的error值。所以如果有方法</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">- (NSError *)getNewErrorForremoveItemAtPathremoveItemAtPath:(NSString *)path  error:(NSError **)error &#123;</span><br><span class="line">	NSError *newError = [NSError errorWithDomain:...];</span><br><span class="line">	</span><br><span class="line">	return newError;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那么这边，我们的error,就可以直接传error本身，甚至不传都是可以的。</p>
+<p>但是实际是这些方法本身的返回值，已经被定义为判断能否进行某种操作，而不是操作是否成功给占用了，如这边已经被判断能否进行删除文件给占用了，所以如果我们还想知道这个删除文件操作结果的error，那就把error的指针的指针传进去，最后其出来的就是我们想要的。<br>所以，猜测其内部结构应该是</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)removeItemAtPath:(NSString *)path error:(NSError **)error &#123;</span><br><span class="line">	BOOL canRemove = ...;</span><br><span class="line">	if (!canRemove) &#123;</span><br><span class="line">		* error = [NSError errorWithDomain:...];</span><br><span class="line">		return NO;</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		//* error = * error; //即不变</span><br><span class="line">		return YES;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下解释原因摘自：<a href="https://zhidao.baidu.com/question/484954523.html">ios中处理错误为什么传递的是&amp;error，而不是error？</a></p>
+<blockquote>
+<p>因为 需要将error 传入后修改其值，然后再返回来，返回来后还要保证己经修改过了。</p>
+<p>&amp;error传入是传的地址引用，传入后处理函数直接访问变量的地址，可以修改其值再返回同一个地址， 调用函数就可以知道值是否有修改，即是否有错。</p>
+<p>而error传入是传的值引用，值引用传入到程序栈中后其实是把原来的值复制了一份传过去，处理函数可以修改，但无法将改后的值传出函数体。</p>
+</blockquote>
+<h4 id="5、指针和引用的区别"><a href="#5、指针和引用的区别" class="headerlink" title="5、指针和引用的区别"></a>5、指针和引用的区别</h4><p>(1)定义和性质的区别<br>①指针：指针是一个变量，只不过这个变量存储的是一个地址，指向内存的一个存储单元；<br>②而引用跟原来的变量实质上是同一个东西，只不过是原变量的一个别名而已。<br>简单点说：一个是存地址，一个是变量别名<br>（2）指针和引用作为函数参数进行传递时的区别<br>①用指针传递参数，可以实现对实参进行改变的目的，是因为传递过来的是实参的地址<br>②引用作为函数参数进行传递时，实质上传递的是实参本身，即传递进来的不是实参的一个拷贝，因此对形参的修改其实是对实参的修改，所以在用引用进行参数传递时，不仅节约时间，而且可以节约空间。</p>
+<p id="内存"></p>
+## 二、内存
+#### 1、堆和栈的区别?
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">一、堆栈空间分配区别：</span><br><span class="line">1、栈（操作系统）：由操作系统自动分配释放，存放函数的参数值，局部变量的值等。其操作方式类似于数据结构中的栈；</span><br><span class="line">2、堆（操作系统）：一般由程序员分配释放，若程序员不释放，程序结束时可能由OS回收，分配方式倒是类似于链表。</span><br><span class="line"></span><br><span class="line">二、堆栈缓存方式区别：</span><br><span class="line">1、栈使用的是一级缓存，他们通常都是被调用时处于存储空间中，调用完毕立即释放；</span><br><span class="line">2、堆是存放在二级缓存中，生命周期由虚拟机的垃圾回收算法来决定（并不是一旦成为孤儿对象就能被回收）。所以调用这些对象的速度要相对来得低一些。</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="八、谈谈内存管理、内存泄露、循环引用"><a href="#八、谈谈内存管理、内存泄露、循环引用" class="headerlink" title="八、谈谈内存管理、内存泄露、循环引用"></a>八、谈谈内存管理、内存泄露、循环引用</h2><blockquote>
+<p><a href="#%E7%9B%AE%E5%BD%95">&lt; 返回目录</a></p>
+</blockquote>
+<p>ARC已经出来很久了，自动释放内存的确很方便，但是并非绝对安全绝对不会产生内存泄露。</p>
+<h3 id="1、内存管理"><a href="#1、内存管理" class="headerlink" title="1、内存管理"></a>1、内存管理</h3><h5 id="1-、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？"><a href="#1-、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？" class="headerlink" title="(1)、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？"></a>(1)、在ObjC中，对象什么时候会被释放（或者对象占用的内存什么时候会被回收利用）？</h5><p>答案是：当对象没有被任何变量引用（也可以说是没有指针指向该对象）的时候，就会被释放。</p>
+<h5 id="2-、那怎么知道对象已经没有被引用了呢？"><a href="#2-、那怎么知道对象已经没有被引用了呢？" class="headerlink" title="(2)、那怎么知道对象已经没有被引用了呢？"></a>(2)、那怎么知道对象已经没有被引用了呢？</h5><p>ObjC采用引用计数（reference counting）的技术来进行管理：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1）每个对象都有一个关联的整数，称为引用计数器；</span><br><span class="line">2）当代码需要使用该对象时，则将对象的引用计数加1；</span><br><span class="line">3）当代码结束使用该对象时，则将对象的引用计数减1；</span><br><span class="line">4）当引用计数的值变为0时，表示对象没有被任何代码使用，此时对象将被释放。</span><br></pre></td></tr></table></figure>
+
+<p>与之对应的消息发送方法如下：</p>
+<table>
+<thead>
+<tr>
+<th>对象操作</th>
+<th>OC中对应的方法</th>
+<th>引用计数的变化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>当对象被创建时</td>
+<td>alloc&#x2F;new&#x2F;copy&#x2F;mutableCopy等</td>
+<td>+1</td>
+</tr>
+<tr>
+<td>持有对象</td>
+<td>retain</td>
+<td>+1</td>
+</tr>
+<tr>
+<td>释放对象</td>
+<td>release</td>
+<td>-1</td>
+</tr>
+<tr>
+<td>废弃对象</td>
+<td>dealloc</td>
+<td>-</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1）当对象被创建（通过alloc、new或copy/mutableCopy等方法）时，其引用计数初始值为1；</span><br><span class="line">2）给对象发送retain消息，其引用计数加1；</span><br><span class="line">3）给对象发送release消息，其引用计数减1；</span><br><span class="line">4）当对象引用计数归0时，ObjC給对象发送dealloc消息销毁对象</span><br><span class="line">当创建一个对象的实例并在堆上申请内存时，对象的引用计数就为1；</span><br><span class="line">在其他对象中需要持有这个对象时，就需要把该对象的引用计数加1；</span><br><span class="line">需要释放一个对象时，就将该对象的引用计数减1；</span><br><span class="line">直至对象的引用计数为0，对象的内存会被立刻释放。</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="type">BOOL</span>)application:(<span class="built_in">UIApplication</span> *)application didFinishLaunchingWithOptions:(<span class="built_in">NSDictionary</span> *)launchOptions &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSObject</span> *object = [[<span class="built_in">NSObject</span> alloc] init];	<span class="comment">// 执行后，引用计数 = 1 </span></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;\n 引用计数 = %lu \n 对象内存 = %p \n object指针内存地址 = %x&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)[object retainCount], object, &amp;object);</span><br><span class="line">    <span class="keyword">self</span>.property = object;											<span class="comment">// 执行后，引用计数 = 2</span></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;\n 引用计数 = %lu \n 对象内存 = %p \n object指针内存地址 = %x \n property指针内存地址 = %x&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)[object retainCount], object, &amp;object, &amp;_property);</span><br><span class="line">    [object release];														<span class="comment">// 执行后，引用计数 = 1 </span></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;\n 引用计数 = %lu \n 对象内存 = %p \n object指针内存地址 = %x \n property指针内存地址 = %x&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)[object retainCount], object, &amp;object, &amp;_property);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>当需要释放强引用指向的对象时，需要保证所有指向对象强引用置为 nil。<code>__strong</code> 修饰符是 id 类型和对象类型默认的所有权修饰符。</p>
+<p><code>__weak</code> 表示弱引用，对应定义 <code>property</code> 时用到的 weak。弱引用不会影响对象的释放，而当对象被释放时，所有指向它的弱引用都会自定被置为 nil，这样可以防止野指针。</p>
+<h3 id="2、如何监测内存泄漏"><a href="#2、如何监测内存泄漏" class="headerlink" title="2、如何监测内存泄漏"></a>2、如何监测内存泄漏</h3><p>如果内存管理不当，势必会造成内存泄露。那我们如何快速的来找出内存泄露呢？以前我们可能会使用Instruments来监测，但是我们会发现使用Instruments特别繁琐，而且不一定能定位到内存泄露。</p>
+<p>所以这里伟大的Facebook工程师们开源了一些自动化工具来解决监测内存泄露问题：FBRetainCycleDetector、FBAllocationTracker、FBMemoryProfiler。详情查看<a href="http://www.cocoachina.com/ios/20160419/15954.html">在iOS上自动检测内存泄露</a></p>
+<h6 id="你在开发大型项目时-如何进行内存泄露检测的"><a href="#你在开发大型项目时-如何进行内存泄露检测的" class="headerlink" title="你在开发大型项目时,如何进行内存泄露检测的?"></a>你在开发大型项目时,如何进行内存泄露检测的?</h6><blockquote>
+<p>instruments下有个leaks工具，启动此工具后，运行项目，工具里可以显示内存泄露的情况，双击可找到源码位置，可以帮助进行内存泄露的处理。</p>
+</blockquote>
+<p id="END"></p>
+## END
+> [< 返回目录](#目录)
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A0%E5%9F%BA%E7%A1%80/" data-id="cmpfam9uf015xcgjjhh6d5ssx" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A0%E4%BF%AE%E9%A5%B0%E8%AF%8D/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          ①语言Swift
+        
+      </div>
+    </a>
+  
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">内存-②循环引用</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list">
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Architecture/">Architecture</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/">第一章：架构相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">第三章：基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/">第四章：基础框架设计及接口文档</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E9%80%9A%E7%94%A8%E4%B8%9A%E5%8A%A1%E8%A7%84%E8%8C%83/">第六章：通用业务规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">第七章：技术选型</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E9%A1%B5%E9%9D%A2%E5%8A%A0%E8%BD%BD%E7%9B%B8%E5%85%B3/">第八章：页面加载相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/">第九章：监控相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/QA/">QA</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/Threads/">Threads</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%8A%9F%E8%83%BD%E6%B5%81%E7%A8%8B/">功能流程</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%95%8C%E9%9D%A2%E8%A7%86%E5%9B%BE/">界面视图</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%89%E5%85%A8%E4%B8%8E%E7%A0%B4%E8%A7%A3/">安全与破解</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/AI/">AI</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/">管理相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/">项目列表</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/">行业相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%99%BA%E8%83%BD%E5%AE%B6%E5%B1%85%E7%9B%B8%E5%85%B3/">第一章：智能家居相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/">算法与数学</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Database/">Database</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/iOS/">iOS</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%8A%9F%E8%83%BD%E6%80%A7%E6%8A%80%E6%9C%AF/">功能性技术</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">开发规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/">移动分析</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/">第三方库</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%AF%81%E4%B9%A6%E5%8F%91%E7%89%88/">证书发版</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Android/">Android</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Android/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Flutter/">Flutter</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AFlutter%E5%85%A5%E9%97%A8/">第一章：Flutter入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%9B%86%E6%88%90Flutter%E5%88%B0%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE/">第二章：集成Flutter到原生项目</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE%E4%B8%8EFlutter%E7%9A%84%E4%BA%A4%E4%BA%92/">第三章：原生项目与Flutter的交互</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9AFlutter%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/">第四章：Flutter登录页实战</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E8%AF%A6%E8%A7%A3/">第五章：详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E8%BF%9B%E9%98%B6/">第六章：进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E8%A7%84%E8%8C%83/">第七章：规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">第八章：状态管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/">第九章：框架升级</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/10%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/">10与原生相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/5%E8%AF%A6%E8%A7%A3/">5详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E6%97%A0%E7%91%95%E7%96%B5%E7%9A%84%E6%B7%B7%E7%BC%96%E7%99%BB%E5%BD%95%E9%A1%B5/">无瑕疵的混编登录页</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E9%9B%B6%E7%AB%A0%EF%BC%9AFlutter%E6%BA%90%E7%A0%81/">第零章：Flutter源码</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E8%B7%B5/">项目实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/ReactNative/">ReactNative</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AReactNative%E5%85%A5%E9%97%A8/">第一章：ReactNative入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9AReactNative%E8%AF%A6%E8%A7%A3/">第五章：ReactNative详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9AReactNative%E8%BF%9B%E9%98%B6/">第六章：ReactNative进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9AReactNative%E5%AE%9E%E8%B7%B5/">第八章：ReactNative实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/H5-APP/">H5-APP</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/H5-APP/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/HTML/">HTML</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/2%E6%89%A9%E5%B1%95/">2扩展</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Weex/">Weex</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Weex/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AWeex%E5%85%A5%E9%97%A8/">第一章：Weex入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/">上架相关</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Script/">Script</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/">Mac快速操作</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Python/">Python</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Shell/">Shell</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/">实用工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/ChatGPT/">ChatGPT</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/GitBook/">GitBook</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Hexo/">Hexo</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Terminal/">Terminal</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Zentao/">Zentao</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/%E5%85%B6%E4%BB%96%E5%B0%8F%E5%B7%A5%E5%85%B7/">其他小工具</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/MySQL/">MySQL</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Nginx/">Nginx</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/node/">node</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/protobuf/">protobuf</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/XAMPP/">XAMPP</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/">代码管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/">Git</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/%E5%BA%93%E7%AE%A1%E7%90%86/">库管理</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/">电脑使用</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B8%B8%E8%AF%86%E7%B1%BB/">常识类</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/">编程工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/">科学工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%93%E5%88%A9/">专利</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E8%87%AA%E5%8A%A8%E5%8C%96/">APP自动化</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/npmjs/">npmjs</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/README/">README</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/">后台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9B%B8%E5%85%B3/">第一章：服务器相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/">工作常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/">技术常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/">文档管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AOmniGraffle/">第一章：OmniGraffle</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%A7%8D%EF%BC%9AOmniGraffle/">第一种：OmniGraffle</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/">生活常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/">跨平台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%B7%B7%E7%BC%96%E4%BA%8B%E9%A1%B9%E8%AF%B4%E6%98%8E/">第一章：混编事项说明</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/GitHub/" rel="tag">GitHub</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gitee/" rel="tag">Gitee</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/AI/" style="font-size: 14.12px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.12px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.59px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.82px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.94px;">Git</a> <a href="/tags/GitHub/" style="font-size: 10px;">GitHub</a> <a href="/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.53px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.18px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.18px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.47px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.88px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.18px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.76px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.24px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.59px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.18px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10.59px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.59px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.53px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.65px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 17.06px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.53px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15.29px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 11.18px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.59px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.59px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.18px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.18px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.76px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.18px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 11.18px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.53px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.35px;">编程工具</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.71px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.76px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.59px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.41px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.18px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 12.94px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.18px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 12.94px;">项目整理</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">AI-③opencode会话管理</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">AI Tool-③cc-notify</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">AI Tool-②cc-connect</a>
+          </li>
+        
+          <li>
+            <a href="/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8_PRD/">dvlproad 项目列表 HTML — PRD</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A1Open%20Design/">AI-②Open Design</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2026 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+<script src="/js/search-local.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

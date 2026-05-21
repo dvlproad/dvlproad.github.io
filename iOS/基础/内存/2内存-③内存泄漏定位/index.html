@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>内存-③内存泄漏定位 | dvlproadの博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="内存-③内存泄漏定位未整合的文章：  iOS检测内存泄漏的方法 xcode8 使用Instruments检测定位并解决iOS内存泄露   # 目录 * [重要文章](#重要文章) * [一、Analyze—静态分析](#Analyze)   12345671、常见的三种泄露情形(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &#x27;number&amp;#x">
+<meta property="og:type" content="article">
+<meta property="og:title" content="内存-③内存泄漏定位">
+<meta property="og:url" content="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/index.html">
+<meta property="og:site_name" content="dvlproadの博客">
+<meta property="og:description" content="内存-③内存泄漏定位未整合的文章：  iOS检测内存泄漏的方法 xcode8 使用Instruments检测定位并解决iOS内存泄露   # 目录 * [重要文章](#重要文章) * [一、Analyze—静态分析](#Analyze)   12345671、常见的三种泄露情形(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &#x27;number&amp;#x">
+<meta property="og:locale">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak1.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak2.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak3.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D1.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D2.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak_mine_1.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak_mine_2.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak_mine_3.jpg">
+<meta property="og:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/TimeProfile1.png">
+<meta property="article:published_time" content="2019-04-28T01:27:20.000Z">
+<meta property="article:modified_time" content="2025-03-10T10:12:52.000Z">
+<meta property="article:author" content="dvlproad">
+<meta property="article:tag" content="iOS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://dvlproad.github.io/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/Instruments/Leak1.jpg">
+  
+    <link rel="alternate" href="/atom.xml" title="dvlproadの博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">dvlproadの博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+          <a class="main-nav-link" href="/about">关于</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://dvlproad.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-iOS/基础/内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/">
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-03-10</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      内存-③内存泄漏定位
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <p>未整合的文章：</p>
+<ul>
+<li><a href="https://blog.csdn.net/clovejq/article/details/78689759">iOS检测内存泄漏的方法</a></li>
+<li><a href="https://blog.csdn.net/mr_zhangrmwork/article/details/76210448">xcode8 使用Instruments检测定位并解决iOS内存泄露</a></li>
+</ul>
+<p id="目录"></p>
+# 目录
+* [重要文章](#重要文章)
+* [一、Analyze—静态分析](#Analyze)
+
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、常见的三种泄露情形</span><br><span class="line">(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &#x27;number&#x27; is never read。翻译一下：存储在&#x27;number&#x27;里的值从未被读取过。</span><br><span class="line">(2)、创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to &#x27;str&#x27; during its initialization is never read</span><br><span class="line">(3)、调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into &#x27;subImageRef&#x27;。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</span><br><span class="line"></span><br><span class="line">2、.....</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#Leaks">二、Leaks—内存泄露</a></p>
+</li>
+<li><p><a href="#dealloc">三、ARC下的dealloc</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、ARC下dealloc的使用</span><br><span class="line">ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</span><br><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br><span class="line"></span><br><span class="line">2、controller 不能释放，不走dealloc方法的几种可能</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p>以下内容摘自：<a href="https://www.cnblogs.com/lisaloveyou1900/p/5383760.html">iOS性能优化之内存管理：Analyze、Leaks、Allocations的使用和案例代码</a></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>内存空间的划分: 我们知道，一个进程占用的内存空间，包含5种不同的数据区：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">（1）BSS段：通常是存放未初始化的全局变量；</span><br><span class="line">（2）数据段：通常是存放已初始化的全局变量。</span><br><span class="line">（3）代码段：通常是存放程序执行代码。</span><br><span class="line">（4）堆：通常是用于存放进程运行中被动态分配的内存段，OC对象（所有继承自NSObject的对象）就存放在堆里。</span><br><span class="line">（5）栈：由编译器自动分配释放，存放函数的参数值，局部变量等值。</span><br></pre></td></tr></table></figure>
+
+<p>栈内存是系统来管理的，因此我们常说的内存管理，指的是堆内存的管理，也就是所有OC对象的创建和销毁的管理。</p>
+<p>伴随着iOS5的到来，苹果推出了ARC（自动引用计数）技术，此模式下编译器会自动在合适的地方插入retain、release、autorelease语句，也就是说编译器会自动生成内存管理的代码，解放了广大程序猿的双手，也基本上避免了内存泄露问题，但是呢…</p>
+<p>内存泄露的定义是：用动态存储分配函数动态开辟的空间，在使用完毕后未释放，结果导致一直占据该内存单元。直到程序结束。（其实说白了就是该内存空间使用完毕之后未回收）。</p>
+<p>在iOS应用中的内存泄露，原因一般有循环引用、错用Strong&#x2F;copy等。</p>
+<p id="重要文章"></p>
+## 重要文章
+* [iOS检测内存泄漏的方法](https://blog.csdn.net/clovejq/article/details/78689759)
+* [iOS 内存泄漏的查找](https://www.jianshu.com/p/b72d0a442342)
+* [iOS 内存泄漏监测自动化](https://www.jianshu.com/p/33bda0eed3aa?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation)
+
+<p id="Analyze"></p>
+## 一、Analyze—静态分析
+> [< 返回目录](#目录)
+
+<p>顾名思义，静态分析不需要运行程序，就能检查到存在内存泄露的地方。</p>
+<p>使用方法：打开Xcode，command + shift + B；或者Xcode - Product - Analyze；</p>
+<h3 id="1、常见的三种泄露情形："><a href="#1、常见的三种泄露情形：" class="headerlink" title="1、常见的三种泄露情形："></a>1、常见的三种泄露情形：</h3><blockquote>
+</blockquote>
+<p>（1）创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to ‘number’ is never read。翻译一下：存储在’number’里的值从未被读取过。</p>
+<blockquote>
+</blockquote>
+<p>（2）创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to ‘str’ during its initialization is never read</p>
+<blockquote>
+</blockquote>
+<p>（3）调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into ‘subImageRef’。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</p>
+<p>贴上三种常见情形的Demo代码，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> /**</span><br><span class="line"> * 情 形 一：创建了一个对象，但是并没有使用。</span><br><span class="line"> * 提示信息：Value Stored to &#x27;number&#x27; is never read</span><br><span class="line"> * 翻译一下：存储在&#x27;number&#x27;里的值从未被读取过，</span><br><span class="line"> */</span><br><span class="line">- (void)leakOne &#123;</span><br><span class="line">    NSString *str1 = [NSString string];</span><br><span class="line">    NSNumber *number;</span><br><span class="line">    number = @(str1.length);</span><br><span class="line">    /*</span><br><span class="line">     说我们没有读取过它，那就读取一下，比如打开下面这句代码，对它发送class消息，就不再会有这个提示了。</span><br><span class="line">     当然最好的方法还是将有关number的代码都删掉，因为，你只对number赋值，又不使用，那干嘛创建出来呢。</span><br><span class="line">     这是一个比较常见和典型的错误，也很容易检查出来</span><br><span class="line">     */</span><br><span class="line">    // [number class];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 二：创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。</span><br><span class="line"> * 提示信息：Value Stored to &#x27;str&#x27; during its initialization is never read</span><br><span class="line"> */</span><br><span class="line">- (void)leakTwo &#123;</span><br><span class="line">    NSString *str = [NSString string]; // 创建并初始化str，此时已经有一个内存单元保存str初始化的值</span><br><span class="line">    // NSString *str; // 这样就内存不泄露，因为str是可变的，只需要先声明就行。</span><br><span class="line">    // printf(&quot;str前 = %p\n&quot;,str);</span><br><span class="line">    str = @&quot;ceshi&quot;;             // str被改变了，指向了&quot;ceshi&quot;所在的地址，指针改变了，但之前保存初始化值的内存空间还未释放，保存str初始化值的内存单元泄露了。</span><br><span class="line">    // printf(&quot;str后 = %p\n&quot;,str); // 指针改变了</span><br><span class="line">    [str class];</span><br><span class="line">     </span><br><span class="line">    // 再举两个例子，同理</span><br><span class="line">     </span><br><span class="line">    NSArray *arr = [NSArray array];</span><br><span class="line">    // printf(&quot;arr前 = %p\n&quot;,arr);</span><br><span class="line">    // NSArray *arr;            // 这样就内存不泄露</span><br><span class="line">    arr = @[@&quot;1&quot;,@&quot;2&quot;];</span><br><span class="line">    // printf(&quot;arr后 = %p\n&quot;,arr); // 指针改变了</span><br><span class="line">    [arr class];</span><br><span class="line">     </span><br><span class="line">    CGRect rect = self.view.frame;</span><br><span class="line">    // CGRect rect = CGRectZero; // 这样就内存不泄露</span><br><span class="line">    rect = CGRectMake(0, 0, 0, 0);</span><br><span class="line">    NSLog(@&quot;rect = %@&quot;,NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 三：调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。</span><br><span class="line"> * 提示信息：Potential leak of an object stored into &#x27;subImageRef&#x27;</span><br><span class="line"> * 翻译一下：subImageRef对象的内存单元有潜在的泄露风险</span><br><span class="line"> */</span><br><span class="line">- (void)leakThree &#123;</span><br><span class="line">    CGRect rect = CGRectMake(0, 0, 50, 50);</span><br><span class="line">    UIImage *image;</span><br><span class="line">    CGImageRef subImageRef = CGImageCreateWithImageInRect(image.CGImage, rect); // subImageRef 引用计数 + 1;</span><br><span class="line">     </span><br><span class="line">    UIImage* smallImage = [UIImage imageWithCGImage:subImageRef];</span><br><span class="line">     </span><br><span class="line">    // 应该调用对应的函数，让subImageRef的引用计数减1,就不会泄露了</span><br><span class="line">    // CGImageRelease(subImageRef);</span><br><span class="line">     </span><br><span class="line">    [smallImage class];</span><br><span class="line">    UIGraphicsEndImageContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>自己遇到的实例:</p>
+<blockquote>
+<p>情形2：<a href="https://blog.csdn.net/sinat_30898863/article/details/51142127">静态检测内存泄露Analyze－－Value stored to ‘dataArr’ during its initialization is never read</a><br>即初始化的时候开辟了一块内存，却始终没用到，导致该块内存泄漏</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NSMutableArray *tempMutArr = [NSMutableArray arrayWithCapacity:0];</span><br><span class="line">   if ([self.clickedButtonTpye isEqualToString:KClickedButtonTypeLast]) &#123;</span><br><span class="line">       tempMutArr = self.lastDataSourceArr;</span><br><span class="line">   &#125;else&#123;</span><br><span class="line">       tempMutArr = self.hotDataSourceArr;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><a name="Leaks"></a></p>
+<h2 id="二、Leaks—内存泄露"><a href="#二、Leaks—内存泄露" class="headerlink" title="二、Leaks—内存泄露"></a>二、Leaks—内存泄露</h2><blockquote>
+<p><a href="#%E7%9B%AE%E5%BD%95">&lt; 返回目录</a></p>
+</blockquote>
+<ul>
+<li><p><a href="https://wereadteam.github.io/2016/02/22/MLeaksFinder/">MLeaksFinder：精准 iOS 内存泄露检测工具</a></p>
+<blockquote>
+<p>项目 <a href="https://github.com/Zepo/MLeaksFinder/blob/master/MLeaksFinder/UIViewController%2BMemoryLeak.m">UIViewController+MemoryLeak.m     NSObject+MemoryLeak.m</a></p>
+<p>原理：MLeaksFinder 一开始从 UIViewController 入手。我们知道，当一个 UIViewController 被 pop 或 dismiss 后，该 UIViewController 包括它的 view，view 的 subviews 等等将很快被释放（除非你把它设计成单例，或者持有它的强引用，但一般很少这样做）。于是，我们只需在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 UIViewController，它的 view，view 的 subviews 等等是否还存在。</p>
+<p>即我们hook <code>viewDidDisappear:</code> 和 <code>dismissViewControllerAnimated: completion:</code> 都去执行NSObject的<code>willDealloc</code>方法。</p>
+<p>在NSObject的<code>willDealloc</code>方法中，隔2秒后再去尝试调用另一个方法<code>assertNotDealloc</code>。如果UIViewController已经被成功释放，则肯定是 nil 执行 assertNotDealloc，即assertNotDealloc不会被执行，也就不会弹出内存泄露的弹窗。反之，若UIViewController没有释放，则会弹出内存泄露的弹窗。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UIViewController+MemoryLeak.m</span></span><br><span class="line">- (<span class="type">void</span>)swizzled_viewDidDisappear:(<span class="type">BOOL</span>)animated &#123;</span><br><span class="line">    [<span class="keyword">self</span> swizzled_viewDidDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> ([objc_getAssociatedObject(<span class="keyword">self</span>, kHasBeenPoppedKey) boolValue]) &#123;</span><br><span class="line">        [<span class="keyword">self</span> willDealloc];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)swizzled_dismissViewControllerAnimated:(<span class="type">BOOL</span>)flag completion:(<span class="type">void</span> (^)(<span class="type">void</span>))completion &#123;</span><br><span class="line">    [<span class="keyword">self</span> swizzled_dismissViewControllerAnimated:flag completion:completion];</span><br><span class="line">    ......</span><br><span class="line">    </span><br><span class="line">    [dismissedViewController willDealloc];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NSObject+MemoryLeak.m</span></span><br><span class="line">- (<span class="type">BOOL</span>)willDealloc &#123;</span><br><span class="line">    ......</span><br><span class="line">    </span><br><span class="line">    __<span class="keyword">weak</span> <span class="type">id</span> weakSelf = <span class="keyword">self</span>;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        __<span class="keyword">strong</span> <span class="type">id</span> strongSelf = weakSelf;</span><br><span class="line">        [strongSelf assertNotDealloc];</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)assertNotDealloc &#123;</span><br><span class="line">    <span class="keyword">if</span> ([MLeakedObjectProxy isAnyObjectLeakedAtPtrs:[<span class="keyword">self</span> parentPtrs]]) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    [MLeakedObjectProxy addLeakedObject:<span class="keyword">self</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSString</span> *className = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;Possibly Memory Leak.\nIn case that %@ should not be dealloced, override -willDealloc in %@ by returning NO.\nView-ViewController stack: %@&quot;</span>, className, className, [<span class="keyword">self</span> viewStack]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+</blockquote>
+</li>
+<li><p><a href="https://maxieewong.com/Flutter%20%E8%87%AA%E5%8A%A8%E5%8C%96%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B.html">自动化内存泄漏检测</a> 项目 <a href="https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121">https://github.com/liujiakuoyx/leak_detector&#x2F;blob&#x2F;main&#x2F;lib&#x2F;src&#x2F;leak_navigator_observer.dart#L121</a></p>
+<blockquote>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">///<span class="language-markdown">Such as WebSocket is delay close connect.</span></span></span><br><span class="line"><span class="keyword">const</span> <span class="built_in">int</span> _defaultCheckLeakDelay = <span class="number">500</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> ShouldAddedRoute = <span class="built_in">bool</span> <span class="built_in">Function</span>(Route route);</span><br><span class="line"></span><br><span class="line"><span class="comment">///<span class="language-markdown">NavigatorObserver</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LeakNavigatorObserver</span> <span class="keyword">extends</span> <span class="title">NavigatorObserver</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> ShouldAddedRoute? shouldCheck;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">int</span> checkLeakDelay;</span><br><span class="line"></span><br><span class="line">  <span class="comment">///<span class="language-markdown">[callback] if &#x27;null&#x27;,the all route can added to LeakDetector.</span></span></span><br><span class="line">  <span class="comment">///<span class="language-markdown">if not &#x27;null&#x27;, returns ‘true’, then this route will be added to the LeakDetector.</span></span></span><br><span class="line">  LeakNavigatorObserver(</span><br><span class="line">      &#123;<span class="keyword">this</span>.checkLeakDelay = _defaultCheckLeakDelay, <span class="keyword">this</span>.shouldCheck&#125;);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didPop(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _remove(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didPush(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _add(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didRemove(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _remove(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didReplace(&#123;Route? newRoute, Route? oldRoute&#125;) &#123;</span><br><span class="line">    <span class="keyword">if</span> (newRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">      _add(newRoute);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (oldRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">      _remove(oldRoute);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+</blockquote>
+</li>
+<li><p><a href="https://docs.flutter.cn/community/tutorials/memory-leak-monitoring-on-flutter">快手 Flutter 上的内存泄漏监控</a></p>
+</li>
+</ul>
+<p>Leaks是动态的内存泄露检查工具，需要一边运行程序，一边检测。</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak1.jpg" alt="内存泄漏Leak1"></p>
+</blockquote>
+<p>先不切换到Call Trees，先看看Statistics(统计数据)下的情况</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak2.jpg" alt="内存泄漏Leak2"><br>Allocation中我们主要关注的是Persistent和Persistent Bytes，分别表示当前时间段，申请了但是还没释放的内存数量和大小。</p>
+</blockquote>
+<p>切换到Call Trees后世这样的</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak3.jpg" alt="内存泄漏Leak3"></p>
+</blockquote>
+<h4 id="项目中遇到过的内存泄漏"><a href="#项目中遇到过的内存泄漏" class="headerlink" title="项目中遇到过的内存泄漏"></a>项目中遇到过的内存泄漏</h4><p>这里我们不是去查看<code>Call Tree</code>,而是查看<code>Cycles &amp; Roots</code>。</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D1.jpg" alt="循环引用定位1"></p>
+<p>点击标记4处为黑色，即代表该处会发生内存泄漏，双击进入代码，如图：<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D2.jpg" alt="循环引用定位2"><br>果然存在内存泄漏</p>
+</blockquote>
+<p>自己遇到的其他例子：</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_1.jpg" alt="Leak_mine_1"><br>开始不明白为什么这个变量会内存泄漏后面才能白，其实_priceDetailModel这个本身已经用OrderPriceDetailModel赋值过一次了，而这里你又赋值了一次，导致多了一个。代码情况如下两个图：<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_2.jpg" alt="Leak_mine_2"><br>又在set方法中生成了一个地址<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_3.jpg" alt="Leak_mine_3"></p>
+</blockquote>
+<p><a name="dealloc"></a></p>
+<h2 id="三、ARC下的dealloc"><a href="#三、ARC下的dealloc" class="headerlink" title="三、ARC下的dealloc"></a>三、ARC下的dealloc</h2><h4 id="1、ARC下dealloc的使用"><a href="#1、ARC下dealloc的使用" class="headerlink" title="1、ARC下dealloc的使用"></a>1、ARC下dealloc的使用</h4><p>ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br></pre></td></tr></table></figure>
+
+<h6 id="1-、通知的观察者-或KVO的观察者；"><a href="#1-、通知的观察者-或KVO的观察者；" class="headerlink" title="(1)、通知的观察者,或KVO的观察者；"></a>(1)、通知的观察者,或KVO的观察者；</h6><blockquote>
+<p>由于通知中心是系统的一个单例,你在注册通知的观察者时,实际上是在通知中心注册的,</p>
+</blockquote>
+<p>这时,即使ARC下系统帮我们释放了对象,但是在通知中心的观察还是没有移除,那么当有</p>
+<blockquote>
+</blockquote>
+<p>该通知时,依然会尝试调用该对象的接受通知的方法,这可能会导致一些问题.</p>
+<h6 id="2-、对象强委托-引用的解除；"><a href="#2-、对象强委托-引用的解除；" class="headerlink" title="(2)、对象强委托&#x2F;引用的解除；"></a>(2)、对象强委托&#x2F;引用的解除；</h6><blockquote>
+<p>对于其他的对象来把你当做委托 delegate时,并且是 强引用时,即时你自身被释放,但是引用你的对象依然还在,</p>
+</blockquote>
+<p>这时需要在引用你的对象移除该delegate</p>
+<h6 id="3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。"><a href="#3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。" class="headerlink" title="(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。"></a>(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</h6><blockquote>
+<p>一个对象,如一个ViewController在销毁之前有可能需要和server打交道;</p>
+</blockquote>
+<p>这时我们也可以在dealloc中写</p>
+<h4 id="2、controller-不能释放，不走dealloc方法的几种可能"><a href="#2、controller-不能释放，不走dealloc方法的几种可能" class="headerlink" title="2、controller 不能释放，不走dealloc方法的几种可能"></a>2、controller 不能释放，不走dealloc方法的几种可能</h4><p>主要原因还是循环引用，引起的内存泄漏。</p>
+<p>详情参考：<a href="https://blog.csdn.net/flg1554112450/article/details/70228353">controller 不能释放，不走dealloc方法的4种可能</a></p>
+<p id="Time Profile"></p>
+## 四、Time Profile
+> [< 返回目录](#目录)
+
+<p>详情参考：<a href="http://www.cocoachina.com/ios/20160805/17300.html">instrument Time Profiler总结</a></p>
+<p>使用Time Profile前有两点需要注意的地方：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、一定要使用真机调试</span><br><span class="line">2、应用程序一定要使用发布配置</span><br></pre></td></tr></table></figure>
+
+
+<p>图标为黑色头像的就是Time Profiler给我们的提示，有可能存在性能瓶颈的地方</p>
+<blockquote>
+<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/TimeProfile1.png" alt="TimeProfile1"></p>
+</blockquote>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>其他参考材料：</p>
+<p>问：Xcode 运行程序，左侧memory 不显示内存。。</p>
+<blockquote>
+<p>答：运行程序后，xcode 不显示当前使用的内存情况，问题是打开了僵尸–enable zoombie Objects，关闭即可。<br>即打开 product—&gt;SCheme–&gt;EditSCheme –&gt;enable zoombie Objects  取消选中 ok</p>
+</blockquote>
+<p>就可以继续显示了</p>
+<h2 id="附"><a href="#附" class="headerlink" title="附"></a>附</h2><h3 id="1、MLeaksFinder-适配新版本"><a href="#1、MLeaksFinder-适配新版本" class="headerlink" title="1、MLeaksFinder 适配新版本"></a>1、MLeaksFinder 适配新版本</h3><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="type">void</span>)alertWithTitle:(<span class="built_in">NSString</span> *)title</span><br><span class="line">               message:(<span class="built_in">NSString</span> *)message</span><br><span class="line">              delegate:(<span class="type">id</span>&lt;<span class="built_in">UIAlertViewDelegate</span>&gt;)delegate</span><br><span class="line"> additionalButtonTitle:(<span class="built_in">NSString</span> *)additionalButtonTitle &#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    [alertView dismissWithClickedButtonIndex:0 animated:NO];</span></span><br><span class="line"><span class="comment">    UIAlertView *alertViewTemp = [[UIAlertView alloc] initWithTitle:title</span></span><br><span class="line"><span class="comment">                                                            message:message</span></span><br><span class="line"><span class="comment">                                                           delegate:delegate</span></span><br><span class="line"><span class="comment">                                                  cancelButtonTitle:@&quot;OK&quot;</span></span><br><span class="line"><span class="comment">                                                  otherButtonTitles:additionalButtonTitle, nil];</span></span><br><span class="line"><span class="comment">    [alertViewTemp show];</span></span><br><span class="line"><span class="comment">    alertView = alertViewTemp;</span></span><br><span class="line"><span class="comment">    </span></span><br><span class="line"><span class="comment">    NSLog(@&quot;%@: %@&quot;, title, message);</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取当前的根视图控制器</span></span><br><span class="line">    <span class="built_in">UIViewController</span> *rootViewController = [<span class="built_in">UIApplication</span> sharedApplication].keyWindow.rootViewController;</span><br><span class="line">    <span class="keyword">while</span> (rootViewController.presentedViewController) &#123;</span><br><span class="line">        rootViewController = rootViewController.presentedViewController;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">UIAlertController</span> *alertController = [<span class="built_in">UIAlertController</span> alertControllerWithTitle:title message:message preferredStyle:<span class="built_in">UIAlertControllerStyleAlert</span>];</span><br><span class="line">    <span class="built_in">UIAlertAction</span> *okAction = [<span class="built_in">UIAlertAction</span> actionWithTitle:<span class="string">@&quot;OK&quot;</span> style:<span class="built_in">UIAlertActionStyleDefault</span> handler:<span class="literal">nil</span>];</span><br><span class="line">    [alertController addAction:okAction];</span><br><span class="line">    <span class="keyword">if</span> (additionalButtonTitle) &#123;</span><br><span class="line">        <span class="built_in">UIAlertAction</span> *additionalAction = [<span class="built_in">UIAlertAction</span> actionWithTitle:additionalButtonTitle style:<span class="built_in">UIAlertActionStyleDefault</span> handler:<span class="literal">nil</span>];</span><br><span class="line">        [alertController addAction:additionalAction];</span><br><span class="line">    &#125;</span><br><span class="line">    [rootViewController presentViewController:alertController animated:<span class="literal">YES</span> completion:<span class="literal">nil</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;%@: %@&quot;</span>, title, message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+<p id="常见笔试/面试题"></p>
+## 常见笔试/面试题
+> [< 返回目录](#目录)
+
+
+<p id="END"></p>
+## END
+> [< 返回目录](#目录)
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/" data-id="cmpfam9ug0167cgjj3v643n24" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8Timer/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          内存-②循环引用Timer
+        
+      </div>
+    </a>
+  
+  
+    <a href="/%E5%B7%A5%E5%85%B7%E5%AE%9E%E7%94%A8/Xcode%20Extensions/Swifttify%20for%20Xcode/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Swifttify for Xcode</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list">
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Architecture/">Architecture</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/">第一章：架构相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">第三章：基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/">第四章：基础框架设计及接口文档</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E9%80%9A%E7%94%A8%E4%B8%9A%E5%8A%A1%E8%A7%84%E8%8C%83/">第六章：通用业务规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">第七章：技术选型</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E9%A1%B5%E9%9D%A2%E5%8A%A0%E8%BD%BD%E7%9B%B8%E5%85%B3/">第八章：页面加载相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/">第九章：监控相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/QA/">QA</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/Threads/">Threads</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%8A%9F%E8%83%BD%E6%B5%81%E7%A8%8B/">功能流程</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">基础规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%95%8C%E9%9D%A2%E8%A7%86%E5%9B%BE/">界面视图</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%89%E5%85%A8%E4%B8%8E%E7%A0%B4%E8%A7%A3/">安全与破解</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/AI/">AI</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/">管理相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/">项目列表</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/">行业相关</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%99%BA%E8%83%BD%E5%AE%B6%E5%B1%85%E7%9B%B8%E5%85%B3/">第一章：智能家居相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/">算法与数学</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Database/">Database</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/iOS/">iOS</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%8A%9F%E8%83%BD%E6%80%A7%E6%8A%80%E6%9C%AF/">功能性技术</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">开发规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/">移动分析</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/">第三方库</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/iOS/%E8%AF%81%E4%B9%A6%E5%8F%91%E7%89%88/">证书发版</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Android/">Android</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Android/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Flutter/">Flutter</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AFlutter%E5%85%A5%E9%97%A8/">第一章：Flutter入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%9B%86%E6%88%90Flutter%E5%88%B0%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE/">第二章：集成Flutter到原生项目</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%8E%9F%E7%94%9F%E9%A1%B9%E7%9B%AE%E4%B8%8EFlutter%E7%9A%84%E4%BA%A4%E4%BA%92/">第三章：原生项目与Flutter的交互</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9AFlutter%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/">第四章：Flutter登录页实战</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E8%AF%A6%E8%A7%A3/">第五章：详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E8%BF%9B%E9%98%B6/">第六章：进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B8%83%E7%AB%A0%EF%BC%9A%E8%A7%84%E8%8C%83/">第七章：规范</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9A%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">第八章：状态管理</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/">第九章：框架升级</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/10%E4%B8%8E%E5%8E%9F%E7%94%9F%E7%9B%B8%E5%85%B3/">10与原生相关</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/5%E8%AF%A6%E8%A7%A3/">5详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">常见问题</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E6%97%A0%E7%91%95%E7%96%B5%E7%9A%84%E6%B7%B7%E7%BC%96%E7%99%BB%E5%BD%95%E9%A1%B5/">无瑕疵的混编登录页</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E7%AC%AC%E9%9B%B6%E7%AB%A0%EF%BC%9AFlutter%E6%BA%90%E7%A0%81/">第零章：Flutter源码</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Flutter/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E8%B7%B5/">项目实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/ReactNative/">ReactNative</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AReactNative%E5%85%A5%E9%97%A8/">第一章：ReactNative入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9AReactNative%E8%AF%A6%E8%A7%A3/">第五章：ReactNative详解</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9AReactNative%E8%BF%9B%E9%98%B6/">第六章：ReactNative进阶</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/%E7%AC%AC%E5%85%AB%E7%AB%A0%EF%BC%9AReactNative%E5%AE%9E%E8%B7%B5/">第八章：ReactNative实践</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/H5-APP/">H5-APP</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/H5-APP/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/HTML/">HTML</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/HTML/2%E6%89%A9%E5%B1%95/">2扩展</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Weex/">Weex</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Weex/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AWeex%E5%85%A5%E9%97%A8/">第一章：Weex入门</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/">上架相关</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Script/">Script</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JavaScript/">JavaScript</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/JQuery/">JQuery</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/">Mac快速操作</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Python/">Python</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Ruby/">Ruby</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Script/Shell/">Shell</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/">实用工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/ChatGPT/">ChatGPT</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/GitBook/">GitBook</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Hexo/">Hexo</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Terminal/">Terminal</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/Zentao/">Zentao</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/%E5%85%B6%E4%BB%96%E5%B0%8F%E5%B7%A5%E5%85%B7/">其他小工具</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/MySQL/">MySQL</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Nginx/">Nginx</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/node/">node</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/protobuf/">protobuf</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/XAMPP/">XAMPP</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/">代码管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/">Git</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/%E5%BA%93%E7%AE%A1%E7%90%86/">库管理</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/">电脑使用</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B8%B8%E8%AF%86%E7%B1%BB/">常识类</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/">编程工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/">科学工具</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E4%B8%93%E5%88%A9/">专利</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E8%87%AA%E5%8A%A8%E5%8C%96/">APP自动化</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/npmjs/">npmjs</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/README/">README</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/">后台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E5%90%8E%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9B%B8%E5%85%B3/">第一章：服务器相关</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/">工作常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/">技术常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/">文档管理</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9AOmniGraffle/">第一章：OmniGraffle</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/%E7%AC%AC%E4%B8%80%E7%A7%8D%EF%BC%9AOmniGraffle/">第一种：OmniGraffle</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/">生活常识</a>
+            
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/">跨平台</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/%E8%B7%A8%E5%B9%B3%E5%8F%B0/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E6%B7%B7%E7%BC%96%E4%BA%8B%E9%A1%B9%E8%AF%B4%E6%98%8E/">第一章：混编事项说明</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/GitHub/" rel="tag">GitHub</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gitee/" rel="tag">Gitee</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/AI/" style="font-size: 14.12px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.12px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.59px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.82px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.94px;">Git</a> <a href="/tags/GitHub/" style="font-size: 10px;">GitHub</a> <a href="/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.53px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.18px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.18px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.47px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.88px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.18px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.76px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.24px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.59px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.18px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10.59px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.59px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.53px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.65px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 17.06px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.53px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15.29px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 11.18px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.59px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.59px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.18px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.18px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.76px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.18px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 11.18px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.53px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.35px;">编程工具</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.71px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.76px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.59px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.41px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.18px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 12.94px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.18px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 12.94px;">项目整理</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">AI-③opencode会话管理</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">AI Tool-③cc-notify</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">AI Tool-②cc-connect</a>
+          </li>
+        
+          <li>
+            <a href="/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8_PRD/">dvlproad 项目列表 HTML — PRD</a>
+          </li>
+        
+          <li>
+            <a href="/AI/AI-%E2%91%A1Open%20Design/">AI-②Open Design</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2026 dvlproad<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+    <a href="/about" class="mobile-nav-link">关于</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+<script src="/js/search-local.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
