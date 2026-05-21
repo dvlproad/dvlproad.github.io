@@ -72,19 +72,19 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-iOS/基础/语言/Runtime" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/基础/线程/多线程、锁、队列" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/Runtime/">
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E3%80%81%E9%94%81%E3%80%81%E9%98%9F%E5%88%97/">
       <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
     </a>
-    <span class="article-updated"> · 更新于 2024-09-24</span>
+    <span class="article-updated"> · 更新于 2024-08-29</span>
   </span>
 
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/">语言</a>
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
   </div>
 
   </div>
@@ -95,7 +95,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/Runtime/">Runtime</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E3%80%81%E9%94%81%E3%80%81%E9%98%9F%E5%88%97/">多线程、锁、队列</a>
     </h1>
   
 
@@ -104,29 +104,35 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="Runtime-Interview"><a href="#Runtime-Interview" class="headerlink" title="Runtime_Interview"></a>Runtime_Interview</h1><p>Runtime</p>
-<p>前言：</p>
-<p>  Objective C的runtime技术功能非常强大，能够在运行时获取并修改类的各种信息，包括获取方法列表、属性列表、变量列表，修改方法、属性，增加方法，属性等等，本文对相关的几个要点做了一个小结。</p>
-<p>目录：</p>
-<p>（1）使用class_replaceMethod&#x2F;class_addMethod函数在运行时对函数进行动态替换或增加新函数</p>
-<p>（2）重载forwardingTargetForSelector，将无法处理的selector转发给其他对象</p>
-<p>（3）重载resolveInstanceMethod，从而在无法处理某个selector时，动态添加一个selector</p>
-<p>（4）使用class_copyPropertyList及property_getName获取类的属性列表及每个属性的名称</p>
-<p>  (5) 使用class_copyMethodList获取类的所有方法列表</p>
-<p>应用：</p>
-<p>viewWillAppear 埋点</p>
-<p>KVO的本质</p>
-<p>问： Category的实现原理，以及Category为什么只能加方法不能直接加属性（需要自己在分类中实现setter、getter方法）?</p>
-<p>答：分类的实现原理是将category中的方法，属性，协议数据放在category_t结构体中，然后将结构体内的方法列表拷贝到类对象的方法列表中。 Category可以添加属性，但是并不会自动生成成员变量及set&#x2F;get方法。因为category_t结构体中并不存在成员变量。通过之前对对象的分析我们知道成员变量是存放在实例对象中的，并且编译的那一刻就已经决定好了。而分类是在运行时才去加载的。那么我们就无法再程序运行时将分类的成员变量中添加到实例对象的结构体中。因此分类中不可以添加成员变量。</p>
-<h4 id="一些参考"><a href="#一些参考" class="headerlink" title="一些参考"></a>一些参考</h4><p><a href="http://www.cnblogs.com/yswdarren/p/3619303.html">Objective C运行时（runtime）技术总结</a></p>
-<p>需求1、当项目中，需要继承某一个父类，但是父类中并没有提供我们需要的调用方法，一般情况下，这种时候，我们可能会再派生一个类，或者会直接为这个类写一个分类（category），在这个分类中，我们可以新增或者替换某个方法（注意：不推荐在分类中重写方法，而且也无法通过 super 来获取所谓父类的方法）。大致在这两种情况下，我们可以通过 class_addMethod 来实现我们想要的效果。</p>
-<p>先从一个场景问题带出吧，比如一个应用都是继承于UIViewController，刚开始时候不要求要转屏，到后面才决定加上旋转屏适配，这个时候如果我们去创建一个父类，并让去修改每个类的继承这个方法显然是效率太低了。而且有时候，我们也不想多创个父类，于是我们就只能决定一次过替换掉这些controller里的viewWillAppear:和 willAnimateRotationToInterfaceOrientation:duration:，换成自己的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">+ (void)load &#123;</span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        Class clazz = object_getClass((id)self);</span><br><span class="line">        </span><br><span class="line">        //将系统的resolveInstanceMethod替换成自己的myResolveInstanceMethod，而系统的resolveInstanceMethod方法就是当运行时对象调用了一个找不到的方法的时候系统会去寻找的机制。</span><br><span class="line">        [clazz swizzleMethod:@selector(resolveInstanceMethod:) withMethod:@selector(myResolveInstanceMethod:)];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  用什么方法替换掉什么方法</span><br><span class="line"> *</span><br><span class="line"> *  @param origSel  原方法选择子</span><br><span class="line"> *  @param aftSel   新方法选择子</span><br><span class="line"> */</span><br><span class="line">+ (BOOL)swizzleMethod:(SEL)origSel withMethod:(SEL)aftSel &#123;</span><br><span class="line">	//通过class_getInstanceMethod()拿到对应的Method</span><br><span class="line">    Method originMethod = class_getInstanceMethod(self, origSel);</span><br><span class="line">    Method newMethod = class_getInstanceMethod(self, aftSel);</span><br><span class="line">    </span><br><span class="line">    if(originMethod &amp;&amp; newMethod)&#123; //必须两个Method都要拿到</span><br><span class="line">    	//class_addMethod将本来不存在于被操作的Class里的newMethod的实现添加在被操作的Class里，并使用origSel作为其选择子</span><br><span class="line">        if(class_addMethod(self, origSel, method_getImplementation(newMethod),method_getTypeEncoding(newMethod))) &#123;</span><br><span class="line">        	//当addMethod成功完成后，利用class_replaceMethod换掉method_getImplaementation(oiginMethod)的选择子，将原方法的实现的SEL换成新方法的SEL:aftSel，ok目的达成了。想一想，现在通过旧方法SEL来调用，就会实现新方法的IMP，通过新方法的SEL来调用，就会实现旧方法的IMP。</span><br><span class="line">            class_replaceMethod(self, aftSel, method_getImplementation(originMethod), method_getTypeEncoding(originMethod));</span><br><span class="line">        &#125;</span><br><span class="line">        return YES;</span><br><span class="line">    &#125;</span><br><span class="line">    return NO;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+        <ul>
+<li><a href="https://www.jianshu.com/p/1f9f6814e3a2">ios多线程中使用信号量形成死锁，阻塞主线程</a></li>
+<li><a href="https://www.jianshu.com/p/17afd8db5b79">iOS锁系列-信号量dispatch_semaphore</a></li>
+</ul>
+<p>信号量</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_semaphore_t sem = dispatch_semaphore_create(<span class="number">0</span>);</span><br><span class="line">②dispatch_semaphore_signal(sem);</span><br><span class="line">③dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);</span><br></pre></td></tr></table></figure>
 
+
+<p>GCD</p>
+<blockquote>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">①dispatch_group_t group = dispatch_group_create();</span><br><span class="line">②dispatch_group_enter(group);</span><br><span class="line">③dispatch_group_leave(group);</span><br><span class="line">④dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">       这里跑去干自己的事情。。。。</span><br><span class="line">   &#125;);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>用信号量时候，</p>
+<p>某个线程锁住后，就处于等待状态，即该线程也就无法再继续操作，所以试图尝试在该线程锁住的时候去发送信号，增加信号量，会造成死锁。</p>
+<p>举例：</p>
+<p>信号量使用场景</p>
+<ul>
+<li><a href="https://www.cnblogs.com/mnstar/articles/6050296.html">iOS 使用信号量等待block完成</a></li>
+</ul>
+<h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p><a href="https://www.jianshu.com/p/042c135552b8">iOS 实现并发和串行任务</a><br>串行队列如何知道任务已经完成<br><a href="https://blog.csdn.net/u010105969/article/details/69914369">iOS开发中的并发、串行队列，同步、异步任务</a></p>
+<p><a href="https://www.jianshu.com/p/c6ab011f449f">iOS代码同步到主线程的三种方法</a></p>
+<p>autoreleasepool 使用场景、什么时候释放</p>
+<p>临时变量什么时候释放</p>
+<h4 id="RunLoop和线程间的关系"><a href="#RunLoop和线程间的关系" class="headerlink" title="RunLoop和线程间的关系"></a>RunLoop和线程间的关系</h4><p>每条线程都有唯一的一个与之对应的RunLoop对象，RunLoop保存在一个全局的Dictionary里，线程作为key,RunLoop作为value，主线程的RunLoop已经自动创建好了，子线程的RunLoop需要主动创建，RunLoop在第一次获取时创建，在线程结束时销毁。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/Runtime/" data-id="cmpfam9ud014qcgjj1x9k57xb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E3%80%81%E9%94%81%E3%80%81%E9%98%9F%E5%88%97/" data-id="cmpfb7z7t016d4gjj35bsbnbe" class="article-share-link">Share</a>
       
       
     </footer>
@@ -136,19 +142,19 @@
 
 
   
-      <article id="post-iOS/基础/内存/时间计时器等" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/基础/线程/4线程-⑤线程安全" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/">
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A4%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/">
       <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
     </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
+    <span class="article-updated"> · 更新于 2026-05-20</span>
   </span>
 
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
   </div>
 
   </div>
@@ -159,7 +165,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/">时间计时器等</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A4%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/">4线程-⑤线程安全</a>
     </h1>
   
 
@@ -168,28 +174,34 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="NSTimer、NSDate"><a href="#NSTimer、NSDate" class="headerlink" title="NSTimer、NSDate"></a>NSTimer、NSDate</h1><p>###iOS时间那点事<br><strong>经典看前必先看：<a href="http://my.oschina.net/yongbin45/blog/156181">iOS时间那点事NSCalendar + NSDateComponents</a></strong><br><a href="http://blog.csdn.net/samrtian/article/details/37569705"> iOS 时区日期处理及定时 (NSDate,NSCalendar,NSTimer,NSTimeZone)</a></p>
-<h3 id="NSTimer"><a href="#NSTimer" class="headerlink" title="NSTimer"></a>NSTimer</h3><p><a href="http://my.oschina.net/u/2340880/blog/398598">NSTimer 定时器用法总结</a></p>
-<h5 id="自动加一秒-dateByAddingComponents和dateByAddingTimeInterval"><a href="#自动加一秒-dateByAddingComponents和dateByAddingTimeInterval" class="headerlink" title="自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)"></a>自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)</h5><p>参考：<a href="http://www.cnblogs.com/wayne23/archive/2013/03/25/2981009.html">时间与日期处理</a><br>涉及知识点：<br><strong>NSDate的生成</strong><br>方法①通过<code>NSDateFormatter</code>的<code>dateFromString:</code>方法对dateString生成NSDate；</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">[dateFormatter setDateFormat:@&quot;yyyy-MM-dd HH:mm:ss&quot;];</span><br><span class="line"></span><br><span class="line">NSString *dateString = @&quot;2016-08-15 22:55:03&quot;;</span><br><span class="line">NSDate *date = [dateFormatter dateFromString:dateString];</span><br></pre></td></tr></table></figure>
-
-<p>方法②通过<code>NSCalendar</code>的<code>dateFromComponents:</code>方法对dateComponents生成NSDate;(dateComponents由分个字段生成)<br><code>[greCalendar dateFromComponents:dateComponents];</code></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">[dateComponents setYear:2016];</span><br><span class="line">[dateComponents setMonth:8];</span><br><span class="line">[dateComponents setDay:15];</span><br><span class="line">NSDate *operationDate = [greCalendar dateFromComponents:dateComponents];</span><br></pre></td></tr></table></figure>
-
-<p><strong>NSDate转NSString</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">NSDate *operationDate;</span><br><span class="line"></span><br><span class="line">- (void)updateTimeExample &#123;</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [dateComponents setYear:2016];</span><br><span class="line">    [dateComponents setMonth:8];</span><br><span class="line">    [dateComponents setDay:15];</span><br><span class="line">    operationDate = [greCalendar dateFromComponents:dateComponents];</span><br><span class="line">    </span><br><span class="line">    if (!self.timer) &#123;</span><br><span class="line">        self.timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target: self selector:@selector(addOneSecondToDate:) userInfo:nil repeats:YES];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">    </span><br><span class="line">- (void)addOneSecondToDate:(NSTimer *)timer &#123;</span><br><span class="line">//    NSDate *operationDate = [timer userInfo];</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">    NSDateComponents *offsetDateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [offsetDateComponents setMinute:1];</span><br><span class="line">    [offsetDateComponents setSecond:1];</span><br><span class="line">    NSDate *finalDate = [greCalendar dateByAddingComponents:offsetDateComponents toDate:operationDate options:0];</span><br><span class="line">    operationDate = finalDate;</span><br><span class="line">    </span><br><span class="line">    //NSDate转NSString</span><br><span class="line">    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">    [dateFormatter setDateFormat:@&quot;yyyy年MM月dd HH:mm:ss&quot;];</span><br><span class="line">    NSString *dateString = [dateFormatter stringFromDate:finalDate];</span><br><span class="line">    </span><br><span class="line">    self.networkTimeLabel.text = dateString;</span><br><span class="line">&#125;    </span><br></pre></td></tr></table></figure>
-
-
-<p>#####NSJSONSerialization 去除不必要的空格回车<br><a href="http://blog.csdn.net/uxyheaven/article/details/7888559">NSJSONSerialization介绍</a><br><a href="http://blog.sina.com.cn/s/blog_916e0cff0101gdlf.html">NSJSONSerialization四个枚举什么意思</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 要去除不必要的空格回车，只需将参数Option设置为0即可。如果设置NSJSONWritingPrettyPrinted会使格式化的json更加可读，即添加空格和换行，但如果设为0，则不添加空格和换行</span><br><span class="line">    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary</span><br><span class="line">                                                   options:0</span><br><span class="line">                                                     error:nil];</span><br><span class="line">    NSString *JSON = [[NSString alloc] initWithData:data</span><br><span class="line">                                           encoding:NSUTF8StringEncoding];</span><br></pre></td></tr></table></figure>
-
-
-<p>######颜色渐变 CAGradientLayer<br><a href="http://blog.csdn.net/ch_soft/article/details/7534542">CAGradientLayer简介</a></p>
+        <h1 id="线程-⑤线程安全"><a href="#线程-⑤线程安全" class="headerlink" title="线程-⑤线程安全"></a>线程-⑤线程安全</h1>
+<h2 id="六、队列-任务-线程-数据安全"><a href="#六、队列-任务-线程-数据安全" class="headerlink" title="六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全"></a>六、队列 -&gt; 任务 -&gt; 线程 -&gt; 数据安全</h2><p>有队列，就有需要处理的任务，有任务就有线程相关的要考虑(附队列本身也处在线程中)，有多线程的考虑，就要考虑数据安全。</p>
+<h2 id="常见笔试-面试题"><a href="#常见笔试-面试题" class="headerlink" title="常见笔试&#x2F;面试题"></a>常见笔试&#x2F;面试题</h2><p>3、队列和数据安全</p>
+<p>那我们先来知道一个非常重要的事情：</p>
+<p>——- 队列只是负责任务的调度，而不负责任务的执行  ———</p>
+<p>——- 任务是在线程中执行的 ———</p>
+<p>所以，这个问题其实问得就不大对。让人不知怎么答。</p>
+<p>我们这里说下，分情况。</p>
+<p>如果是串行队列，数据是安全的。</p>
+<p>如果是并发队列，在读写的时候，数据是不安全的。我们可以通过以下几种方式将其处理成安全的。</p>
+<p>①、并发队列，改成串行执行。</p>
+<blockquote>
+<p>可以通过</p>
+<p>任务是同步任务；</p>
+<p>异步任务用依赖；</p>
+<p>异步任务用信号量控制并发量为1</p>
+</blockquote>
+<p>②、加锁</p>
+<blockquote>
+<p>@synchronized</p>
+<p>NSLock</p>
+<p>dispatch_semaphore</p>
+</blockquote>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/" data-id="cmpfam9ug016acgjj36w61u73" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A4%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/" data-id="cmpfb7z7u016k4gjjhzk3eh4e" class="article-share-link">Share</a>
       
       
     </footer>
@@ -242,7 +254,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Git%20Permission/" data-id="cmpfam9ti00njcgjjgft8cxqb" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Git%20Permission/" data-id="cmpfb7z6v00nr4gjj6b8fefi6" class="article-share-link">Share</a>
       
       
     </footer>
@@ -319,7 +331,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E8%BF%9C%E7%A8%8B%E5%85%B1%E4%BA%AB%E6%96%87%E4%BB%B6%E5%A4%B9/" data-id="cmpfam9sq0053cgjj2ar2cahw" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E8%BF%9C%E7%A8%8B%E5%85%B1%E4%BA%AB%E6%96%87%E4%BB%B6%E5%A4%B9/" data-id="cmpfb7z6400594gjjg68e3ntj" class="article-share-link">Share</a>
       
       
     </footer>
@@ -376,7 +388,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E8%BF%9C%E7%A8%8B%E6%A1%8C%E9%9D%A2%E8%BF%9E%E6%8E%A5/" data-id="cmpfam9sq0056cgjj72an59j0" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E8%BF%9C%E7%A8%8B%E6%A1%8C%E9%9D%A2%E8%BF%9E%E6%8E%A5/" data-id="cmpfb7z64005d4gjj1rk48ncz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -432,7 +444,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%B1%BB%E5%BE%AE%E4%BF%A1%E4%BD%93%E9%AA%8C/" data-id="cmpfam9sj000ycgjj9xqcggk5" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%B1%BB%E5%BE%AE%E4%BF%A1%E4%BD%93%E9%AA%8C/" data-id="cmpfb7z5y00114gjjb95idjd3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -608,7 +620,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/Flutter%E5%BC%80%E5%8F%91%E9%9A%8F%E7%AC%94/" data-id="cmpfam9ss006bcgjj34t6cvdh" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/Flutter%E5%BC%80%E5%8F%91%E9%9A%8F%E7%AC%94/" data-id="cmpfb7z66006g4gjjbww5gbon" class="article-share-link">Share</a>
       
       
     </footer>
@@ -733,7 +745,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/Git-Flow/" data-id="cmpfam9sv008mcgjj9n7v3qke" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/Git-Flow/" data-id="cmpfb7z6900944gjj08o9h61o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -781,7 +793,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93/" data-id="cmpfam9ug016hcgjj2ktdh6ic" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93/" data-id="cmpfb7z7u016r4gjjc261a2fc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -831,7 +843,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Flutter/9%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/Flutter%E7%BB%84%E4%BB%B6%E5%8C%96%E6%A1%86%E6%9E%B6/" data-id="cmpfam9t700fpcgjjfhzshj4v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Flutter/9%E6%A1%86%E6%9E%B6%E5%8D%87%E7%BA%A7/Flutter%E7%BB%84%E4%BB%B6%E5%8C%96%E6%A1%86%E6%9E%B6/" data-id="cmpfb7z6k00g14gjj83khhcte" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li></ul>
@@ -1620,6 +1632,28 @@
 
 
 
+
+<!-- ====== 视觉美化特效 ====== -->
+
+<!-- A. fairyDustCursor — 星光粉尘鼠标跟随（ESM） -->
+<script type="module">
+  import { fairyDustCursor } from "https://unpkg.com/cursor-effects@latest/dist/esm.js";
+  new fairyDustCursor();
+</script>
+
+<!-- B. clickLove.js — 鼠标点击爱心 -->
+<script type="text/javascript">
+!function(e,t,a){function n(){c(".heart{width: 10px;height: 10px;position: fixed;background: #f00;transform: rotate(45deg);-webkit-transform: rotate(45deg);-moz-transform: rotate(45deg);}.heart:after,.heart:before{content: '';width: inherit;height: inherit;background: inherit;border-radius: 50%;-webkit-border-radius: 50%;-moz-border-radius: 50%;position: fixed;}.heart:after{top: -5px;}.heart:before{left: -5px;}"),o(),r()}function r(){for(var e=0;e<d.length;e++)d[e].alpha<=0?(t.body.removeChild(d[e].el),d.splice(e,1)):(d[e].y--,d[e].scale+=.004,d[e].alpha-=.013,d[e].el.style.cssText="left:"+d[e].x+"px;top:"+d[e].y+"px;opacity:"+d[e].alpha+";transform:scale("+d[e].scale+","+d[e].scale+") rotate(45deg);background:"+d[e].color+";z-index:99999");requestAnimationFrame(r)}function o(){var t="function"==typeof e.onclick&&e.onclick;e.onclick=function(e){t&&t(),i(e)}}function i(e){var a=t.createElement("div");a.className="heart",d.push({el:a,x:e.clientX-5,y:e.clientY-5,scale:1,alpha:1,color:s()}),t.body.appendChild(a)}function c(e){var a=t.createElement("style");a.type="text/css";try{a.appendChild(t.createTextNode(e))}catch(t){a.styleSheet.cssText=e}t.getElementsByTagName("head")[0].appendChild(a)}function s(){return"rgb("+~~(255*Math.random())+","+~~(255*Math.random())+","+~~(255*Math.random())+")"}var d=[];e.requestAnimationFrame=function(){return e.requestAnimationFrame||e.webkitRequestAnimationFrame||e.mozRequestAnimationFrame||e.oRequestAnimationFrame||e.msRequestAnimationFrame||function(e){setTimeout(e,1e3/60)}}(),n()}(window,document);
+</script>
+
+<!-- C. scrollReveal.js — 滚动淡入/滑入动画 -->
+<script src="https://unpkg.com/scrollreveal"></script>
+<script>
+  ScrollReveal({ distance: '40px', duration: 800, easing: 'ease-out' });
+  ScrollReveal().reveal('.article',             { delay: 200, interval: 100, origin: 'bottom' });
+  ScrollReveal().reveal('.article-entry h2',    { origin: 'left' });
+  ScrollReveal().reveal('.article-entry img',   { origin: 'bottom', scale: 0.95 });
+</script>
 
   </div>
 </body>
