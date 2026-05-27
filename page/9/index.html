@@ -72,15 +72,394 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-数据结构/9数据结构-②堆栈" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/基础/线程/4线程-③任务或线程与锁" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A2%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B%E4%B8%8E%E9%94%81/">
+    
       <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
     </a>
-    <span class="article-updated"> · 更新于 2026-05-18</span>
+    <span class="article-updated"> · 更新于 2025-05-23</span>
   </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A2%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B%E4%B8%8E%E9%94%81/">线程-③任务或线程与锁</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="线程与网络-①锁"><a href="#线程与网络-①锁" class="headerlink" title="线程与网络-①锁"></a>线程与网络-①锁</h1>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
+<h2 id="四、线程安全问题"><a href="#四、线程安全问题" class="headerlink" title="四、线程安全问题"></a>四、线程安全问题</h2><blockquote>
+<p><a href="#%E7%9B%AE%E5%BD%95">&lt; 返回目录</a></p>
+</blockquote>
+<h4 id="1、线程安全"><a href="#1、线程安全" class="headerlink" title="1、线程安全"></a>1、线程安全</h4><p>当多个线程访问同一块资源时，很容易引发数据错乱和数据安全问题。就好比几个人在同一时修改同一个表格，造成数据的错乱。</p>
+<p>参考：<a href="https://www.jianshu.com/p/938d68ed832c">iOS中保证线程安全的几种方式与性能对比</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">性能对比</span><br><span class="line">对以上各个锁进行1000000此的加锁解锁的空操作时间如下：</span><br><span class="line">OSSpinLock: 46.15 ms</span><br><span class="line">dispatch_semaphore: 56.50 ms</span><br><span class="line">pthread_mutex: 178.28 ms</span><br><span class="line">NSCondition: 193.38 ms</span><br><span class="line">NSLock: 175.02 ms</span><br><span class="line">pthread_mutex(recursive): 172.56 ms</span><br><span class="line">NSRecursiveLock: 157.44 ms</span><br><span class="line">NSConditionLock: 490.04 ms</span><br><span class="line">@synchronized: 371.17 ms</span><br><span class="line"></span><br><span class="line">总的来说：</span><br><span class="line"></span><br><span class="line">OSSpinLock 自旋锁和 dispatch_semaphore 信号量的效率远远高于其他。</span><br><span class="line">@synchronized和NSConditionLock效率较差。</span><br><span class="line"></span><br><span class="line">OSSpinLock 自旋锁原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。 不过最近YY大神在自己的博客不再安全的 OSSpinLock中说明了OSSpinLock已经不再安全，请大家谨慎使用。 </span><br><span class="line">dispatch_semaphore 是信号量，但当信号总量设为 1 时也可以当作锁来。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">鉴于OSSpinLock的不安全，所以我们在开发中如果考虑性能的话，建议使用dispatch_semaphore。</span><br><span class="line">如果不考虑性能，只是图个方便的话，那就使用@synchronized。</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的"><a href="#NSDateFormatter在iOS7之后-包括iOS7-才是线程安全的" class="headerlink" title="NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的"></a>NSDateFormatter在iOS7之后(包括iOS7)才是线程安全的</h4><ul>
+<li>参考文章：<a href="https://blog.csdn.net/zskm001/article/details/51883076">关于NSDateFormatter的线程安全问题</a></li>
+</ul>
+<h3 id="2、死锁"><a href="#2、死锁" class="headerlink" title="2、死锁"></a>2、死锁</h3><p><strong>死锁是指两个或两个以上的进程（线程）在运行过程中因争夺资源而造成的一种僵局（Deadly-Embrace) ) ，若无外力作用，这些进程（线程）都将无法向前推进。</strong></p>
+<p>死锁的4个必要条件</p>
+<h2 id="一、-synchronized"><a href="#一、-synchronized" class="headerlink" title="一、@synchronized"></a>一、@synchronized</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">NSObject *obj = [[NSObject alloc] init];</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">          sleep(3);</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">  </span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      sleep(1);</span><br><span class="line">      @synchronized(obj) &#123;</span><br><span class="line">          NSLog(@&quot;需要线程同步的操作2&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>@synchronized(obj)指令使用的obj为该锁的唯一标识，<strong>只有当标识相同时，才为满足互斥</strong>，如果线程2中的@synchronized(obj)改为@synchronized(self),刚线程2就不会被阻塞，</p>
+<h2 id="二、NSLock"><a href="#二、NSLock" class="headerlink" title="二、NSLock"></a>二、NSLock</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line">  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">      [lock lock];	// 加锁</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 开始&quot;);</span><br><span class="line">    	sleep(2);</span><br><span class="line">    	NSLog(@&quot;需要线程同步的操作1 结束&quot;);</span><br><span class="line">      [lock unlock]; // 解锁</span><br><span class="line">      </span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="三、NSRecursiveLock递归锁的使用"><a href="#三、NSRecursiveLock递归锁的使用" class="headerlink" title="三、NSRecursiveLock递归锁的使用"></a>三、NSRecursiveLock递归锁的使用</h2><p>我们先写一个典型的死锁情况。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];	// 此锁在本代码中会造成死锁</span><br><span class="line">//NSRecursiveLock *lock = [[NSRecursiveLock alloc] init]; //要想下面的递归调用不会造成死锁，只要这里将锁改成递归锁NSRecursiveLock就可以了。NSRecursiveLock递归锁，这个锁可以被同一线程多次请求，而不会引起死锁。这主要是用在循环或递归操作中。</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        [lock lock];</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);	// 此时lock还没解锁，就有执行这个block，而block里又给加了次锁，从而造成了死锁</span><br><span class="line">        &#125;</span><br><span class="line">        [lock unlock];</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>在是跟你面的代码中，在我们的线程中，RecursiveMethod是递归调用的。所以每次进入这个block时，都会去加一次锁，而从第二次开始，由于锁已经被使用了且没有解锁，所以它需要等待锁被解除，这样就导致了死锁，线程被阻塞住了。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">NSLock *lock = [[NSLock alloc] init];</span><br><span class="line"></span><br><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line"></span><br><span class="line">    static void (^RecursiveMethod)(int);</span><br><span class="line"></span><br><span class="line">    RecursiveMethod = ^(int value) &#123;</span><br><span class="line">        if (value &gt; 0) &#123;</span><br><span class="line">            NSLog(@&quot;value = %d&quot;, value);</span><br><span class="line">            sleep(2);</span><br><span class="line">            RecursiveMethod(value - 1);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">		[lock lock];</span><br><span class="line">    RecursiveMethod(5);</span><br><span class="line">    [lock unlock];</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h2 id="四、NSCondition-NSConditionLock-条件锁"><a href="#四、NSCondition-NSConditionLock-条件锁" class="headerlink" title="四、NSCondition &amp; NSConditionLock 条件锁"></a>四、NSCondition &amp; NSConditionLock 条件锁</h2><p><code>wait</code>方法是傻等；</p>
+<p><code>waitUntilDate</code>:方法是等一会；</p>
+<p><code>signal</code>是唤起一个在等待的线程。</p>
+<p>通过<code>wait()</code>和<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>这两个方法都可以实现线程阻塞即线程睡眠。</p>
+<p>不同之处在于</p>
+<p><code>wait()</code>会使线程一直处于休眠状态，直到收到<code>signal()</code>为止；</p>
+<p>而<code>waitUntilDate(limit: NSDate) -&gt; Bool</code>在使线程睡眠的同时会设置睡眠的终止时间。</p>
+<blockquote>
+<p>如果在终止时间前收到了<code>signal()</code>就会唤醒线程；<br>当到达终止时间的时候，即使没有收到<code>signal()</code>，也会直接唤醒线程，而不会像<code>wait()</code>方法那样一直睡眠下去。</p>
+</blockquote>
+<h3 id="1、NSCondition"><a href="#1、NSCondition" class="headerlink" title="1、NSCondition"></a>1、NSCondition</h3><p>基本的条件锁，手动的控制。wait</p>
+<h3 id="2、NSConditionLock-条件锁"><a href="#2、NSConditionLock-条件锁" class="headerlink" title="2、NSConditionLock 条件锁"></a>2、NSConditionLock 条件锁</h3><p>条件锁，这里的条件并不是bool表达式中的条件，而是一个特定的int值。</p>
+<p>条件锁，不是简单的加锁&#x2F;解锁， 而是需要根据一定条件满足后进行 加锁&#x2F;解锁.</p>
+<p>以一个生产中与消费者的例子，介绍条件锁的用法。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">static NSInteger CONDITION_NO_DATA        //条件一： 没有数据</span><br><span class="line">static NSInteger CONDITION_HAS_DATA       //条件二： 有数据</span><br><span class="line"></span><br><span class="line">// 初始化锁时，指定一个默认的条件</span><br><span class="line">NSConditionLock *lock = [[NSConditionLock alloc] initWithCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">//生产者，加锁与解锁的过程</span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【没有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_NO_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 生产者生成数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，已经有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_HAS_DATA];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">//消费者，加锁与解锁的过程 </span><br><span class="line">while (YES) &#123;</span><br><span class="line">    </span><br><span class="line">    //1. 当满足 【有数据的条件时】进行加锁</span><br><span class="line">    [lock lockWhenCondition:CONDITION_HAS_DATA];</span><br><span class="line"></span><br><span class="line">    //2. 消费者消费数据 </span><br><span class="line">    //.....</span><br><span class="line"></span><br><span class="line">    //3. 解锁，并设置新的条件，没有数据了</span><br><span class="line">    [locker unlockWithCondition:CONDITION_NO_DATA];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="五、OSSpinLock自旋锁-os-unfair-lock"><a href="#五、OSSpinLock自旋锁-os-unfair-lock" class="headerlink" title="五、OSSpinLock自旋锁 &amp; os_unfair_lock"></a>五、OSSpinLock自旋锁 &amp; os_unfair_lock</h1><p>由于OSSpinLock不再安全，所以这里我们就直接说一下os_unfair_lock，这个是苹果用于代替OSSpinLock的。效率很高用法很简单如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">os_unfair_lock_t</span> lock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line"><span class="built_in">os_unfair_lock_lock</span>(&amp;lock);</span><br><span class="line"><span class="built_in">NSLog</span>(@<span class="string">&quot;os_unfair_lock_t&quot;</span>);</span><br><span class="line"><span class="built_in">os_unfair_lock_unlock</span>(&amp;lock);</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">#import &quot;ViewController.h&quot;</span><br><span class="line">#import &lt;libkern/OSAtomic.h&gt;</span><br><span class="line">@interface ViewController ()</span><br><span class="line">@property (nonatomic,assign)  int ticket;</span><br><span class="line">//@property (nonatomic,assign)  OSSpinLock lock;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation ViewController</span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">//    self.lock = OS_SPINLOCK_INIT;</span><br><span class="line">    self.ticket=50;</span><br><span class="line">    [self ticketsTest];</span><br><span class="line">    // Do any additional setup after loading the view.</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)ticketsTest&#123;</span><br><span class="line">  	// 这里我们开两个线程处理同一件事</span><br><span class="line">    dispatch_queue_t queue = dispatch_get_global_queue(0, 0);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">        for (int i =0; i&lt;5; i++) &#123;</span><br><span class="line">            [self saleTicket];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-(void)saleTicket&#123;</span><br><span class="line">    //静态创建、则不需要新建属性</span><br><span class="line">    static OSSpinLock lock = OS_SPINLOCK_INIT;</span><br><span class="line">    //若后面是个函数、则需</span><br><span class="line">    /*</span><br><span class="line">    static OSSpinLock lock = nil;</span><br><span class="line">    static dispatch_once_t onceToken;</span><br><span class="line">    dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">        lock = OS_SPINLOCK_INIT;</span><br><span class="line">    &#125;);</span><br><span class="line">     */</span><br><span class="line">    //其他线程执行到这里时，发现锁被加锁了 就会再这排队等待、直到这个锁被打开</span><br><span class="line">    //加锁</span><br><span class="line">    OSSpinLockLock(&amp;lock);</span><br><span class="line">    int ticket = self.ticket;</span><br><span class="line">    sleep(.2);</span><br><span class="line">    ticket--;</span><br><span class="line">    self.ticket=ticket;</span><br><span class="line">    NSLog(@&quot;%d&quot;,self.ticket);</span><br><span class="line">    //解锁</span><br><span class="line">    OSSpinLockUnlock(&amp;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="iOS-互斥锁-自旋锁-多线程安全隐患"><a href="#iOS-互斥锁-自旋锁-多线程安全隐患" class="headerlink" title="iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患"></a>iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</h1><p><a href="https://www.bbsmax.com/A/QV5ZQk92Jy/">iOS - 互斥锁&amp;&amp;自旋锁 多线程安全隐患</a></p>
+<p><strong>一、多线程安全隐患</strong></p>
+<p><strong>资源共享</strong><br> 一块资源可能会被多个线程共享，也就是多个线程可能会访问到一块资源<br> 比如多个线程访问同一个对象，同一个变量，同一个文件。<br> 当多线程访问同一块资源的时候，很容易引发数据错乱和数据安全问题<br>二、原子和非原子属性<br> 1&gt;OC 在定义属性的时候有nonatomic和atomic两种选择<br>   * <strong>atomic</strong>：原子属性，为 setter 方法加锁<br>   * <strong>nonatomic</strong>：非原子属性，不会为 setter 方法加锁<br>    普通情况下都是在主线程做操作，所以一般都不会加锁。<br> 对比：<br>   *** atomic<strong>：线程安全，需要消耗大量的资源<br>   *** nonatomic</strong>：非线程安全，适合内存小的移动设备<br> 2&gt;synchronized 与 atomic<br>   * <strong>synchronized</strong>：互斥锁<br>   * <strong>atomic</strong>：自旋锁<br> <strong>共同点</strong>：都能保证同一时刻只能有一个线程操作锁住的代码<br>  <strong>区别</strong>：<br>   <strong>互斥锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会进入睡眠状态等待任务执行完毕，当上一个线程的任务执行完毕，下一个线程会.  自动唤醒然后执行任务。<br>   <strong>自旋锁</strong>：当上一个线程的任务没有执行完毕的时候（被锁住），那么下一个线程会一直等待（不会睡眠），当上一个线程的任务执行完毕，下一个线程会立即执行。<br> <strong>自旋锁应用场景</strong>：比较适合做一些不耗时的操作<br>三、互斥锁<br>· 注意点：<br>   - 如果多线程访问同一个资源，那么必须使用同一把锁才能锁住<br>   - 在开发中，尽量不要加锁，能在服务端做尽量在服务端做，如果必须要加锁，一定要记住，锁的范围不能太大，哪里有安全隐患就加在哪里。<br> 技巧：因为必须使用同一把锁，开发中如果需要加锁，直接使用 self 即可。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">@synchronized(self) &#123;</span><br><span class="line">  //线程1进来之后，锁住，2和3都再外面等待</span><br><span class="line">  //1、查询剩余的票数 NSUInteger count = self.totalCount;</span><br><span class="line">  //2、判断是否还有余票</span><br><span class="line">  //2.1卖票</span><br><span class="line">  //3 、提示客户，没有票了</span><br><span class="line">  if (count&gt;0) &#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:0.1];</span><br><span class="line">    self.totalCount = count-1;</span><br><span class="line">    NSLog(@&quot;%@卖了一张票,还剩%zd票&quot;,[NSThread currentThread].name,self.totalCount);</span><br><span class="line">  &#125;</span><br><span class="line">  else</span><br><span class="line">  &#123;</span><br><span class="line">    NSLog(@&quot;没票了&quot;);</span><br><span class="line">    break;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">//解锁</span><br></pre></td></tr></table></figure>
+
+<p>四、自旋锁<br>注意点:<br>只会给 setter 方法加锁，并不会给getter方法加锁。</p>
+<p><a href="https://juejin.im/post/5c67e349f265da2de33f1275">ObjC 多线程简析（一）-多线程简述和线程锁的基本应用</a></p>
+<p>在iOS10之后apple废弃了<code>OSSpinLock</code>自旋锁，使用<code>os_unfair_lock</code>互斥锁来替代。</p>
+<p>在iOS10之后apple已经不再建议使用<code>OSSpinLock</code>自旋锁了，它的替代方案是一个互斥锁，所以一般情况下我们使用互斥锁来解决线程同步的问题才是比较合理的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化OSSpinLock</span><br><span class="line">_osspinlock = OS_SPINLOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">OSSpinLockLock(&amp;_osspinlock);</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">OSSpinLockUnlock(&amp;_osspinlock);</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 初始化os_unfair_lock</span><br><span class="line">_osunfairLock = OS_UNFAIR_LOCK_INIT;</span><br><span class="line"></span><br><span class="line">// 加锁</span><br><span class="line">os_unfair_lock_lock(&amp;(_osunfairLock));</span><br><span class="line"></span><br><span class="line">// 操作数据</span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">// 解锁</span><br><span class="line">os_unfair_lock_unlock(&amp;(_osunfairLock));</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a href="https://www.jianshu.com/p/c2f488ad638e">iOS中的线程同步方案</a></p>
+<p><strong>自旋锁、互斥锁比较:</strong></p>
+<p>a, 什么情况使用自旋锁比较划算？</p>
+<p>预计线程等待锁的时间很短</p>
+<p>加锁的代码（临界区）经常被调用，但竞争情况很少发生</p>
+<p>CPU资源不紧张</p>
+<p>多核处理器</p>
+<p>b,什么情况使用互斥锁比较划算？</p>
+<p>预计线程等待锁的时间较长</p>
+<p>单核处理器</p>
+<p>临界区有IO操作</p>
+<p>临界区代码复杂或者循环量大</p>
+<p>临界区竞争非常激烈</p>
+<h6 id="4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列"><a href="#4-、自己延伸的问题：什么队列能同时存在同步任务和异步任务？-并发队列" class="headerlink" title="(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)"></a>(4)、自己延伸的问题：什么队列能同时存在同步任务和异步任务？(并发队列)</h6><p>eg：主线程的主队列是串行队列，不可能在该队列上添加同步任务，否则会造成死锁。所以，同时存在同步任务和异步任务的队列应该只能是并发队列。</p>
+<p>最终的执行顺序，还是看这些各式各样的任务所在的队列是什么队列，串行的还是并发的。</p>
+<h4 id="1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION"><a href="#1、死锁探究：GCD死锁及报错提示-EXC-BAD-INSTRUCTION" class="headerlink" title="1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)"></a>1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</h4><h6 id="1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"><a href="#1-、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁" class="headerlink" title="(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁"></a>(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</h6><p>代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock1:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    	NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	dispatch_sync(q1, ^&#123; // 添加的同步任务和外面的任务是同一个串行队列</span><br><span class="line">    			sleep(2);</span><br><span class="line">    			NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    	&#125;);</span><br><span class="line">    	NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h6 id="2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要"><a href="#2-、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁-这句话非常重要" class="headerlink" title="(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)"></a>(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</h6><h6 id="3-、死锁原因分析："><a href="#3-、死锁原因分析：" class="headerlink" title="(3)、死锁原因分析："></a>(3)、死锁原因分析：</h6><p>要了解<strong>通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</strong>，或者说<strong>往串行队列里添加的同步任务卡住该串行队列的时候会发生死锁</strong>的原因，我们首先需要知道几个概念：</p>
+<blockquote>
+<p>知识点①：创建同步任务的操作，在创建完之后，需要立马执行所创建的同步任务。即创建完同步任务的操作后，只有连其所创建的同步任务也结束了才能继续执行下去；</p>
+<p>知识点②：而创建异步任务的操作，在创建完之后，即可继续执行下去，不需要等待所创建的异步任务结束。</p>
+<p>附：在线程组的使用中，我们会遇到需要监听多个子线程中的所有任务都结束后，才去执行最后的更新UI的操作。假设最后更新UI的操作，除了需要子线程的任务结束，还需要子线程中的异步线程，如网络请求也结束后，才能更新UI，那么为了不让子线程提前退出，而是等到网络请求也结束后才退出，我们通常会通过使用gcd的enter leave或者信号量来等待。</p>
+<p>知识点③：串行队列里的任务是一个执行完，才接着执行下一个；</p>
+</blockquote>
+<p>所以，由以上①②③知识点，我们就能分析出其造成死锁的原因如下：</p>
+<blockquote>
+<p>首先，对于标记<code>1</code>、<code>2</code>、<code>3</code>，先只看是同步任务还是异步任务，而不管是串行队列，还是并行队列，或者说是哪个队列。</p>
+<p>从代码上我们很容易看出其是同步任务，所以由以上同步的知识点②，可以知道，最终标记输出的正确顺序应该依次是标记<code>1</code>、标记<code>2</code>、标记<code>3</code>。</p>
+<p>即我们的关注点是标记<code>2</code>能否在标记<code>1</code>之后输出。</p>
+<p>答，在上述代码中，标记<code>2</code>处的同步任务是被添加到串行队列的，而且还是当前的串行队列。</p>
+<p>我们知道串行队列里的任务是一个执行完，才接着执行下一个的，也就是说，往串行队列里添加的任务要执行的条件一定是在所添加的新任务之前的所有任务都已经全部执行完了后，才会执行到这一个的。</p>
+<p>这里我们依次往串行队列里添加了第一个任务块和第二个任务块。</p>
+<p>要完成第一个任务块需要同时完成任务<code>1</code>+第二个任务块<code>2</code>+任务<code>3</code>。</p>
+<p>第二个任务块要执行，根据串行队列的性质，我们知道第二个任务块要等待第一个任务块结束才会执行。（如果两个任务即使都是添加到串行队列，但是他们是不同串行队列的时候就不会需要等待）</p>
+<p>由此死锁。</p>
+<p>显然这里任务②需要等到任务①真正完成，而任务①的真正完成需要等任务②完成，这样的一个互相等待也就构成了一个死锁，导致我们** EXC_BAD_INSTRUCTION**的崩溃了。</p>
+</blockquote>
+<p>那么以上死锁的问题，怎么解决呢？</p>
+<blockquote>
+<p>答：其实只要解决标记<code>2</code>即任务②，可以在标记<code>1</code>执行之后执行就可以了。<br>解决方法有：将任务②改成异步任务，或者将任务②这个同步任务添加到非本串行队列下，可以是其他串行队列，也可以是其他并行队列都可以。即以下这种修改方案是能够解决死锁的。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">- (IBAction)testDeadlock2:(id)sender &#123;</span><br><span class="line">    //测试死锁</span><br><span class="line">    dispatch_queue_t q1 = dispatch_queue_create(&quot;serial_queue_1&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    dispatch_async(q1, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;1(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    dispatch_queue_t q2 = dispatch_queue_create(&quot;serial_queue_2&quot;, DISPATCH_QUEUE_SERIAL);</span><br><span class="line">    ​    dispatch_sync(q2, ^&#123;</span><br><span class="line">    ​        sleep(2);</span><br><span class="line">    ​        NSLog(@&quot;2(属任务②).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;3(属任务①).验证通过串行队列里的任务，往其他串行队列里添加同步任务，不会造成死锁%@&quot;, [NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？"><a href="#2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程-看同步任务是不是加在主队列里去了-？" class="headerlink" title="2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？"></a>2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程(看同步任务是不是加在主队列里去了)？</h4><p>回答本问题前，我们需要先了解的知识点是：</p>
+<blockquote>
+<p>知识点①：主线程和主队列的关系：</p>
+<p>主队列是主线程中的一个串行队列。每一个应用程序只有唯一的一个主队列用来update UI。所有的和UI的操作(刷新或者点击按钮)都必须在主线程中的主队列中去执行，否则无法更新UI。</p>
+</blockquote>
+<p>因为主线程是一个串行队列，<strong>所以往主队列里添加同步任务</strong>（如果不是往主队列添加同步任务就不会）是<em>很有可能</em>发生死锁卡死的。如以下代码就会发生死锁。代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;打印1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;打印2&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    NSLog(@&quot;打印3&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由引述，我们已经知道<strong>往串行队列里添加的同步任务，如果卡住的是该串行队列，则会发生死锁</strong>，所以显然即执行往这个串行队列里添加同步任务的该任务也是在这个串行队列里的话，那么由于相互等待会造成死锁。</p>
+<p>最简单的解决方法：将sync同步方法，替换成异步方法</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line"></span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记5、标记3</span><br></pre></td></tr></table></figure>
+
+<p>其他修改方法：将同步任务卡住的队列改成并发队列。如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">- (void)testDeadLock &#123;</span><br><span class="line">    NSLog(@&quot;标记1&quot;);</span><br><span class="line">    dispatch_queue_t other_queue = dispatch_queue_create(&quot;other_queue&quot;, DISPATCH_QUEUE_SERIAL);//不管是串行队列还是并发队列，都能解决这个死锁问题，因为它同步方法没有卡住这个other_queue。</span><br><span class="line">    dispatch_async(other_queue, ^&#123;</span><br><span class="line">    ​    NSLog(@&quot;标记2&quot;);</span><br><span class="line">    ​    dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    ​        NSLog(@&quot;标记3&quot;);</span><br><span class="line">    ​    &#125;);</span><br><span class="line">    ​    NSLog(@&quot;标记4&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">    sleep(2);</span><br><span class="line">    NSLog(@&quot;标记5&quot;);</span><br><span class="line">&#125;</span><br><span class="line">//输出结果为 标记1、标记2、标记5、标记3、标记4。</span><br></pre></td></tr></table></figure>
+
+
+<p>有了这些基础，你再看以下文章中的例子时，就能轻松判断是否会造成死锁了 。</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/c39c1db05305">dispatch_get_main_queue()卡死</a></li>
+</ul>
+<h4 id=""><a href="#" class="headerlink" title=""></a></h4><h1 id="iOS中自旋锁与互斥锁的区别"><a href="#iOS中自旋锁与互斥锁的区别" class="headerlink" title="iOS中自旋锁与互斥锁的区别"></a>iOS中自旋锁与互斥锁的区别</h1><p><strong>自旋锁（spinlock）</strong>：是指当一个线程在获取锁的时候，如果锁已经被其它线程获取，那么该线程将循环等待，然后不断的判断锁是否能够被成功获取，直到获取到锁才会退出循环。（附：获取锁的线程一直处于活跃状态，但是并没有执行任何有效的任务，使用这种锁会造成busy-waiting。自旋锁不会使线程状态发生切换，一直处于用户态，即线程一直都是active活跃状态的；不会使线程进入阻塞状态，减少了不必要的上下文切换，执行速度快）</p>
+<p>其他参考文章：<a href="https://www.jianshu.com/p/d69495dac8cb">iOS中自旋锁与互斥锁的区别</a></p>
+<p>pthread_mutex 表示互斥锁。互斥锁可以传入不同参数，实现递归锁pthread_mutex(recursive)。</p>
+<blockquote>
+<p>NSLock，NSCondition，NSRecursiveLock，NSConditionLock都是内部封装的pthread_mutex，即都属于互斥锁。@synchronized是NSLock的一种封装，牺牲了效率，简洁了语法。</p>
+</blockquote>
+<p>OSSpinLock 表示自旋锁，从上图可以看到自旋锁的效率最高，但是现在的iOS因为优先级反转的问题，已经不安全，所以推荐使用pthread_mutex或者dispatch_semaphore。</p>
+<p><strong>总结</strong>：<br>　　自旋锁会忙等: 所谓忙等，即在访问被锁资源时，调用者线程不会休眠，而是不停循环在那里，直到被锁资源释放锁。<br>　　互斥锁会休眠: 所谓休眠，即在访问被锁资源时，调用者线程会休眠，此时cpu可以调度其他线程工作。直到被锁资源释放锁。此时会唤醒休眠线程。</p>
+<p><strong>优缺点</strong>：<br>　　自旋锁的优点在于，因为自旋锁不会引起调用者睡眠，所以不会进行线程调度，cpu时间片轮转等耗时操作。所有如果能在很短的时间内获得锁，自旋锁的效率远高于互斥锁。<br>　　缺点在于，自旋锁一直占用CPU，他在未获得锁的情况下，一直运行－－自旋，所以占用着CPU，如果不能在很短的时 间内获得锁，这无疑会使CPU效率降低。自旋锁不能实现递归调用。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A2%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B%E4%B8%8E%E9%94%81/" data-id="cmpnyclrp011ui5r4f7inbwtj" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/线程/4线程-②队列与任务或线程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A1%E9%98%9F%E5%88%97%E4%B8%8E%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B/">
+    
+      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-05-23</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A1%E9%98%9F%E5%88%97%E4%B8%8E%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B/">线程-②队列与任务或线程</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="线程与网络-①队列与任务或线程"><a href="#线程与网络-①队列与任务或线程" class="headerlink" title="线程与网络-①队列与任务或线程"></a>线程与网络-①队列与任务或线程</h1>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
+<ul>
+<li><a href="#%E9%98%9F%E5%88%97%E4%B8%8E%E6%89%A7%E8%A1%8C">五、队列与执行</a></li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&gt;1、死锁探究：GCD死锁及报错提示(EXC_BAD_INSTRUCTION)</span><br><span class="line">&gt;(1)、死锁举例：通过串行队列里的任务，往这个串行队列里添加同步任务，会造成死锁</span><br><span class="line">&gt;(2)、死锁结论：往串行队列里添加的同步任务不能卡住该串行队列，否则会造成死锁(这句话非常重要)</span><br><span class="line">&gt;(3)、死锁原因分析</span><br><span class="line"></span><br><span class="line">&gt;2、主队列中的死锁：在主队列开启同步任务，一定为什么会阻塞线程？</span><br><span class="line"></span><br><span class="line">&gt;3、iOS多线程中，队列和执行的排列组合结果分析</span><br><span class="line">&gt;(1)、队列的类型</span><br><span class="line">&gt;(2)、四个比较容易混淆的术语：同步、异步、并发、串行</span><br><span class="line">&gt;(3)、队列和线程的关系</span><br><span class="line">&gt;(4)、自己延伸的问题：一个队列同时存在同步任务和异步任务？</span><br><span class="line"></span><br><span class="line">&gt;4、并发是并发队列，并行又是什么鬼？？？</span><br><span class="line">&gt;(1)、多个处理器和多核处理器的区别</span><br><span class="line">&gt;(2)、并发和并行的区别</span><br><span class="line"></span><br><span class="line">&gt;5、进程和线程的区别</span><br><span class="line">&gt;(1)、进程和线程的区别</span><br><span class="line">&gt;(2)、一个app运行时只有一个进程吗？有没有多进程？</span><br><span class="line">&gt;(3)、什么时候用进程？什么时候用线程？</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="五、队列与任务执行"><a href="#五、队列与任务执行" class="headerlink" title="五、队列与任务执行"></a>五、队列与任务执行</h2><blockquote>
+<p><a href="#%E7%9B%AE%E5%BD%95">&lt; 返回目录</a></p>
+</blockquote>
+<h3 id="1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-串行队列（Serial-Dispatch-Queue））"><a href="#1、队列的类型（并发队列（Concurrent-Dispatch-Queue）-串行队列（Serial-Dispatch-Queue））" class="headerlink" title="1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））"></a>1、队列的类型（并发队列（Concurrent Dispatch Queue）&amp; 串行队列（Serial Dispatch Queue））</h3><p>GCD的队列可以分为2大类型：并发队列和串行队列。</p>
+<h4 id="（1）并发队列（Concurrent-Dispatch-Queue）"><a href="#（1）并发队列（Concurrent-Dispatch-Queue）" class="headerlink" title="（1）并发队列（Concurrent Dispatch Queue）"></a>（1）并发队列（Concurrent Dispatch Queue）</h4><blockquote>
+<p>可以让多个任务并发（同时）执行（自动开启多个线程同时执行任务）并发功能只有在异步（dispatch_async）函数下才有效<br><img src="http://images.cnitblog.com/i/450136/201406/242239575804246.png" alt="并发队列"></p>
+</blockquote>
+<p>####（2）串行队列（Serial Dispatch Queue）</p>
+<blockquote>
+<p>让任务一个接着一个地执行（一个任务执行完毕后，再执行下一个任务）<br><img src="http://images.cnitblog.com/i/450136/201406/242240281274213.png" alt="串行队列"></p>
+</blockquote>
+<p> 问：并发是并发队列，并行又是什么鬼？？？</p>
+<p>答案：下文会详细介绍。</p>
+<h3 id="2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）"><a href="#2、队列是用来干嘛的？说一说【队列与任务-】或【队列与线程】的关系？（重要）" class="headerlink" title="2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）"></a>2、队列是用来干嘛的？说一说【队列与任务 】或【队列与线程】的关系？（重要）</h3><p>答：</p>
+<blockquote>
+<p><strong>1、队列是用来添加任务&#x2F;保存以及管理任务的，它只是负责任务的调度(是按串行队列还是按并发队列调度)，而不负责任务的执行</strong><br><strong>2、任务是添加到队列里的，可以添加同步任务或者异步任务。</strong></p>
+<p><strong>3、对队列所添加的任务是在线程中执行的&#x2F;由线程负责进行执行，至于在什么线程根据是同步任务还是异步任务，以及当前是什么队列共同决定。</strong></p>
+<p>（所以不管是将同步任务添加到串行队列还是并行队列，因为同步任务都不会创建新线程。所以并行同步队列和串行同步队列其实是一样的，它们都不会创建新的线程而且会是顺序执行）</p>
+<p><strong>4、补充：在一个线程内可能有多个队列。</strong></p>
+</blockquote>
+<p><strong>问：往队列里面添加任务，是否会创建新线程是由什么决定的，是任务类型是同步还是异步，还是队列是串行还是并发？</strong></p>
+<p>答：是否会创建<strong>新线程</strong>，主要由<strong>队列的类型（串行 or 并发）</strong>以及<strong>任务类型（同步 or 异步）</strong>共同决定。即<strong>异步 + 并发，才会创建新线程，并发执行任务。</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>同步（dispatch_sync）</strong></th>
+<th><strong>异步（dispatch_async）</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>串行队列（Serial Queue）</strong></td>
+<td>❌ 不创建新线程，任务按顺序在<strong>当前线程</strong>执行</td>
+<td>❌ 不创建新线程，任务按顺序在<strong>当前线程</strong>执行</td>
+</tr>
+<tr>
+<td><strong>并发队列（Concurrent Queue）</strong></td>
+<td>❌ 不创建新线程，任务按顺序在<strong>当前线程</strong>执行</td>
+<td>✅ 可能创建<strong>新线程</strong>，并发执行任务</td>
+</tr>
+</tbody></table>
+<p><strong>⚠️ 例外情况：</strong></p>
+<p>​	•	<strong>主队列 (dispatch_get_main_queue())</strong> 永远不会创建新线程，不管是 sync 还是 async，任务都在<strong>主线程</strong>执行。</p>
+<p>​	•	dispatch_sync 只会在<strong>当前线程</strong>执行，不管队列是不是并发的，都不会开新线程。</p>
+<h4 id="2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"><a href="#2-1、理解队列是用来添加任务-保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码" class="headerlink" title="2.1、理解队列是用来添加任务&#x2F;保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码"></a>2.1、理解队列是用来添加任务&#x2F;保存以及管理任务的，它只是负责任务的调度，而不负责任务的执行的代码</h4><p>看以下代码，我们通过它来方便我们理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">//  NSOperationQueueCJHelper.m</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> *  创建队列</span><br><span class="line"> *</span><br><span class="line"> *  @param operations    队列的操作数组</span><br><span class="line"> *  @param lastOperation 队列的最后一条(最后一条，会等到前面都结束后才会结束)</span><br><span class="line"> *</span><br><span class="line"> *  return 队列</span><br><span class="line"> */</span><br><span class="line">+ (NSOperationQueue *)createOperationQueueWithOperations:(NSArray&lt;NSOperation *&gt; *)operations lastOperation:(NSOperation *)lastOperation &#123;</span><br><span class="line">    </span><br><span class="line">    NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">    queue.name = @&quot;this is a queue&quot;;</span><br><span class="line">    </span><br><span class="line">    for (NSBlockOperation *operation in operations) &#123;</span><br><span class="line">        [queue addOperation:operation];</span><br><span class="line">        </span><br><span class="line">        [lastOperation addDependency:operation];</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    [queue addOperation:lastOperation];</span><br><span class="line">    </span><br><span class="line">    return queue;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 或者</span><br><span class="line">NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];</span><br><span class="line">NSInvocationOperation *operation = [[NSInvocationOperation alloc] initWithTarget:self</span><br><span class="line">selector:@selector(myTask) object:nil];</span><br><span class="line">[operationQueue addOperation:operation];</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>附：队列的取消、暂停、恢复<br>取消队列的所有操作使用NSOperationQueue的 <code>- (void)cancelAllOperations;</code></p>
+<p>也可以调用NSOperation的- (void)cancel方法取消单个操作</p>
+<p>暂停和恢复队列<br>     - (void)setSuspended:(BOOL)b; &#x2F;&#x2F; YES代表暂停队列，NO代表恢复队列</p>
+<h4 id="2-2、iOS主线程、主队列-串行队列-、全局队列"><a href="#2-2、iOS主线程、主队列-串行队列-、全局队列" class="headerlink" title="2.2、iOS主线程、主队列(串行队列)、全局队列"></a>2.2、iOS主线程、主队列(串行队列)、全局队列</h4><p><a href="https://blog.csdn.net/syzd451529064/article/details/100039633">iOS 主队列 全局队列</a></p>
+<p><strong>主队列是系统为我们创建的串行队列</strong>，而且每个APP只有一个主队列，负责调度处理APP的唯一主线程的UI事件。</p>
+<p>注意：<strong>主队列没有办法开辟新的线程。所以，在主队列下的任务不管是异步任务还是同步任务都不会开辟线程，任务只会在主线程顺序执行。</strong></p>
+<p>主队列异步任务：先将任务放在主队列中，但是不是马上执行，等到主队列中的其它所有除我们使用代码添加到主队列的任务的任务都执行完毕之后才会执行我们使用代码添加的任务。</p>
+<p>主队列同步任务：容易阻塞主线程，所以不要这样写。原因：我们自己代码任务需要马上执行，但是主线程正在执行代码任务的方法体，因此代码任务就必须等待，而主线程又在等待代码任务的完成好去完成下面的任务，因此就形成了相互等待。整个主线程就被阻塞了。</p>
+<p>全局队列：本质是一个并发队列，由系统提供，方便编程，可以不用创建就直接使用。</p>
+<h4 id="2-3、插入问：NSOperationQueue是什么队列？"><a href="#2-3、插入问：NSOperationQueue是什么队列？" class="headerlink" title="2.3、插入问：NSOperationQueue是什么队列？"></a>2.3、插入问：NSOperationQueue是什么队列？</h4><p>答：NSOperationQueue是操作队列。结合实际才知道它是并发队列，还是串行队列。</p>
+<p><em>①<code>[NSOperationQueue mainQueue]</code>是主队列，和GCD中的主队列一样，是串行队列</em>。</p>
+<p><em>②<code>[[NSOperationQueue alloc]init]</code>是非主队列，非常特殊(同时具备并发和串行的功能)。默认情况下，非主队列是并发队列。</em></p>
+<p>NSOperationQueue *operationQueue &#x3D; [[NSOperationQueue alloc] init];<br>当operationQueue.maxConcurrentOperationCount &gt; 1，那么operationQueue就是并发队列；<br>当operationQueue.maxConcurrentOperationCount &#x3D;&#x3D; 1，那么operationQueue就是串行队列。</p>
+<h3 id="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"><a href="#3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务" class="headerlink" title="3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务"></a>3、总结四个比较容易混淆的术语：并发队列、串行队列、同步任务、异步任务</h3><h4 id="3-1、并发和串行决定了任务的执行方式-队列-。"><a href="#3-1、并发和串行决定了任务的执行方式-队列-。" class="headerlink" title="3.1、并发和串行决定了任务的执行方式(队列)。"></a>3.1、并发和串行决定了任务的执行方式(队列)。</h4><blockquote>
+<p>并发队列：多个任务并发（同时）执行，指<strong>一个处理器</strong>同时处理多个任务<br>串行队列：一个任务执行完毕后，再执行下一个任务</p>
+</blockquote>
+<h4 id="3-2、同步和异步决定了要不要开启新的线程-线程"><a href="#3-2、同步和异步决定了要不要开启新的线程-线程" class="headerlink" title="3.2、同步和异步决定了要不要开启新的线程(线程)"></a>3.2、同步和异步决定了要不要开启新的线程(线程)</h4><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt;同步：在当前线程中执行任务，不具备开启新线程的能力</span><br><span class="line">&gt;异步：在新的线程中执行任务，具备开启新线程的能力</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？"><a href="#4、并发是并发队列，并行又是什么鬼-多核处理器同时执行任务-？？？" class="headerlink" title="4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？"></a>4、并发是并发队列，并行又是什么鬼(多核处理器同时执行任务)？？？</h3><h6 id="1-、多个处理器和多核处理器的区别"><a href="#1-、多个处理器和多核处理器的区别" class="headerlink" title="(1)、多个处理器和多核处理器的区别"></a>(1)、多个处理器和多核处理器的区别</h6><blockquote>
+<p>多个处理器：多个单核处理器，就是说电脑和处理器有多个，但是这个电脑的处理器是单核的；</p>
+</blockquote>
+<p>多核处理器：单个多核处理器，也就是说电脑有一个处理器，但是这个处理器是多核的；</p>
+<blockquote>
+</blockquote>
+<p>附：在生活中，我们的电脑上常见的处理器都是单处理器，但是这个处理器是多核的，一般是四核，有些需要玩高级游戏的，可能还是八核的处理器。</p>
+<blockquote>
+</blockquote>
+<p>详情查看：<a href="https://blog.csdn.net/kevin_yzlong/article/details/70196168">多个处理器和多核处理器的区别</a></p>
+<h6 id="2-、并发和并行的区别"><a href="#2-、并发和并行的区别" class="headerlink" title="(2)、并发和并行的区别"></a>(2)、并发和并行的区别</h6><p>并发(concurrency)是指一个处理器同时处理多个任务。即<strong>并发指在同一时刻只能有一条指令执行，但多个进程指令被快速的轮换执行，使得在宏观上具有多个进程同时执行的效果，但在微观上并不是同时执行的，只是把时间分成若干段，使多个进程快速交替的执行</strong>。这就好像两个人用同一把铁锨，轮流挖坑，一小时后，两个人各挖一个小一点的坑，要想挖两个大一点得坑，一定会用两个小时。</p>
+<blockquote>
+<p><img src="/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B/%E5%B9%B6%E5%8F%91(concurrency).jpg" alt="并发(concurrency)"></p>
+</blockquote>
+<p>并行(parallel)是指多个处理器或者是多核的处理器同时处理多个不同的任务。即并行是指在同一时刻，有多条指令在多个处理器上同时执行。</p>
+<blockquote>
+<p><img src="/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B/%E5%B9%B6%E8%A1%8C(parallel).jpg" alt="并行(parallel)"></p>
+</blockquote>
+<p>个人理解：是否可以理解为在出现多核处理器或者只有一个处理器的时候，我们那时候就只还有并发的概念。</p>
+<p>并行在多处理器系统中存在，而并发可以在单处理器和多处理器系统中都存在，并发能够在单处理器系统中存在是因为<strong>并发是并行的假象，并行要求程序能够同时执行多个操作，而并发只是要求程序假装同时执行多个操作（每个小时间片执行一个操作，多个操作快速切换执行）</strong>。</p>
+<h3 id="5、iOS多线程中，队列和执行的排列组合结果分析"><a href="#5、iOS多线程中，队列和执行的排列组合结果分析" class="headerlink" title="5、iOS多线程中，队列和执行的排列组合结果分析"></a>5、iOS多线程中，队列和执行的排列组合结果分析</h3><ul>
+<li><a href="http://www.cnblogs.com/dsxniubility/p/4296937.html">iOS多线程中，队列和执行的排列组合结果分析</a></li>
+</ul>
+<p>该文章非常重要，且主要总结点有</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 开不开线程，取决于执行任务的函数，同步不开，异步开。</span><br><span class="line">2. 开几条线程，取决于队列，串行开一条，并发可以开多条(即并发队列里有异步任务，则可以开多条，如果都只有同步任务，那由于同步任务并不会开新线程，所以此时也就不会开新线程)</span><br><span class="line">3. 主队列：专门用来在主线程上调度任务的&quot;队列&quot;，主队列不能在其他线程中调度任务！</span><br><span class="line">4. 如果主线程上当前正在有执行的任务，主队列暂时不会调度任务的执行！主队列同步任务，会造成死锁。原因是循环等待</span><br><span class="line">5. 同步任务可以队列调度多个异步任务前，指定一个同步任务，让所有的异步任务，等待同步任务执行完成，这是依赖关系。</span><br><span class="line">6. 全局队列：并发，能够调度多个线程，执行效率高，但是相对费电。 串行队列效率较低，省电省流量，或者是任务之间需要依赖也可以使用串行队列。</span><br><span class="line">7. 也可以通过判断当前用户的网络环境来决定开的线程数。WIFI下6条，3G/4G下2～3条。</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="6、代码：使用GCD为队列添加任务"><a href="#6、代码：使用GCD为队列添加任务" class="headerlink" title="6、代码：使用GCD为队列添加任务"></a>6、代码：使用GCD为队列添加任务</h3><p>实例1：并发队列添加异步任务&#x2F;用异步函数往并发队列中添加任务的例子：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">- (void)viewDidLoad</span><br><span class="line">  &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    //1.获得全局的并发队列</span><br><span class="line">   dispatch_queue_t queue =  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);</span><br><span class="line"></span><br><span class="line">    //2.添加任务到队列中，就可以执行任务</span><br><span class="line">    //异步函数：具备开启新线程的能力</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片1----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">    dispatch_async(queue, ^&#123;</span><br><span class="line">  ​      NSLog(@&quot;下载图片2----%@&quot;,[NSThread currentThread]);</span><br><span class="line">    &#125;);</span><br><span class="line">  //打印主线程</span><br><span class="line">    NSLog(@&quot;主线程----%@&quot;,[NSThread mainThread]);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">上述方法说明.GCD中有2个用来执行任务的函数</span><br></pre></td></tr></table></figure>
+
+<p>说明：<code>把右边的参数（任务）提交给左边的参数（队列）进行执行</code>。</p>
+<p>（1）用同步的方式执行任务 dispatch_sync(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p>（2）用异步的方式执行任务 dispatch_async(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p id="GCD"></p>
+## 常见笔试/面试题
+[< 返回目录](#目录)
+
+
+<h6 id="2、以下两种GCD队列创建有什么不同？"><a href="#2、以下两种GCD队列创建有什么不同？" class="headerlink" title="2、以下两种GCD队列创建有什么不同？"></a>2、以下两种GCD队列创建有什么不同？</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_queue_create(&quot;MyQueue&quot;,DISPATCH_QUEUE_SERIAL);</span><br><span class="line"></span><br><span class="line">dispatch_queue_t queue =dispatch_queue_create(@“MyQueue&quot;, DISPATCH_QUEUE_CONCURRENT);</span><br><span class="line"></span><br><span class="line">//生成一个串行队列，队列中的block按照先进先出（FIFO）的顺序去执行，实际上为单线程执行。第一个参数是队列的名称，在调试程序时会非常有用，所有尽量不要重名了。</span><br><span class="line"></span><br><span class="line">//生成一个并发执行队列，block被分发到多个线程去执行</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p id="END"></p>
+## END
+> < [返回目录](#目录)
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A1%E9%98%9F%E5%88%97%E4%B8%8E%E4%BB%BB%E5%8A%A1%E6%88%96%E7%BA%BF%E7%A8%8B/" data-id="cmpnyclrq011xi5r48shf0bra" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-数据结构/9数据结构-②堆栈" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  
+    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
 
     
   <div class="article-category">
@@ -95,7 +474,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">9数据结构-②堆栈</a>
+      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">堆栈</a>
     </h1>
   
 
@@ -104,13 +483,13 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="必备知识架构-数据结构"><a href="#必备知识架构-数据结构" class="headerlink" title="必备知识架构-数据结构"></a>必备知识架构-数据结构</h1>
+        
 <h2 id="一、Stack"><a href="#一、Stack" class="headerlink" title="一、Stack"></a>一、Stack</h2><p>stack翻译为栈，时STL中实现的一个后进先出的容器。</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" data-id="cmpfj3u9z0055c7r4066kawmx" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" data-id="cmpnyclqa004ei5r41tor8ko7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -124,7 +503,9 @@
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/">
+    
+      <a href="/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/">
+    
       <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
     </a>
     <span class="article-updated"> · 更新于 2025-05-23</span>
@@ -143,7 +524,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/">9算法</a>
+      <a class="article-title" href="/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/">算法</a>
     </h1>
   
 
@@ -152,7 +533,7 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="必备知识架构-算法"><a href="#必备知识架构-算法" class="headerlink" title="必备知识架构-算法"></a>必备知识架构-算法</h1>
+        
 <blockquote>
 <p>稳定与不稳定：如果a原本在b的前面并且a&#x3D;b，排序之后a仍然在b的前面那就是稳定排序，如果排序之后a可能会出现在b的后面则是不稳定排序。所以冒泡排序是稳定的。选择排序可能不稳定。</p>
 <p>空间复杂度：是指算法在计算机内执行时所需的存储空间与n的规模之间的关系。</p>
@@ -315,7 +696,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/" data-id="cmpfj3ua00062c7r4bvq35x5i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/9%E7%AE%97%E6%B3%95/" data-id="cmpnyclqb004ri5r4910t8o88" class="article-share-link">Share</a>
       
       
     </footer>
@@ -325,15 +706,14 @@
 
 
   
-      <article id="post-iOS/10其他/7其他" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-Architecture架构/网络/即时通信" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
-  <span class="article-date">
-    <a href="/iOS/10%E5%85%B6%E4%BB%96/7%E5%85%B6%E4%BB%96/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
+  
+    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
 
     
   <div class="article-category">
@@ -348,7 +728,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/10%E5%85%B6%E4%BB%96/7%E5%85%B6%E4%BB%96/">7其他</a>
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/">即时通信</a>
     </h1>
   
 
@@ -357,238 +737,7 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
-<p id="目录"></p>
-# 目录
-
-<ul>
-<li><p>十一、谈谈设计模式</p>
-</li>
-<li><p>十二、如何优化过于臃肿的Controller</p>
-</li>
-<li><p>十三、谈谈性能优化(功耗)</p>
-</li>
-<li><p>十四、UITableView的优化、重用</p>
-</li>
-<li><p>十五、布局 layoutsubview、drawrect等</p>
-</li>
-<li><p>十六、有逼格的代码</p>
-</li>
-<li><p>十七、单元测试</p>
-</li>
-<li><p>十八、APP审核</p>
-</li>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p id="十一"></p>
-## 十一、谈谈设计模式
-> < [返回目录](#目录)
-
-
-
-<p id="十二"></p>
-## 十二、如何优化过于臃肿的Controller
-> < [返回目录](#目录)
-[如何优化过于臃肿的Controller](http://t.cn/REFMQaU)
-
-
-
-<p id="十三"></p>
-## 十三、谈谈性能优化(功耗)
-> < [返回目录](#目录)
-
-<ul>
-<li><a href="http://www.cocoachina.com/ios/20171204/21413.html">iOS进阶–App功耗优化看这篇就够了</a></li>
-<li><a href="https://www.jianshu.com/p/4555704f9696">iOS耗电量检测与优化</a></li>
-</ul>
-<h2 id="UITableView的优化、重用"><a href="#UITableView的优化、重用" class="headerlink" title="UITableView的优化、重用"></a>UITableView的优化、重用</h2><blockquote>
-<p>&lt; <a href="#%E7%9B%AE%E5%BD%95">返回目录</a></p>
-</blockquote>
-<h2 id="布局-layoutsubview、drawrect等"><a href="#布局-layoutsubview、drawrect等" class="headerlink" title="布局 layoutsubview、drawrect等"></a>布局 layoutsubview、drawrect等</h2><blockquote>
-<p>&lt; <a href="#%E7%9B%AE%E5%BD%95">返回目录</a></p>
-</blockquote>
-<h2 id="有逼格的代码"><a href="#有逼格的代码" class="headerlink" title="有逼格的代码"></a>有逼格的代码</h2><p><code>typedef NSString * NSRunLoopMode NS_EXTENSIBLE_STRING_ENUM;</code><br><a href="http://www.bubuko.com/infodetail-1899020.html">提升自己逼格的编程之美之代码规范</a><br><a href="http://www.cocoachina.com/ios/20171123/21298.html">iOS开发细节 | 通知怎么写？</a><br><a href="https://www.jianshu.com/p/6c44419eb059">实现NS_ENUM的自定义反射</a></p>
-<h2 id="单元测试"><a href="#单元测试" class="headerlink" title="单元测试"></a>单元测试</h2><blockquote>
-<p>&lt; <a href="#%E7%9B%AE%E5%BD%95">返回目录</a></p>
-</blockquote>
-<h2 id="APP审核"><a href="#APP审核" class="headerlink" title="APP审核"></a>APP审核</h2><blockquote>
-<p>&lt; <a href="#%E7%9B%AE%E5%BD%95">返回目录</a></p>
-</blockquote>
-<p>如果一个页面被苹果拒回。那怎么通过审核。(参考<a href="http://www.cocoachina.com/bbs/read.php?tid=1731860">金融类APP提交苹果审核，怎么避开5.2.1</a>)</p>
-<p>答：</p>
-<p>1.第一种是有后台控制壳什么时候出现。移动端传一个版本号给后台，后台根据版本号判断App否在审核，在审核就显示壳，不在审核就显示原生界面。</p>
-<p>2.直接由移动端来切换界面。此时App需要登录才能看到主界面，对给苹果审核人员的测试账号做一个判断，如果是测试账号，就显示壳，非测试账号显示原生界面。 </p>
-<p>其中：</p>
-<p>第一种方式用户进来就可以看到主界面，更有利于吸引自然流量，但是如果苹果后期复查，发现了用户使用的App跟审核的不一样，会被下架。</p>
-<p>第二种方式不利于吸引自然流量，但是被下架的风险很小，因为苹果的审核团队在美国，不可能自己去注册账号，复查也没关系，除非有人举报你的App。</p>
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-[< 返回目录](#目录)
-
-<h4 id="1、如何使用一个for循环输出九九乘法表"><a href="#1、如何使用一个for循环输出九九乘法表" class="headerlink" title="1、如何使用一个for循环输出九九乘法表"></a>1、<a href="http://blog.csdn.net/mbuger/article/details/60877188">如何使用一个for循环输出九九乘法表</a></h4><h6 id="NSJSONSerialization"><a href="#NSJSONSerialization" class="headerlink" title="NSJSONSerialization"></a>NSJSONSerialization</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSData *data = [operation.responseString dataUsingEncoding:NSUTF8StringEncoding];</span><br><span class="line">    NSMutableDictionary *responseObject_dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers | NSJSONReadingMutableLeaves error:nil];</span><br></pre></td></tr></table></figure>
-<p>&#x2F;&#x2F;NSJSONReadingMutableContainers的作用: <a href="http://blog.csdn.net/chenyong05314/article/details/45691041">http://blog.csdn.net/chenyong05314/article/details/45691041</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NSJSONReadingMutableContainers：返回可变容器，NSMutableDictionary或NSMutableArray。</span><br><span class="line">NSJSONReadingMutableLeaves：返回的JSON对象中字符串的值为NSMutableString</span><br><span class="line">NSJSONReadingAllowFragments：允许JSON字符串最外层既不是NSArray也不是NSDictionary，但必须是有效的JSON Fragment。例如使用这个选项可以解析 @“123” 这样的字符串。</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-
-<h3 id="iOS中常见Crash总结"><a href="#iOS中常见Crash总结" class="headerlink" title="iOS中常见Crash总结"></a>iOS中常见Crash总结</h3><ul>
-<li><a href="http://www.cocoachina.com/articles/27227">iOS中常见Crash总结</a></li>
-<li><a href="https://blog.csdn.net/zhonggaorong/article/details/52022220">iOS开发之调试技巧Xcode7中你一定要知道的炸裂调试神技、Address Sanitizer EXC_BAD_ACCESS</a></li>
-</ul>
-<p id="END"></p>
-## END
-[< 返回目录](#目录)
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/10%E5%85%B6%E4%BB%96/7%E5%85%B6%E4%BB%96/" data-id="cmpfj3ual00kuc7r4fqb61fbl" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/10其他/10其他2" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/iOS/10%E5%85%B6%E4%BB%96/10%E5%85%B6%E4%BB%962/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/10%E5%85%B6%E4%BB%96/10%E5%85%B6%E4%BB%962/">10其他2</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><ol>
-<li><strong>CertificateSigningRequest</strong>：本地公钥。</li>
-<li><strong>p12</strong>：本地私钥，可以导入到其他电脑。</li>
-<li><strong>证书</strong>：内容是公钥或私钥，由其他机构对其签名组成的数据包。</li>
-<li><strong>Entitlements</strong>：包含了 App 权限开关列表。</li>
-<li><strong>Provisioning Profile</strong>：包含了 证书 &#x2F; Entitlements 等数据，并由苹果后台私钥签名的数据包。</li>
-</ol>
-<h1 id="iOS-App-签名的原理"><a href="#iOS-App-签名的原理" class="headerlink" title="iOS App 签名的原理"></a>iOS App 签名的原理</h1><ul>
-<li><a href="http://blog.cnbang.net/tech/3386/">iOS App 签名的原理</a> （非常好，非常详细的文章）</li>
-</ul>
-<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>四种方式安装一个APP的方式</p>
-<ol>
-<li>从 AppStore 下载</li>
-<li>开发 App 时可以直接把开发中的应用安装进手机进行调试。</li>
-<li>In-House 企业内部分发，可以直接安装企业证书签名后的 APP。</li>
-<li>AD-Hoc 相当于企业分发的限制版，限制安装设备数量，较少用。</li>
-</ol>
-<p>区别：</p>
-<p>App Store 下载的是Apple后台用私钥A对其进行重签名，</p>
-<p>而其他的是用Xcode配置的对应该证书的本地私钥L对app进行签名。</p>
-<h2 id="一、App-Store-下载的签名机制（最简单的签名）"><a href="#一、App-Store-下载的签名机制（最简单的签名）" class="headerlink" title="一、App Store 下载的签名机制（最简单的签名）"></a>一、App Store 下载的签名机制（最简单的签名）</h2><p>当App 提交审核通过后，Apple会对App重签名，所以从App Store下载的app都是苹果的官方签名。</p>
-<p>流程如下：</p>
-<img src="APP签名机制/APP签名机制1.png" alt="APP签名机制1" style="zoom:50%;" />
-
-<p>1、Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A存在iOS设备</p>
-<p>2、app审核通过后，<strong>Apple后台用私钥A对其进行重签名</strong></p>
-<p>3、app下载到iOS设备后，iOS设备内置的公钥A会对app的签名进行验证</p>
-<p>4、如果验证通过，则可运行，否则不能</p>
-<p>当然除了这个方式，还有一下三种方式安装一个app：</p>
-<ol>
-<li>开发时，直接通过USB将应用安装到手机进行调试；</li>
-<li>In-House 企业内部分发，可直接安装企业证书签名的App；</li>
-<li>Ad-Hoc 相当于企业分发的限制版，限制安装设备数量。</li>
-</ol>
-<p>①、KeyChain 里的“从证书颁发机构请求证书”，<strong>本地生成一对公私钥</strong>。（其中：公钥L是保存的CertificateSigningRequest(CSR)，而私钥L保存在电脑本地，可以导出为p12）</p>
-<p>附：Apple 官方也有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
-<blockquote>
-<p>（因为这里的这个私钥是本地Mac持有，所以团队开发时，可在KeyChain导出私钥，存为.p12文件，其他Mac即可导入这个私钥）</p>
-</blockquote>
-<p>2、在Member Center把CertificateSigningRequest上传到<strong>苹果后台生成证书</strong>（即上传之后Apple后台用Apple 官方自己固定的私钥A对我们上传的公钥L进行签名，将得到的<strong>签名+公钥L打包起来，称为证书</strong>），下载到本地。</p>
-<blockquote>
-<p>Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A内置在iOS设备</p>
-</blockquote>
-<p>3、在Member Center配置AppID、添加设备UUID／Entitlements, <strong>生成app对应的 Provisioning Profile 文件</strong>，并下载到本地<br>4、在XCode中配置好证书，打包编译时，**用Xcode配置的对应该证书的本地私钥L对app进行签名，并把 Provisioning Profile 文件一起打包进App去(文件名为 embedded.mobileprovision)**。这里对App的签名数据分两部分，Mach-O 可执行文件把签名直接写进这个文件，其他资源文件则保存在_CodeSignature目录下</p>
-<p>5、安装APP到手机上时，iOS设备内置的公钥A(指Apple官方自己固定的公钥)对embedded.mobileprovision的数字签名进行验证，同时对里面的证书的签名也会验证<br>如果验证通过，确保了embedded.mobileprovision的数据是苹果授权后，再取出里面数据做各种验证，包括公钥L对app签名进行验证，验证设备ID，AppID，权限开关。</p>
-<h1 id="iOS-常见三种加密（MD5、非对称加密，对称加密）"><a href="#iOS-常见三种加密（MD5、非对称加密，对称加密）" class="headerlink" title="iOS-常见三种加密（MD5、非对称加密，对称加密）"></a>iOS-常见三种加密（MD5、非对称加密，对称加密）</h1><ul>
-<li><a href="https://blog.csdn.net/ssy_1992/article/details/79094556">iOS-常见三种加密（MD5、非对称加密，对称加密）</a></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/10%E5%85%B6%E4%BB%96/10%E5%85%B6%E4%BB%962/" data-id="cmpfj3ual00kxc7r4f52i3o9k" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/10其他/知识架构--即时通信" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/iOS/10%E5%85%B6%E4%BB%96/%E7%9F%A5%E8%AF%86%E6%9E%B6%E6%9E%84--%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/10%E5%85%B6%E4%BB%96/">10其他</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/10%E5%85%B6%E4%BB%96/%E7%9F%A5%E8%AF%86%E6%9E%B6%E6%9E%84--%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/">知识架构--即时通信</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="知识架构–即时通信"><a href="#知识架构–即时通信" class="headerlink" title="知识架构–即时通信"></a>知识架构–即时通信</h1><p>以下内容摘自：<a href="https://blog.csdn.net/lybeen2007/article/details/49486439">开发即时通信是选择UDP还是TCP协议</a></p>
+        <p>以下内容摘自：<a href="https://blog.csdn.net/lybeen2007/article/details/49486439">开发即时通信是选择UDP还是TCP协议</a></p>
 <blockquote>
 <p>大规模即时通讯软件的总体架构：</p>
 <p>1。以UDP协议作为主要数据传输协议</p>
@@ -600,7 +749,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/10%E5%85%B6%E4%BB%96/%E7%9F%A5%E8%AF%86%E6%9E%B6%E6%9E%84--%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/" data-id="cmpfj3uam00ldc7r48vxnh1oi" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1/" data-id="cmpnyclqh00a1i5r4grzdbwfa" class="article-share-link">Share</a>
       
       
     </footer>
@@ -613,12 +762,11 @@
       <article id="post-iOS/基础/0必备知识目录" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
-  <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
 
     
   <div class="article-category">
@@ -633,7 +781,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/">0目录</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/">目录</a>
     </h1>
   
 
@@ -642,11 +790,7 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
-<h1 id="2020年iOS面试反思总结–不断更新当中ing"><a href="#2020年iOS面试反思总结–不断更新当中ing" class="headerlink" title="2020年iOS面试反思总结–不断更新当中ing"></a>2020年iOS面试反思总结–不断更新当中ing</h1><p><a href="https://www.jianshu.com/p/c9b1c45f7c2a">2020年iOS面试反思总结–不断更新当中ing</a></p>
-<p id="目录"></p>
+        <p id="目录"></p>
 # 目录
 * [一、为什么说Objective-C是一门动态的语言？](#Objective-C)
 
@@ -724,123 +868,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/" data-id="cmpfj3uan00lwc7r4hozh5u6x" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/iOS与JS交互/7iOS与JS交互" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/7iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/">iOS与JS交互</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/7iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/">7iOS与JS交互</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="必备知识架构"><a href="#必备知识架构" class="headerlink" title="必备知识架构"></a>必备知识架构</h1><p>–</p>
-<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
-<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
-<h2 id="iOS与JS交互"><a href="#iOS与JS交互" class="headerlink" title="iOS与JS交互"></a>iOS与JS交互</h2><ul>
-<li><p><a href="https://blog.csdn.net/dolacmeng/article/details/79623708">iOS与JS交互的4种方法</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">iOS与JS交互的方法：</span><br><span class="line">1.拦截url（适用于UIWebView和WKWebView） </span><br><span class="line">2.JavaScriptCore（只适用于UIWebView，iOS7+） </span><br><span class="line">3.WKScriptMessageHandler（只适用于WKWebView，iOS8+） </span><br><span class="line">4.WebViewJavascriptBridge（适用于UIWebView和WKWebView，属于第三方框架）</span><br><span class="line"></span><br><span class="line">更详细介绍，请点击以上链接进入查看。</span><br></pre></td></tr></table></figure></li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/7iOS%E4%B8%8EJS%E4%BA%A4%E4%BA%92/" data-id="cmpfj3ubh013bc7r4fimhge7z" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/内存/时间计时器等" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-19</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/">时间计时器等</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="NSTimer、NSDate"><a href="#NSTimer、NSDate" class="headerlink" title="NSTimer、NSDate"></a>NSTimer、NSDate</h1><p>###iOS时间那点事<br><strong>经典看前必先看：<a href="http://my.oschina.net/yongbin45/blog/156181">iOS时间那点事NSCalendar + NSDateComponents</a></strong><br><a href="http://blog.csdn.net/samrtian/article/details/37569705"> iOS 时区日期处理及定时 (NSDate,NSCalendar,NSTimer,NSTimeZone)</a></p>
-<h3 id="NSTimer"><a href="#NSTimer" class="headerlink" title="NSTimer"></a>NSTimer</h3><p><a href="http://my.oschina.net/u/2340880/blog/398598">NSTimer 定时器用法总结</a></p>
-<h5 id="自动加一秒-dateByAddingComponents和dateByAddingTimeInterval"><a href="#自动加一秒-dateByAddingComponents和dateByAddingTimeInterval" class="headerlink" title="自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)"></a>自动加一秒(dateByAddingComponents和dateByAddingTimeInterval)</h5><p>参考：<a href="http://www.cnblogs.com/wayne23/archive/2013/03/25/2981009.html">时间与日期处理</a><br>涉及知识点：<br><strong>NSDate的生成</strong><br>方法①通过<code>NSDateFormatter</code>的<code>dateFromString:</code>方法对dateString生成NSDate；</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">[dateFormatter setDateFormat:@&quot;yyyy-MM-dd HH:mm:ss&quot;];</span><br><span class="line"></span><br><span class="line">NSString *dateString = @&quot;2016-08-15 22:55:03&quot;;</span><br><span class="line">NSDate *date = [dateFormatter dateFromString:dateString];</span><br></pre></td></tr></table></figure>
-
-<p>方法②通过<code>NSCalendar</code>的<code>dateFromComponents:</code>方法对dateComponents生成NSDate;(dateComponents由分个字段生成)<br><code>[greCalendar dateFromComponents:dateComponents];</code></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">[dateComponents setYear:2016];</span><br><span class="line">[dateComponents setMonth:8];</span><br><span class="line">[dateComponents setDay:15];</span><br><span class="line">NSDate *operationDate = [greCalendar dateFromComponents:dateComponents];</span><br></pre></td></tr></table></figure>
-
-<p><strong>NSDate转NSString</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">NSDate *operationDate;</span><br><span class="line"></span><br><span class="line">- (void)updateTimeExample &#123;</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    NSDateComponents *dateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [dateComponents setYear:2016];</span><br><span class="line">    [dateComponents setMonth:8];</span><br><span class="line">    [dateComponents setDay:15];</span><br><span class="line">    operationDate = [greCalendar dateFromComponents:dateComponents];</span><br><span class="line">    </span><br><span class="line">    if (!self.timer) &#123;</span><br><span class="line">        self.timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target: self selector:@selector(addOneSecondToDate:) userInfo:nil repeats:YES];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">    </span><br><span class="line">- (void)addOneSecondToDate:(NSTimer *)timer &#123;</span><br><span class="line">//    NSDate *operationDate = [timer userInfo];</span><br><span class="line">    NSCalendar *greCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];</span><br><span class="line">    </span><br><span class="line">    NSDateComponents *offsetDateComponents = [[NSDateComponents alloc] init];</span><br><span class="line">    [offsetDateComponents setMinute:1];</span><br><span class="line">    [offsetDateComponents setSecond:1];</span><br><span class="line">    NSDate *finalDate = [greCalendar dateByAddingComponents:offsetDateComponents toDate:operationDate options:0];</span><br><span class="line">    operationDate = finalDate;</span><br><span class="line">    </span><br><span class="line">    //NSDate转NSString</span><br><span class="line">    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];</span><br><span class="line">    [dateFormatter setDateFormat:@&quot;yyyy年MM月dd HH:mm:ss&quot;];</span><br><span class="line">    NSString *dateString = [dateFormatter stringFromDate:finalDate];</span><br><span class="line">    </span><br><span class="line">    self.networkTimeLabel.text = dateString;</span><br><span class="line">&#125;    </span><br></pre></td></tr></table></figure>
-
-
-<p>#####NSJSONSerialization 去除不必要的空格回车<br><a href="http://blog.csdn.net/uxyheaven/article/details/7888559">NSJSONSerialization介绍</a><br><a href="http://blog.sina.com.cn/s/blog_916e0cff0101gdlf.html">NSJSONSerialization四个枚举什么意思</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 要去除不必要的空格回车，只需将参数Option设置为0即可。如果设置NSJSONWritingPrettyPrinted会使格式化的json更加可读，即添加空格和换行，但如果设为0，则不添加空格和换行</span><br><span class="line">    NSData *data = [NSJSONSerialization dataWithJSONObject:dictionary</span><br><span class="line">                                                   options:0</span><br><span class="line">                                                     error:nil];</span><br><span class="line">    NSString *JSON = [[NSString alloc] initWithData:data</span><br><span class="line">                                           encoding:NSUTF8StringEncoding];</span><br></pre></td></tr></table></figure>
-
-
-<p>######颜色渐变 CAGradientLayer<br><a href="http://blog.csdn.net/ch_soft/article/details/7534542">CAGradientLayer简介</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/%E6%97%B6%E9%97%B4%E8%AE%A1%E6%97%B6%E5%99%A8%E7%AD%89/" data-id="cmpfj3ubj013yc7r4a9w439ic" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/0%E5%BF%85%E5%A4%87%E7%9F%A5%E8%AF%86%E7%9B%AE%E5%BD%95/" data-id="cmpnyclqw00k2i5r49sow7okf" class="article-share-link">Share</a>
       
       
     </footer>
@@ -854,7 +882,9 @@
   <div class="article-meta">
     
   <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/">
+    
       <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
     </a>
     <span class="article-updated"> · 更新于 2024-09-14</span>
@@ -873,7 +903,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/">4线程-①线程</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/">线程-①线程基础</a>
     </h1>
   
 
@@ -882,7 +912,7 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <h1 id="线程与网络-①线程"><a href="#线程与网络-①线程" class="headerlink" title="线程与网络-①线程"></a>线程与网络-①线程</h1>
+        <h1 id="线程与网络-①线程基础"><a href="#线程与网络-①线程基础" class="headerlink" title="线程与网络-①线程基础"></a>线程与网络-①线程基础</h1>
 <p id="目录"></p>
 # 目录
 
@@ -1049,7 +1079,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/" data-id="cmpfj3ubj0146c7r402v92895" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B/" data-id="cmpnyclrp011ei5r49rd030al" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1059,15 +1089,14 @@
 
 
   
-      <article id="post-iOS/基础/线程/4线程-①进程与线程" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/基础/线程/4线程-①线程GCD" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
-  <span class="article-date">
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/">
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2026-05-20</span>
-  </span>
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8BGCD/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
 
     
   <div class="article-category">
@@ -1082,7 +1111,171 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/">4线程-①进程与线程</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8BGCD/">线程-①线程GCD</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="线程与网络-①线程GCD"><a href="#线程与网络-①线程GCD" class="headerlink" title="线程与网络-①线程GCD"></a>线程与网络-①线程GCD</h1>
+<p>–</p>
+<h1 id="知识架构"><a href="#知识架构" class="headerlink" title="知识架构"></a>知识架构</h1><p><a href="http://lib.csdn.net/base/ios/structure">iOS知识库</a></p>
+<p><a href="http://lib.csdn.net/base/Android/structure">Android知识库</a></p>
+<p id="GCD"></p>
+## 六、GCD
+> [< 返回目录](#目录)
+
+
+<p>精： <a href="http://www.cnblogs.com/wendingding/p/3806821.html">iOS开发多线程篇—GCD介绍</a></p>
+<h4 id="0、dispatch-sync、dispatch-async"><a href="#0、dispatch-sync、dispatch-async" class="headerlink" title="0、dispatch_sync、dispatch_async"></a>0、dispatch_sync、dispatch_async</h4><p>1.GCD中有2个用来执行任务的函数</p>
+<p>说明：<code>把右边的参数（任务）提交给左边的参数（队列）进行执行</code>。</p>
+<p>（1）用同步的方式执行任务 dispatch_sync(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p>（2）用异步的方式执行任务 dispatch_async(dispatch_queue_t queue, dispatch_block_t block);</p>
+<p>以下参考自：<a href="http://www.cnblogs.com/ygm900/p/3696371.html">dispatch_group_async 使用详解</a></p>
+<h4 id="1、dispatch-group-async-（可实现队列同步）"><a href="#1、dispatch-group-async-（可实现队列同步）" class="headerlink" title="1、dispatch_group_async （可实现队列同步）"></a>1、dispatch_group_async （可实现队列同步）</h4><p><code>要实现监听一组任务是否全部完成，等到全部完成后执行其他的操作可以使用dispatch_group_async（这个方法很有用）</code>。比如异步下载多张图片，等所有图片下载完成之后，再去做一些事情（比如才通知界面说完成的）。</p>
+<p>如果想在dispatch_queue中所有的任务执行完成后在做某种操作，在串行队列中，我们只需把该操作放到最后一个任务来执行就可以，但是在并行队列中怎么做呢。答案是用dispatch_group任务组来做。</p>
+<p>思路：<code>创建一个任务组，然后将异步操作都放进任务组里面，在最后用notify 告知所有任务完成，并做相应处理，一般最后的处理都是在主线程里面刷新UI来提示用户。</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0); //创建并行队列queue</span><br><span class="line">dispatch_group_t group = dispatch_group_create();          //创建任务组group</span><br><span class="line"></span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group1&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group2&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_group_async(group, queue, ^&#123;</span><br><span class="line">    NSLog(@&quot;group3&quot;);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_group_notify(group, dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    NSLog(@&quot;updateUi&quot;); </span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_release(group);</span><br></pre></td></tr></table></figure>
+
+<p>附：下面的两种调用其实是等价的， </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">A)</span><br><span class="line"></span><br><span class="line">dispatch_group_async(group, queue, ^&#123; </span><br><span class="line"></span><br><span class="line">　　// 。。。 </span><br><span class="line"></span><br><span class="line">&#125;); </span><br><span class="line"></span><br><span class="line">B) </span><br><span class="line"></span><br><span class="line">dispatch_group_enter(group);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line"></span><br><span class="line">　　//。。。</span><br><span class="line"></span><br><span class="line">　　dispatch_group_leave(group);</span><br><span class="line"></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p> 其他：</p>
+<p><a href="http://zhidao.baidu.com/link?url=T16NuXqHjBDteT_OQYav1f4lEWM6EVfATRuBMcuKSKh6rIPlupbFkTPVZGQ4reP7pFojqox7BGdgo2d8Isk3qZ3O0GUxj5EEfsWc1rGLVtK">使用gcd怎么让两个线程执行完结束后再去执行另一个线程</a></p>
+<p><a href="http://blog.csdn.net/wangzitao126/article/details/43195533">多线程并发流程控制之dispatch_group 有关函数</a></p>
+<h4 id="2、dispatch-barrier-async（可实现队列同步）"><a href="#2、dispatch-barrier-async（可实现队列同步）" class="headerlink" title="2、dispatch_barrier_async（可实现队列同步）"></a>2、dispatch_barrier_async（可实现队列同步）</h4><p>dispatch_barrier_async是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">dispatch_queue_t queue = dispatch_queue_create(&quot;**test.abc.queue&quot;, DISPATCH_QUEUE_CONCURRENT);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:2];</span><br><span class="line">    NSLog(@&quot;dispatch_async1&quot;);</span><br><span class="line">&#125;);</span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:4];</span><br><span class="line">    NSLog(@&quot;dispatch_async2&quot;);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_barrier_async(queue, ^&#123; //dispatch_barrier_async是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行</span><br><span class="line">    NSLog(@&quot;dispatch_barrier_async&quot;);</span><br><span class="line">    [NSThread sleepForTimeInterval:4];</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">dispatch_async(queue, ^&#123;</span><br><span class="line">    [NSThread sleepForTimeInterval:1]; </span><br><span class="line">    NSLog(@&quot;dispatch_async3&quot;); </span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h4 id="3、dispatch-apply"><a href="#3、dispatch-apply" class="headerlink" title="3、dispatch_apply"></a>3、dispatch_apply</h4><p>dispatch_apply执行某个代码片段N次。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dispatch_apply(5, globalQ, ^(size_t index) &#123;</span><br><span class="line">// 执行5次</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h4 id="4、小结dispatch-group-async、dispatch-barrier-async、dispatch-apply分别是什么？"><a href="#4、小结dispatch-group-async、dispatch-barrier-async、dispatch-apply分别是什么？" class="headerlink" title="4、小结dispatch_group_async、dispatch_barrier_async、dispatch_apply分别是什么？"></a>4、小结dispatch_group_async、dispatch_barrier_async、dispatch_apply分别是什么？</h4><p><code>dispatch_group_async</code> 可以实现监听一组任务是否完成，完成后得到通知执行其他的操作。这个方法很有用，比如你执行三个下载任务，当三个任务都下载完成后你才通知界面说完成的了<br><code>dispatch_barrier_async</code> 是在前面的任务执行结束后它才执行，而且它后面的任务等它执行完成之后才会执行<br><code>dispatch_apply</code> 执行某个代码片段N次。</p>
+<h4 id="5、GCD四大队列"><a href="#5、GCD四大队列" class="headerlink" title="5、GCD四大队列"></a>5、GCD四大队列</h4><p><a href="https://www.jianshu.com/p/368e8621dc27">iOS GCD四大队列</a></p>
+<h6 id="1-、串行队列"><a href="#1-、串行队列" class="headerlink" title="(1)、串行队列"></a>(1)、串行队列</h6><h6 id="2-、并发队列"><a href="#2-、并发队列" class="headerlink" title="(2)、并发队列"></a>(2)、并发队列</h6><h6 id="3-、全局队列"><a href="#3-、全局队列" class="headerlink" title="(3)、全局队列"></a>(3)、全局队列</h6><p>全局队列:<br>和并发队列,执行效果一样,只是说,并发队列,需要我们程序员,自己创建<br>而全局队列,是由于系统提供</p>
+<h6 id="4-、主队列"><a href="#4-、主队列" class="headerlink" title="(4)、主队列"></a>(4)、主队列</h6><p id="END"></p>
+## END
+> < [返回目录](#目录)
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8BGCD/" data-id="cmpnyclrp011hi5r41pd334t3" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/线程/4线程-①线程间通信" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/">线程-①线程间通信</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="线程与网络-①线程"><a href="#线程与网络-①线程" class="headerlink" title="线程与网络-①线程"></a>线程与网络-①线程</h1>
+<p id="线程间的通信"></p>
+## 二、谈谈你对线程间的通信的了解
+> [< 返回目录](#目录)
+
+<p>在1个进程中，线程往往不是孤立存在的，多个线程之间需要经常进行通信。</p>
+<p>线程间通信的体现:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 一个线程传递数据给另一个线程</span><br><span class="line">2. 在一个线程中执行完特定任务后，转到另一个线程继续执行任务</span><br></pre></td></tr></table></figure>
+
+<p>线程间通信应用举例：（即在一个线程中执行完特定任务后，转到另一个线程继续执行任务，并将该线程数据传递给另一个线程的应用举例）</p>
+<blockquote>
+<p>以下例子摘自：<a href="https://www.cnblogs.com/supper-Ho/p/6379606.html">线程间通讯</a></p>
+<p>①<code>NSThread</code>可以先将自己的当前线程对象注册到某个全局的对象中去，这样相互之间就可以获取对方的线程对象，然后就可以使用下面的方法进行线程间的通信了。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&gt;回到主线程执行，执行self的showImage方法，参数是arg</span><br><span class="line"></span><br><span class="line">&gt;- (void)performSelectorOnMainThread:(SEL)aSelector withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br><span class="line"></span><br><span class="line">&gt;回到后台线程执行aSelector方法，参数是arg</span><br><span class="line">&gt;- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg</span><br><span class="line"></span><br><span class="line">&gt;回到xx线程执行aSelector方法，参数是arg</span><br><span class="line"></span><br><span class="line">&gt;- (void)performSelector:(SEL)aSelector onThread:(NSThread *)thr withObject:(nullable id)arg waitUntilDone:(BOOL)wait;</span><br></pre></td></tr></table></figure>
+
+
+<p>②、<code>GCD</code>一个线程传递数据给另一个线程。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</span><br><span class="line">    NSLog(@&quot;donwload---%@&quot;, [NSThread currentThread]);</span><br><span class="line">    // 1.子线程下载图片</span><br><span class="line">    NSURL *url = [NSURL URLWithString:@&quot;http://d.jpg&quot;];</span><br><span class="line">    NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">    UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">    // 2.回到主线程设置图片</span><br><span class="line">    dispatch_async(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        NSLog(@&quot;setting---%@ %@&quot;, [NSThread currentThread], image);</span><br><span class="line">        [self.button setImage:image forState:UIControlStateNormal];</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>③、NSOperation线程通信的举例：在其他线程完成了耗时操作时，需要回到主线程，那么就用到了线程之间的通讯。这里有两种方法，一种是线程里转线程，另一种是线程间使用依赖。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// 1.创建一个新的队列</span><br><span class="line">NSOperationQueue *queue = [[NSOperationQueue alloc] init];</span><br><span class="line">// 2.添加任务(操作)</span><br><span class="line">[queue addOperationWithBlock:^&#123;</span><br><span class="line">    // 2.1在子线程中下载图片</span><br><span class="line">    NSURL *url  = [NSURL URLWithString:@&quot;http://imgcache.mysodao.com/img2/M04/8C/74/CgAPDk9dyjvS1AanAAJPpRypnFA573_700x0x1.JPG&quot;];</span><br><span class="line">    NSData *data = [NSData dataWithContentsOfURL:url];</span><br><span class="line">    UIImage *image = [UIImage imageWithData:data];</span><br><span class="line">    // 2.2回到主线程更新UI</span><br><span class="line">    [[NSOperationQueue mainQueue] addOperationWithBlock:^&#123;</span><br><span class="line">        self.imageView.image = image;</span><br><span class="line">    &#125;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>首先我们先来说说线程与线程间的关系，其引入了我们下面的第二点线程等待(线程同步)问题、线程依赖问题。</p>
+<p>然后我们再来说说，有时候我们还常经常在多个线程中操作一个全局变量，这个的话，也算线程间通信吗？不管他算不算(应该是不算的，个人觉得)，但是他的存在使得我们引入了另一个线程安全的问题，即多个线程操作同一个变量。也就是下面说的第三点，线程安全问题。</p>
+<h4 id="附：其他传值方法总结"><a href="#附：其他传值方法总结" class="headerlink" title="附：其他传值方法总结"></a>附：其他传值方法总结</h4><p>参考：<a href="http://blog.csdn.net/DJH996064549/article/details/50497371">其他传值方法总结</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、A界面到B界面的正向传值，即A界面传值给B界面使用</span><br><span class="line">2、。。。</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+<p id="END"></p>
+## END
+> < [返回目录](#目录)
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/" data-id="cmpnyclrp011mi5r483o10phl" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/线程/4线程-①进程与线程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/" class="article-date">
+  
+    <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
+  </a>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/">线程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/">线程-①进程与线程</a>
     </h1>
   
 
@@ -1126,7 +1319,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/" data-id="cmpfj3ubj014ac7r40p3p3ngm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B/4%E7%BA%BF%E7%A8%8B-%E2%91%A0%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/" data-id="cmpnyclrp011pi5r40lq70a1q" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1140,7 +1333,7 @@
 
   <nav id="page-nav">
     
-    <a class="extend prev" rel="prev" href="/page/8/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><a class="page-number" href="/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/page/47/">47</a><a class="extend next" rel="next" href="/page/10/">Next &raquo;</a>
+    <a class="extend prev" rel="prev" href="/page/8/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><a class="page-number" href="/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/page/44/">44</a><a class="extend next" rel="next" href="/page/10/">Next &raquo;</a>
   </nav>
 
 </section>
@@ -1177,6 +1370,11 @@
               
                 <li class="category-list-item">
                   <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/">第四章：基础框架设计及接口文档</a>
+                  
+                </li>
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E5%9F%BA%E7%B1%BB/">第五章：基础数据基类</a>
                   
                 </li>
               
@@ -1263,7 +1461,7 @@
                 </li>
               
                 <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/">项目列表</a>
+                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E8%BF%9B%E5%BA%A6%E7%AE%A1%E7%90%86/">第三章：进度管理</a>
                   
                 </li>
               
@@ -1332,16 +1530,6 @@
               
                 <li class="category-list-item">
                   <a class="category-list-link" href="/categories/iOS/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/">移动分析</a>
-                  
-                </li>
-              
-                <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/">第三方库</a>
-                  
-                </li>
-              
-                <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/iOS/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>
                   
                 </li>
               
@@ -1480,6 +1668,11 @@
                   
                 </li>
               
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/ReactNative/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  
+                </li>
+              
               </ul>
             
           </li>
@@ -1491,7 +1684,7 @@
               <ul class="category-list-child">
               
                 <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/H5-APP/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  <a class="category-list-link" href="/categories/H5-APP/%E5%85%A5%E9%97%A8/">入门</a>
                   
                 </li>
               
@@ -1506,12 +1699,12 @@
               <ul class="category-list-child">
               
                 <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/HTML/1%E5%85%A5%E9%97%A8/">1入门</a>
+                  <a class="category-list-link" href="/categories/HTML/%E5%85%A5%E9%97%A8/">入门</a>
                   
                 </li>
               
                 <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/HTML/2%E6%89%A9%E5%B1%95/">2扩展</a>
+                  <a class="category-list-link" href="/categories/HTML/%E6%89%A9%E5%B1%95/">扩展</a>
                   
                 </li>
               
@@ -1687,12 +1880,6 @@
           </li>
         
           <li class="category-list-item">
-            <a class="category-list-link" href="/categories/%E5%B8%B8%E8%AF%86%E7%B1%BB/">常识类</a>
-            
-            
-          </li>
-        
-          <li class="category-list-item">
             <a class="category-list-link" href="/categories/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/">编程工具</a>
             
             
@@ -1814,7 +2001,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/GitHub/" rel="tag">GitHub</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gitee/" rel="tag">Gitee</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CocoaPods/" rel="tag">CocoaPods</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flutter/" rel="tag">Flutter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JQuery/" rel="tag">JQuery</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" rel="tag">Mac快速操作</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OmniGraffle/" rel="tag">OmniGraffle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/QA/" rel="tag">QA</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/README/" rel="tag">README</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactNative/" rel="tag">ReactNative</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ruby/" rel="tag">Ruby</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Script/" rel="tag">Script</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Shell/" rel="tag">Shell</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Weex/" rel="tag">Weex</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" rel="tag">h5与app交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/npmjs/" rel="tag">npmjs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" rel="tag">上架相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BA%A4%E4%BA%92/" rel="tag">交互</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" rel="tag">博客维护</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%90%8E%E5%8F%B0/" rel="tag">后台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%BA%E7%B1%BB/" rel="tag">基类</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" rel="tag">工作常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%89%93%E5%8C%85/" rel="tag">打包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" rel="tag">技术常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%93%E5%8C%85/" rel="tag">抓包</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" rel="tag">搜索相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" rel="tag">文档管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" rel="tag">权限相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" rel="tag">架构模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">环境搭建</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" rel="tag">生活常识</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" rel="tag">电脑使用</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" rel="tag">登录页实战</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A0%B4%E8%A7%A3/" rel="tag">破解</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" rel="tag">科学工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" rel="tag">移动分析</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" rel="tag">算法与数学</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" rel="tag">管理相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" rel="tag">编程工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" rel="tag">编程范式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" rel="tag">行业相关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%AD%E8%A8%80/" rel="tag">语言</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" rel="tag">跨平台</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" rel="tag">路由及跳转</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" rel="tag">阿里云</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" rel="tag">阿里云oss</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E6%88%90/" rel="tag">集成</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" rel="tag">项目整理</a></li></ul>
     </div>
   </div>
 
@@ -1824,7 +2011,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/AI/" style="font-size: 14.12px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.12px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.59px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.82px;">Flutter</a> <a href="/tags/Git/" style="font-size: 12.94px;">Git</a> <a href="/tags/GitHub/" style="font-size: 10px;">GitHub</a> <a href="/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.53px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.18px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.18px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.47px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.88px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.18px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.76px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.24px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.59px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.76px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.18px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10.59px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.59px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.53px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.65px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 17.06px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.53px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15.29px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 11.18px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.59px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.59px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.18px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.18px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.76px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.18px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 11.18px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.53px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.35px;">编程工具</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 14.71px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.76px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.59px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.41px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.18px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 12.94px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.18px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 12.94px;">项目整理</a>
+      <a href="/tags/AI/" style="font-size: 14.38px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.63px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.75px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.13px;">Git</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.75px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.25px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.25px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.25px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.63px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.25px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.25px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.13px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.63px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.25px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.63px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.75px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 16.88px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.75px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 10.63px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.63px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.63px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.25px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.25px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.88px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.25px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 10.63px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 14.38px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" style="font-size: 10px;">编程范式</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.88px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.63px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.38px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.25px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 13.13px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.25px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 13.13px;">项目整理</a>
     </div>
   </div>
 
@@ -1833,7 +2020,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/03/">March 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/07/">July 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/03/">March 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/10/">October 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/09/">September 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">July 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/06/">June 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/04/">April 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/09/">September 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/07/">July 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">May 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/04/">April 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/03/">March 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/02/">February 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/10/">October 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/07/">July 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/10/">October 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/07/">July 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">September 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/08/">August 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">April 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">December 2014</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">January 2013</a></li></ul>
     </div>
   </div>
 
@@ -1846,23 +2033,23 @@
       <ul>
         
           <li>
-            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">AI-③opencode会话管理</a>
+            <a href="/AI/AI-%E2%91%A2opencode%E4%BC%9A%E8%AF%9D%E7%AE%A1%E7%90%86/">opencode会话管理</a>
           </li>
         
           <li>
-            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">AI Tool-③cc-notify</a>
+            <a href="/AI/AI%20Tool-%E2%91%A2cc-notify/">cc-notify</a>
           </li>
         
           <li>
-            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">AI Tool-②cc-connect</a>
+            <a href="/AI/AI%20Tool-%E2%91%A1cc-connect/">cc-connect</a>
           </li>
         
           <li>
-            <a href="/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8/dvlproad%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8_PRD/">dvlproad 项目列表 HTML — PRD</a>
+            <a href="/AI/AI-%E2%91%A1Open%20Design/">Open Design</a>
           </li>
         
           <li>
-            <a href="/AI/AI-%E2%91%A1Open%20Design/">AI-②Open Design</a>
+            <a href="/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E6%96%B0%E7%94%B5%E8%84%91(UOS)%E5%88%9D%E5%A7%8B%E5%AE%89%E8%A3%85/">新电脑(UOS)初始安装</a>
           </li>
         
       </ul>
