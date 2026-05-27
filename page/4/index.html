@@ -72,6 +72,136 @@
       <div class="outer">
         <section id="main">
   
+      <article id="post-iOS/基础/视图/纹理Texture" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  
+    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/" class="article-date">
+  
+    <time datetime="2024-08-28T16:04:31.000Z" itemprop="datePublished">2024-08-29</time>
+  </a>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/">纹理Texture</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <p>纹理Texture可以理解为GPU内代表图像数据的一个对象</p>
+<p><a href="https://juejin.cn/post/6844903662548942855">Flutter展示Native端大数据：外接纹理</a></p>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>问：在Flutter与原生的混合开发中，资源在Native和Flutter重复加载，导致内存占了双份的性能问题怎么解决？</p>
+<p>答：用Texture外接纹理的方式缓解内存压力。</p>
+<p><a href="https://juejin.cn/post/7170887223955423268">Flutter 多引擎渲染，外接纹理实践</a></p>
+<h2 id="二、外接纹理"><a href="#二、外接纹理" class="headerlink" title="二、外接纹理"></a>二、外接纹理</h2><h2 id="三、共享纹理"><a href="#三、共享纹理" class="headerlink" title="三、共享纹理"></a>三、共享纹理</h2><p><code>ShareGroup</code>是OpenGL ES中的一个概念，用于在不同的<code>EAGLContext</code>之间共享纹理和其他资源。即在Flutter和iOS之间实现纹理共享，可以通过使用<code>ShareGroup</code>来实现。（在iOS开发中，<code>ShareGroup</code>对应于<code>EAGLSharegroup</code>，而在Flutter中，可以通过<code>Texture</code>控件来使用共享的纹理 。）</p>
+<p>使用<code>ShareGroup</code>实现Flutter和iOS原生纹理共享的基本步骤：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// 1、创建一个 EAGLContext 并设置其 sharegroup，这个 sharegroup 将被用于后续创建共享纹理。</span><br><span class="line">EAGLSharegroup *sharegroup = [[EAGLSharegroup alloc] init];</span><br><span class="line">EAGLContext *sharedContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3 sharegroup:sharegroup];</span><br><span class="line"></span><br><span class="line">// 2、创建纹理并设置为共享:使用上述创建的 EAGLContext 来生成纹理，并确保这些纹理可以被共享。</span><br><span class="line">// 创建纹理，配置纹理参数（省略具体参数设置）</span><br><span class="line">GLuint textureID;</span><br><span class="line">glGenTextures(1, &amp;textureID);</span><br><span class="line">glBindTexture(GL_TEXTURE_2D, textureID);</span><br><span class="line">.......</span><br><span class="line">// 确保纹理可以被共享</span><br><span class="line">[sharedContext presentRenderbuffer:GL_RENDERBUFFER];</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在 Flutter 中使用</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&#x27;package:flutter/widgets.dart&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SharedTextureWidget</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  SharedTextureWidget(&#123;<span class="keyword">required</span> <span class="keyword">this</span>.textureId&#125;);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="built_in">int</span> textureId = getNativeTextureId(); <span class="comment">// 调用原生方法获取纹理ID</span></span><br><span class="line">    <span class="keyword">return</span> Texture(textureId: textureId);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<ol>
+<li><strong>配置Flutter的<code>Texture</code>控件</strong>：在Flutter代码中，创建一个<code>Texture</code>控件，并通过<code>PlatformView</code>注册一个视图工厂，该工厂将返回一个实现了<code>FlutterTexture</code>协议的对象。这个对象负责管理原生纹理，并实现<code>copyPixelBuffer</code>方法来提供纹理数据给</li>
+</ol>
+<blockquote>
+<p>以下内容摘自：<a href="https://blog.csdn.net/zhying719/article/details/108162396?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-5-108162396-blog-112701405.235%5Ev43%5Epc_blog_bottom_relevance_base3&spm=1001.2101.3001.4242.4&utm_relevant_index=8">谈一谈Flutter外接纹理</a></p>
+<h3 id="1-背景知识"><a href="#1-背景知识" class="headerlink" title="1 背景知识"></a>1 背景知识</h3><p>当我们用flutter做实时视频渲染时，往往是要对视频或者相机画面做滤镜处理的，如图：</p>
+<p><img src="https://i-blog.csdnimg.cn/blog_migrate/a5919c234d1d457c993879ea38636943.png" alt="img"></p>
+<p>如果我们要用flutter定义的消息通道机制来实现这个功能，就需要将摄像头采集的每一帧图片都要从原生传递到flutter中，这样做代价将会非常大，因为将图像或视频数据通过消息通道实时传输必然会引起内存和CPU的巨大消耗。为此，flutter提供了两种机制实现这一功能：</p>
+<ul>
+<li><strong>PlatformView</strong></li>
+<li><strong>Texture Widget</strong></li>
+</ul>
+<p><code>PlatformView</code>实质上是将原有的NativeView嵌入到Flutter中显示，虽然使用和移植很简单，但并不是性能最优的做法。</p>
+<p>而<code>Texture Widget</code>是flutter提供的另一种机制，可以将native纹理共享给flutter进行渲染。但由于native纹理与flutter是两个OpenGL Context，如果直接使用的话，需要经过<strong>GPU -&gt; CPU -&gt; GPU</strong>的转换开销，这对于实时视频渲染是很难令人接受的。</p>
+<p>所以解决方案就是<strong>共享纹理</strong>。</p>
+</blockquote>
+<p><a href="https://blog.csdn.net/weixin_38912070/article/details/109324077?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-4-109324077-blog-108162396.235%5Ev43%5Epc_blog_bottom_relevance_base3&spm=1001.2101.3001.4242.3&utm_relevant_index=7">一个方案提升Flutter内存利用率（干货）</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/" data-id="cmpojemla013vo4r4gngmchg5" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-Architecture架构/框架相关/网络相关/Client Cache Best Practice" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  
+    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/" class="article-date">
+  
+    <time datetime="2024-08-26T18:10:54.000Z" itemprop="datePublished">2024-08-27</time>
+  </a>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/">网络相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/">Client Cache Best Practice</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <p>Server&#x2F;Client orcharstrated Cache Machenism</p>
+<p>Invalidate cache and naming is two most difficult things</p>
+        
+          <p class="article-more-link">
+            <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/#more">阅读全文 →</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/" data-id="cmpojeml100yyo4r4b53e2bol" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
       <article id="post-iOS/基础/布局/iOS swiftui布局" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -157,9 +287,63 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%B8%83%E5%B1%80/iOS%20swiftui%E5%B8%83%E5%B1%80/" data-id="cmpnyclro0119i5r49dnn8c20" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%B8%83%E5%B1%80/iOS%20swiftui%E5%B8%83%E5%B1%80/" data-id="cmpojeml90135o4r4bmuo46ki" class="article-share-link">Share</a>
       
       
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-AI/AIGC" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/AI/AIGC/">
+    
+      <time datetime="2024-07-10T01:54:01.000Z" itemprop="datePublished">发表于 2024-07-10</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-08-13</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/AI/">AI</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/AI/AIGC/">AIGC入门</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a href="https://www.cnblogs.com/liupiaos/p/18465228">用AI制作历史解说视频：GPT + MidJourney + PiKa + FunSound + 剪映</a></li>
+</ul>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/AI/AIGC/" data-id="cmpojemjm000ho4r4ezjf078t" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI/" rel="tag">AI</a></li></ul>
+
     </footer>
   </div>
   
@@ -212,13 +396,13 @@
 <h2 id="一、对数据加密的概述"><a href="#一、对数据加密的概述" class="headerlink" title="一、对数据加密的概述"></a>一、对数据加密的概述</h2><h3 id="1、安全的数据传输是什么样的"><a href="#1、安全的数据传输是什么样的" class="headerlink" title="1、安全的数据传输是什么样的"></a>1、安全的数据传输是什么样的</h3><p>数据传输：都是使用密文（客户端提供加密的参数，服务端提供加密的结果）。</p>
 <p>【客户端提供加密的参数】：需要在客户端加密后，上传到服务端，并在服务端对其进行解密，以确认传过来的参数。</p>
 <p>【服务端提供加密的结果】：需要在服务端加密后，返回给客户端，并在客户端对其进行解密，以确认传过来的结果。</p>
-<img src="/安全/网络加密/数据安全传输(AES).jpg" alt="数据安全传输(AES)" style="zoom:50%;" />
+<img src="/安全/网络加密/数据安全传输(AES).jpg" alt="数据安全传输(AES)" style="width:50%;" />
 
 <p>若要了解加密方式可查看下文【<a href="#%E9%99%841%EF%BC%9A%E5%8A%A0%E5%AF%86%E7%9A%84%E6%96%B9%E5%BC%8F%E6%9C%89%E5%93%AA%E4%BA%9B">附1：加密的方式有哪些</a>】</p>
 <h3 id="2、一端的AESKey怎么【安全的】传给另一端-为什么要对AES的密钥进行RSA公钥加密后传输？？"><a href="#2、一端的AESKey怎么【安全的】传给另一端-为什么要对AES的密钥进行RSA公钥加密后传输？？" class="headerlink" title="2、一端的AESKey怎么【安全的】传给另一端 &#x2F; 为什么要对AES的密钥进行RSA公钥加密后传输？？"></a>2、一端的AESKey怎么【安全的】传给另一端 &#x2F; 为什么要对AES的密钥进行RSA公钥加密后传输？？</h3><p>答：为了安全，一端的AESKey必须先加密，然后才能传给另一端，这样才能防止用户从请求中抓取到AESKey。同时另一端需要对传过来的数据进行解密得到AESKey原值，后续两端才能都通过AESkey原值进行两边数据的对称加解密。即<strong>数据加密采用AES，而把AES的加密秘钥用RSA加密。</strong>（附：<strong>为什么AESKey不是使用md5方式加密？答：因为另一端要解密来使用原值。</strong>）。</p>
 <p><strong>问题：为什么要对AES的密钥进行RSA公钥加密后传输？</strong></p>
 <p>AES是对称加密算法，加密和解密的密钥都是同一个，为了防止被别人恶意获取到该密钥，然后对我们的业务请求参数进行解密，我们需要将AES密钥进行非对称加密后再进行传输。</p>
-<h4 id="2-1、密钥来源于客户端（类似Https）"><a href="#2-1、密钥来源于客户端（类似Https）" class="headerlink" title="2.1、密钥来源于客户端（类似Https）"></a>2.1、密钥来源于客户端（类似Https）</h4><img src="/安全/网络加密/数据安全传输(Https_AES+RSA).jpg" alt="数据安全传输(AES+RSA)" style="zoom:50%;" />
+<h4 id="2-1、密钥来源于客户端（类似Https）"><a href="#2-1、密钥来源于客户端（类似Https）" class="headerlink" title="2.1、密钥来源于客户端（类似Https）"></a>2.1、密钥来源于客户端（类似Https）</h4><img src="/安全/网络加密/数据安全传输(Https_AES+RSA).jpg" alt="数据安全传输(AES+RSA)" style="width:50%;" />
 
 <p>上图和Https原理有点相像。</p>
 <h5 id="2-1-1、客户端密钥保存的安全问题"><a href="#2-1-1、客户端密钥保存的安全问题" class="headerlink" title="2.1.1、客户端密钥保存的安全问题"></a>2.1.1、客户端密钥保存的安全问题</h5><p>如果密钥是来源于客户端，那如何在客户端安全的保存密钥？请查看下文中的【<a href="#%E9%99%842%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%AE%89%E5%85%A8%E7%9A%84%E4%BF%9D%E5%AD%98%E5%AF%86%E9%92%A5AESKey">附2：如何在客户端安全的保存密钥AESKey</a>】</p>
@@ -286,7 +470,7 @@
 <h3 id="2、重放攻击-Replay-Attacks-的解决方案"><a href="#2、重放攻击-Replay-Attacks-的解决方案" class="headerlink" title="2、重放攻击(Replay Attacks)的解决方案"></a>2、重放攻击(Replay Attacks)的解决方案</h3><p><strong>防止重放攻击必须要保证请求仅一次有效</strong>。需要通过在请求体中携带当前请求的唯一标识，并且进行签名防止被篡改。所以，防止重放攻击需要建立在添加签名且防止签名被篡改的基础之上。</p>
 <h4 id="2-1、措施一：添加请求的时效性参数-Timestamp"><a href="#2-1、措施一：添加请求的时效性参数-Timestamp" class="headerlink" title="2.1、措施一：添加请求的时效性参数 Timestamp"></a>2.1、措施一：添加请求的时效性参数 Timestamp</h4><p>即某个请求，其请求时间戳<strong>Timestamp</strong>，和服务端的当前时间在规定时间内（如1分钟内）则为合法请求，反之，则视为无效请求。</p>
 <p><strong>服务端时间戳的获取时机</strong>和服务端的RSA公钥一致，你可理解为网络库的初始化阶段（虽然这是真正初始化之后的请求的”二次初始化”）。</p>
-<img src="/安全/网络加密/数据安全传输_防重放_1加timestamp.png" alt="数据安全传输_防重放_1加timestamp" style="zoom:50%;" />
+<img src="/安全/网络加密/数据安全传输_防重放_1加timestamp.png" alt="数据安全传输_防重放_1加timestamp" style="width:50%;" />
 
 <p>客户端与服务端的时间戳差值 diff &#x3D; 服务器返回的时间戳 - 客户端请求结束的时间戳</p>
 <p>校准服务端后的客户端的时间戳 &#x3D; 当前客户端时间戳 + 客户端与服务端的时间戳差值 diff</p>
@@ -344,12 +528,12 @@
 </tr>
 </tbody></table>
 <p>注意：非对称加密的安全性更高，但加密速度较慢。一般我们在项目中采用的是 <strong>”结合对称和非对称加密，数据加密采用AES，而把AES的加密秘钥用RSA加密，这样兼顾速度及安全性“</strong>。<a href="https://juejin.cn/post/7002058547395559438">https://juejin.cn/post/7002058547395559438</a></p>
-<h3 id="1-1、对称加密"><a href="#1-1、对称加密" class="headerlink" title="1.1、对称加密"></a>1.1、对称加密</h3><img src="/安全/网络加密/加密方式_对称.png" alt="加密方式_对称" style="zoom: 33%;" />
+<h3 id="1-1、对称加密"><a href="#1-1、对称加密" class="headerlink" title="1.1、对称加密"></a>1.1、对称加密</h3><img src="/安全/网络加密/加密方式_对称.png" alt="加密方式_对称" style="width:33%;" />
 
 <p>1、李雷想要给韩梅梅发送消息，他们约定使用对称加密的方式把消息进行加密</p>
 <p>2、李雷用密钥把消息加密然后发送给韩梅梅</p>
 <p>3、韩梅梅用同一个密钥解密，然后看到李雷发送给自己的消息</p>
-<h3 id="1-2、非对称加密"><a href="#1-2、非对称加密" class="headerlink" title="1.2、非对称加密"></a>1.2、非对称加密</h3><img src="/安全/网络加密/加密方式_非对称.png" alt="加密方式_非对称" style="zoom: 33%;" />
+<h3 id="1-2、非对称加密"><a href="#1-2、非对称加密" class="headerlink" title="1.2、非对称加密"></a>1.2、非对称加密</h3><img src="/安全/网络加密/加密方式_非对称.png" alt="加密方式_非对称" style="width:33%;" />
 
 <p>1、李雷想要给韩梅梅发送消息，他们约定使用非对称加密的方式把消息进行加密</p>
 <p>2、李雷首先要得到韩梅梅的公钥</p>
@@ -381,7 +565,7 @@
 <p>本节点【如何防止客户端被破解&#x2F;密钥的保护】部分内容摘自&#x2F;参考：<a href="https://tanqisen.github.io/blog/2014/06/06/how-to-prevent-app-crack/">如何防止客户端被破解</a></p>
 <p><strong>LSB算法</strong>：LSB全称为 Least Significant Bit（最低有效位），是一种常被用做图片隐写的算法。为了避免我们对图片进行的处理可能会在压缩的过程中被破坏，建议在无压缩的bmp图片上实现。（png图片是无损压缩，jpg图片是有损压缩。）</p>
 <blockquote>
-<p><img src="/安全/网络加密/steganography_lbs.png" alt="steganography_lbs">图片来源于：《<a href="./%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86/%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86.graffle">网络加密.graffle</a>》中的【隐写术】</p>
+<p><img src="/安全/网络加密/steganography_lbs.png" alt="steganography_lbs">图片来源于：《<a href="/%E5%AE%89%E5%85%A8/%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86/%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86.graffle/">网络加密.graffle</a>》中的【隐写术】</p>
 </blockquote>
 <p>bmp的隐写，相比lsb隐写，bmp简单的多，并且达到了无损隐写。</p>
 <p>bmp了解：<a href="https://maidang.cool/2022/14839.html">BMP位图隐写</a></p>
@@ -419,7 +603,7 @@
 </tbody></table>
 <blockquote>
 <p><strong><a href="https://www.cmd5.com/">md5在线解密网站</a></strong></p>
-<img src="/安全/网络加密/md5在线解密.png" alt="md5在线解密" style="zoom:50%;" />
+<img src="/安全/网络加密/md5在线解密.png" alt="md5在线解密" style="width:50%;" />
 </blockquote>
 <p>因为已经有了类似彩虹表的破解方法，所以如果不**’加盐’**，则当用户知道是 e19d5cd5af0378da05f63f891c7467af 时候，就很容易知道原值是 ‘abcd1234’了。</p>
 <p>所以Md5加密方式的进化之路小结：</p>
@@ -488,351 +672,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%AE%89%E5%85%A8/%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86/" data-id="cmpnyclq9003ei5r46fz5ev0a" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%AE%89%E5%85%A8/%E7%BD%91%E7%BB%9C%E5%8A%A0%E5%AF%86/" data-id="cmpojemjp002ro4r4b3efd6zc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/视图/纹理Texture" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  
-    <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/" class="article-date">
-  
-    <time datetime="2024-08-28T16:04:31.000Z" itemprop="datePublished">2024-08-29</time>
-  </a>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/">纹理Texture</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <p>纹理Texture可以理解为GPU内代表图像数据的一个对象</p>
-<p><a href="https://juejin.cn/post/6844903662548942855">Flutter展示Native端大数据：外接纹理</a></p>
-<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>问：在Flutter与原生的混合开发中，资源在Native和Flutter重复加载，导致内存占了双份的性能问题怎么解决？</p>
-<p>答：用Texture外接纹理的方式缓解内存压力。</p>
-<p><a href="https://juejin.cn/post/7170887223955423268">Flutter 多引擎渲染，外接纹理实践</a></p>
-<h2 id="二、外接纹理"><a href="#二、外接纹理" class="headerlink" title="二、外接纹理"></a>二、外接纹理</h2><h2 id="三、共享纹理"><a href="#三、共享纹理" class="headerlink" title="三、共享纹理"></a>三、共享纹理</h2><p><code>ShareGroup</code>是OpenGL ES中的一个概念，用于在不同的<code>EAGLContext</code>之间共享纹理和其他资源。即在Flutter和iOS之间实现纹理共享，可以通过使用<code>ShareGroup</code>来实现。（在iOS开发中，<code>ShareGroup</code>对应于<code>EAGLSharegroup</code>，而在Flutter中，可以通过<code>Texture</code>控件来使用共享的纹理 。）</p>
-<p>使用<code>ShareGroup</code>实现Flutter和iOS原生纹理共享的基本步骤：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// 1、创建一个 EAGLContext 并设置其 sharegroup，这个 sharegroup 将被用于后续创建共享纹理。</span><br><span class="line">EAGLSharegroup *sharegroup = [[EAGLSharegroup alloc] init];</span><br><span class="line">EAGLContext *sharedContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3 sharegroup:sharegroup];</span><br><span class="line"></span><br><span class="line">// 2、创建纹理并设置为共享:使用上述创建的 EAGLContext 来生成纹理，并确保这些纹理可以被共享。</span><br><span class="line">// 创建纹理，配置纹理参数（省略具体参数设置）</span><br><span class="line">GLuint textureID;</span><br><span class="line">glGenTextures(1, &amp;textureID);</span><br><span class="line">glBindTexture(GL_TEXTURE_2D, textureID);</span><br><span class="line">.......</span><br><span class="line">// 确保纹理可以被共享</span><br><span class="line">[sharedContext presentRenderbuffer:GL_RENDERBUFFER];</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在 Flutter 中使用</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&#x27;package:flutter/widgets.dart&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SharedTextureWidget</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span> </span>&#123;</span><br><span class="line">  SharedTextureWidget(&#123;<span class="keyword">required</span> <span class="keyword">this</span>.textureId&#125;);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="built_in">int</span> textureId = getNativeTextureId(); <span class="comment">// 调用原生方法获取纹理ID</span></span><br><span class="line">    <span class="keyword">return</span> Texture(textureId: textureId);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<ol>
-<li><strong>配置Flutter的<code>Texture</code>控件</strong>：在Flutter代码中，创建一个<code>Texture</code>控件，并通过<code>PlatformView</code>注册一个视图工厂，该工厂将返回一个实现了<code>FlutterTexture</code>协议的对象。这个对象负责管理原生纹理，并实现<code>copyPixelBuffer</code>方法来提供纹理数据给</li>
-</ol>
-<blockquote>
-<p>以下内容摘自：<a href="https://blog.csdn.net/zhying719/article/details/108162396?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-5-108162396-blog-112701405.235%5Ev43%5Epc_blog_bottom_relevance_base3&spm=1001.2101.3001.4242.4&utm_relevant_index=8">谈一谈Flutter外接纹理</a></p>
-<h3 id="1-背景知识"><a href="#1-背景知识" class="headerlink" title="1 背景知识"></a>1 背景知识</h3><p>当我们用flutter做实时视频渲染时，往往是要对视频或者相机画面做滤镜处理的，如图：</p>
-<p><img src="https://i-blog.csdnimg.cn/blog_migrate/a5919c234d1d457c993879ea38636943.png" alt="img"></p>
-<p>如果我们要用flutter定义的消息通道机制来实现这个功能，就需要将摄像头采集的每一帧图片都要从原生传递到flutter中，这样做代价将会非常大，因为将图像或视频数据通过消息通道实时传输必然会引起内存和CPU的巨大消耗。为此，flutter提供了两种机制实现这一功能：</p>
-<ul>
-<li><strong>PlatformView</strong></li>
-<li><strong>Texture Widget</strong></li>
-</ul>
-<p><code>PlatformView</code>实质上是将原有的NativeView嵌入到Flutter中显示，虽然使用和移植很简单，但并不是性能最优的做法。</p>
-<p>而<code>Texture Widget</code>是flutter提供的另一种机制，可以将native纹理共享给flutter进行渲染。但由于native纹理与flutter是两个OpenGL Context，如果直接使用的话，需要经过<strong>GPU -&gt; CPU -&gt; GPU</strong>的转换开销，这对于实时视频渲染是很难令人接受的。</p>
-<p>所以解决方案就是<strong>共享纹理</strong>。</p>
-</blockquote>
-<p><a href="https://blog.csdn.net/weixin_38912070/article/details/109324077?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-4-109324077-blog-108162396.235%5Ev43%5Epc_blog_bottom_relevance_base3&spm=1001.2101.3001.4242.3&utm_relevant_index=7">一个方案提升Flutter内存利用率（干货）</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/%E7%BA%B9%E7%90%86Texture/" data-id="cmpnyclrt013si5r40w5o7iqz" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-Architecture架构/框架相关/网络相关/Client Cache Best Practice" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  
-    <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/" class="article-date">
-  
-    <time datetime="2024-08-26T18:10:54.000Z" itemprop="datePublished">2024-08-27</time>
-  </a>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/">网络相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/">Client Cache Best Practice</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="MTC-Client-Cache-Best-Practice"><a href="#MTC-Client-Cache-Best-Practice" class="headerlink" title="MTC Client Cache Best Practice"></a>MTC Client Cache Best Practice</h1><p>Server&#x2F;Client orcharstrated Cache Machenism</p>
-<p>Invalidate cache and naming is two most difficult things</p>
-<h2 id="两种场景：浏览器请求与应用请求"><a href="#两种场景：浏览器请求与应用请求" class="headerlink" title="两种场景：浏览器请求与应用请求"></a>两种场景：浏览器请求与应用请求</h2><h3 id="浏览器控制"><a href="#浏览器控制" class="headerlink" title="浏览器控制"></a>浏览器控制</h3><p>如 <code>&lt;img src=&quot;....&quot;/&gt;</code></p>
-<p>参考 <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching">HTTP Caching</a> 文档</p>
-<ul>
-<li>彻底不缓存</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: no-store</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>缓存，但每次都去服务器检查是否有新数据</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: no-cache</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>缓存，但在一定时间内不去服务器检查是否有新数据</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>使用 If-Modified-Since 来判断</p>
-<p>服务器端下发：</p>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 1024</span><br><span class="line">Date: Tue, 22 Feb 2022 22:22:22 GMT</span><br><span class="line">Last-Modified: Tue, 22 Feb 2022 22:00:00 GMT</span><br><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
-
-<p>浏览器端后续请求：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /index.html HTTP/1.1</span><br><span class="line">Host: example.com</span><br><span class="line">Accept: text/html</span><br><span class="line">If-Modified-Since: Tue, 22 Feb 2022 22:00:00 GMT</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>使用 If-None-Match 来判断 服务器端下发：</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 1024</span><br><span class="line">Date: Tue, 22 Feb 2022 22:22:22 GMT</span><br><span class="line">ETag: &quot;deadbeef&quot;</span><br><span class="line">Cache-Control: max-age=3600</span><br></pre></td></tr></table></figure>
-
-<p>浏览器端后续请求：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /index.html HTTP/1.1</span><br><span class="line">Host: example.com</span><br><span class="line">Accept: text/html</span><br><span class="line">If-None-Match: &quot;deadbeef&quot;</span><br></pre></td></tr></table></figure>
-
-<p>MTC 实践中，使用的是 ETag&#x2F;If-None-Match, 数据有变化时，只在 Redis 中生成一个新的 ETag，后续处理判断 ETag 是否一致</p>
-<p>例一：MTC Avatar</p>
-<ul>
-<li>服务器端：</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">return (</span><br><span class="line">  h</span><br><span class="line">      .response(fs.createReadStream(avatarinfo.path))</span><br><span class="line">      .header(&quot;Content-Type&quot;, avatarinfo.media)</span><br><span class="line">      .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">      .header(&quot;Cache-Control&quot;, &quot;max-age=600, private&quot;)</span><br><span class="line">      //.header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">      .header(&quot;ETag&quot;, avatarinfo.etag)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>客户端浏览器网络效果：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/avatar_image_cache.png" alt="avtar_image"></p>
-</li>
-<li><p>结果：</p>
-<ol>
-<li>浏览器在 10 分钟内，不再重新请求，而是使用缓存中的图片</li>
-<li>请求时，只有在图片变化时，服务器返回新图片，否则返回 304 头，浏览器使用已有缓存</li>
-</ol>
-</li>
-</ul>
-<p>例二：MTC Template Cover</p>
-<ul>
-<li>服务器端：</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">    return (</span><br><span class="line">        h</span><br><span class="line">            .response(fs.createReadStream(coverInfo.path))</span><br><span class="line">            .header(&quot;Content-Type&quot;, &quot;image/png&quot;)</span><br><span class="line">            .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">            .header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">            //.header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">            .header(&quot;ETag&quot;, coverInfo.etag)</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>客户端浏览器网络效果：</li>
-</ul>
-<p><img src="https://cdn.jsdelivr.net/gh/cnshsliu/static.xhw.mtc/img/doc/tplcover_image_cache.png" alt="TPL Cover Image"></p>
-<ul>
-<li>结果：<ol>
-<li>浏览器每次都请求新数据</li>
-<li>请求时，只有在图片变化时，服务器返回新图片，否则返回 304 头，浏览器使用已有换</li>
-</ol>
-</li>
-</ul>
-<h3 id="应用控制"><a href="#应用控制" class="headerlink" title="应用控制"></a>应用控制</h3><ul>
-<li>如使用 Fetch, Axios, HttpClient 等请求数据，包括移动 APP 客户端从服务器获取数据</li>
-<li>需要自行设计实现</li>
-<li>两个问题：<ul>
-<li>是否有更合理的方案？</li>
-<li>APP 中如何实现？</li>
-</ul>
-</li>
-</ul>
-<h2 id="业务层刷新机制思考："><a href="#业务层刷新机制思考：" class="headerlink" title="业务层刷新机制思考："></a>业务层刷新机制思考：</h2><ul>
-<li>须考虑用户本地操作后，需要刷新<ul>
-<li>当前用户操作，及时刷新</li>
-<li>其它用户，可定时刷新</li>
-</ul>
-</li>
-<li>须考虑页面切换，使用本地缓存数据，无须访问服务器重新拉取</li>
-<li>须考虑自动刷新<ul>
-<li>设置合理的间隔</li>
-<li>设置总刷新次数，防止用户不活动<ul>
-<li>或检测用户鼠标动作，上次鼠标移动在多长时间内，断定为用户活跃，继续自动刷新，否则停止。<ul>
-<li>提供手动刷新按钮（APP 移动端为下拉）</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h2 id="技术层刷新机制："><a href="#技术层刷新机制：" class="headerlink" title="技术层刷新机制："></a>技术层刷新机制：</h2><ul>
-<li>服务端对每种业务对象设置 ETag Key， 每次返回数据，带上一个 ETag<ul>
-<li>这个 ETag，用于表示某种数据是否刷新，仅在有变化时，修改这个 ETag</li>
-</ul>
-</li>
-<li>客户端对每次请求的结果，进行缓存，同时记录 ETag；</li>
-<li>客户端每次请求，通过 If-None-Match 带入 ETag</li>
-<li>服务端相应请求时，判断服务端带来的 ETag 是否与服务端的 ETag 一致<ul>
-<li>如一致，返回 304</li>
-<li>如不一致，返回 200，及最新数据</li>
-</ul>
-</li>
-<li>客户端根据 Header 是否是 304，决定使用已缓存数据，还是更新缓存为服务端返回数据。</li>
-</ul>
-<h2 id="具体实现方式："><a href="#具体实现方式：" class="headerlink" title="具体实现方式："></a>具体实现方式：</h2><h3 id="服务端-CORS-设置中，允许-ETag"><a href="#服务端-CORS-设置中，允许-ETag" class="headerlink" title="服务端 CORS 设置中，允许 ETag"></a>服务端 CORS 设置中，允许 ETag</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">routes: &#123;</span><br><span class="line">      cors: &#123;</span><br><span class="line">          origin: [&quot;*&quot;],</span><br><span class="line">          credentials: true,</span><br><span class="line">          additionalExposedHeaders: [&quot;ETag&quot;, &quot;X-Content-Type-Options&quot;],</span><br><span class="line">      &#125;,</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
-
-<h3 id="客户端请求，将请求内容组装为-cacheKey，并-MD5-位-cacheID"><a href="#客户端请求，将请求内容组装为-cacheKey，并-MD5-位-cacheID" class="headerlink" title="客户端请求，将请求内容组装为 cacheKey，并 MD5 位 cacheID"></a>客户端请求，将请求内容组装为 cacheKey，并 MD5 位 cacheID</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">const cacheKey = &#123; method, path, body, token &#125;;</span><br><span class="line">const cacheID = MD5(JSON.stringify(cacheKey));</span><br></pre></td></tr></table></figure>
-
-<h3 id="请求可以带-cache-控制-cacheFlag，用户控制："><a href="#请求可以带-cache-控制-cacheFlag，用户控制：" class="headerlink" title="请求可以带 cache 控制 cacheFlag，用户控制："></a>请求可以带 cache 控制 cacheFlag，用户控制：</h3><ul>
-<li>preDelete： 在请求前，删除已有缓存</li>
-<li>useIfExists： 如存在缓存，直接返回缓存，不执行服务器请求</li>
-<li>否则，在请求头中添加 If-None-Match</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">if (cacheFlag === CACHE_FLAG.preDelete) &#123;</span><br><span class="line">    console.log(path, &#x27;Preclear cache&#x27;);</span><br><span class="line">    delete theCache[cacheID];</span><br><span class="line">&#125;</span><br><span class="line">if (theCache[cacheID]) &#123;</span><br><span class="line">    foundCache = true;</span><br><span class="line">    //console.log(path, &#x27;Found cacheID in cache, should add If-None-Match header&#x27;);</span><br><span class="line">    opts.headers[&#x27;If-None-Match&#x27;] = theCache[cacheID].etag;</span><br><span class="line">    // &#125; else &#123;</span><br><span class="line">    //   console.log(path, &#x27;no local cache&#x27;);</span><br><span class="line">    if (cacheFlag === CACHE_FLAG.useIfExists) &#123;</span><br><span class="line">        console.log(path, &#x27;Return cached&#x27;);</span><br><span class="line">        return JSON.parse(theCache[cacheID].data);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>服务器端检查到 If-None-Match 后，判断业务数据是否有改变，如没有改变，直接返回 304，不用做数据库查询等操作</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">let ifNoneMatch = req.headers[&quot;if-none-match&quot;];</span><br><span class="line">let latestETag = await Cache.getETag(`ETAG:TODOS:$&#123;doer&#125;`);</span><br><span class="line">if (ifNoneMatch &amp;&amp; latestETag &amp;&amp; ifNoneMatch === latestETag) &#123;</span><br><span class="line">    return h</span><br><span class="line">    .response(&#123;&#125;)</span><br><span class="line">    .code(304)</span><br><span class="line">    .header(&quot;Content-Type&quot;, &quot;application/json; charset=utf-8;&quot;)</span><br><span class="line">    .header(&quot;Cache-Control&quot;, &quot;no-cache, private&quot;)</span><br><span class="line">    .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span><br><span class="line">    .header(&quot;ETag&quot;, latestETag);</span><br><span class="line">&#125;</span><br><span class="line">//后续的操作无须执行</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
-
-<p>以上代码中，服务器端只需要按照业务逻辑，刷新相应的的 ETag Redis 记录，数据有变化，就修改 Redis 中相应 eTag key 的值。 如没有修改，则直接返回 304</p>
-<ul>
-<li>客户端请求后接收到 304， 则直接使用缓存中的数据</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (response.status === 304) &#123;</span><br><span class="line">    returnCode304 = true;</span><br><span class="line">    responseETag = response.headers.get(&#x27;etag&#x27;);</span><br><span class="line">    return theCache[cacheID].data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>客户端从服务器端接收到的不是 304，则说明，有新数据，则写入客户端缓存（包括收到的 etag， 用于下次请求时，通过 If-None-Match 带到服务器上对比）</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">if (responseETag) &#123;</span><br><span class="line">    theCache[cacheID] = &#123;</span><br><span class="line">        path: path,</span><br><span class="line">        data: jsonText,</span><br><span class="line">        etag: responseETag ? responseETag : &#x27;&#x27;,</span><br><span class="line">    &#125;;</span><br><span class="line">    //Write to local cache</span><br><span class="line">    fetchCache.set(theCache);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="缓存数据的记录方法"><a href="#缓存数据的记录方法" class="headerlink" title="缓存数据的记录方法"></a>缓存数据的记录方法</h2><ul>
-<li>浏览器自身： 不用管它</li>
-<li>Cookie： 数据量非常小</li>
-<li>localStorage： 跨浏览器 , 跟配置相关的数据建议用 LS</li>
-<li>Session，但是使用 K-V</li>
-<li>indexedDB: 数据库，SQL 差不多，比 LS 复杂， 也是跨浏览器</li>
-<li>Sveltekit 的 Session 浏览器关掉，就消失。只要在 session 内部，没有问题</li>
-</ul>
-<h2 id="收益"><a href="#收益" class="headerlink" title="收益"></a>收益</h2><ul>
-<li>用户体验提升， 快速展示，不存在刷新<ul>
-<li>直接使用缓存，不请求</li>
-<li>请求，但得到的是 304， 数据量非常小。直接是缓存</li>
-</ul>
-</li>
-<li>网络和服务器的压力<ul>
-<li>直接使用缓存，不请求时， 请求变少</li>
-<li>返回 304 时， 304 的判断是在 Redis 里做，后续的所有数据库操作都没有必要。大部分的请求，是可以直接 304 的。</li>
-</ul>
-</li>
-<li>整体平台的相应能力提升</li>
-<li>整体的费用得以下降</li>
-</ul>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/Client%20Cache%20Best%20Practice/" data-id="cmpnyclrm0102i5r4df7xdeh4" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-AI/AIGC" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/AI/AIGC/">
-    
-      <time datetime="2024-07-10T01:54:01.000Z" itemprop="datePublished">发表于 2024-07-10</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-08-13</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/AI/">AI</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/AI/AIGC/">AIGC入门</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
-<li><a href="https://www.cnblogs.com/liupiaos/p/18465228">用AI制作历史解说视频：GPT + MidJourney + PiKa + FunSound + 剪映</a></li>
-</ul>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/AI/AIGC/" data-id="cmpnyclq4000hi5r4b7dnc24y" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI/" rel="tag">AI</a></li></ul>
 
     </footer>
   </div>
@@ -900,7 +743,7 @@
 <h4 id="2-2、优化路由，引进拦截器：对路由中的跳转进行改进，使用拦截器"><a href="#2-2、优化路由，引进拦截器：对路由中的跳转进行改进，使用拦截器" class="headerlink" title="2.2、优化路由，引进拦截器：对路由中的跳转进行改进，使用拦截器"></a>2.2、优化路由，引进拦截器：对路由中的跳转进行改进，使用拦截器</h4><p>改进后的代码如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">// HomeViewController.m</span><br><span class="line">- (void)goMineHomePage &#123;</span><br><span class="line">  [RouterManger push:RouterNames.mine_home_page argument:nil];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// RouterManger.m 优化为拦截器</span><br><span class="line">- (void)push:(String *)pageName argument:(NSDictionary *)argument &#123;</span><br><span class="line">  for (var interceptor in interceptors) &#123;</span><br><span class="line">  	bool canPush = [interceptor canPushPageName:pageName arguments: arguments];</span><br><span class="line">    if (!canPush) return;</span><br><span class="line">  &#125;</span><br><span class="line">    </span><br><span class="line">  getVCHandle = [HandleManager.handleMap objectForKey:pageName];</span><br><span class="line">  UIViewController *viewController = getVCHandle(argument:argument);</span><br><span class="line">  [topVC pushViewController:viewController animated:YES];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// LoginInterceptor.m</span><br><span class="line">- (BOOL)canPushPageName:(NSString *)pageName arguments:(NSDictionary *)arguments &#123;</span><br><span class="line">  if (!UserManager.isLogin) &#123;	// 进入个人主页前，需要先判断是否登录</span><br><span class="line">    if ([RouterNames.mine_home_page].contains(pageName)) &#123;</span><br><span class="line">      LoginViewController *viewController = [[MineHomeViewController alloc] init];</span><br><span class="line">			[topVC pushViewController:viewController animated:YES];</span><br><span class="line">      return NO;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  return YES;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）"><a href="#3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）" class="headerlink" title="3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）"></a>3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）</h3><p><a href="../../iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/1%E8%AF%AD%E8%A8%80-%E6%B6%88%E6%81%AF%E8%BD%AC%E5%8F%91.md">《在调用原始方法之前插入额外的执行逻辑》</a></p>
+<h3 id="3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）"><a href="#3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）" class="headerlink" title="3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）"></a>3、在调用原始方法之前插入额外的执行逻辑（不推荐，不使用）</h3><p><a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/1%E8%AF%AD%E8%A8%80-%E6%B6%88%E6%81%AF%E8%BD%AC%E5%8F%91/">《在调用原始方法之前插入额外的执行逻辑》</a></p>
 <h2 id="三、常见的注解示例"><a href="#三、常见的注解示例" class="headerlink" title="三、常见的注解示例"></a>三、常见的注解示例</h2><p>以下内容摘自：<a href="https://juejin.cn/post/7217637205590114364">Flutter 注解开发</a></p>
 <ol>
 <li><p><code>@override</code>：这个注解表示一个方法覆盖了父类的方法。它可以帮助我们检查是否正确地实现了方法覆盖，如果没有正确实现，编译器会给出警告。</p>
@@ -978,7 +821,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%A6%99%E7%94%A8/%E5%A6%99%E7%94%A8%E6%B3%A8%E8%A7%A3/" data-id="cmpnyclqi00ati5r4927q5goj" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%A6%99%E7%94%A8/%E5%A6%99%E7%94%A8%E6%B3%A8%E8%A7%A3/" data-id="cmpojemk000avo4r447mech3d" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1031,7 +874,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%A6%99%E7%94%A8/%E5%A6%99%E7%94%A8%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/" data-id="cmpnyclqi00ami5r4gf4d30ri" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%A6%99%E7%94%A8/%E5%A6%99%E7%94%A8%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/" data-id="cmpojemk000aso4r4hf0mfm4i" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1126,7 +969,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E7%81%B0%E5%BA%A6%E7%B3%BB%E7%BB%9F/" data-id="cmpnyclqh009ri5r4h3aw6eh2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E7%81%B0%E5%BA%A6%E7%B3%BB%E7%BB%9F/" data-id="cmpojemjz00a7o4r448tc46b4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1385,7 +1228,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E8%AF%B7%E6%B1%82%E8%A7%84%E8%8C%83/%E8%AF%B7%E6%B1%82%E8%A7%84%E8%8C%83_JS/" data-id="cmpnyclrg00wni5r4hpped37i" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E8%AF%B7%E6%B1%82%E8%A7%84%E8%8C%83/%E8%AF%B7%E6%B1%82%E8%A7%84%E8%8C%83_JS/" data-id="cmpojemky00xeo4r4hbf6hwdt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%AF%B7%E6%B1%82/" rel="tag">请求</a></li></ul>
@@ -1433,7 +1276,7 @@
       
         <h1 id="Bugly"><a href="#Bugly" class="headerlink" title="Bugly"></a>Bugly</h1><h2 id="一、iOS-崩溃"><a href="#一、iOS-崩溃" class="headerlink" title="一、iOS 崩溃"></a>一、iOS 崩溃</h2><h3 id="1、崩溃信息"><a href="#1、崩溃信息" class="headerlink" title="1、崩溃信息"></a>1、崩溃信息</h3><p>【全部】崩溃信息截图如下：</p>
 <p><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526150407119.png" alt="image-20230526150407119"></p>
-<h3 id="2、分析"><a href="#2、分析" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526163957707.png" alt="image-20230526163957707" style="zoom: 50%;" />
+<h3 id="2、分析"><a href="#2、分析" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526163957707.png" alt="image-20230526163957707" style="width:50%;" />
 
 <table>
 <thead>
@@ -1465,19 +1308,19 @@
 </tbody></table>
 <p>腾讯播放器占比超95%，已修复，待上线。</p>
 <h2 id="二、Android-崩溃"><a href="#二、Android-崩溃" class="headerlink" title="二、Android 崩溃"></a>二、Android 崩溃</h2><h3 id="1、崩溃信息-1"><a href="#1、崩溃信息-1" class="headerlink" title="1、崩溃信息"></a>1、崩溃信息</h3><p><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526150921436.png" alt="image-20230526150921436"></p>
-<h3 id="2、分析-1"><a href="#2、分析-1" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526164207063.png" alt="image-20230526164207063" style="zoom: 33%;" />
+<h3 id="2、分析-1"><a href="#2、分析-1" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526164207063.png" alt="image-20230526164207063" style="width:33%;" />
 
 <p>模拟器相关 43+&#x2F;72 &gt; 60%</p>
 <p>即至少能再降低60%崩溃率。</p>
 <h2 id="三、iOS-Flutter错误"><a href="#三、iOS-Flutter错误" class="headerlink" title="三、iOS Flutter错误"></a>三、iOS Flutter错误</h2><h3 id="1、错误信息"><a href="#1、错误信息" class="headerlink" title="1、错误信息"></a>1、错误信息</h3><p><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526151515956.png" alt="image-20230526151515956"></p>
-<h3 id="1、分析"><a href="#1、分析" class="headerlink" title="1、分析"></a>1、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526165153853.png" alt="image-20230526165153853" style="zoom:50%;" />
+<h3 id="1、分析"><a href="#1、分析" class="headerlink" title="1、分析"></a>1、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526165153853.png" alt="image-20230526165153853" style="width:50%;" />
 
 <p>与游戏webView相关的异常错误达 7000+&#x2F;8000 &gt; 87.5%。</p>
 <p>原因：app调用游戏webView提供的js，h5那边返回了不支持的类型。</p>
 <p>影响：只是异常错误，实际无业务影响。</p>
 <p>即处理后能降低 87.5%，预计为 <strong>5.08%</strong> &#x3D; 12.5% * 40.66%</p>
 <h2 id="四、Android-Flutter-错误"><a href="#四、Android-Flutter-错误" class="headerlink" title="四、Android Flutter 错误"></a>四、Android Flutter 错误</h2><h3 id="1、错误信息-1"><a href="#1、错误信息-1" class="headerlink" title="1、错误信息"></a>1、错误信息</h3><p><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526165814931.png" alt="image-20230526165814931"></p>
-<h3 id="2、分析-2"><a href="#2、分析-2" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526170106312.png" alt="image-20230526170106312" style="zoom:50%;" />
+<h3 id="2、分析-2"><a href="#2、分析-2" class="headerlink" title="2、分析"></a>2、分析</h3><img src="/工作流程/BUGLY崩溃问题汇总/image-20230526170106312.png" alt="image-20230526170106312" style="width:50%;" />
 
 <p>已处理 524+ &#x2F; 1200 ≈ 43.7%</p>
 <h2 id="五、小结"><a href="#五、小结" class="headerlink" title="五、小结"></a>五、小结</h2><table>
@@ -1690,7 +1533,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B/BUGLY%E5%B4%A9%E6%BA%83%E9%97%AE%E9%A2%98%E6%B1%87%E6%80%BB/" data-id="cmpnyclq8002wi5r4ai467nr7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B/BUGLY%E5%B4%A9%E6%BA%83%E9%97%AE%E9%A2%98%E6%B1%87%E6%80%BB/" data-id="cmpojemjq003bo4r45awyetj6" class="article-share-link">Share</a>
       
       
     </footer>

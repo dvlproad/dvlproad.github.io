@@ -72,178 +72,6 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-数据结构/9数据结构-①nil、isEqual、Hash" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/">
-    
-      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-10-12</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/">nil、isEqual、Hash</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h2 id="前言：你真的懂isEqual与hash？"><a href="#前言：你真的懂isEqual与hash？" class="headerlink" title="前言：你真的懂isEqual与hash？"></a>前言：你真的懂isEqual与hash？</h2><p>参考文章：</p>
-<ul>
-<li><a href="https://www.jianshu.com/p/915356e280fc">iOS开发 之 不要告诉我你真的懂isEqual与hash!</a></li>
-<li><a href="https://www.jianshu.com/p/2a71b027b723?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation">哈希算法详解（附带 iOS 开发中实际应用）</a></li>
-<li><a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></li>
-</ul>
-<p>eg：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、NSMutableSet/NSSet中添加对象的时候，就会调用- (NSUInteger)hash方法。</span><br><span class="line">2、NSMutableSet/NSSet中添加 obj2 对象的时候，如果NSMutableSet/NSSet 中之前就已经存在 obj1 对象，且 obj1 对象的 - (NSUInteger)hash 返回值和当前要添加的 obj2 的- (NSUInteger)hash 返回值相等, 则 obj2 会继续调用- (BOOL)isEqual:方法，其中此方法以 obj1 为参数；否则不等, 继续下一个元素判断。</span><br></pre></td></tr></table></figure>
-
-<p>通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
-<h2 id="一、基础"><a href="#一、基础" class="headerlink" title="一、基础"></a>一、基础</h2><h3 id="1、nil-Nil-NULL-与-NSNull-的区别"><a href="#1、nil-Nil-NULL-与-NSNull-的区别" class="headerlink" title="1、nil, Nil,NULL 与 NSNull 的区别"></a>1、nil, Nil,NULL 与 NSNull 的区别</h3><ul>
-<li>nil 指向一个<strong>对象的指针</strong>为空,在objc.h 的定义如下: <code>NSString *name = nil;</code></li>
-<li>Nil 指向一个<strong>类的指针</strong>为空,定义如下: <code>Class aClass = Nil;</code></li>
-<li>NULL 指向<strong>C类型的指针</strong>为空, 例如: <code>int*pInt = NULL;</code></li>
-<li>NSNull 在Objective-C中是一个类,只是名字中有个Null，多用于集合(NSArray,NSDictionary)中值为空的对象</li>
-</ul>
-<h3 id="2、-、-isEqualToString、isEqual"><a href="#2、-、-isEqualToString、isEqual" class="headerlink" title="2、&#x3D;&#x3D;、 isEqualToString、isEqual"></a>2、&#x3D;&#x3D;、 isEqualToString、isEqual</h3><h4 id="2-1、背景：为什么要有isEqual方法"><a href="#2-1、背景：为什么要有isEqual方法" class="headerlink" title="2.1、背景：为什么要有isEqual方法?"></a>2.1、背景：为什么要有isEqual方法?</h4><p>答：判断两个对象是否相等（而不是判断两个对象的地址是否相等）。</p>
-<blockquote>
-<p>对于基本类型, &#x3D;&#x3D;运算符比较的是值;<br><strong>对于对象类型, &#x3D;&#x3D;运算符比较的是对象的地址(即是否为同一对象)</strong></p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIColor *color1 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">UIColor *color2 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">NSLog(@&quot;color1 == color2 = %@&quot;, color1 == color2 ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line">NSLog(@&quot;[color1 isEqual:color2] = %@&quot;, [color1 isEqual:color2] ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line"></span><br><span class="line">// 打印结果如下：</span><br><span class="line">color1 == color2 = NO</span><br><span class="line">[color1 isEqual:color2] = YES</span><br></pre></td></tr></table></figure>
-
-<p>总结：</p>
-<blockquote>
-<p>1、&#x3D;&#x3D;<br>判断指针指向的地址，即指针值，是否相等<br>①对于基本类型, &#x3D;&#x3D;运算符比较的是值;<br>②对于对象类型, &#x3D;&#x3D;运算符比较的是对象的地址(即是否为同一对象)）</p>
-<p>2、isEqualToString<br>直接判断字符串内容是否相等</p>
-<p>3、isEqual<br>先判断两个对象的地址是否相同，再判断类型是否一致，然后再判断对象的具体内容是否一致<br>&#x2F;&#x2F;情况①：地址相同则肯定相等；<br>&#x2F;&#x2F;情况②：地址不同时候，如果类型一致且里面的内容相等，则也算相等</p>
-</blockquote>
-<h4 id="2-1、苹果官方重写isEqual-的demo"><a href="#2-1、苹果官方重写isEqual-的demo" class="headerlink" title="2.1、苹果官方重写isEqual 的demo"></a>2.1、苹果官方重写isEqual 的demo</h4><p><code>isEqual</code>：先判断两个对象的地址是否相同(采用<code>==</code>)，再判断类型是否一致(采用<code>isKindOfClass</code>)，然后再判断对象的具体内容是否一致</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)isEqual:(id)object &#123;</span><br><span class="line">    if (self == object) &#123;</span><br><span class="line">        return YES;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (![object isKindOfClass:[Person class]]) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return [self isEqualToPerson:(Person *)object];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (BOOL)isEqualToPerson:(Person *)person &#123;</span><br><span class="line">    if (!person) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    BOOL haveEqualNames = (!self.name &amp;&amp; !person.name) || </span><br><span class="line">      										[self.name isEqualToString:person.name];</span><br><span class="line">    BOOL haveEqualBirthdays = (!self.birthday &amp;&amp; !person.birthday) || </span><br><span class="line">      										[self.birthday isEqualToDate:person.birthday];</span><br><span class="line"></span><br><span class="line">    return haveEqualNames &amp;&amp; haveEqualBirthdays;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>附：通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
-<h4 id="2-2、-、-isEqualToString、isEqual验证示例"><a href="#2-2、-、-isEqualToString、isEqual验证示例" class="headerlink" title="2.2、&#x3D;&#x3D;、 isEqualToString、isEqual验证示例"></a>2.2、&#x3D;&#x3D;、 isEqualToString、isEqual验证示例</h4><blockquote>
-<p><img src="/1%E8%AF%AD%E8%A8%80/equal.jpg" alt="equal"></p>
-</blockquote>
-<h2 id="四、weak"><a href="#四、weak" class="headerlink" title="四、weak"></a>四、weak</h2><p>以下内容来自： <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></p>
-<ul>
-<li>1、weak关键字修饰对象的【初始化及重新赋值】实现原理</li>
-<li>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</li>
-<li>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</li>
-</ul>
-<h3 id="1、weak关键字修饰对象初始化及重新赋值实现原理"><a href="#1、weak关键字修饰对象初始化及重新赋值实现原理" class="headerlink" title="1、weak关键字修饰对象初始化及重新赋值实现原理"></a>1、weak关键字修饰对象初始化及重新赋值实现原理</h3><p><code>objc_initWeak</code>：当初始化一个weak对象并将内存对象赋值给该weak对象时会调用该方法。</p>
-<p><code>objc_storeWeak</code>：当为一个weak对象赋新值时会调用该方法。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">objc_initWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//对内存对象进行非nil判断</span></span><br><span class="line">    <span class="keyword">if</span> (!newObj) &#123;</span><br><span class="line">        *location = nil;</span><br><span class="line">        <span class="keyword">return</span> nil;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">false</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object*)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">objc_storeWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">true</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object *)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>由官方文档可知，无论是初始化weak对象还是为weak对象赋值，最终都会调用到 <code>storeWeak</code>方法，不同点在于，二者传入三个模板值不同。</p>
-<p>如果weak对象与旧内存对象的关联，则先调用<code>weak_unregister_no_lock</code>，将weak对象与旧内存对象解除指向关系。</p>
-<p>然后在将weak对象与旧内存对象的关联解除后，就调用 <code>weak_register_no_lock</code>方法将weak对象与新内存对象进行关联</p>
-<p>至此，weak关键字修饰对象的初始化和重新赋值流程就完成了。</p>
-<h3 id="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"><a href="#2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？" class="headerlink" title="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"></a>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</h3><p>问：weak关键字是如何保证【在weak对象执行语句时】内存对象【不被释放】的呢？</p>
-<p>答：其实很简单，就是对内存对象进行计数增加。</p>
-<p>每次在使用weak对象时，都相当于调用一次 <code>objc_loadWeak</code>。</p>
-<p>在weak对象执行的语句中，weak对象所指向的内存对象计数会+1，这样就保证在语句中不会发生执行一半而释放内存对象的问题。</p>
-<h3 id="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"><a href="#3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？" class="headerlink" title="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"></a>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</h3><p>当内存对象释放时，会调用到一个叫<code>weak_claer_no_lock</code>的方法。在 <code>weak_claer_no_lock</code>方法中，会进行对weak对象的置空操作。</p>
-<h3 id="4、Weak-Strong搭配使用的误解"><a href="#4、Weak-Strong搭配使用的误解" class="headerlink" title="4、Weak-Strong搭配使用的误解"></a>4、Weak-Strong搭配使用的误解</h3><p>在使用Block时，我们可以使用weak关键字来避免外部变量被Block强引用而导致的循环引用，同时为了Block中的代码能够正常执行，许多开发者提出了Weak-Strong搭配使用的方式，类似如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        __strong typeof(weakSelf) strongSelf = weakSelf;</span><br><span class="line">        [strongSelf test1];</span><br><span class="line">        [strongSelf test2];</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>以上代码相对于单独使用weak来说还是有好处的，使用Weak-Strong搭配的方式的话，可以保证在执行 [strongSelf test1]和 [strongSelf test2]时，是向同一对象发送消息。</p>
-<p>为什么这么说呢？当开始执行Block语句时，若self还存在，那么strongSelf可以保证在整个Block代码块中不会被释放，即使Block中调用无数次strongSelf，strongSelf也不会因为多线程而在半途被释放；若开始执行Block时，self已经被释放，那么之后所有的消息都会被发送至nil。所以Weak-Strong搭配可以保证Block中语句被处理为一个事务。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        [weakSelf test1];	// 可能这时候self还没释放，有值。</span><br><span class="line">        [weakSelf test2];	// 而到这时候self刚好释放，为ni。导致Block中语句不是被发送给同一对象去处理。</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>所以说，Weak-Strong并不能保证Block中语句一定会被执行，它只能保证Block中语句作为一个事务被发送到同一对象处。只要理解了weak实现原理，我们就能明白何时单独使用weak也能完成代码功能，而何时必须使用Weak-Strong来保证代码事务能力。</p>
-<h3 id="5、weak关键字涉及到的数据结构"><a href="#5、weak关键字涉及到的数据结构" class="headerlink" title="5、weak关键字涉及到的数据结构"></a>5、weak关键字涉及到的数据结构</h3><p>略。请查看 <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></p>
-<blockquote>
-<p>1、SideTables</p>
-<blockquote>
-<p><code>SideTables</code>本质上是一个全局的 <code>StripedMap</code>。而<code>StripedMap</code>本质是一个数组。</p>
-<p>在 <code>SideTables</code>中， Item类型为 <code>SideTable</code></p>
-</blockquote>
-<p>2、SideTable</p>
-<blockquote>
-<p><code>SideTable</code>中包含三个元素，分别是 1.自旋锁 2.记录对象引用计数的字典 3.记录对象弱引用信息的数据结构 <code>weak_table_t</code>。</p>
-</blockquote>
-<p>3、weak_table_t</p>
-<blockquote>
-<p><code>weak_table_t</code>本质上是一个数组，其中每个Item为 <code>weak_entry_t</code>。</p>
-</blockquote>
-<p>4、weak_entry_t</p>
-<blockquote>
-<p><code>weak_entry_t</code>就比较有意思了，它本质上是个字典。其中的key值为对象，而value对应为一个数组，数组中保存的值均为 <code>weak_referrer_t</code>类型的数据。</p>
-</blockquote>
-<p>5、weak_referrer_t</p>
-<blockquote>
-<p><code>weak_referrer_t</code>本质上是 <code>objc_object **</code>，即Objective-C对象的地址。</p>
-</blockquote>
-</blockquote>
-<p>所以，<code>weak_entry_t</code>value数组中，每一个Item均为一个地址，即weak对象的地址。</p>
-<p>在项目中有某个功能需要用到多个delegate对象，这就需要把delegate放到容器中，但又只能弱引用weak保存delegate，否则会导致delegate对象不能被释放。所以，我们的需求就是希望能在容器中只保存弱引用的delegate对象。</p>
-<blockquote>
-<p>在OC中Foundation框架中的常用容器类（NSSet，NSDictionary，NSArray）及其可变子类在加入元素时，均会对元素进行强引用。有的时候（比如持有多个Delegate对象时），希望有对应的弱引用容器使用。</p>
-</blockquote>
-<p>支持弱引用的容器类，有如下：</p>
-<p>[NSHashTable weakObjectsHashTable]</p>
-<p>[NSPointerArray weakObjectsPointerArray]</p>
-<p>[NSPointerArray pointerArrayWithOptions:]</p>
-<p>详见：<a href="https://www.jianshu.com/p/cf4e15b26f64">YYKit学习笔记之NSHashTable与NSMapTable</a></p>
-<p>其他参考：</p>
-<ul>
-<li><p><a href="https://www.jianshu.com/p/f0c33d6c39bb">OC弱引用容器实现方案总结</a></p>
-</li>
-<li><p><a href="http://blog.sina.com.cn/s/blog_48d4cf2d0102v1jh.html">iOS如何在容器类中使用弱引用(weak reference) </a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/de3e0ffa9fde">数组或字典如何弱引用对象</a></p>
-</li>
-<li><p><a href="https://www.jianshu.com/p/51156d4ae885">iOS - 如何实现弱引用字典</a></p>
-</li>
-</ul>
-<p>*<strong>在iOS项目开发过程中，我们经常会使用到<code>NSSet</code>、<code>NSArray</code>、<code>NSDictionary</code>三个类，它们为我们设计较友好的数据结构时提供了很方便的方法*</strong></p>
-<p>对于NSSet来说，object是强引用的，和NSDictionary中的value是一样的。而NSDictionary中的key则是copy的，因此当开发者想要使NSSet的objects或者NSDictionary的values为weak，或者NSDictionary使用没有实现协议的对象作为key时，比较麻烦（需要使用NSValue的方法valueWithNonretainedObject）。<br>还好苹果为我们提供了相对于NSSet和NSDictionary更通用的两个类NSHashTable和NSMapTable。</p>
-<h2 id="关联对象实现原理"><a href="#关联对象实现原理" class="headerlink" title="关联对象实现原理"></a>关联对象实现原理</h2><p><a href="https://juejin.im/post/5af86b276fb9a07aa34a59e6">iOS底层原理总结 - 关联对象实现原理</a></p>
-<blockquote>
-<p><strong>关联对象并不是存储在被关联对象本身内存中，而是存储在全局的统一的一个AssociationsManager中，如果设置关联对象为nil，就相当于是移除关联对象。</strong></p>
-</blockquote>
-<p>回过头来看objc_AssociationPolicy policy 参数: 属性以什么形式保存的策略。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef OBJC_ENUM(uintptr_t, objc_AssociationPolicy) &#123;</span><br><span class="line">    OBJC_ASSOCIATION_ASSIGN = 0,  // 指定一个弱引用相关联的对象</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN_NONATOMIC = 1, // 指定相关对象的强引用，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY_NONATOMIC = 3,  // 指定相关的对象被复制，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN = 01401,  // 指定相关对象的强引用，原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY = 01403     // 指定相关的对象被复制，原子性   </span><br><span class="line">&#125;;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
-
-<p>我们会发现其中只有RETAIN和COPY而为什么没有weak呢？</p>
-<h2 id="NSPointerArray"><a href="#NSPointerArray" class="headerlink" title="NSPointerArray"></a>NSPointerArray</h2><h3 id="1、NSPointerArray"><a href="#1、NSPointerArray" class="headerlink" title="1、NSPointerArray"></a>1、NSPointerArray</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">- (instancetype)init &#123;</span><br><span class="line">  if (self = [super init]) &#123;</span><br><span class="line">    _delegates = [NSPointerArray weakObjectsPointerArray];</span><br><span class="line">  &#125;</span><br><span class="line">  return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 添加对象指针</span><br><span class="line">- (void)addDelegate:(id)delegate &#123;</span><br><span class="line">  [_delegates addPointer:(__bridge void*)delegate];</span><br><span class="line">&#125;</span><br><span class="line">// 和 NSArray在概念上不一样的地方是，NSPointerArray需要添加的是对象的指针地址，尽管他俩都是在操作指针。所以在添加对象时，需要将其转换为指针类型，__bridge转换十分具有 CoreFoundation特色</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 移除对象指针</span><br><span class="line">- (void)removeDelegate:(id)delegate &#123;</span><br><span class="line">  NSUInteger index = [self indexOfDelegate:delegate];</span><br><span class="line">  if (index != NSNotFound) &#123;</span><br><span class="line">    [_delegates removePointerAtIndex:index];</span><br><span class="line">  &#125;</span><br><span class="line">  [_delegates compact];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSUInteger)indexOfDelegate:(id)delegate &#123;</span><br><span class="line">  for (NSUInteger i = 0; i &lt; _delegates.count; i += 1) &#123;</span><br><span class="line">    if ([_delegates pointerAtIndex:i] == (__bridge void*)delegate) &#123;</span><br><span class="line">      return i;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  return NSNotFound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/" data-id="cmpnyclqa004bi5r43xc36e5c" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
       <article id="post-代码管理/Git/Github Push 失败问题" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -283,40 +111,40 @@
 <ul>
 <li><a href="https://zhuanlan.zhihu.com/p/414028184">关于Support for password authentication was removed on August 13, 2021报错的解决方案</a></li>
 </ul>
-<h2 id="github-push代码不成功"><a href="#github-push代码不成功" class="headerlink" title="github push代码不成功"></a>github push代码不成功</h2><h3 id="问题一：Support-for-password-authentication-was-removed-on-August-13-2021-Please-use-a-personal-access-token-instead"><a href="#问题一：Support-for-password-authentication-was-removed-on-August-13-2021-Please-use-a-personal-access-token-instead" class="headerlink" title="问题一：Support for password authentication was removed on August 13, 2021. Please use a personal access token instead."></a>问题一：Support for password authentication was removed on August 13, 2021. Please use a personal access token instead.</h3><p><img src="/代码管理/Git/Github Push 失败问题/image-20220423220008550.png" alt="image-20220423220008550"></p>
+<h2 id="github-push代码不成功"><a href="#github-push代码不成功" class="headerlink" title="github push代码不成功"></a>github push代码不成功</h2><h3 id="问题一：Support-for-password-authentication-was-removed-on-August-13-2021-Please-use-a-personal-access-token-instead"><a href="#问题一：Support-for-password-authentication-was-removed-on-August-13-2021-Please-use-a-personal-access-token-instead" class="headerlink" title="问题一：Support for password authentication was removed on August 13, 2021. Please use a personal access token instead."></a>问题一：Support for password authentication was removed on August 13, 2021. Please use a personal access token instead.</h3><p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423220008550.png" alt="image-20220423220008550"></p>
 <blockquote>
 <p>remote: Support for password authentication was removed on August 13, 2021. Please use a personal access token instead.</p>
 <p>remote: Please see <a href="https://github.blog/2020-12-15-token-authentication-requirements-for-git-operations/">https://github.blog/2020-12-15-token-authentication-requirements-for-git-operations/</a> for more information.</p>
 </blockquote>
 <p>意思就是你原先的密码凭证从2021年8月13日开始就不能用了，要使用个人访问令牌（personal access token），就是把你的密码替换成token。</p>
 <h4 id="解决：github-push更新token验证方式。"><a href="#解决：github-push更新token验证方式。" class="headerlink" title="解决：github push更新token验证方式。"></a>解决：github push更新token验证方式。</h4><h5 id="1、Please-use-a-personal-access-token-instead-（密码方式不适用了，需改使用token方式登录）"><a href="#1、Please-use-a-personal-access-token-instead-（密码方式不适用了，需改使用token方式登录）" class="headerlink" title="1、Please use a personal access token instead.（密码方式不适用了，需改使用token方式登录）"></a>1、Please use a personal access token instead.（密码方式不适用了，需改使用token方式登录）</h5><p>1、登录github官网进入setting</p>
-<img src="https:////upload-images.jianshu.io/upload_images/8106190-1ad586260a692345.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/476" alt="img" style="zoom:33%;" />
+<img src="https:////upload-images.jianshu.io/upload_images/8106190-1ad586260a692345.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/476" alt="img" style="width:33%;" />
 
 <p>2.页面拉到底 找到 Developer Setting</p>
 <p>3.右侧菜单栏找到Personal access tokens 点击后 找到右上角的Generate new token</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/8106190-bd00cafaa195f83a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1200" alt="img"></p>
 <p>4、token的使用</p>
 <p>在终端上cd到要项目中，然后执行git pull。</p>
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423223148829.png" alt="image-20220423223148829"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423223148829.png" alt="image-20220423223148829"></p>
 <p>此时弹出</p>
 <p>Username for ‘<a href="https://github.com/">https://github.com</a>‘: 此处输入你github 用户名</p>
 <p>Password for ‘https:&#x2F;&#x2F;用户名@github.com’:把复制的token粘贴到此处（<strong>这里原先是输入密码的现在改成token</strong>）回车就好了</p>
-<h5 id="2、Failed-to-connect-to-github-com-443（登录方式是token了，但连接失败。）"><a href="#2、Failed-to-connect-to-github-com-443（登录方式是token了，但连接失败。）" class="headerlink" title="2、Failed to connect to github.com 443（登录方式是token了，但连接失败。）"></a>2、Failed to connect to github.com 443（登录方式是token了，但连接失败。）</h5><p><img src="/代码管理/Git/Github Push 失败问题/image-20220423221025009.png" alt="image-20220423221025009"></p>
-<img src="/代码管理/Git/Github Push 失败问题/image-20220423221809343.png" alt="image-20220423221809343" style="zoom: 67%;" />
+<h5 id="2、Failed-to-connect-to-github-com-443（登录方式是token了，但连接失败。）"><a href="#2、Failed-to-connect-to-github-com-443（登录方式是token了，但连接失败。）" class="headerlink" title="2、Failed to connect to github.com 443（登录方式是token了，但连接失败。）"></a>2、Failed to connect to github.com 443（登录方式是token了，但连接失败。）</h5><p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423221025009.png" alt="image-20220423221025009"></p>
+<img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423221809343.png" alt="image-20220423221809343" style="width:67%;" />
 
 <p>解决方式，终端输入如下命令：</p>
 <blockquote>
 <p>git config –global http.proxy</p>
 </blockquote>
-<h5 id="3、remote-Write-access-to-repository-not-granted-connect上了，但其他操作失败，需指定token的权限"><a href="#3、remote-Write-access-to-repository-not-granted-connect上了，但其他操作失败，需指定token的权限" class="headerlink" title="3、remote: Write access to repository not granted.(connect上了，但其他操作失败，需指定token的权限)"></a>3、remote: Write access to repository not granted.(connect上了，但其他操作失败，需指定token的权限)</h5><p><img src="/代码管理/Git/Github Push 失败问题/image-20220423222009245.png" alt="image-20220423222009245"></p>
+<h5 id="3、remote-Write-access-to-repository-not-granted-connect上了，但其他操作失败，需指定token的权限"><a href="#3、remote-Write-access-to-repository-not-granted-connect上了，但其他操作失败，需指定token的权限" class="headerlink" title="3、remote: Write access to repository not granted.(connect上了，但其他操作失败，需指定token的权限)"></a>3、remote: Write access to repository not granted.(connect上了，但其他操作失败，需指定token的权限)</h5><p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423222009245.png" alt="image-20220423222009245"></p>
 <p>解决：</p>
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423222457565.png" alt="image-20220423222457565"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423222457565.png" alt="image-20220423222457565"></p>
 <p>创建的时候下面的权限和是否设置过期时间(我是吧所有权限都勾选了) 根据自己情况选择 最后创建完后 吧token复制下来</p>
-<h5 id="4、LibreSSL-SSL-connect-SSL-ERROR-SYSCALL-in-connection-to-github-com-443"><a href="#4、LibreSSL-SSL-connect-SSL-ERROR-SYSCALL-in-connection-to-github-com-443" class="headerlink" title="4、LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443"></a>4、LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443</h5><p><img src="/代码管理/Git/Github Push 失败问题/image-20220423224215251.png" alt="image-20220423224215251"></p>
+<h5 id="4、LibreSSL-SSL-connect-SSL-ERROR-SYSCALL-in-connection-to-github-com-443"><a href="#4、LibreSSL-SSL-connect-SSL-ERROR-SYSCALL-in-connection-to-github-com-443" class="headerlink" title="4、LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443"></a>4、LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443</h5><p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423224215251.png" alt="image-20220423224215251"></p>
 <blockquote>
 <p>fatal: unable to access ‘<a href="https://github.com/dvlproad/001-UIKit-CQDemo-Flutter.git/">https://github.com/dvlproad/001-UIKit-CQDemo-Flutter.git/</a>‘: LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443 </p>
 </blockquote>
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423223640807.png" alt="image-20220423223640807"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423223640807.png" alt="image-20220423223640807"></p>
 <p>解决：终端输入</p>
 <blockquote>
 <p>git config http.sslVerify “false”</p>
@@ -325,25 +153,25 @@
 <h2 id="三、访问GitHub遇到SSL-ERROR-SYSCALL错误解决方法"><a href="#三、访问GitHub遇到SSL-ERROR-SYSCALL错误解决方法" class="headerlink" title="三、访问GitHub遇到SSL_ERROR_SYSCALL错误解决方法"></a>三、访问GitHub遇到SSL_ERROR_SYSCALL错误解决方法</h2><p>其他参考文章：<a href="https://www.jianshu.com/p/9cf537b3b8d5">访问GitHub遇到SSL_ERROR_SYSCALL错误解决方法</a></p>
 <p>检查1：电脑上是否有<code>curl-openssl</code>（一般都有）</p>
 <p>openssl version</p>
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423232921517.png" alt="image-20220423232921517"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423232921517.png" alt="image-20220423232921517"></p>
 <p>如果没有，则安装<code>curl-openssl</code>。安装方法如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install curl-openssl</span><br></pre></td></tr></table></figure>
 
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423233608415.png" alt="image-20220423233608415"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423233608415.png" alt="image-20220423233608415"></p>
 <h3 id="2、安装xxx时候失败，Error-No-such-file-or-directory-rb-sysopen"><a href="#2、安装xxx时候失败，Error-No-such-file-or-directory-rb-sysopen" class="headerlink" title="2、安装xxx时候失败，Error: No such file or directory @ rb_sysopen"></a>2、安装xxx时候失败，Error: No such file or directory @ rb_sysopen</h3><h4 id="1、原因"><a href="#1、原因" class="headerlink" title="1、原因"></a>1、原因</h4><p>原来是一个依赖包下载不成功（harfbuzz-3.1.1.arm64_monterey）</p>
 <h4 id="解决-使用brew单独安装即可，然后再就是再次下载之前的包"><a href="#解决-使用brew单独安装即可，然后再就是再次下载之前的包" class="headerlink" title="解决:使用brew单独安装即可，然后再就是再次下载之前的包"></a>解决:使用brew单独安装即可，然后再就是再次下载之前的包</h4><p>用brew单独下载依赖包，就避免了找不到依赖版本的错误</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install zstd</span><br></pre></td></tr></table></figure>
 
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423234308334.png" alt="image-20220423234308334"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423234308334.png" alt="image-20220423234308334"></p>
 <p>之后再返回继续执行之前的</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install curl-openssl</span><br></pre></td></tr></table></figure>
 
-<p><img src="/代码管理/Git/Github Push 失败问题/image-20220423234350492.png" alt="image-20220423234350492"></p>
+<p><img src="/代码管理/Git/Github%20Push%20失败问题/image-20220423234350492.png" alt="image-20220423234350492"></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98/" data-id="cmpnyclr100n8i5r45s42bpxg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98/" data-id="cmpojemki00n5o4r4f07i737k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -406,7 +234,7 @@
 
 <p>這段訊息的意思是線上版本的內容比你電腦裡這份還要新，所以 Git 不讓你推上去。</p>
 <h2 id="怎麼造成的？"><a href="#怎麼造成的？" class="headerlink" title="怎麼造成的？"></a>怎麼造成的？</h2><p>通常這個狀況會發生在多人一起開發的時候，想像一下這個情境：</p>
-<p><img src="/代码管理/Git/Github Push 方式/fail1.png" alt="new repository"></p>
+<p><img src="/代码管理/Git/Github%20Push%20方式/fail1.png" alt="new repository"></p>
 <ol>
 <li>Sherly 跟 Eddie 兩個人在差不多的時間都從 Git Server 上拉了一份資料下來準備進行開發。</li>
 <li>Sherly 手腳比較快，先完成了，於是先把做好的成果推一份上去。</li>
@@ -425,7 +253,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E6%96%B9%E5%BC%8F/" data-id="cmpnyclr100nbi5r47xx854fa" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/Git/Github%20Push%20%E6%96%B9%E5%BC%8F/" data-id="cmpojemki00n9o4r4a8nc2exb" class="article-share-link">Share</a>
       
       
     </footer>
@@ -537,7 +365,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/Threads/Flutter_Dart/Future/" data-id="cmpnyclrf00w7i5r4283rfnhg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/Threads/Flutter_Dart/Future/" data-id="cmpojemkw00w7o4r4dy2z2w9n" class="article-share-link">Share</a>
       
       
     </footer>
@@ -582,7 +410,7 @@ return c.future;
 <h1 id="Mac-配置环境变量"><a href="#Mac-配置环境变量" class="headerlink" title="Mac 配置环境变量"></a>Mac 配置环境变量</h1><p>环境变量的设置文件：</p>
 <p>非M1类型的Mac：<code>~/.bash_profile</code></p>
 <p>是M1类型的Mac：<code>~/.zshrc</code></p>
-<img src="/电脑使用/环境变量设置/image-20220321012950969.png" alt="image-20220321012950969" style="zoom:33%;" />
+<img src="/电脑使用/环境变量设置/image-20220321012950969.png" alt="image-20220321012950969" style="width:33%;" />
 
 <p>修改方法：</p>
 <p>非M1类型的Mac：终端输入<code>open -n ~/.bash_profile</code></p>
@@ -594,7 +422,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E8%AE%BE%E7%BD%AE/" data-id="cmpnyclqc005wi5r4ffooh5ub" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E8%AE%BE%E7%BD%AE/" data-id="cmpojemjs0051o4r43x7s6gh1" class="article-share-link">Share</a>
       
       
     </footer>
@@ -647,7 +475,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A2%E7%8E%AF/" data-id="cmpnyclqa004gi5r491ld04ap" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A2%E7%8E%AF/" data-id="cmpojemjs004ho4r4ewzl6tn7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -773,7 +601,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/7%E5%85%B6%E4%BB%96/" data-id="cmpnyclq6001ai5r4fsrr5qne" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/7%E5%85%B6%E4%BB%96/" data-id="cmpojemjn0016o4r45ndpc0nc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -836,7 +664,7 @@ return c.future;
 <p>而其他的是用Xcode配置的对应该证书的本地私钥L对app进行签名。</p>
 <h2 id="一、App-Store-下载的签名机制（最简单的签名）"><a href="#一、App-Store-下载的签名机制（最简单的签名）" class="headerlink" title="一、App Store 下载的签名机制（最简单的签名）"></a>一、App Store 下载的签名机制（最简单的签名）</h2><p>当App 提交审核通过后，Apple会对App重签名，所以从App Store下载的app都是苹果的官方签名。</p>
 <p>流程如下：</p>
-<img src="/安全/iOS App 签名的原理/APP签名机制1.png" alt="APP签名机制1" style="zoom:50%;" />
+<img src="/安全/iOS%20App%20签名的原理/APP签名机制1.png" alt="APP签名机制1" style="width:50%;" />
 
 <p>1、Apple 官方有自己固定的一对公钥和私钥，私钥A存在Apple后台，公钥A存在iOS设备</p>
 <p>2、app审核通过后，<strong>Apple后台用私钥A对其进行重签名</strong></p>
@@ -863,7 +691,179 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%AE%89%E5%85%A8/iOS%20App%20%E7%AD%BE%E5%90%8D%E7%9A%84%E5%8E%9F%E7%90%86/" data-id="cmpnyclq7002ei5r407q5gf2f" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%AE%89%E5%85%A8/iOS%20App%20%E7%AD%BE%E5%90%8D%E7%9A%84%E5%8E%9F%E7%90%86/" data-id="cmpojemjp002eo4r48xw1fz2a" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-数据结构/9数据结构-①nil、isEqual、Hash" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/">
+    
+      <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">发表于 2022-03-15</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-10-12</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/">nil、isEqual、Hash</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="前言：你真的懂isEqual与hash？"><a href="#前言：你真的懂isEqual与hash？" class="headerlink" title="前言：你真的懂isEqual与hash？"></a>前言：你真的懂isEqual与hash？</h2><p>参考文章：</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/915356e280fc">iOS开发 之 不要告诉我你真的懂isEqual与hash!</a></li>
+<li><a href="https://www.jianshu.com/p/2a71b027b723?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation">哈希算法详解（附带 iOS 开发中实际应用）</a></li>
+<li><a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></li>
+</ul>
+<p>eg：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、NSMutableSet/NSSet中添加对象的时候，就会调用- (NSUInteger)hash方法。</span><br><span class="line">2、NSMutableSet/NSSet中添加 obj2 对象的时候，如果NSMutableSet/NSSet 中之前就已经存在 obj1 对象，且 obj1 对象的 - (NSUInteger)hash 返回值和当前要添加的 obj2 的- (NSUInteger)hash 返回值相等, 则 obj2 会继续调用- (BOOL)isEqual:方法，其中此方法以 obj1 为参数；否则不等, 继续下一个元素判断。</span><br></pre></td></tr></table></figure>
+
+<p>通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
+<h2 id="一、基础"><a href="#一、基础" class="headerlink" title="一、基础"></a>一、基础</h2><h3 id="1、nil-Nil-NULL-与-NSNull-的区别"><a href="#1、nil-Nil-NULL-与-NSNull-的区别" class="headerlink" title="1、nil, Nil,NULL 与 NSNull 的区别"></a>1、nil, Nil,NULL 与 NSNull 的区别</h3><ul>
+<li>nil 指向一个<strong>对象的指针</strong>为空,在objc.h 的定义如下: <code>NSString *name = nil;</code></li>
+<li>Nil 指向一个<strong>类的指针</strong>为空,定义如下: <code>Class aClass = Nil;</code></li>
+<li>NULL 指向<strong>C类型的指针</strong>为空, 例如: <code>int*pInt = NULL;</code></li>
+<li>NSNull 在Objective-C中是一个类,只是名字中有个Null，多用于集合(NSArray,NSDictionary)中值为空的对象</li>
+</ul>
+<h3 id="2、-、-isEqualToString、isEqual"><a href="#2、-、-isEqualToString、isEqual" class="headerlink" title="2、&#x3D;&#x3D;、 isEqualToString、isEqual"></a>2、&#x3D;&#x3D;、 isEqualToString、isEqual</h3><h4 id="2-1、背景：为什么要有isEqual方法"><a href="#2-1、背景：为什么要有isEqual方法" class="headerlink" title="2.1、背景：为什么要有isEqual方法?"></a>2.1、背景：为什么要有isEqual方法?</h4><p>答：判断两个对象是否相等（而不是判断两个对象的地址是否相等）。</p>
+<blockquote>
+<p>对于基本类型, &#x3D;&#x3D;运算符比较的是值;<br><strong>对于对象类型, &#x3D;&#x3D;运算符比较的是对象的地址(即是否为同一对象)</strong></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">UIColor *color1 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">UIColor *color2 = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];</span><br><span class="line">NSLog(@&quot;color1 == color2 = %@&quot;, color1 == color2 ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line">NSLog(@&quot;[color1 isEqual:color2] = %@&quot;, [color1 isEqual:color2] ? @&quot;YES&quot; : @&quot;NO&quot;);</span><br><span class="line"></span><br><span class="line">// 打印结果如下：</span><br><span class="line">color1 == color2 = NO</span><br><span class="line">[color1 isEqual:color2] = YES</span><br></pre></td></tr></table></figure>
+
+<p>总结：</p>
+<blockquote>
+<p>1、&#x3D;&#x3D;<br>判断指针指向的地址，即指针值，是否相等<br>①对于基本类型, &#x3D;&#x3D;运算符比较的是值;<br>②对于对象类型, &#x3D;&#x3D;运算符比较的是对象的地址(即是否为同一对象)）</p>
+<p>2、isEqualToString<br>直接判断字符串内容是否相等</p>
+<p>3、isEqual<br>先判断两个对象的地址是否相同，再判断类型是否一致，然后再判断对象的具体内容是否一致<br>&#x2F;&#x2F;情况①：地址相同则肯定相等；<br>&#x2F;&#x2F;情况②：地址不同时候，如果类型一致且里面的内容相等，则也算相等</p>
+</blockquote>
+<h4 id="2-1、苹果官方重写isEqual-的demo"><a href="#2-1、苹果官方重写isEqual-的demo" class="headerlink" title="2.1、苹果官方重写isEqual 的demo"></a>2.1、苹果官方重写isEqual 的demo</h4><p><code>isEqual</code>：先判断两个对象的地址是否相同(采用<code>==</code>)，再判断类型是否一致(采用<code>isKindOfClass</code>)，然后再判断对象的具体内容是否一致</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)isEqual:(id)object &#123;</span><br><span class="line">    if (self == object) &#123;</span><br><span class="line">        return YES;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (![object isKindOfClass:[Person class]]) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return [self isEqualToPerson:(Person *)object];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (BOOL)isEqualToPerson:(Person *)person &#123;</span><br><span class="line">    if (!person) &#123;</span><br><span class="line">        return NO;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    BOOL haveEqualNames = (!self.name &amp;&amp; !person.name) || </span><br><span class="line">      										[self.name isEqualToString:person.name];</span><br><span class="line">    BOOL haveEqualBirthdays = (!self.birthday &amp;&amp; !person.birthday) || </span><br><span class="line">      										[self.birthday isEqualToDate:person.birthday];</span><br><span class="line"></span><br><span class="line">    return haveEqualNames &amp;&amp; haveEqualBirthdays;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>附：通过重写isEqual，我们可以做到对象的判等可以完全由您决定, 即使两个完全不同的对象。</p>
+<h4 id="2-2、-、-isEqualToString、isEqual验证示例"><a href="#2-2、-、-isEqualToString、isEqual验证示例" class="headerlink" title="2.2、&#x3D;&#x3D;、 isEqualToString、isEqual验证示例"></a>2.2、&#x3D;&#x3D;、 isEqualToString、isEqual验证示例</h4><blockquote>
+<p><img src="/数据结构/9数据结构-①nil、isEqual、Hash/equal.jpg" alt="equal"></p>
+</blockquote>
+<h2 id="四、weak"><a href="#四、weak" class="headerlink" title="四、weak"></a>四、weak</h2><p>以下内容来自： <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></p>
+<ul>
+<li>1、weak关键字修饰对象的【初始化及重新赋值】实现原理</li>
+<li>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</li>
+<li>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</li>
+</ul>
+<h3 id="1、weak关键字修饰对象初始化及重新赋值实现原理"><a href="#1、weak关键字修饰对象初始化及重新赋值实现原理" class="headerlink" title="1、weak关键字修饰对象初始化及重新赋值实现原理"></a>1、weak关键字修饰对象初始化及重新赋值实现原理</h3><p><code>objc_initWeak</code>：当初始化一个weak对象并将内存对象赋值给该weak对象时会调用该方法。</p>
+<p><code>objc_storeWeak</code>：当为一个weak对象赋新值时会调用该方法。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">objc_initWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//对内存对象进行非nil判断</span></span><br><span class="line">    <span class="keyword">if</span> (!newObj) &#123;</span><br><span class="line">        *location = nil;</span><br><span class="line">        <span class="keyword">return</span> nil;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">false</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object*)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">objc_storeWeak(id *location, id newObj)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//调用storeWeak方法，三个参数的意义在storeWeak方法中描述</span></span><br><span class="line">    <span class="keyword">return</span> storeWeak&lt;<span class="literal">true</span><span class="comment">/*old*/</span>, <span class="literal">true</span><span class="comment">/*new*/</span>, <span class="literal">true</span><span class="comment">/*crash*/</span>&gt;</span><br><span class="line">        (location, (objc_object *)newObj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由官方文档可知，无论是初始化weak对象还是为weak对象赋值，最终都会调用到 <code>storeWeak</code>方法，不同点在于，二者传入三个模板值不同。</p>
+<p>如果weak对象与旧内存对象的关联，则先调用<code>weak_unregister_no_lock</code>，将weak对象与旧内存对象解除指向关系。</p>
+<p>然后在将weak对象与旧内存对象的关联解除后，就调用 <code>weak_register_no_lock</code>方法将weak对象与新内存对象进行关联</p>
+<p>至此，weak关键字修饰对象的初始化和重新赋值流程就完成了。</p>
+<h3 id="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"><a href="#2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？" class="headerlink" title="2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？"></a>2、weak关键字是如何保证在weak对象执行语句时内存对象不被释放的呢？</h3><p>问：weak关键字是如何保证【在weak对象执行语句时】内存对象【不被释放】的呢？</p>
+<p>答：其实很简单，就是对内存对象进行计数增加。</p>
+<p>每次在使用weak对象时，都相当于调用一次 <code>objc_loadWeak</code>。</p>
+<p>在weak对象执行的语句中，weak对象所指向的内存对象计数会+1，这样就保证在语句中不会发生执行一半而释放内存对象的问题。</p>
+<h3 id="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"><a href="#3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？" class="headerlink" title="3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？"></a>3、当weak对象指向的内存对象被释放后，weak对象自动置为nil。原理是怎样？</h3><p>当内存对象释放时，会调用到一个叫<code>weak_claer_no_lock</code>的方法。在 <code>weak_claer_no_lock</code>方法中，会进行对weak对象的置空操作。</p>
+<h3 id="4、Weak-Strong搭配使用的误解"><a href="#4、Weak-Strong搭配使用的误解" class="headerlink" title="4、Weak-Strong搭配使用的误解"></a>4、Weak-Strong搭配使用的误解</h3><p>在使用Block时，我们可以使用weak关键字来避免外部变量被Block强引用而导致的循环引用，同时为了Block中的代码能够正常执行，许多开发者提出了Weak-Strong搭配使用的方式，类似如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        __strong typeof(weakSelf) strongSelf = weakSelf;</span><br><span class="line">        [strongSelf test1];</span><br><span class="line">        [strongSelf test2];</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码相对于单独使用weak来说还是有好处的，使用Weak-Strong搭配的方式的话，可以保证在执行 [strongSelf test1]和 [strongSelf test2]时，是向同一对象发送消息。</p>
+<p>为什么这么说呢？当开始执行Block语句时，若self还存在，那么strongSelf可以保证在整个Block代码块中不会被释放，即使Block中调用无数次strongSelf，strongSelf也不会因为多线程而在半途被释放；若开始执行Block时，self已经被释放，那么之后所有的消息都会被发送至nil。所以Weak-Strong搭配可以保证Block中语句被处理为一个事务。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    __weak typeof(self) weakSelf = self;</span><br><span class="line">    self.block = ^&#123;</span><br><span class="line">        [weakSelf test1];	// 可能这时候self还没释放，有值。</span><br><span class="line">        [weakSelf test2];	// 而到这时候self刚好释放，为ni。导致Block中语句不是被发送给同一对象去处理。</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以说，Weak-Strong并不能保证Block中语句一定会被执行，它只能保证Block中语句作为一个事务被发送到同一对象处。只要理解了weak实现原理，我们就能明白何时单独使用weak也能完成代码功能，而何时必须使用Weak-Strong来保证代码事务能力。</p>
+<h3 id="5、weak关键字涉及到的数据结构"><a href="#5、weak关键字涉及到的数据结构" class="headerlink" title="5、weak关键字涉及到的数据结构"></a>5、weak关键字涉及到的数据结构</h3><p>略。请查看 <a href="https://blog.csdn.net/TuGeLe/article/details/103881352?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase">iOS weak关键字实现原理</a></p>
+<blockquote>
+<p>1、SideTables</p>
+<blockquote>
+<p><code>SideTables</code>本质上是一个全局的 <code>StripedMap</code>。而<code>StripedMap</code>本质是一个数组。</p>
+<p>在 <code>SideTables</code>中， Item类型为 <code>SideTable</code></p>
+</blockquote>
+<p>2、SideTable</p>
+<blockquote>
+<p><code>SideTable</code>中包含三个元素，分别是 1.自旋锁 2.记录对象引用计数的字典 3.记录对象弱引用信息的数据结构 <code>weak_table_t</code>。</p>
+</blockquote>
+<p>3、weak_table_t</p>
+<blockquote>
+<p><code>weak_table_t</code>本质上是一个数组，其中每个Item为 <code>weak_entry_t</code>。</p>
+</blockquote>
+<p>4、weak_entry_t</p>
+<blockquote>
+<p><code>weak_entry_t</code>就比较有意思了，它本质上是个字典。其中的key值为对象，而value对应为一个数组，数组中保存的值均为 <code>weak_referrer_t</code>类型的数据。</p>
+</blockquote>
+<p>5、weak_referrer_t</p>
+<blockquote>
+<p><code>weak_referrer_t</code>本质上是 <code>objc_object **</code>，即Objective-C对象的地址。</p>
+</blockquote>
+</blockquote>
+<p>所以，<code>weak_entry_t</code>value数组中，每一个Item均为一个地址，即weak对象的地址。</p>
+<p>在项目中有某个功能需要用到多个delegate对象，这就需要把delegate放到容器中，但又只能弱引用weak保存delegate，否则会导致delegate对象不能被释放。所以，我们的需求就是希望能在容器中只保存弱引用的delegate对象。</p>
+<blockquote>
+<p>在OC中Foundation框架中的常用容器类（NSSet，NSDictionary，NSArray）及其可变子类在加入元素时，均会对元素进行强引用。有的时候（比如持有多个Delegate对象时），希望有对应的弱引用容器使用。</p>
+</blockquote>
+<p>支持弱引用的容器类，有如下：</p>
+<p>[NSHashTable weakObjectsHashTable]</p>
+<p>[NSPointerArray weakObjectsPointerArray]</p>
+<p>[NSPointerArray pointerArrayWithOptions:]</p>
+<p>详见：<a href="https://www.jianshu.com/p/cf4e15b26f64">YYKit学习笔记之NSHashTable与NSMapTable</a></p>
+<p>其他参考：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/f0c33d6c39bb">OC弱引用容器实现方案总结</a></p>
+</li>
+<li><p><a href="http://blog.sina.com.cn/s/blog_48d4cf2d0102v1jh.html">iOS如何在容器类中使用弱引用(weak reference) </a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/de3e0ffa9fde">数组或字典如何弱引用对象</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/51156d4ae885">iOS - 如何实现弱引用字典</a></p>
+</li>
+</ul>
+<p>*<strong>在iOS项目开发过程中，我们经常会使用到<code>NSSet</code>、<code>NSArray</code>、<code>NSDictionary</code>三个类，它们为我们设计较友好的数据结构时提供了很方便的方法*</strong></p>
+<p>对于NSSet来说，object是强引用的，和NSDictionary中的value是一样的。而NSDictionary中的key则是copy的，因此当开发者想要使NSSet的objects或者NSDictionary的values为weak，或者NSDictionary使用没有实现协议的对象作为key时，比较麻烦（需要使用NSValue的方法valueWithNonretainedObject）。<br>还好苹果为我们提供了相对于NSSet和NSDictionary更通用的两个类NSHashTable和NSMapTable。</p>
+<h2 id="关联对象实现原理"><a href="#关联对象实现原理" class="headerlink" title="关联对象实现原理"></a>关联对象实现原理</h2><p><a href="https://juejin.im/post/5af86b276fb9a07aa34a59e6">iOS底层原理总结 - 关联对象实现原理</a></p>
+<blockquote>
+<p><strong>关联对象并不是存储在被关联对象本身内存中，而是存储在全局的统一的一个AssociationsManager中，如果设置关联对象为nil，就相当于是移除关联对象。</strong></p>
+</blockquote>
+<p>回过头来看objc_AssociationPolicy policy 参数: 属性以什么形式保存的策略。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef OBJC_ENUM(uintptr_t, objc_AssociationPolicy) &#123;</span><br><span class="line">    OBJC_ASSOCIATION_ASSIGN = 0,  // 指定一个弱引用相关联的对象</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN_NONATOMIC = 1, // 指定相关对象的强引用，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY_NONATOMIC = 3,  // 指定相关的对象被复制，非原子性</span><br><span class="line">    OBJC_ASSOCIATION_RETAIN = 01401,  // 指定相关对象的强引用，原子性</span><br><span class="line">    OBJC_ASSOCIATION_COPY = 01403     // 指定相关的对象被复制，原子性   </span><br><span class="line">&#125;;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>我们会发现其中只有RETAIN和COPY而为什么没有weak呢？</p>
+<h2 id="NSPointerArray"><a href="#NSPointerArray" class="headerlink" title="NSPointerArray"></a>NSPointerArray</h2><h3 id="1、NSPointerArray"><a href="#1、NSPointerArray" class="headerlink" title="1、NSPointerArray"></a>1、NSPointerArray</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">- (instancetype)init &#123;</span><br><span class="line">  if (self = [super init]) &#123;</span><br><span class="line">    _delegates = [NSPointerArray weakObjectsPointerArray];</span><br><span class="line">  &#125;</span><br><span class="line">  return self;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 添加对象指针</span><br><span class="line">- (void)addDelegate:(id)delegate &#123;</span><br><span class="line">  [_delegates addPointer:(__bridge void*)delegate];</span><br><span class="line">&#125;</span><br><span class="line">// 和 NSArray在概念上不一样的地方是，NSPointerArray需要添加的是对象的指针地址，尽管他俩都是在操作指针。所以在添加对象时，需要将其转换为指针类型，__bridge转换十分具有 CoreFoundation特色</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 移除对象指针</span><br><span class="line">- (void)removeDelegate:(id)delegate &#123;</span><br><span class="line">  NSUInteger index = [self indexOfDelegate:delegate];</span><br><span class="line">  if (index != NSNotFound) &#123;</span><br><span class="line">    [_delegates removePointerAtIndex:index];</span><br><span class="line">  &#125;</span><br><span class="line">  [_delegates compact];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSUInteger)indexOfDelegate:(id)delegate &#123;</span><br><span class="line">  for (NSUInteger i = 0; i &lt; _delegates.count; i += 1) &#123;</span><br><span class="line">    if ([_delegates pointerAtIndex:i] == (__bridge void*)delegate) &#123;</span><br><span class="line">      return i;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  return NSNotFound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A0nil%E3%80%81isEqual%E3%80%81Hash/" data-id="cmpojemjr0045o4r4fc398h17" class="article-share-link">Share</a>
       
       
     </footer>
@@ -915,7 +915,7 @@ return c.future;
 
 
 <h2 id="一、二叉树"><a href="#一、二叉树" class="headerlink" title="一、二叉树"></a>一、二叉树</h2><p>二叉树（binary tree）是指树中节点的度不大于2的有序树，它是一种最简单且最重要的树。</p>
-<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="二叉树"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="二叉树"></p>
 <p>在二叉树中，一个元素也称作一个结点。</p>
 <blockquote>
 <p>节点:二叉树中每个元素都称为节点。</p>
@@ -935,8 +935,8 @@ return c.future;
 <p>二叉搜索树的结构与值的插入顺序有关，同一组数，若其元素的插入顺序不同，二叉搜索树的结构是千差万别的。</p>
 <p>为了避免二叉搜索树变成“链表”，我们引入了平衡二叉树(平衡二叉树必须是二叉搜索树)，即让树的结构看起来尽量“均匀”，左右子树的节点数尽量一样多。</p>
 <p>举例：给出一组数[1,3,5,8,9,13]。假设我们就按[1,3,5,8,9,13]这样的顺序插入，其流程是这样的：</p>
-<p><img src="/Screenshots/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91_%E9%93%BE%E8%A1%A8.png" alt="二叉搜索树_链表"></p>
-<p><img src="/Screenshots/%E5%B9%B3%E8%A1%A1%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="平衡二叉树"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91_%E9%93%BE%E8%A1%A8.png" alt="二叉搜索树_链表"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/%E5%B9%B3%E8%A1%A1%E4%BA%8C%E5%8F%89%E6%A0%911.png" alt="平衡二叉树"></p>
 <h3 id="4、最优二叉树（哈夫曼树）"><a href="#4、最优二叉树（哈夫曼树）" class="headerlink" title="4、最优二叉树（哈夫曼树）"></a>4、最优二叉树（哈夫曼树）</h3><p><a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a></p>
 <p>在介绍哈弗曼树之前，我们必须先弄清楚和树相关的四个概念。</p>
 <p><strong>概念1：什么是路径？</strong></p>
@@ -951,10 +951,10 @@ return c.future;
 <p>问：怎样构建二叉树，才能保证其带权路径长度最小？</p>
 <p>答：原则上，我们应该让权重小的叶子结点远离树根，权重大的叶子结点靠近树根。</p>
 <p>例：下图左侧的这棵树就是一颗哈夫曼树，它的WPL是46，小于之前例子当中的53。</p>
-<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%91.png" alt="哈弗曼树"> </p>
+<p><img src="/数据结构/9数据结构-②二叉树/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%91.png" alt="哈弗曼树"> </p>
 <p><code>1*3+3*3+4*2+6*2+8*2=48</code>														<code>（3+6)*3+（1+4+8）*2=27+26=53</code></p>
 <p><strong>需要注意的是，同样叶子结点所构成的哈夫曼树可能不止一颗，下面这几棵树都是哈夫曼树</strong></p>
-<p><img src="/Screenshots/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%912.png" alt="哈弗曼树2"></p>
+<p><img src="/数据结构/9数据结构-②二叉树/%E5%93%88%E5%BC%97%E6%9B%BC%E6%A0%912.png" alt="哈弗曼树2"></p>
 <p>问：怎么利用给定的结点和权重，构建哈弗曼树？</p>
 <p>答：想看 <a href="https://baijiahao.baidu.com/s?id=1663514710675419737&wfr=spider&for=pc">漫画：什么是 “哈夫曼树”？</a> 还是很好理解的。</p>
 <h2 id="二叉树遍历"><a href="#二叉树遍历" class="headerlink" title="二叉树遍历"></a>二叉树遍历</h2><p>遍历是对树的一种最基本的运算，所谓遍历二叉树，就是按一定的规则和顺序走遍二叉树的所有结点，使每一个结点都被访问一次，而且只被访问一次。由于二叉树是非线性结构，因此，<a href="https://baike.baidu.com/item/%E6%A0%91%E7%9A%84%E9%81%8D%E5%8E%86">树的遍历</a>实质上是将二叉树的各个结点转换成为一个线性序列来表示。</p>
@@ -962,7 +962,7 @@ return c.future;
 <p>前序遍历：根节点-&gt;左子树-&gt;右子树<strong>（根-&gt;左-&gt;右）</strong></p>
 <p>中序遍历：左子树-&gt;根节点-&gt;右子树<strong>（左-&gt;根-&gt;右）</strong></p>
 <p>后序遍历：左子树-&gt;右子树-&gt;根节点<strong>（左-&gt;右-&gt;根）</strong></p>
-<img src="Screenshots/二叉树遍历1.png" alt="二叉树遍历" style="zoom:50%;" />
+<img src="/数据结构/9数据结构-②二叉树/二叉树遍历1.png" alt="二叉树遍历" style="width:50%;" />
 
 <ul>
 <li>前序遍历结果：GDAFEMHZ</li>
@@ -976,7 +976,7 @@ return c.future;
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/" data-id="cmpnyclqa0046i5r4ag7xh4is" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E4%BA%8C%E5%8F%89%E6%A0%91/" data-id="cmpojemjr0049o4r4h4x46un2" class="article-share-link">Share</a>
       
       
     </footer>
@@ -986,11 +986,11 @@ return c.future;
 
 
   
-      <article id="post-数据结构/9数据结构-②链表" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-数据结构/9数据结构-②堆栈" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   
-    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/" class="article-date">
+    <a href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" class="article-date">
   
     <time datetime="2022-03-15T15:03:44.000Z" itemprop="datePublished">2022-03-15</time>
   </a>
@@ -1008,7 +1008,7 @@ return c.future;
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/">链表</a>
+      <a class="article-title" href="/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/">堆栈</a>
     </h1>
   
 
@@ -1018,26 +1018,12 @@ return c.future;
       
       
         
-<h2 id="一、单链表"><a href="#一、单链表" class="headerlink" title="一、单链表"></a>一、单链表</h2><ul>
-<li><a href="https://blog.csdn.net/qq_29542611/article/details/79054098">算法面试题：如何判断单链表中是否存在环</a></li>
-</ul>
-<p>我们都知道单链表中结点都是一个结点指向下一个结点这样一个一个链接起来的，直到尾结点的指针域没有指向，单链表就到此结束了。</p>
-<p>题目：已知下列是一个有环的单链表，请问<strong>如何判断单链表是否存在环</strong></p>
-<p><img src="https://img-blog.csdn.net/20180113231431726?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcXFfMjk1NDI2MTE=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="有环的单链表"></p>
-<p>分析：把环想象成操作。</p>
-<p>则我们通过使用快慢指针判断单链表是否存在环。<br>使用slow、fast 2个指针，slow慢指针每次向前走1步，fast快指针每次向前走2步，<br>若存在环的话，必定存在某个时候 slow &#x3D; fast 快慢指针相遇。<br>list 带头结点的单链表<br>返回值 &gt;0:存在环返回环的位置	0:不存在环</p>
-<p><strong>在相遇点，由于两个指针继续一个走一步，一个走两步，当再次相遇时，走一步的指针所走过的节点数记为环&#x2F;操场的长度。</strong></p>
-<p><em><strong>*那么问题来了，既然知道该单链表是代码单链表，那么我怎样将其还原为正常单链表呢？*</strong></em></p>
-<h2 id="带环单链表去掉环"><a href="#带环单链表去掉环" class="headerlink" title="带环单链表去掉环"></a>带环单链表去掉环</h2><p><strong>我们只需要将尾结点的next指针域置为NULL就还原为正常单链表了</strong>。我们怎样找到尾结点呢？请看代码。</p>
-<ol>
-<li><em>去掉单链表中的环，将尾结点的next域置位空。</em></li>
-<li><em>环位置结点之后的结点，判断其next域是否为环结点，如果是环节点，说明是尾结点</em></li>
-</ol>
+<h2 id="一、Stack"><a href="#一、Stack" class="headerlink" title="一、Stack"></a>一、Stack</h2><p>stack翻译为栈，时STL中实现的一个后进先出的容器。</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E9%93%BE%E8%A1%A8/" data-id="cmpnyclqa0048i5r47k544dj2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E2%91%A1%E5%A0%86%E6%A0%88/" data-id="cmpojemjr004bo4r48gnea896" class="article-share-link">Share</a>
       
       
     </footer>

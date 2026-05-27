@@ -72,656 +72,6 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-iOS/基础/视图/3视图-更新机制" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/">
-    
-      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
-    </a>
-    <span class="article-updated"> · 更新于 2025-08-26</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/">视图-更新机制</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<p>系统有基本稳定的刷新频率，在layer内容改变的时候，把这个layer做个<strong>需要刷新</strong>的标记，即是<code>setNeedsDisplay</code>。</p>
-<p>然后每次刷新时，把上次刷新之后被标记的layer一次性全部提交给图形系统，所以这里还有一个东西，就是**事务(CATransaction)**。</p>
-<p>其他类似举例：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tableView.beginUpdates()</span><br><span class="line">tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-2</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">    tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-1</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">tableView.endUpdates()</span><br></pre></td></tr></table></figure>
-
-<p><code>beginUpdates</code> 和 <code>endUpdates</code> 方法的作用是，让这两条语句之间的对 tableView 的操作( insert&#x2F;delete)<strong>不立即执行，而是先聚合起来，然后同时更新 UI</strong>。</p>
-<h3 id="1、刷新频率"><a href="#1、刷新频率" class="headerlink" title="1、刷新频率"></a>1、刷新频率</h3><h4 id="1-1、显示器的刷新率-VS-显卡渲染的帧率"><a href="#1-1、显示器的刷新率-VS-显卡渲染的帧率" class="headerlink" title="1.1、显示器的刷新率 VS 显卡渲染的帧率"></a>1.1、显示器的刷新率 VS 显卡渲染的帧率</h4><p>1、显示器的刷新率为 50Hz，显卡渲染的帧率是 200FPS</p>
-<p>即显示器20ms显示一帧，显卡5ms渲染一帧。</p>
-<p>则20ms里，显卡渲染了4帧数据，但显示器只能显示了一次，该画面由4帧数据组成，造成撕裂。</p>
-<p>所以需要压制显卡的渲染速率，使显卡的帧缓冲区切换行为与显示器的帧绘制保持同步。<strong>垂直同步（Vertical Synchronization, VSync）</strong>即是为了处理此。</p>
-<p>好文推荐： <a href="https://daily.elepover.com/2021/03/27/vsync/index.html">扫描，撕裂和垂直同步 - VSync 技术实现</a></p>
-<h5 id="1-1-1、显示数据的提供来源：帧缓冲区"><a href="#1-1-1、显示数据的提供来源：帧缓冲区" class="headerlink" title="1.1.1、显示数据的提供来源：帧缓冲区"></a>1.1.1、显示数据的提供来源：帧缓冲区</h5><p>问：帧完全渲染后直接显示不是更快，为什么先放到缓冲区等待下一次刷新频率？</p>
-<p>答：如果帧完全渲染后<strong>直接显示</strong>，而不经过缓冲区，理论上听起来更直接，但实际上会带来一些问题，尤其是在现代显示系统中。1. <strong>直接显示的问题，屏幕撕裂（Tearing）</strong>：</p>
-<ul>
-<li>如果帧直接显示，而屏幕正在刷新（例如从上到下逐行刷新），可能会导致屏幕上半部分显示旧帧，下半部分显示新帧，这种现象称为“屏幕撕裂”。</li>
-<li>撕裂会严重影响视觉体验，尤其是在快速移动的场景中（如游戏或视频）。</li>
-</ul>
-<p>通常，显示器是一台独立工作的设备，状态与显卡无关，会以恒定不变的频率从某个「池」里面读取画面，以保证稳定的图像输出。与此同时，显卡也会往这个「池」里写画面，以供显示器读取。这个「池」叫「<strong>Framebuffer（帧缓冲区）</strong>」。</p>
-<p>一张显卡通常有 2 个帧缓冲区：<strong>主&#x2F;副（Primary&#x2F;Secondary）缓冲区（也称前&#x2F;后缓冲区（Front&#x2F;Back））</strong>，由数据选择器（Multiplexer）选择连接到显示器的缓冲区。连接到显示器的缓冲区总是主缓冲区，显示器从中读取图像内容；未连接到显示器的缓冲区总是副缓冲区，显卡向其中写入渲染好的内容。</p>
-<p>显卡总是会尝试以最快的速度渲染内容，每完成一帧渲染即切换主&#x2F;副缓冲区，与显示器的工作状态完全无关。</p>
-<img src="/iOS/基础/视图/3视图-更新机制/image-20240905163331025.png" alt="image-20240905163331025" style="zoom:50%;" />
-
-<blockquote>
-<p>当渲染完成后，副缓冲区的内容会与主缓冲区的内容进行交换，这个过程是双缓冲（Double Buffering）技术的一部分，用于避免屏幕撕裂和闪烁，同时提高图像渲染的效率。下面详细解释这个过程：</p>
-<ol>
-<li><strong>主缓冲区（Front Buffer）</strong>：这是当前正在屏幕上显示的图像所在的缓冲区。用户看到的所有内容都存储在这里，显示器会不断读取这个缓冲区的内容来显示图像。</li>
-<li><strong>副缓冲区（Back Buffer）</strong>：这是显卡用来准备下一帧图像的缓冲区。当一帧图像显示在屏幕上时，显卡可以在副缓冲区中渲染下一帧图像，而不会影响当前显示的内容。</li>
-<li><strong>渲染过程</strong>：显卡开始在副缓冲区中渲染新的一帧图像。这个过程可能包括执行复杂的图形计算，如光照计算、纹理映射、深度测试等。</li>
-<li><strong>缓冲区交换（Buffer Swap）</strong>：一旦副缓冲区中的新帧渲染完成，显卡会执行一个缓冲区交换操作。这个操作会将副缓冲区的内容复制到主缓冲区，这样显示器就可以开始显示新的一帧图像，而副缓冲区则准备好接受下一帧的渲染数据。</li>
-<li><strong>避免屏幕撕裂</strong>：由于显示器是逐行刷新的，如果在显示器刷新过程中显卡正在渲染新的帧，就可能出现屏幕撕裂现象。双缓冲技术通过在渲染完成后才进行缓冲区交换，确保了显示器在任何时候都不会读取到半成品的帧，从而避免了屏幕撕裂。</li>
-<li><strong>提高效率</strong>：在双缓冲机制下，显卡可以在一帧显示的同时准备下一帧，这样可以更有效地利用显卡资源，提高渲染效率。</li>
-<li><strong>垂直同步（V-Sync）</strong>：为了进一步提高图像质量和减少撕裂，有时会使用垂直同步技术。垂直同步会同步显卡的渲染速度和显示器的刷新率，确保缓冲区交换发生在显示器刷新周期的合适时刻。</li>
-</ol>
-<p>通过这种方式，双缓冲技术能够在不牺牲渲染效率的情况下，提供流畅且无撕裂的图像显示。</p>
-</blockquote>
-<h4 id="1-2、垂直同步（Vertical-synchronization）"><a href="#1-2、垂直同步（Vertical-synchronization）" class="headerlink" title="1.2、垂直同步（Vertical synchronization）"></a>1.2、垂直同步（Vertical synchronization）</h4><p><strong>cpu渲染完一帧后会立即渲染下一帧吗？还是需要等到V-Sync？</strong></p>
-<ul>
-<li><strong>开启 V-Sync 时</strong>：<ul>
-<li>CPU 和 GPU 需要等待 V-Sync 信号才能开始下一帧的工作。（当开启 <strong>V-Sync（垂直同步）</strong> 时，<strong>CPU 和 GPU 需要等待 V-Sync 信号才能开始下一帧的工作</strong>，这看起来似乎浪费了时间，但实际上这是为了<strong>保证帧的同步显示</strong>和<strong>避免资源浪费</strong>。如果 CPU 和 GPU 不等待 V-Sync 信号，而是尽快处理下一帧，可能会导致在一个V-Sync内生成了两帧，但等下只会使用一帧，从而多余的帧会被丢弃，浪费 CPU 和 GPU 的计算资源。）</li>
-<li>这是为了避免帧率超过屏幕刷新率，减少屏幕撕裂和功耗。</li>
-</ul>
-</li>
-<li><strong>关闭 V-Sync 时</strong>：<ul>
-<li>CPU 和 GPU 会尽可能快地渲染帧，不受屏幕刷新率的限制。</li>
-<li>这可能会导致屏幕撕裂，但可以提高帧率（例如在游戏中）。</li>
-</ul>
-</li>
-</ul>
-<p>V-Sync 的主要作用就是保证<strong>只有在帧缓冲区中的图像被渲染之后，后备缓冲区中的内容才可以被拷贝到帧缓冲区中</strong>。</p>
-<p>其实到这里关于屏幕渲染的内容就已经差不多结束了。</p>
-<p><strong>iOS 的显示系统是由 VSync 信号驱动的</strong>，VSync 信号由硬件时钟生成，每秒钟发出 60 次（这个值取决设备硬件，比如 iPhone 真机上通常是 59.97）。</p>
-<p><strong>RunLoop是一个事件循环对象</strong>，用于管理线程的事件处理。每个线程都有一个与之对应的RunLoop对象，主线程的RunLoop在应用程序启动时自动创建并运行，而子线程的RunLoop需要手动创建和维护。<strong>RunLoop的作用是让线程能够随时处理事件而不退出，它通过循环检查输入源（如Timer、Source等）和定时源，等待接收事件，当没有事件时让线程休眠以节省资源。</strong></p>
-<p>Core Animation（CA）是 iOS 中的动画和图形渲染引擎，它在 RunLoop 中注册了 Observer 来监听特定的事件，以便在适当的时机进行渲染操作。这些 Observer 可以监听多种 RunLoop 的事件，包括：</p>
-<ol>
-<li><strong>BeforeWaiting</strong>：RunLoop 即将进入休眠状态之前，此时没有待处理的事件，系统可能在等待新的输入事件或定时器事件。Core Animation 会在这个时候进行渲染操作，准备下一帧的显示内容。</li>
-<li><strong>Exit</strong>：RunLoop 即将退出时，这通常意味着线程将结束运行。在这个阶段，Core Animation 可能会进行一些清理工作。</li>
-</ol>
-<p>手机硬件时钟生成Vsync信号 </p>
-<p>&#x3D;&gt; 图形服务接收到 VSync 信号后，会通过 IPC 通知到 App 内。</p>
-<p>&#x3D;&gt; app收到当VSync信号到达时，应用程序的主线程开始处理显示内容，如视图创建、布局计算等，然后将内容提交给GPU进行渲染。渲染完成后，GPU将结果提交到帧缓冲区，等待下一个VSync信号到来时显示到屏幕上。</p>
-<p>&#x3D;&gt; Runloop接收到时钟信号（<strong>App 的 Runloop 在启动后会注册对应的 CFRunLoopSource 通过 mach_port 接收传过来的时钟信号通知</strong>，随后 Source 的回调会驱动整个 App 的动画与显示。</p>
-<p>当VSync信号到来时，系统图形服务会通过CADisplayLink等机制通知应用程序，</p>
-<h2 id="离屏渲染"><a href="#离屏渲染" class="headerlink" title="离屏渲染"></a>离屏渲染</h2><p>在iOS设备上，<strong>GPU渲染通常发生在帧缓冲区中</strong>，这是GPU用来临时存储即将显示到屏幕上的像素数据的区域。帧缓冲区通常采用双缓冲机制，即存在一个前台缓冲区和一个后台缓冲区。前台缓冲区是当前显示在屏幕上的帧，而后台缓冲区是GPU正在渲染的下一帧。</p>
-<p><strong>离屏渲染（Off-Screen Rendering）是当GPU无法直接在帧缓冲区中渲染某些效果时所采用的一种技术。以下是一些可以在帧缓冲区处理的效果，以及一些需要离屏渲染的效果：</strong></p>
-<p>可以在帧缓冲区处理的效果：</p>
-<ol>
-<li><strong>简单的颜色填充和边框绘制</strong>：这些可以直接在GPU的帧缓冲区中进行，因为它们不涉及复杂的像素操作。</li>
-<li><strong>使用<code>contents</code>属性设置的图像</strong>：如果图层的内容是一个简单的图像，且没有复杂的变换或混合，这些可以直接在帧缓冲区中渲染。</li>
-</ol>
-<p>需要离屏渲染的效果：</p>
-<ol>
-<li><strong>圆角（Rounded Corners）</strong>：当为UIView或其子类设置<code>cornerRadius</code>属性时，如果视图同时具有不透明背景色或复杂的背景图像，可能会触发离屏渲染。</li>
-<li><strong>阴影（Shadows）</strong>：设置layer的shadow属性（如shadowColor、shadowOffset、shadowRadius等）会产生阴影效果，这些效果通常需要离屏渲染。</li>
-<li><strong>透明度（Opacity）</strong>：当视图的alpha值小于1或使用了CALayer的opacity属性时，如果有复杂混合层级，可能触发离屏渲染。</li>
-<li><strong>遮罩（Masking）</strong>：使用CALayer的mask属性或UIView的maskView时，遮罩效果通常需要离屏渲染。</li>
-<li><strong>非默认混合模式</strong>：当视图或图层使用非默认的混合模式（如multiply、screen、overlay等）时，系统可能需要在离屏缓冲区中进行混合操作。</li>
-<li><strong>多重渲染目标（Multiple Render Passes）</strong>：需要多次渲染才能完成的效果，如复杂动画、多重叠加效果等，可能需要离屏缓冲区进行中间结果的存储和合并。</li>
-</ol>
-<h3 id="为什么某些效果不行："><a href="#为什么某些效果不行：" class="headerlink" title="为什么某些效果不行："></a>为什么某些效果不行：</h3><p>某些效果需要在渲染过程中进行多次像素级的处理，这<strong>在帧缓冲区的单次渲染流程中难以实现</strong>。例如，阴影效果需要在原始图层渲染后，再在其周围绘制额外的阴影像素，这涉及到对已经渲染的像素进行二次处理，因此需要在离屏缓冲区中先进行渲染，然后再与主帧缓冲区的内容合并。</p>
-<h3 id="优化建议："><a href="#优化建议：" class="headerlink" title="优化建议："></a>优化建议：</h3><ul>
-<li><strong>避免不必要的离屏渲染</strong>：例如，对于圆角效果，可以考虑使用系统提供的圆角属性，而不是通过离屏渲染实现。</li>
-<li><strong>合理利用视图层级关系</strong>：在iOS中，视图层级关系会影响渲染的优先级，可以通过调整视图的层级来优化渲染性能。</li>
-<li><strong>使用offscreen rendering进行调试</strong>：通过打开offscreen rendering的调试选项，可以观察到应用在进行离屏渲染时的具体情况，帮助定位性能瓶颈。</li>
-</ul>
-<p>通过深入理解离屏渲染的原理并采取有效的优化措施，可以提升应用的性能和用户体验。在实际开发中，应尽量避免不必要的离屏渲染操作，合理利用视图层级关系和Metal API进行自定义渲染，从而打造出流畅、高效的iOS应用。</p>
-<h2 id="Flutter刷新机制"><a href="#Flutter刷新机制" class="headerlink" title="Flutter刷新机制"></a>Flutter刷新机制</h2><p>Flutter setState 标脏 子widget build 等是什么关系？</p>
-<p><strong>Widget不可改变。</strong></p>
-<p>StatefulWidget是有状态的Widget，其持有一个关联的<code>State</code>对象，用来保存状态信息，并可以通过调用<code>setState</code>来更新状态。StatefulWidget调用setState时候，该Widget被标记为“脏”（dirty），且它的所有子Widget也会被标记为脏。</p>
-<p>通常情况下，被标记为“脏”的Widget会在下一次绘制帧中调用其<code>build</code>方法。然而，这并不意味着它的<code>build</code>方法<strong>一定</strong>会被调用，即如果Flutter框架能够确定一个Widget及其子树在逻辑上没有变化，即使它被标记为“脏”，Flutter也可能跳过重建过程，复用之前的Widget实例。这种情况通常发生在为一个Widget设置了<code>GlobalKey</code>或<code>UniqueKey</code>，并且Flutter能够识别出这个Widget在逻辑上没有变化，即使它被标记为“脏”，它的<code>build</code>方法也可能不会被调用。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/" data-id="cmpnyclrt013xi5r43u73fwrl" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-Architecture架构/网络/HTTP与网络基础" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/">
-    
-      <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-26</time>
-    </a>
-    <span class="article-updated"> · 更新于 2025-05-23</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/">HTTP与网络基础</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="必备知识架构-线程与网络-③网络"><a href="#必备知识架构-线程与网络-③网络" class="headerlink" title="必备知识架构-线程与网络-③网络"></a>必备知识架构-线程与网络-③网络</h1>
-<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
-<li><p><a href="#HTTP%E8%AF%B7%E6%B1%82">九、在一个https连接的网站里，输入账号密码点击登录后，到服务器返回这个请求前，中间经历了什么</a></p>
-<blockquote>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1、一次完整的HTTP请求过程</span><br><span class="line">2、TCP三次握手</span><br><span class="line">3、TCP四次挥手</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><a href="#TCP%E4%B8%8EUDP">十、TCP与UDP</a></p>
-<blockquote>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、TCP与UDP的区别</span><br><span class="line">2、为什么说UDP是不可靠的？</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><a href="#%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E7%BC%93%E5%AD%98">十一、网络数据缓存</a></p>
-</li>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-<blockquote>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？</span><br><span class="line">2、cookie 和session 的区别</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><a href="#%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E7%BC%93%E5%AD%98">网络数据缓存</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<h3 id="1、传输层协议"><a href="#1、传输层协议" class="headerlink" title="1、传输层协议"></a>1、传输层协议</h3><p><strong>传输层</strong>的主要协议有TCP、UDP。</p>
-<p>TCP是一种面向连接的、可靠的、基于字节流的传输层通信协议。应用于需要可靠传输的应用中，如网页浏览（HTTP）、文件传输（FTP）、邮件传输（SMTP）、远程登录（SSH）等。</p>
-<ul>
-<li><strong>UDP</strong>：适用于对实时性要求高的应用，如在线游戏、VoIP（Voice over IP）、视频会议、DNS查询等。</li>
-</ul>
-<p>UDP是一种无连接的传输层协议。相比TCP不用建立三次握手，请求更快。适用于对实时性要求高的应用，如视频会议、在线游戏、实时监控等。</p>
-<h3 id="2、应用层协议"><a href="#2、应用层协议" class="headerlink" title="2、应用层协议"></a>2、应用层协议</h3><p><strong>HTTP基于tcp，且默认是短连接，如果要长链接，则设置Connection “keep-alive”</strong></p>
-<p>WebSocket也是基于tpc，固定是长链接。</p>
-<p>RTSP基于TCP或UDP，通常使用TCP来保证控制消息的可靠传输。</p>
-<p>HTTP、RTSP都是<strong>应用层</strong>、WebSocket也可算是应用层（在四层模型：TCP&#x2F;IP模型中，<strong>应用层</strong>是一个综合层，它包括了七层模型：OSI模型中的会话层、表示层和应用层的功能。）。</p>
-<p id="HTTP请求"></p>
-## 九、在一个https连接的网站里，输入账号密码点击登录后，到服务器返回这个请求前，中间经历了什么
-> [< 返回目录](#目录)
-
-<p>回答这个问题，我们必须要先了解，一次完整的HTTP请求过程，大概是什么样的。</p>
-<p>点击登录和服务器返回这个请求前，中间发生的起始就是一个域名解析和一次完整的http请求过程。</p>
-<p>域名解析：即请求DNS服务器，进行域名解析。DNS服务器负责将你的网络地址解析成IP地址，这个IP地址对应网上一台机器；</p>
-<p>而一次完整的HTTP请求过程，下面介绍之。</p>
-<h3 id="1、一次完整的HTTP请求过程"><a href="#1、一次完整的HTTP请求过程" class="headerlink" title="1、一次完整的HTTP请求过程"></a>1、一次完整的HTTP请求过程</h3><p>一次完整的HTTP请求过程如下图所示：</p>
-<blockquote>
-<p><img src="/Architecture架构/网络/HTTP与网络基础/%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84HTTP%E8%AF%B7%E6%B1%82%E8%BF%87%E7%A8%8B.png" alt="一次完整的HTTP请求过程"><br>详情可参考：<a href="http://android.jobbole.com/85218/">一次完整的HTTP请求过程</a></p>
-</blockquote>
-<h4 id="HTTP与HTTPS的区别"><a href="#HTTP与HTTPS的区别" class="headerlink" title="HTTP与HTTPS的区别"></a>HTTP与HTTPS的区别</h4><p> http和https使用的是完全不同的连接方式。</p>
-<p> 区别统计：</p>
-<p>①HTTP是不安全的(它的信息使用明文传输)，而HTTPS是安全的(会进行加密)；</p>
-<p>②使用的端口也不同，http使用的是80端口，https使用的是443端口。</p>
-<p>③HTTP无需证书，而HTTPS需要认证证书。</p>
-<p>在网络模型中，HTTP工作于应用层，而HTTPS工作在传输层；</p>
-<h3 id="2、TCP三次握手"><a href="#2、TCP三次握手" class="headerlink" title="2、TCP三次握手"></a>2、TCP三次握手</h3><p>一个故事让大家明白为什么会有tcp三次握手</p>
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">敌人封锁江面, 我方间谍和联络员只能通过电报机隔着江面交流. 但是那时的电报机质量不稳定, 有可能会出现失灵的情况. 所以就出现了如下对话:</span><br><span class="line">间谍: 联络员, 你能收到我发的话么? 你要是能收到, 就说明我这个电报机可以发电报.</span><br><span class="line">联络员: 间谍, 我收到你发的话了, 这说明我的电报机可以收. 但是我不确定我的电报机能不能发, 你能收到我发的这句话么? 你要是能收到, 就说明我的电报机是可以发电报的. </span><br><span class="line">间谍: 联络员, 我收到你的话了. 我的电报机也是能发能收, 我们可以正式交流情报了.</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>TCP三次握手过程</p>
-<blockquote>
-<p>第一次握手： 客户端给服务器发送一个含有<code>同步序列号SYN</code> 报文。</p>
-<blockquote>
-<p><em>主机A通过向主机B 发送一个含有同步序列号SYN的标志位的数据段给主机B ,向主机B <code>请求建立连接</code>,通过这个数据段,主机A告诉主机B 两件事:<code>我想要和你通信</code>;你可以用哪个序列号作为起始数据段来回应我.</em></p>
-</blockquote>
-<p>第二次握手： 服务器收到 SYN 报文之后，会应答一个 SYN+ACK 报文。</p>
-<blockquote>
-<p><em>主机B 收到主机A的请求后,用一个带有<code>确认应答(ACK)</code>和同步序列号(SYN)标志位的数据段响应主机A,也告诉主机A两件事:<code>我已经收到你的请求了,你可以传输数据了</code>;你要用哪佧序列号作为起始数据段来回应我</em></p>
-</blockquote>
-<p>第三次握手： 客户端收到 SYN+ACK 报文之后，会回应一个 ACK 报文。</p>
-<blockquote>
-<p><em>主机A收到这个数据段后,再发送一个<code>确认应答</code>,确认已收到主机B 的数据段:”<code>我已收到回复,我现在要开始传输实际数据了</code>,这样三次握手就完成了,主机A和主机B 就可以传输数据了.</em></p>
-</blockquote>
-<p>服务器收到 ACK 报文之后，三次握手建立完成。</p>
-</blockquote>
-<p>附：</p>
-<p>TCP三次握手的作用是为了确认双方的接收与发送能力是否正常。</p>
-<p>握手过程中传送的包里正常不包含数据，三次握手完毕后，客户端与服务器才正式开始传送数据</p>
-<p>但其实第三次握手的时候，是可以携带数据的。也就是说，第一次、第二次握手不可以携带数据，而第三次握手是可以携带数据的。</p>
-<h3 id="3、TCP四次挥手"><a href="#3、TCP四次挥手" class="headerlink" title="3、TCP四次挥手"></a>3、TCP四次挥手</h3><blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">举个栗子：把客户端比作男孩，服务器比作女孩。通过他们的分手来说明“四次挥手”过程。</span><br><span class="line">&quot;第一次挥手&quot;：日久见人心，男孩发现女孩变成了自己讨厌的样子，忍无可忍，于是决定分手，随即写了一封信告诉女孩。</span><br><span class="line">“第二次挥手”：女孩收到信之后，知道了男孩要和自己分手，立马给男孩写了一封回信：分手就分手，给我点时间，我要把你的东西整理好，全部还给你！男孩收到女孩的第一封信之后，明白了女孩知道自己要和她分手。随后等待女孩把自己的东西收拾好。</span><br><span class="line">“第三次挥手”：过了几天，女孩把男孩送的东西都整理好了，于是再次写信给男孩：你的东西我整理好了，快把它们拿走，从此你我恩断义绝！</span><br><span class="line">“第四次挥手”：男孩收到女孩第二封信之后，知道了女孩收拾好东西了，可以正式分手了，于是再次写信告诉女孩：我知道了，这就去拿回来！</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3 id="4、为什么TCP建立连接要进行3次握手-而断开连接要进行4次？"><a href="#4、为什么TCP建立连接要进行3次握手-而断开连接要进行4次？" class="headerlink" title="4、为什么TCP建立连接要进行3次握手,而断开连接要进行4次？"></a>4、为什么TCP建立连接要进行3次握手,而断开连接要进行4次？</h3><p><a href="https://www.cnblogs.com/xiaolincoding/p/12638546.html"><strong>35 张图解：被问千百遍的 TCP 三次握手和四次挥手面试题</strong></a></p>
-<p><a href="https://baijiahao.baidu.com/s?id=1654225744653405133&wfr=spider&for=pc">详解 TCP 连接的“ 三次握手 ”与“ 四次挥手 ”&#x2F;为什么“握手”是三次，“挥手”却要四次？</a></p>
-<blockquote>
-<p>建立连接时，被动方服务器端结束CLOSED阶段进入“握手”阶段并不需要任何准备，可以直接返回SYN和ACK报文，开始建立连接。</p>
-<p>释放连接时，被动方服务器，突然收到主动方客户端释放连接的请求时并不能立即释放连接，因为还有必要的数据需要处理，所以服务器先返回ACK确认收到报文，经过CLOSE-WAIT阶段准备好释放连接之后，才能返回FIN释放连接报文。</p>
-<p>所以是“三次握手”，“四次挥手”。</p>
-</blockquote>
-<p><img src="/Architecture架构/网络/HTTP与网络基础/tcp_三次握手.png" alt="tcp_三次握手" style="zoom:40%;" /><img src="/Architecture架构/网络/HTTP与网络基础/tcp_四次挥手.png" alt="tcp_四次挥手" style="zoom:25%;" />   </p>
-<p>四次握手与三次握手</p>
-<p>四次握手其实也能够可靠的同步双方的初始化序号，但由于<strong>第二步和第三步可以优化成一步</strong>，所以就成了「三次握手」。</p>
-<p>为什么需要四次挥手。</p>
-<ul>
-<li>关闭连接时，客户端向服务端发送 <code>FIN</code> 时，仅仅表示客户端不再发送数据了但是还能接收数据。</li>
-<li>服务器收到客户端的 <code>FIN</code> 报文时，先回一个 <code>ACK</code> 应答报文，而服务端可能还有数据需要处理和发送，等服务端不再发送数据时，才发送 <code>FIN</code> 报文给客户端来表示同意现在关闭连接。</li>
-</ul>
-<p>如果第三次握手丢失了，服务端那一方迟迟收不到这个确认报文，就会触发超时重传机制，重传 SYN-ACK 报文，直到收到第三次握手，或者达到最大重传次数。</p>
-<p>如果第四次挥手的 ACK 报文没有到达服务端，服务端就会重发 FIN 报文。</p>
-<h3 id="5、TCP两次握手会出现什么问题"><a href="#5、TCP两次握手会出现什么问题" class="headerlink" title="5、TCP两次握手会出现什么问题"></a>5、TCP两次握手会出现什么问题</h3><blockquote>
-<p>《计算机网络》（谢希仁 译）中讲了原因：<br>1.采用两次握手，那么**若Client向Server发起的包A1如果在传输链路上遇到的故障，导致传输到Server的时间相当滞后，在这个时间段由于Client没有收到Server的对于包A1的确认(如果有确认，即Server有收到的话，会发送回一个B1包)，那么就会重传一个包A2(应该是等超时了)**，假设服务器正常收到了A2的包，然后返回确认B2包。由于没有第三次握手，这个时候Client和Server就被认为是已经建立连接，可以传输数据了。</p>
-<p><strong>接着假设Client发送的第一个A1包随后在链路中传到了Server，对于Server来说这是一个新连接请求，然后Server又为这个连接申请资源，返回B1包</strong>，但是由于Client现在用的是A2包，A1包是无效的，Client对于返回的B1包也不会去理会，即后面建立的这个连接其实是没用的(相当于“僵尸”的连接)，Server一直为这个连接维持着资源，造成资源的浪费。</p>
-<p>所以采用两次握手，有可能会浪费Server的网络资源。</p>
-<p>TCP的三次握手最主要是防止已过期&#x2F;失效的连接再次传到被连接的主机。</p>
-</blockquote>
-<p><strong>为什么要进行第三次握手？</strong></p>
-<p>为了防止服务器端开启一些无用的连接增加服务器开销以及防止已失效的连接请求报文段突然又传送到了服务端，因而产生错误。</p>
-<p id="TCP与UDP"></p>
-## 十、TCP与UDP
-> [< 返回目录](#目录)
-
-<h3 id="1、TCP与UDP的区别"><a href="#1、TCP与UDP的区别" class="headerlink" title="1、TCP与UDP的区别"></a>1、TCP与UDP的区别</h3><p>TCP（Transmission Control Protocol，传输控制协议）是基于连接的协议，也就是说，在正式收发数据前，必须和对方建立可靠的连接。<br>UDP（User Data Protocol，用户数据报协议）是与TCP相对应的协议。它是面向非连接的协议，它不与对方建立连接，而是直接就把数据包发送过去！<br>UDP适用于一次只传送少量数据、对可靠性要求不高的应用环境。</p>
-<p>TCP与UDP的区别：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 基于连接与无连接；</span><br><span class="line">2. 对系统资源的要求（TCP较多，UDP少）；</span><br><span class="line">3. UDP程序结构较简单；</span><br><span class="line">4. 流模式与数据报模式 ；</span><br><span class="line">5. TCP保证数据正确性，UDP可能丢包，TCP保证数据顺序，UDP不保证。</span><br></pre></td></tr></table></figure>
-
-<h3 id="2、为什么说UDP是不可靠的？"><a href="#2、为什么说UDP是不可靠的？" class="headerlink" title="2、为什么说UDP是不可靠的？"></a>2、为什么说UDP是不可靠的？</h3><blockquote>
-<p>答：UDP不是面向连接的，UDP传送数据前并不与对方建立连接，对接收到的数据也不发送确认信号，发送端不知道数据是否会正确接收，当然也不用重发，所以说UDP是无连接的、不可靠的一种数据传输协议<br>也正由于上面的特点，使得UDP的开销更小数据传输速率更高，因为不必进行收发数据的确认，所以UDP的实时性更好。</p>
-</blockquote>
-<blockquote>
-<p>也正由于上面的特点，使得UDP的开销更小数据传输速率更高，因为不必进行收发数据的确认，所以UDP的实时性更好。</p>
-</blockquote>
-<blockquote>
-<p>所以采用TCP传输协议的MSN比采用UDP的QQ传输文件慢，<br>但并不能说QQ的通信是不安全的，因为程序员可以手动对UDP的数据收发进行验证，比如发送方对每个数据包进行编号然后由接收方进行验证啊什么的，即使是这样，UDP因为在底层协议的封装上没有采用类似 TCP的“三次握手”而实现了TCP所无法达到的传输效率。 </p>
-</blockquote>
-<p>UDP（User Datagram Protocol）被认为是不可靠的，主要基于以下几个关键特性：</p>
-<hr>
-<p><strong>1. 无连接（Connectionless）</strong></p>
-<p>UDP 不建立连接，数据包（Datagram）是<strong>独立</strong>的，发送端直接将数据发往目标 IP+端口，接收端只要监听该端口就能收到数据。</p>
-<p><strong>影响</strong>：</p>
-<p>​	•	发送方不会知道接收方是否<strong>在线</strong>或<strong>是否能收到数据</strong>。</p>
-<p>​	•	可能会出现数据丢失的情况。</p>
-<hr>
-<p><strong>2. 不保证数据到达</strong></p>
-<p>UDP 发送数据后，不会确认数据是否成功送达。</p>
-<p><strong>影响</strong>：</p>
-<p>​	•	如果网络不稳定，数据包可能会丢失。</p>
-<p>​	•	需要上层应用自己实现<strong>重传机制</strong>（如 QUIC 协议或 RTP 协议）。</p>
-<hr>
-<p><strong>3. 不保证数据顺序</strong></p>
-<p>UDP 发送的数据包<strong>可能会乱序</strong>，因为数据包在网络中可能经过不同的路径，不同数据包的传输时间可能不同。</p>
-<p><strong>影响</strong>：</p>
-<p>​	•	接收方可能会收到无序的数据，需要<strong>应用层自己排序</strong>。</p>
-<h3 id="3、移动端IM系统的协议选型：UDP还是TCP？"><a href="#3、移动端IM系统的协议选型：UDP还是TCP？" class="headerlink" title="3、移动端IM系统的协议选型：UDP还是TCP？"></a>3、移动端IM系统的协议选型：UDP还是TCP？</h3><p><a href="https://www.jianshu.com/p/e58064496e40">移动端IM系统的协议选型：UDP还是TCP？</a></p>
-<ul>
-<li>《<a href="https://link.jianshu.com/?t=http://www.52im.net/thread-279-1-1.html">为什么QQ用的是UDP协议而不是TCP协议？</a>》</li>
-</ul>
-<blockquote>
-<p>TCP还是UDP？长连接如何实现？如何实现心跳机制？心跳的间隔如何确定？这些问题都是讨论<strong>移动端IM</strong>、<strong>消息推送</strong>等类似话题时，几乎一定被问到的问题。</p>
-</blockquote>
-<blockquote>
-<p>个人认为，更恰当的方式应该是：两种通信协议同时使用，各有侧重。UDP用于保持大量终端的在线与控制，应用与业务则通过TCP去实现。这个和FTP服务控制与数据分离，采取不同的连接，有异曲同工之处。<br>事实上，这个也是即时通讯巨头QQ所采用的方式。早期的时候，QQ还是主要使用TCP协议，而后来就转向了采用UDP的方式来保持在线，TCP的方式来上传和下载数据。现在，UDP是QQ的默认工作方式，表现良好。相信这个也被沿用到了微信上。<br>简单的考证：登录PC版QQ，关闭多余的QQ窗口只留下主窗口，并将其最小化。几分钟过后，查看系统网络连接，会发现QQ进程已不保有任何TCP连接，但有UDP网络活动。这时在发送聊天信息，或者打开其他窗口和功能，将发现QQ进程会启用TCP连接。</p>
-</blockquote>
-<p id="网络数据缓存"></p>
-## 十一、网络数据缓存
-> [< 返回目录](#目录)
-
-<p><a href="http://www.cnblogs.com/wendingding/p/3950198.html">iOS开发网络篇—数据缓存</a></p>
-<h2 id="RTMP-VS-RTSP"><a href="#RTMP-VS-RTSP" class="headerlink" title="RTMP VS RTSP"></a>RTMP VS RTSP</h2><p>RTMP（Real-Time Messaging Protocol）和RTSP（Real-Time Streaming Protocol）都是用于流媒体数据传输的协议，但它们在设计和应用上有一些关键的区别。</p>
-<ul>
-<li>RTMP是基于TCP的协议，RTSP是一种基于TCP或UDP的网络控制协议。</li>
-</ul>
-<ol>
-<li><strong>延迟</strong>：<ul>
-<li>RTMP的延迟通常在3-30秒，适合于对实时性要求不是极高的应用。</li>
-<li>RTSP的延迟通常在2-5秒，适合于对实时性要求较高的应用。</li>
-</ul>
-</li>
-<li><strong>编解码器支持</strong>：<ul>
-<li>RTMP通常支持H.264视频编码和AAC音频编码。</li>
-<li>RTSP支持多种视频编码，包括H.265、H.264、VP9等。</li>
-</ul>
-</li>
-</ol>
-<p>在选择使用RTMP还是RTSP时，需要根据具体应用场景、对实时性的要求、客户端兼容性以及安全性需求来决定。例如，如果需要与HTML5兼容且对实时性要求不高，可能会选择基于HTTP的流媒体协议如HLS或DASH。如果需要低延迟和复杂的交互控制，则可能会选择RTSP。而RTMP可能更适合那些已经建立在Flash基础上的旧系统。</p>
-<h3 id="1、RTSP"><a href="#1、RTSP" class="headerlink" title="1、RTSP"></a>1、RTSP</h3><p>RTSP（Real-Time Streaming Protocol）和TCP、UDP都是网络协议，它们在数据传输和流媒体领域中扮演着重要的角色。下面我将分别介绍它们的特点和用途：</p>
-<ol>
-<li><strong>RTSP（Real-Time Streaming Protocol）</strong>：<ul>
-<li><strong>定义</strong>：RTSP是一种网络控制协议，用于控制流媒体服务器上的媒体流。它允许客户端发出播放、暂停、停止等控制命令。</li>
-<li><strong>用途</strong>：RTSP常用于视频监控系统中，通过它可以实现对视频流的控制，如请求视频流的开始、停止、快进、倒退等。</li>
-<li>特点：<ul>
-<li><strong>基于TCP或UDP，通常使用TCP来保证控制消息的可靠传输</strong>。</li>
-<li>它不传输媒体本身，而是控制媒体流的传输，媒体数据通常通过RTP（Real-time Transport Protocol）传输。</li>
-<li>支持多种媒体类型，包括音频和视频。</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><strong>TCP（Transmission Control Protocol）</strong>：<ul>
-<li><strong>定义</strong>：TCP是一种面向连接的、可靠的、基于字节流的传输层通信协议。</li>
-<li><strong>用途</strong>：TCP广泛应用于需要可靠传输的应用中，如网页浏览（HTTP）、文件传输（FTP）、邮件传输（SMTP）等。</li>
-<li>特点：<ul>
-<li>确保数据包按顺序到达，如果数据包丢失，会重新发送。</li>
-<li>建立连接需要三次握手，断开连接需要四次挥手，这增加了一定的延迟。</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><strong>UDP（User Datagram Protocol）</strong>：<ul>
-<li><strong>定义</strong>：UDP是一种无连接的传输层协议，它在IP协议的基础上提供一种简单的数据传输服务。</li>
-<li><strong>用途</strong>：UDP适用于对实时性要求高的应用，如视频会议、在线游戏、实时监控等。</li>
-<li>特点：<ul>
-<li>不保证数据包的顺序、完整性或可靠性，如果数据包丢失，不会重发。</li>
-<li>没有建立连接的过程，发送数据前不需要握手，因此延迟较低。</li>
-<li>适用于那些可以容忍一定丢包率的应用，或者应用层自己实现数据的重传和顺序控制。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-<p>在实际应用中，RTSP通常与RTP（Real-time Transport Protocol）配合使用，RTSP用于控制媒体流，而RTP用于实际传输媒体数据。RTP可以选择在TCP或UDP上运行，但在流媒体传输中，UDP更常见，因为它的低延迟特性更适合实时媒体流的传输。而TCP则因其可靠性，适用于需要确保数据完整性的场景。</p>
-<h3 id="2、RTP"><a href="#2、RTP" class="headerlink" title="2、RTP"></a>2、RTP</h3><p>实时传输协议（RTP）是一种网络协议，专门设计用于在互联网上传输音频和视频数据。它通常与实时传输控制协议（RTCP）一起使用，后者用于监控数据传输的质量和提供反馈。<strong>RTP 被设计为一个基于数据包的协议，将媒体流分成数据包进行传输，每个数据包都有一个序列号，使得接收方能够以正确的顺序重新组合数据包</strong>。此外，RTP 还包括一个时间戳，允许接收器同步音频和视频流。</p>
-<p>RTP 通常用于各种实时音频和视频传输的应用，如IP语音（VoIP）、视频会议、流媒体和广播电视等。它被广泛支持，并经常与其他协议如RTSP和SIP结合使用，以在互联网上传输音频和视频内容。</p>
-<p>RTP 数据包的结构包括一个固定头部和可选的扩展头部，以及实际的媒体数据。</p>
-<h1 id="网络-http常见错误码"><a href="#网络-http常见错误码" class="headerlink" title="网络 | http常见错误码"></a>网络 | http常见错误码</h1><ul>
-<li><p><a href="https://baijiahao.baidu.com/s?id=1609940322276045505&wfr=spider&for=pc">HTTP状态码介绍，以及HTTP错误代码的故障修复？</a></p>
-<blockquote>
-<p>HTTP 状态码是一个客户发出请求时候，WEB服务器返回给客户的一个状态回应，常见HTTP状态有以下五类：</p>
-<p>1.信息代码：1xx，</p>
-<p>2.成功代码：2xx，</p>
-<p>3.重定向：3xx，</p>
-<p>4.客户端错误：4xx，</p>
-<p>5.服务器错误：5xx</p>
-<p>其中，我们需要关注的是客户端和服务器端错误代码，即4xx和5xx代码以及这些代码的常见解决方案。</p>
-<p>客户端错误，从400到499编码的客户端错误是由客户端引起的某些错误导致的，该客户端是Web浏览器、curl命令或postman等其他服务器测试软件发出的请求等。</p>
-<p>服务器错误，当服务器发生错误或服务器识别出无法处理请求时，将发送代码为500到599的服务器错误。</p>
-</blockquote>
-</li>
-</ul>
-<h2 id="常见状态码："><a href="#常见状态码：" class="headerlink" title="常见状态码："></a>常见状态码：</h2><p>一些常见的状态码为：</p>
-<ul>
-<li><p>200 – 服务器成功返回网页</p>
-</li>
-<li><p>302</p>
-</li>
-<li><p>304（未修改）</p>
-</li>
-<li><p>404 – 请求的网页不存在</p>
-</li>
-<li><p>503 – 服务器超时</p>
-</li>
-</ul>
-<p>1xx（临时响应）</p>
-<p>表示临时响应并需要请求者继续执行操作的状态代码。</p>
-<p>2xx （成功）</p>
-<p>表示成功处理了请求的状态代码。</p>
-<p>3xx （重定向）</p>
-<p>表示要完成请求，需要进一步操作。 通常，这些状态代码用来重定向。</p>
-<p>4xx（请求错误）</p>
-<p>这些状态代码表示请求可能出错，妨碍了服务器的处理。</p>
-<p>5xx（服务器错误）</p>
-<p>这些状态代码表示服务器在尝试处理请求时发生内部错误。 这些错误可能是服务器本身的错误，而不是请求出错。</p>
-<h1 id="AFNetworking-302-重定向"><a href="#AFNetworking-302-重定向" class="headerlink" title="AFNetworking 302 重定向"></a>AFNetworking 302 重定向</h1><ul>
-<li><a href="https://www.jianshu.com/p/4fcba7db11c2">AFNetworking 302 重定向</a></li>
-</ul>
-<p>所有的AF请求都会在post get等请求前执行下面这个方法，所以只需重写这个方法就能拦截请求</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@interface AFURLSessionManager ()</span><br><span class="line">// 省略一堆代码</span><br><span class="line">@property (readwrite, nonatomic, copy) AFURLSessionTaskWillPerformHTTPRedirectionBlock taskWillPerformHTTPRedirection;</span><br><span class="line">// 省略一堆代码</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-
-<p>使用举例如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">manager = [AFHTTPSessionManager manager];</span><br><span class="line">[manager setTaskWillPerformHTTPRedirectionBlock:^NSURLRequest * _Nonnull(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSURLResponse * _Nonnull response, NSURLRequest * _Nonnull request) &#123;</span><br><span class="line">            NSHTTPURLResponse *resPonse = (NSHTTPURLResponse *)response;</span><br><span class="line">           //1、如果要忽略重定向</span><br><span class="line">          /*</span><br><span class="line">            if (resPonse.statusCode == 302)&#123;</span><br><span class="line">                return nil;</span><br><span class="line">            &#125;else &#123;//正常请求</span><br><span class="line">                return request;</span><br><span class="line">            &#125;</span><br><span class="line">             */</span><br><span class="line">         // 2、通过重定向url去获取数据</span><br><span class="line">            if (resPonse.statusCode == 302)&#123;//如果响应code==302 就是重定向</span><br><span class="line">                NSMutableURLRequest *res = [NSMutableURLRequest requestWithURL:request.URL];</span><br><span class="line">              //通过抓包发现请求头不见了 所以在这里添加请求头，如果没有这个需求的可以忽略</span><br><span class="line">                NSMutableDictionary *headers = [NSMutableDictionary dictionaryWithDictionary:request.allHTTPHeaderFields];</span><br><span class="line">                NSString *valueStr = [NSString stringWithFormat:@&quot; %@&quot;,localToken];</span><br><span class="line">                [headers setObject:valueStr forKey:@&quot;Authorization&quot;];</span><br><span class="line">                res.allHTTPHeaderFields = headers;</span><br><span class="line"></span><br><span class="line">                return res;</span><br><span class="line">            &#125;else &#123;//正常请求</span><br><span class="line">                return request;</span><br><span class="line">            &#125;</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-[< 返回目录](#目录)
-
-<h6 id="1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？"><a href="#1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？" class="headerlink" title="1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？"></a>1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？</h6><blockquote>
-<p>答：HTTP协议：简单对象访问协议，对应于应用层，HTTP协议是基于TCP连接的</p>
-</blockquote>
-<p>tcp协议：对应于传输层</p>
-<blockquote>
-</blockquote>
-<p>ip协议：对应于网络层</p>
-<blockquote>
-</blockquote>
-<p>TCP&#x2F;IP是传输层协议，主要解决数据如何在网络中传输；而HTTP是应用层协议，主要解决如何包装数据。</p>
-<blockquote>
-</blockquote>
-<p>Socket是对TCP&#x2F;IP协议的封装，Socket本身并不是协议，而是一个调用接口（API），通过Socket，才能使用TCP&#x2F;IP协议。</p>
-<blockquote>
-</blockquote>
-<p>http连接：http连接就是所谓的短连接，即客户端向服务器端发送一次请求，服务器端响应后连接即会断掉；</p>
-<blockquote>
-</blockquote>
-<p>socket连接：socket连接就是所谓的长连接，理论上客户端和服务器端一旦建立起连接将不会主动断掉；但是由于各种环境因素可能会是连接断开，比如说：服务器端或客户端主机down了，网络故障，或者两者之间长时间没有数据传输，网络防火墙可能会断开该连接以释放网络资源。</p>
-<h6 id="2、cookie-和session-的区别："><a href="#2、cookie-和session-的区别：" class="headerlink" title="2、cookie 和session 的区别："></a>2、cookie 和session 的区别：</h6><p>1、cookie数据存放在客户的浏览器上，session数据放在服务器上。</p>
-<p>2、安全性：<br>cookie不是很安全，别人可以分析存放在本地的COOKIE并进行COOKIE欺骗。<br>考虑到安全应当使用session。</p>
-<p>3、session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能<br>   考虑到减轻服务器性能方面，应当使用COOKIE。</p>
-<p>4、单个cookie保存的数据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie。</p>
-<p>5、所以个人建议：<br>   将登陆信息等重要信息存放为SESSION<br>   其他信息如果需要保留，可以放在COOKIE中</p>
-<p id="END"></p>
-## END
-> < [返回目录](#目录)
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" data-id="cmpnyclqh009xi5r44myof4uw" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/内存/2内存-②循环引用Timer" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8Timer/">
-    
-      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-10-25</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8Timer/">内存-②循环引用Timer</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <p>–</p>
-<p id="目录"></p>
-# 目录
-
-
-<ul>
-<li><a href="#NSTimer">九、NSTimer</a></li>
-</ul>
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1、NSTimer和NSRunLoop的关系？</span><br><span class="line">2、NSTimer使用细节</span><br><span class="line">3、NSTimer的创建</span><br><span class="line">4、NSTimer的循环引用</span><br><span class="line">5、NSTimer使用的优化</span><br><span class="line"></span><br><span class="line">6、NSTimer的销毁问题</span><br><span class="line">(1)、子线程中NSTimer的创建和销毁问题</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p id="NSTimer"></p>
-## 九、NSTimer
-> < [返回目录](#目录)
-
-
-
-<h3 id="1、NSTimer的创建"><a href="#1、NSTimer的创建" class="headerlink" title="1、NSTimer的创建"></a>1、NSTimer的创建</h3><p>NSTimer的创建通常有两种方式，尽管都是类方法，一种是timerWithXXX，另一种scheduedTimerWithXXX。</p>
-<p>二者最大的区别就是后者除了创建一个定时器外会自动以NSDefaultRunLoopModeMode添加到当前线程RunLoop中，不添加到RunLoop中的NSTimer是无法正常工作的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">@interface ViewController1 ()</span><br><span class="line">@property (nonatomic, weak) NSTimer *timer1;</span><br><span class="line">@property (nonatomic, weak) NSTimer *timer2;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@implementation ViewController1</span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    </span><br><span class="line">    self.timer1 = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(timeInterval1:) userInfo:nil repeats:YES];</span><br><span class="line">    </span><br><span class="line">    /*</span><br><span class="line">    错误做法：</span><br><span class="line">    self.timer2 = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timeInterval2:) userInfo:nil repeats:YES];</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:self.timer2 forMode:NSDefaultRunLoopMode];</span><br><span class="line">    */</span><br><span class="line">    </span><br><span class="line">    //正确做法：</span><br><span class="line">    //特别注意：timer2创建时并没直接赋值给timer2。</span><br><span class="line">    //原因是timer2是weak属性，如果直接赋值给timer2会被立即释放。</span><br><span class="line">    //因为timerWithXXX方法创建的NSTimer默认并没有加入RunLoop，只有后面加入RunLoop以后才可以将引用指向timer2。从而导致执行到addTimer:forMode的时候，访问了野指针而发生EXC_BAD_ACCESS，崩溃。</span><br><span class="line">    NSTimer *tempTimer = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timeInterval2:) userInfo:nil repeats:YES];</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:tempTimer forMode:NSDefaultRunLoopMode];</span><br><span class="line">    self.timer2 = tempTimer;</span><br><span class="line">    。。。。。</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)timeInterval1:(id)object &#123;</span><br><span class="line">    NSLog(@&quot;111&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)timeInterval2:(id)object &#123;</span><br><span class="line">    NSLog(@&quot;222&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-
-<h3 id="2、NSTimer的修饰符"><a href="#2、NSTimer的修饰符" class="headerlink" title="2、NSTimer的修饰符"></a>2、NSTimer的修饰符</h3><p><strong>runloop强制持有timer(runloop-&gt;timer),timer会强制持有其target，未处理的情况下一般都是self(timer-&gt;self)，导致self无法释放。</strong><br>虽然设置timer为weak属性时候，self未强制持有timer,没构成循环应用，但还是导致了self无法释放的问题，dealloc无法执行。</p>
-<h3 id="2、NSTimer的循环引用"><a href="#2、NSTimer的循环引用" class="headerlink" title="2、NSTimer的循环引用"></a>2、NSTimer的循环引用</h3><p>关于循环引用，我们先看一个例子：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">@interface ViewController1 ()</span><br><span class="line">@property (nonatomic, strong) NSTimer *timer;//注意这里的属性不是为weak,从而很容易引起循环引用</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@implementation ViewController1</span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    // 代码标记1 (产生timer与self之前的强引用，如下图中的L3强引用线)</span><br><span class="line">    NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate date] interval:1 target:self selector:@selector(timerFire) userInfo:nil repeats:YES];</span><br><span class="line">    // 代码标记2 (产生RunLoop与timer之间的强引用，如下图中的L4强引用线)</span><br><span class="line">    [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];</span><br><span class="line">    // 代码标记3 (产生self与timer之间的强引用，，如下图中的L2强引用线)</span><br><span class="line">    self.timer = timer;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)timerFire &#123;</span><br><span class="line">    NSLog(@&quot;timer fire&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
-
-<p>假设代码中的视图控制器由UINavigationController管理，由于self.timer是strong类型，则强引用可以表示如下：</p>
-<blockquote>
-<p><img src="/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/NSTimer%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E4%BE%8B%E5%AD%901.png" alt="NSTimer循环引用例子1"></p>
-</blockquote>
-<p>由于，很容易看出来，由于timer本身在创建时候已经与self发生了强引用（<strong>不管target使用<code>weak</code>还是<code>strong</code>修饰，timer都会对target强引用。</strong>）。而赋值时候又由于timer是被设为strong的，而导致self与timer之间也发生了强引用，最终这两个强引用，就形成了循环引用。</p>
-<p>所以，</p>
-<p>①、首先，我们先解决循环引用，为了解决timer的循环应用问题，我们上面的timer属性应该使用weak。设置成weak后，L2就消失了。</p>
-<p>②、但是<strong>即使使用了弱引用，上面的代码中ViewController1在pop退出的时候也无法正常释放，原因是在创建NSTimer时指定了target为self，这样一来造成了timer对ViewController1有一个强引用</strong>。从而导致，timer没释放的时候，viewController也是不会被释放的。<strong>为了让timer能够释放，我们就需要调用NSTimer的invalidate方法</strong>（注意：无论是重复执行的定时器还是一次性的定时器只要调用invalidate方法则会变得无效，只是一次性的定时器执行完操作后会自动调用invalidate方法）。所以，假设在viewController pop回去前，我们通过一个按钮来让timer调用invalidate方法，那么viewController在pop回去时候，就能够被释放了。</p>
-<p>问题是我们一般不会有这个按钮操作，那么这时候让timer调用invalidate方法的操作，应该写在哪里呢。这时候，你可能会想到那就写在viewDidDisappear中呗。但是一旦在viewWillDisappear中写<code>[timer invalidate]; timer = nil;</code>那么你也得把timer的创建放在viewWillAppear中。因为我们可能执行的是push跳到下一页,再返回来的操作。然而显然将timer的创建放在viewWillAppear中这样的方式，显然会是导致当timer可能需要频繁添加。所以，我们放弃此方法，还是把timer的创建放在viewDidLoad中，然后考虑其他方法。</p>
-<p>所以，我们最后<strong>为了让ViewController1在pop退出的时候不会因为timer的强引用，而导致无法正常释放。我们选择转移timer中的target</strong>。这样就能确保，viewController在pop退出的时候能够正常释放，从而调用viewController的dealloc方法。</p>
-<blockquote>
-<p>附：转移timer中的target的方法通常有两种：</p>
-</blockquote>
-<p>一种是将target分离出来独立成一个对象（在这个对象中创建NSTimer并将对象本身作为NSTimer的target），控制器通过这个对象间接使用NSTimer；</p>
-<blockquote>
-</blockquote>
-<p>另一种方式的思路仍然是转移target，只是可以直接增加NSTimer扩展（分类），让NSTimer自身做为target，同时可以将操作selector封装到block中。</p>
-<blockquote>
-<p><img src="/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/NSTimer%E8%BD%AC%E7%A7%BBtarget%E6%96%B9%E6%B3%95%E4%BA%8C.jpg" alt="NSTimer转移target方法二"><br>图中参考<a href="https://github.com/mBrissman/NSTimer-Block">NSTimer+Block</a></p>
-</blockquote>
-<p>后者相对优雅，也是目前使用较多的方案。显然Apple也认识到了这个问题，如果你可以确保代码只在iOS 10下运行就可以使用iOS 10新增的系统级block方案（上面的代码中已经贴出这种方法）。</p>
-<p>③、如果不做②中的转移timer的target的话，那么viewController就会无法释放，造成内存泄露。<br>但是，我们发现<strong>通过转移timer的target后，虽然解决了UIViewController1因为被timer强引用而导致的在pop回来的时候无法释放的问题。</strong>我们的计时器，却在UIViewController1 pop退出被释放后，两个定时器仍然在运行，也就是它还没被释放。所以，我们还需要解决timer的释放。那怎么让timer释放呢？答：<strong>如果要让timer释放掉的话，需要调用NSTimer的invalidate方法</strong>（注意：无论是重复执行的定时器还是一次性的定时器只要调用invalidate方法则会变得无效，只是一次性的定时器执行完操作后会自动调用invalidate方法）。<br><strong>invalidate方法有2个功能：一是将timer从runloop中移除，那么图中的L4就消失，二是timer本身也会释放它持有资源，比如它的target、userinfo、block等，因为这里的target是self，所以强引用L3也就消失。</strong><br>所以，最终当viewController在pop退出的时候，其正常释放并调用了dealloc放。我们只需要在dealloc方法中，添加上timer调用invalidate的方法，即可以解决viewController被释放了，但timer没被释放的问题。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">- (void)dealloc &#123;</span><br><span class="line">    [self.timer invalidate];</span><br><span class="line">    NSLog(@&quot;ViewController1 dealloc...&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>所以，一个完整的timer过程，代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">略</span><br></pre></td></tr></table></figure>
-
-
-<h3 id="3、NSTimer和NSRunLoop的关系？"><a href="#3、NSTimer和NSRunLoop的关系？" class="headerlink" title="3、NSTimer和NSRunLoop的关系？"></a>3、NSTimer和NSRunLoop的关系？</h3><p>只要出现NSTimer必须要有NSRunLoop，NSTimer必须依赖NSRunLoop才能执行 。NSTimer其实也是一种资源，如果看过多线程编程指引文档的话，我们会发现所有的source如果要起作用，就得加到runloop中去。同理timer这种资源要想起作用，那肯定也需要加到runloop中才会生效喽。如果一个runloop里面不包含任何资源的话，运行该runloop时会立马退出。</p>
-<p>NSRunLoop与timer有关方法为：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">- (void)addTimer:(NSTimer *)timer forMode:(NSString *)mode; //在run loop上注册timer</span><br></pre></td></tr></table></figure>
-
-
-
-<p>注意事项:</p>
-<blockquote>
-<p>我们通常在主线程中使用NSTimer，有个实际遇到的问题需要注意。当滑动界面时，系统为了更好地处理UI事件和滚动显示，主线程runloop会暂时停止处理一些其它事件，这时主线程中运行的NSTimer就会被暂停。解决办法就是改变NSTimer运行的mode（mode可以看成事件类型），不使用缺省的NSDefaultRunLoopMode，而是改用NSRunLoopCommonModes，这样主线程就会继续处理NSTimer事件了。具体代码如下：</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSTimer *timer = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(timer:) userInfo:nil repeats:YES];</span><br><span class="line">[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];</span><br></pre></td></tr></table></figure>
-
-<h3 id="4、NSTimer使用细节："><a href="#4、NSTimer使用细节：" class="headerlink" title="4、NSTimer使用细节："></a>4、NSTimer使用细节：</h3><p>NSTimer上的定时任务是在创建NSTimer的线程上执行的。NSTimer的销毁和创建必须在同一个线程上操作<br>NSTimer要被添加到当前线程的 Runloop 里面且 Runloop 被启动，定时任务（selector或者invocation）才会触发。</p>
-<p>以下内容摘自：<a href="https://www.cnblogs.com/mddblog/p/6517377.html">NSTimer定时器进阶——详细介绍，循环引用分析与解决</a></p>
-<ol>
-<li>它需要被添加到runloop，否则不会运行，当然添加的runloop不存在也不会运行；</li>
-<li>还要指定添加到的runloop的哪个模式，而且还可以指定添加到runloop的多个模式，模式不对也是不会运行的</li>
-<li><strong>runloop会对timer有强引用，timer会对目标对象进行强引用(是否隐约的感觉到坑了。。。)</strong></li>
-<li>timer的执行时间并不准确，系统繁忙的话，还会被跳过去。(具体的两种不准时，请查看原文)</li>
-<li>invalidate调用后，timer停止运行后，就一定能从runloop中消除吗，资源？？？？invalidate方法的调用必须在timer添加到的runloop所在的线程，如果不在的话：由于调用invalidate 方法后，timer本身会释放掉它自己持有的资源比如target、userinfo、block，图中的L3会消失。但是runloop不会释放timer，即图中的L4不会消失，假设，self被pop了–&gt;L1无效–&gt;self引用计数为0,self释放–&gt;L2也消失。此时就剩runloop、timer、L4，timer也就永远不会释放了，造成内存泄露。</li>
-</ol>
-<p>NSTimer的强引用问题举例:</p>
-<blockquote>
-<p><img src="/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/NSTimer%E7%9A%84%E5%BC%BA%E5%BC%95%E7%94%A8%E9%97%AE%E9%A2%98%E4%B8%BE%E4%BE%8B.png" alt="NSTimer的强引用问题举例"></p>
-</blockquote>
-<h4 id="5、NSTimer使用的优化"><a href="#5、NSTimer使用的优化" class="headerlink" title="5、NSTimer使用的优化"></a>5、NSTimer使用的优化</h4><p>问：为什么要在非主线程创建NSTimer？</p>
-<ul>
-<li>将 timer 添加到主线程的Runloop里面本身会增加线程负荷；</li>
-<li>如果主线程因为某些原因阻塞卡顿了，timer 定时任务触发的时间精度肯定也会受到影响；</li>
-<li>有些定时任务不是UI相关的，本来就没必要在主线程执行，给主线程增加不必要的负担。当然也可以在定时任务执行时，手动将任务指派到非主线程上，但这也是有额外开销的。</li>
-</ul>
-<h4 id="6、NSTimer的销毁问题"><a href="#6、NSTimer的销毁问题" class="headerlink" title="6、NSTimer的销毁问题"></a>6、NSTimer的销毁问题</h4><p>前面我们已经简单讲过要让NSTimer销毁释放的时候，只能通过调用其invalidate来达到销毁目的。关于invalidate的第一个作用以及它在哪个线程调用的问题，我的理解如下：</p>
-<p>invalidate方法的第一个作用将timer从runloop中移除。这里的runLoop指的应该是当前的runLoop，而不是timer被添加到的runLoop，这个纯属个人理解，未验证，因为如果是其添加的runLoop的话，那子线程timer的销毁，就不会有人说还要和timer所在的线程一致了。所以，这里的个人理解有如下：</p>
-<p><em>为了销毁timer和去除runloop与timer之间的强引用</em>，我们调用了timer的invalidate方法。</p>
-<blockquote>
-<p>1、对于invalidate方法的调用是写在必须在timer所添加到的runloop所在的线程（如主线程）的时候，invalidate方法会将timer从runloop中移除，并且释放它持有资源。即上面的L4和L3都消失。</p>
-<p>2、对于invalidate方法的调用不是写在必须在timer所添加到的runloop所在的线程的时候（如子线程中添加timer，在主线程中调用该timer的invalidate），虽然timer本身会释放掉它自己持有的资源比如target、userinfo、block，图中的L3会消失。但是runloop不会释放timer，即图中的L4不会消失，假设，self被pop了–&gt;L1无效–&gt;self引用计数为0,self释放–&gt;L2也消失。此时就剩runloop、timer、L4，timer也就永远不会释放了，造成内存泄露。</p>
-<p>如果invalidate方法的调用的位置不更改的话，这时候要让L4消失的方法，</p>
-<p>方法①手动销毁runloop。比如</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">//[[NSRunLoop currentRunLoop] run]; //将原本的方法注释掉</span><br><span class="line">NSDate *date = [NSDate dateWithTimeIntervalSinceNow:5.f];</span><br><span class="line">[[NSRunLoop currentRunLoop] runUntilDate:date]; //让runloop在5s后销毁</span><br></pre></td></tr></table></figure>
-
-<p>这种方式，只适用于销毁时间确定的情况。那如果销毁时间不确定怎么办？</p>
-<p>方法②：因为<strong>当某个线程销毁时，其runloop也随之销毁</strong>，所以方法二即为通过销毁timer所在的线程，来达到销毁runloop的目的。如果是在主线程，线程一直存在，我们没法让主线程销毁。</p>
-</blockquote>
-<p>所以，下面我们讨论的是<em>在子线程中添加timer的时候，<strong>如果</strong>该timer的invalidate方法的调用位置不是写在对应子线程，而是写在主线程的时候，我们该怎么通过销毁子线程，来销毁runLoop。从而接触该runloop对timerd的强引用？</em></p>
-<h5 id="6-1子线程中NSTimer的创建和销毁问题"><a href="#6-1子线程中NSTimer的创建和销毁问题" class="headerlink" title="6.1子线程中NSTimer的创建和销毁问题"></a>6.1子线程中NSTimer的创建和销毁问题</h5><p>我们按上诉2中②的讨论描述的：子线程中添加timer的时候，如果该timer的invalidate方法的调用位置不是写在对应子线程，而是写在主线程的时候，写出的对应代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">@property (nonatomic, weak) NSTimer *threadTimer; //子线程timer</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line">    </span><br><span class="line">    // 开辟子线程</span><br><span class="line">    NSThread *thread = [[NSThread alloc] initWithTarget:self selector:@selector(newThread) object:nil];</span><br><span class="line">    [thread start];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)newThread &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        NSThread *currentThread = [NSThread currentThread];</span><br><span class="line">        [currentThread setName:@&quot;这是子线程&quot;];</span><br><span class="line">        </span><br><span class="line">        self.threadTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(threadTimerAction) userInfo:nil repeats:YES];</span><br><span class="line">        [[NSRunLoop currentRunLoop] run];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)threadTimerAction &#123;</span><br><span class="line">    static NSInteger counter = 0;</span><br><span class="line">    </span><br><span class="line">    NSString *isMainThreadDescription = [NSThread isMainThread] ? @&quot;YES&quot; : @&quot;NO&quot;;</span><br><span class="line">    NSLog(@&quot;当前方法执行的线程：%@, 它是否是主线程:%@, counter = %@&quot;, [NSThread currentThread], isMainThreadDescription, @(counter++));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这时候，我们该怎么通过销毁子线程，来销毁runLoop。从而接触该runloop对timerd的强引用？即怎么销毁线程？</p>
-<p>乍看当在子线程开启runloop后，timer会一直在子线程中运行，所以子线程不会销毁，runloop也就无法停止，runloop也就没法销毁，runloop与timer之间的强引用则还是被保留着，这似乎又是个死循环。但实际上，<em>由于上述代码runloop的mode item只有Timer，所以只要销毁timer，runloop就会退出。</em>所以，上述的代码是没问题的，不存在内存泄露问题。</p>
-<p>附：NSTimer上的定时任务是在创建NSTimer的线程上执行的。</p>
-<p>–</p>
-<p>附：以上NSTimer的内容，有空的话还可参考<a href="https://www.imooc.com/article/22331">NSTimer,NSRunLoop,autoreleasepool,多线程的爱恨情仇</a>，它那边讲的，和这边自己理解的基本是一样的。只是对于有些点的介绍详细不一定一样而已。</p>
-<p>其他有空可看<a href="http://www.cocoachina.com/ios/20150710/12444.html">iOS 中的 NSTimer</a></p>
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-[< 返回目录](#目录)
-
-
-
-<p id="END"></p>
-## END
-[< 返回目录](#目录)
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8Timer/" data-id="cmpnyclrr012xi5r40qgof0ae" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
       <article id="post-iOS/基础/内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -927,7 +277,206 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/" data-id="cmpnyclrs0131i5r41ulegxz7" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/" data-id="cmpojeml6011uo4r47bpnayjm" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/内存/2内存-②循环引用" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/">
+    
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-10-25</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/">内存-②循环引用</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<p id="目录"></p>
+# 目录
+
+<ul>
+<li><p><a href="#%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%8E%9F%E5%9B%A0">一、循环引用原因</a></p>
+</li>
+<li><p><a href="#NSTimer%E7%9A%84%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8">二、NSTimer的循环引用</a></p>
+</li>
+<li><p><a href="#%E5%A7%94%E6%89%98delegate%E7%9A%84%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8">三、委托delegate的循环引用</a></p>
+</li>
+<li><p><a href="#block%E7%9A%84%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8">四、block的循环引用</a></p>
+</li>
+</ul>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">1、Objective-C中block为何得用copy修饰，能否用其他</span><br><span class="line">2、block的循环引用</span><br><span class="line">3、block循环引用的解决</span><br><span class="line">4、判断该block是否会发生循环引用</span><br><span class="line">5、为什么masonry的block里引用self不需要weak？</span><br><span class="line">6、是否所有的Block中，使用self 都会导致循环引用？</span><br><span class="line">7、block修改外部局部变量</span><br><span class="line">(1)、在block中无法直接修改外部变量的原因</span><br><span class="line">(2)、解决如何在 block 中修改外部变量</span><br></pre></td></tr></table></figure>
+</blockquote>
+<ul>
+<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p id="循环引用原因"></p>
+## 一、循环引用原因
+> [< 返回目录](#目录)
+
+<p>导致iOS对象无法按预期释放的一个无形杀手是——循环引用。循环引用可以简单理解为A引用了B，而B又引用了A，双方都同时保持对方的一个引用，导致任何时候引用计数都不为0，始终无法释放。若当前对象是一个ViewController，则在dismiss或者pop之后其dealloc无法被调用，在频繁的push或者present之后内存暴增，然后APP就duang地挂了。</p>
+<p><strong>循环引用会导致内存泄露，因为循环应用会导致，有些对象没办法在已经不会再使用的时候被释放掉</strong></p>
+<p>下面列举我们变成中比较容易碰到的三种循环引用的情形：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">（1）计时器NSTimer：✅__weak typeof(self) weakSelf = self;</span><br><span class="line">循环引用：self -&gt; timer -&gt; block -&gt; self</span><br><span class="line">（2）block：✅copy</span><br><span class="line">@property (nonatomic, copy) void (^myBlock)(void);</span><br><span class="line">（3）委托delegate：✅weak</span><br><span class="line">@property (nonatomic, weak) id&lt;YourDelegateProtocol&gt; delegate;</span><br></pre></td></tr></table></figure>
+
+
+
+<p id="NSTimer的循环引用"></p>
+## 二、NSTimer的循环引用
+> [< 返回目录](#目录)
+
+<p>NSTimer的循环引用详情，我们放在下面讲解NSTimer(前面已经提过NSTimer 其实就是RunLoop中的CFRunLoopTimerRef，一个基于时间的触发器)的时候介绍。</p>
+<p>解决方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">@interface HWWeakTimerTarget : NSObject</span><br><span class="line"></span><br><span class="line">@property (nonatomic, weak) id target;			// 注意是 weak</span><br><span class="line">@property (nonatomic, assign) SEL selector; // assign</span><br><span class="line">@property (nonatomic, weak) NSTimer* timer;	// 注意是 weak</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line">  </span><br><span class="line">@implementation HWWeakTimerTarget</span><br><span class="line"></span><br><span class="line">- (void)fire:(NSTimer *)timer &#123;</span><br><span class="line">    if(self.target) &#123;</span><br><span class="line">#pragma clang diagnostic push</span><br><span class="line">#pragma clang diagnostic ignored &quot;-Warc-performSelector-leaks&quot;</span><br><span class="line">        [self.target performSelector:self.selector withObject:timer.userInfo afterDelay:0.0f];</span><br><span class="line">#pragma clang diagnostic pop</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        [self.timer invalidate];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation HWWeakTimer</span><br><span class="line"></span><br><span class="line">+ (NSTimer *)scheduledTimerWithTimeInterval:(NSTimeInterval)interval</span><br><span class="line">                                     target:(id)aTarget</span><br><span class="line">                                   selector:(SEL)aSelector</span><br><span class="line">                                   userInfo:(id)userInfo</span><br><span class="line">                                    repeats:(BOOL)repeats &#123;</span><br><span class="line">    HWWeakTimerTarget *timerTarget = [[HWWeakTimerTarget alloc] init];</span><br><span class="line">    timerTarget.target = aTarget;</span><br><span class="line">    timerTarget.selector = aSelector;</span><br><span class="line">    timerTarget.timer = [NSTimer scheduledTimerWithTimeInterval:interval</span><br><span class="line">                                                         target:timerTarget</span><br><span class="line">                                                       selector:@selector(fire:)</span><br><span class="line">                                                       userInfo:userInfo</span><br><span class="line">                                                        repeats:repeats];</span><br><span class="line">    return timerTarget.timer;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+<p id="委托delegate的循环引用"></p>
+## 三、委托delegate的循环引用
+> [< 返回目录](#目录)
+
+<p>在委托问题上出现循环引用问题已经是老生常谈了，声明delegate时请用weak(ARC)，如果是MRC则用assign。千万别手贱。</p>
+<p id="block的循环引用"></p>
+## 四、block的循环引用
+> [< 返回目录](#目录)
+
+<h5 id="1、Objective-C中block为何得用copy修饰，能否用其他"><a href="#1、Objective-C中block为何得用copy修饰，能否用其他" class="headerlink" title="1、Objective-C中block为何得用copy修饰，能否用其他"></a>1、Objective-C中block为何得用copy修饰，能否用其他</h5><blockquote>
+<p>答：因为<strong>block在创建的时候，它的内存是分配在栈(stack)上，而不是在堆(heap)上。他本身的作于域是属于创建时候的作用域，一旦在创建时候的作用域外面调用block将导致程序崩溃。所以，为了能够在block的声明域外也能够使用block，我们需要将block拷贝到堆上，所以使用copy属性。</strong>对于堆中的block，也就是copy修饰的block。他的生命周期是随着对象的销毁而结束的。只要对象不销毁，我们就可以调用的到在堆中的block。</p>
+</blockquote>
+<p>Block 在创建时可能存储在不同的内存区域（栈或堆）中，而在将其赋值给对象或作为函数或方法的参数时，需要确保 Block 存储在堆中，以便在调用时能够正常执行。如果 Block 存储在栈中，则在函数或方法返回后，Block 对象所在的内存区域将被释放，从而导致程序崩溃或者产生其他未定义的行为。所以block应该被持有，即<strong>应该使用copy或者strong修改。那为什么我们还是习惯使用copy呢？因为使用 copy 可以提高线程安全性</strong>，因为每个线程可以独立地使用 block 的副本，而不必担心其他线程对原始 block 的修改。举例点击一个按钮</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">MyClass</span> : <span class="title">NSObject</span></span></span><br><span class="line"><span class="keyword">@property</span> (<span class="keyword">nonatomic</span>, <span class="keyword">copy</span>) <span class="type">void</span> (^updateUIBlock)(<span class="type">void</span>); <span class="comment">// 使用 copy 属性</span></span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">@implementation</span> <span class="title">MyClass</span></span></span><br><span class="line"></span><br><span class="line">- (<span class="type">id</span>)init &#123;</span><br><span class="line">  <span class="keyword">self</span> = [<span class="variable language_">super</span> init];</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">self</span>) &#123;</span><br><span class="line">    __<span class="keyword">weak</span> <span class="keyword">typeof</span>(<span class="keyword">self</span>) weakSelf = <span class="keyword">self</span>; <span class="comment">// 使用 __weak 避免循环引用</span></span><br><span class="line">    <span class="keyword">self</span>.updateUIBlock = ^&#123;</span><br><span class="line">        __<span class="keyword">strong</span> <span class="keyword">typeof</span>(weakSelf) strongSelf = weakSelf;</span><br><span class="line">        <span class="keyword">if</span> (strongSelf) &#123;</span><br><span class="line">            <span class="built_in">dispatch_async</span>(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">                [strongSelf __updateUI];</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line">- (<span class="type">void</span>)__updateUI &#123;</span><br><span class="line">    <span class="comment">// 更新 UI 的代码</span></span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;UI updated on main thread&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)clickToUpdateUI &#123;</span><br><span class="line">    <span class="comment">// 执行异步任务，并在完成后调用 updateUIBlock</span></span><br><span class="line">    [<span class="keyword">self</span> performBackgroundTaskWithCompletion:<span class="keyword">self</span>.updateUIBlock];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// completion这个block如果是原block的副本，那么这里即使多个后台任务尝试同时更新 UI，每个任务都会有 `updateUIBlock` 的独立副本，不会相互干扰。这确保了 UI 更新操作的线程安全性。</span></span><br><span class="line">- (<span class="type">void</span>)performBackgroundTaskWithCompletion:(<span class="type">void</span> (^)(<span class="type">void</span>))completion &#123;</span><br><span class="line">    <span class="comment">// 模拟后台线程任务</span></span><br><span class="line">    <span class="built_in">dispatch_async</span>(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, <span class="number">0</span>), ^&#123;</span><br><span class="line">        <span class="comment">// ... 执行一些后台操作 ...</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 任务完成后，调用 completion block</span></span><br><span class="line">        <span class="keyword">if</span> (completion) &#123;</span><br><span class="line">            completion();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">@end</span></span><br></pre></td></tr></table></figure>
+
+<p>扩展：为什么NSString 可以使用strong和copy，却选择使用 <code>copy</code>？（个人理解：因为NSString是不可变的，既然不可变还不如使用copy再加一层线程安全）</p>
+<p>使用 <code>copy</code> 属性修饰符通常有以下原因：</p>
+<ol>
+<li><strong>确保线程安全</strong>：如果你在多线程环境中操作字符串，使用 <code>copy</code> 可以确保每个线程都有自己的副本，从而避免线程安全问题。</li>
+<li><strong>避免外部修改</strong>：如果你不希望外部代码修改原始字符串，使用 <code>copy</code> 可以确保你的属性持有的是原始字符串的一个副本，外部代码对原始字符串的修改不会影响到你的属性。</li>
+</ol>
+<h5 id="2、block的循环引用"><a href="#2、block的循环引用" class="headerlink" title="2、block的循环引用"></a>2、block的循环引用</h5><p><strong>由于block在copy时都会对block内部用到的对象进行强引用(ARC)或者retainCount增1(非ARC)。所以，不管是在ARC还是非ARC环境下对block使用不当都会引起循环引用问题</strong></p>
+<p>一般表现为，某个类将block作为自己的属性变量(则该类就对block强引用了)，然后该类在block的方法体里面又使用了该类本身。即当对象（比如self）拥有一个block属性的时候，在block属性中又引用了对象的其他成员变量或者调用了对象的其他方法。形成你中有我，我中有你，谁都无法将谁释放的困局。形如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">self.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line"> &#125;;</span><br><span class="line"> </span><br><span class="line">又或者</span><br><span class="line"></span><br><span class="line">ClassA* objA = [[ClassA alloc] init];</span><br><span class="line">objA.myBlock = ^&#123;</span><br><span class="line">   [self doSomething];</span><br><span class="line">&#125;;</span><br><span class="line">self.objA = objA;</span><br></pre></td></tr></table></figure>
+
+<p>block的这种循环引用会被编译器捕捉到并及时提醒。</p>
+<p>以上参考自：<a href="http://www.jianshu.com/p/b79bac09177e">Block的循环引用</a></p>
+<h5 id="3、block循环引用的解决"><a href="#3、block循环引用的解决" class="headerlink" title="3、block循环引用的解决"></a>3、block循环引用的解决</h5><h6 id="1-、常规简单解法"><a href="#1-、常规简单解法" class="headerlink" title="(1)、常规简单解法"></a>(1)、常规简单解法</h6><p>解决方法,就一句话的事情：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof (self) weakSelf = self; </span><br><span class="line">self.myBlock = ^&#123;</span><br><span class="line">    [weakSelf doSomething];</span><br><span class="line">  &#125;;</span><br><span class="line">  </span><br><span class="line">  附1：如果是non-ARC环境下就将__weak替换为__block即可。non-ARC情况下，__block变量的含义是在Block中引入一个新的结构体成员变量指向这个__block变量，那么__block typeof(self) weakSelf = self;就表示Block别再对self对象retain啦，这就打破了循环引用。</span><br><span class="line">  </span><br><span class="line">  附2：__weak 是 iOS 5.0 推出的，_weak 相当于 weak，不会做强引用，如果对象被释放，执行的地址，会指向 nil</span><br></pre></td></tr></table></figure>
+
+
+<h6 id="2-、block中使用-weak–strong-dance-技术避免循环引用"><a href="#2-、block中使用-weak–strong-dance-技术避免循环引用" class="headerlink" title="(2)、block中使用 weak–strong dance 技术避免循环引用"></a>(2)、block中使用 weak–strong dance 技术避免循环引用</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__weak typeof(self)weakSelf = self;</span><br><span class="line">  [header setTapHandle:^&#123;</span><br><span class="line">  		__strong __typeof(weakSelf)strongSelf = weakSelf;</span><br><span class="line">  		if (strongSelf) &#123;</span><br><span class="line">     		NSLog(@&quot;strongSelf = %@&quot;, strongSelf);</span><br><span class="line">  		&#125;</span><br><span class="line"> 	[weakSelf headerAction:header];</span><br><span class="line">	&#125;];</span><br></pre></td></tr></table></figure>
+<p><strong>精髓2：①在 block 之前定义对 self 的一个弱引用weakSelf，因为是弱引用，所以当 self 被释放时weakSelf会变为nil；② 在 block 中引用该弱应用，考虑到多线程情况，通过使用强引用 strongSelf 来引用该弱引用，这时如果 self 不为 nil 就会 retain self，以防止在后面的使用过程中 self 被释放;③在之后的 block 块中使用该强引用 bself，注意在使用前要对 bSelf 进行了 nil 检测，因为多线程环境下在用弱引用weakSelf对强引用strongSelf赋值时，弱引用weakSelf可能已经为nil了。通过这种手法，block 就不会持有 self 的引用，从而打破了循环引用。</strong></p>
+<h4 id="iOS开发中在block中为什么要-weak和-strong配合使用"><a href="#iOS开发中在block中为什么要-weak和-strong配合使用" class="headerlink" title="iOS开发中在block中为什么要__weak和__strong配合使用"></a><a href="https://www.jianshu.com/p/0b87b4e7da2c">iOS开发中在block中为什么要__weak和__strong配合使用</a></h4><blockquote>
+<p>答：__weak是为了解决循环引用。__strong是为了防止block持有的对象提前释放。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> - (void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event&#123;</span><br><span class="line">  [self dismissViewControllerAnimated:YES completion:nil];</span><br><span class="line"></span><br><span class="line">  __weak typeof(self) weakSelf = self;</span><br><span class="line">  self.block = ^&#123;</span><br><span class="line">      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">          NSLog(@&quot;%@&quot;, weakSelf);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;;</span><br><span class="line">  self.block();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>点击屏幕，当前控制器消失，同时被销毁掉，5秒后打印的weakSelf就是一个(null)。<br>而我们如果在block内使用__strong后就能保证再打印完strongSelf之后再释放当前控制器。</p>
+</blockquote>
+<h5 id="4、判断该block是否会发生循环引用"><a href="#4、判断该block是否会发生循环引用" class="headerlink" title="4、判断该block是否会发生循环引用"></a>4、判断该block是否会发生循环引用</h5><p><a href="http://www.cocoachina.com/ios/20170122/18601.html">判断该block是否会发生循环引用例子</a></p>
+<h5 id="5、为什么masonry的block里引用self不需要weak？"><a href="#5、为什么masonry的block里引用self不需要weak？" class="headerlink" title="5、为什么masonry的block里引用self不需要weak？"></a>5、为什么masonry的block里引用self不需要weak？</h5><p>这个就和网络请求里面使用self道理是一样的。因为UIView未强持有block，所以这个block只是个栈block，而且构不成循环引用的条件。栈block有个特性就是它执行完毕之后就出栈，出栈了就会被释放掉。看mas_makexxx的方法实现会发现这个block很快就被调用了，完事儿就出栈销毁，构不成循环引用，所以可以直接放心的使用self。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- (NSArray *)mas_makeConstraints:(void(^)(MASConstraintMaker *))block &#123;</span><br><span class="line">    self.translatesAutoresizingMaskIntoConstraints = NO;</span><br><span class="line">    MASConstraintMaker *constraintMaker = [[MASConstraintMaker alloc] initWithView:self];</span><br><span class="line">    block(constraintMaker);</span><br><span class="line">    return [constraintMaker install];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">如果要强引用，block应该是masnory的一个属性，即被masnory对象持有。且是copy修饰符</span><br></pre></td></tr></table></figure>
+
+<h4 id="6、是否所有的Block中，使用self-都会导致循环引用？"><a href="#6、是否所有的Block中，使用self-都会导致循环引用？" class="headerlink" title="6、是否所有的Block中，使用self 都会导致循环引用？"></a>6、是否所有的Block中，使用self 都会导致循环引用？</h4><h4 id="7、block修改外部局部变量"><a href="#7、block修改外部局部变量" class="headerlink" title="7、block修改外部局部变量"></a>7、block修改外部局部变量</h4><p>如果是全局变量呢？</p>
+<h6 id="1-、在block中无法直接修改外部变量的原因"><a href="#1-、在block中无法直接修改外部变量的原因" class="headerlink" title="(1)、在block中无法直接修改外部变量的原因"></a>(1)、在block中无法直接修改外部变量的原因</h6><p>错误示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//声明一个局部整型变量 </span><br><span class="line">int intValue = 3; //漏掉了__block修饰符</span><br><span class="line"></span><br><span class="line">//声明一个返回值为int,一个int参数的block变量</span><br><span class="line">int (^block)(int) = ^(int m)&#123;</span><br><span class="line">    intValue++;</span><br><span class="line">    return m * intValue;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">//调用block变量,5作为参数之后的结果</span><br><span class="line">NSLog(@&quot;block(5) = %d&quot;,block(5));</span><br></pre></td></tr></table></figure>
+<p>在上面的例子中,我们编译程序后发现编译器会有红色错误,错误提示为<br>Variable is not assignable (missing __block type specifier)</p>
+<p>为什么会出现不能被赋值的错误提示呢？</p>
+<p>block在实现时就会对它引用到的它所在方法中定义的栈变量进行一次只读拷贝，在 block 块内使用该只读拷贝。<br>那为了避免上述错误，就要<strong>精髓1：使用__block修饰符来修饰外部变量,用来通知编译器该外部变量intValue与block中的intValue指的是同一块儿内存地址，而不需要内存拷贝。</strong></p>
+<h6 id="2-、解决如何在-block-中修改外部变量"><a href="#2-、解决如何在-block-中修改外部变量" class="headerlink" title="(2)、解决如何在 block 中修改外部变量"></a>(2)、解决如何在 block 中修改外部变量</h6><ul>
+<li><p>有必要了解：<a href="http://www.jianshu.com/p/404ff9d3cd42">iOS中__block 关键字的底层实现原理</a></p>
+</li>
+<li><p>结论：<code>block可以访问外部变量，但是无法修改外部变量的值，如果要修改外部变量的值，需要对外部变量加上__block作为该变量的修饰</code></p>
+</li>
+</ul>
+<p> 来源：<a href="http://bbs.itheima.com/thread-248328-1-1.html">OC学习笔记之block访问外部变量【重点面试】</a></p>
+<ul>
+<li>问题： <a href="http://blog.csdn.net/huyisu/article/details/40543291">如何在 block 中修改外部变量</a></li>
+</ul>
+<p>有两种办法<br>① 第一种是可以修改 static 全局变量；<br>② 第二种是可以修改用新关键字 __block 修饰的变量。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__block int blockLocal  = 100;</span><br><span class="line">static int staticLocal  = 100;</span><br><span class="line"></span><br><span class="line">void (^aBlock)(void) = ^(void)&#123; </span><br><span class="line">    NSLog(@&quot; &gt;&gt; Sum: %d\n&quot;, global + staticLocal);</span><br><span class="line">    </span><br><span class="line">    global++;</span><br><span class="line">    blockLocal++;</span><br><span class="line">    staticLocal++;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">aBlock();</span><br></pre></td></tr></table></figure>
+<p><code>附：静态变量 和 全局变量   在加和不加  __block 都会直接引用变量地址。也就意味着静态变量和全局变量的修改可以直接修改，不需要作添加__block的步骤。</code></p>
+<h4 id="在ARC下获取对象的引用计数值"><a href="#在ARC下获取对象的引用计数值" class="headerlink" title="在ARC下获取对象的引用计数值"></a>在ARC下获取对象的引用计数值</h4><p>在ARC下获取对象的引用计数值，可以使用CFGetRetainCount。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">对于Core Foundation对象：</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;,  CFGetRetainCount(aCFString));</span><br><span class="line"></span><br><span class="line">对于Foundation对象</span><br><span class="line">NSLog(@&quot;CFGetRetainCount is %ld&quot;, CFGetRetainCount((__bridge CFTypeRef)aNNstring));</span><br><span class="line"></span><br><span class="line">NSLog(@&quot;%@ CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br></pre></td></tr></table></figure>
+
+<p>以下获取引用计数的方法错了，但是不知道正确的应该怎么用。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">- (void)dealloc &#123;</span><br><span class="line">    NSLog(@&quot;%@ dealloc&quot;, NSStringFromClass([self class]));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewWillDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewWillDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewWillDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)viewDidDisappear:(BOOL)animated &#123;</span><br><span class="line">    [super viewDidDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    NSLog(@&quot;%@ viewDidDisappear and CFGetRetainCount is %ld&quot;, NSStringFromClass([self class]), CFGetRetainCount((__bridge CFTypeRef)self));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>几篇文章：</p>
+<ul>
+<li><p><a href="https://www.jianshu.com/p/bcc0bcaadd6c">iOS杂谈：影响控制器正常释放的常见问题</a></p>
+</li>
+<li><p><a href="https://www.cnblogs.com/songliquan/p/4970505.html">iOS中控制器的释放问题</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/u014222687/article/details/51767685">Block与Self的循环引用</a></p>
+</li>
+<li><p><a href="http://www.cocoachina.com/ios/20170122/18601.html">ARC下用块（block）的循环引用问题样例探究</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/y_csdnblog_xx/article/details/51483111">ReactiveCocoa之RAC内存管理（十二）</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/16b78d72dc95">ReactiveCocoa入门教程——第二部分</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/16e8e2e5773c">subscribenext 循环引用</a></p>
+</li>
+</ul>
+<p id="常见笔试/面试题"></p>
+## 常见笔试/面试题
+[< 返回目录](#目录)
+
+<h6 id="block和-weak修饰符的区别是什么？"><a href="#block和-weak修饰符的区别是什么？" class="headerlink" title="__block和__weak修饰符的区别是什么？"></a>__block和__weak修饰符的区别是什么？</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1，在MRC时代，__block修饰，可以避免循环引用；ARC时代，__block修饰，同样会引起循环引用问题；</span><br><span class="line">2，__block不管是ARC还是MRC模式下都可以使用，可以修饰对象，还可以修饰基本数据类型；</span><br><span class="line">3，__weak只能在ARC模式下使用，也只能修饰对象，不能修饰基本数据类型；</span><br><span class="line">4，__block对象可以在block中被重新赋值，__weak不可以；</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+<p id="END"></p>
+## END
+> [< 返回目录](#目录)
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A1%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8/" data-id="cmpojeml70122o4r4aqol4ev0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1177,7 +726,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/" data-id="cmpnyclrs0139i5r48wq0alx4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/" data-id="cmpojeml90139o4r45fynhc1m" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1274,7 +823,7 @@
 </blockquote>
 <p>runloop与崩溃的关系</p>
 <p>在 iOS 开发中，由于 RunLoop 导致的崩溃通常不是直接由 RunLoop 本身引起的，而是由于 RunLoop 中的事件处理代码存在问题。</p>
-<p>《起死回生&#x2F;回光返照》见《<a href="../../../Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7/%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%B4%A9%E6%BA%83.md">异常与崩溃.md</a>》</p>
+<p>《起死回生&#x2F;回光返照》见《<a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7/%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%B4%A9%E6%BA%83/">异常与崩溃.md</a>》</p>
 <p>runtime</p>
 <p>运行时（Runtime）是 Objective-C 语言的核心特性之一，它提供了一组丰富的 API，允许程序在运行时查询和修改程序的行为。这种动态性使得 Objective-C 语言具有很高的灵活性。</p>
 <h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
@@ -1291,8 +840,8 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
 <p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系&#x2F;RunLoop相关各类关系，如下图所示：</p>
 <blockquote>
-<p><img src="/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/RunLoop%E7%9B%B8%E5%85%B3%E5%90%84%E7%B1%BB%E5%85%B3%E7%B3%BB.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source&#x2F;Timer&#x2F;Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source&#x2F;Timer&#x2F;Observer，让其互不影响。</p>
-<p>RunLoop的内部逻辑<br><img src="/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/RunLoop%E7%9A%84%E5%86%85%E9%83%A8%E9%80%BB%E8%BE%91.png" alt="RunLoop的内部逻辑"></p>
+<p><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9B%B8%E5%85%B3%E5%90%84%E7%B1%BB%E5%85%B3%E7%B3%BB.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source&#x2F;Timer&#x2F;Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source&#x2F;Timer&#x2F;Observer，让其互不影响。</p>
+<p>RunLoop的内部逻辑<br><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9A%84%E5%86%85%E9%83%A8%E9%80%BB%E8%BE%91.png" alt="RunLoop的内部逻辑"></p>
 </blockquote>
 <h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
 <ul>
@@ -1325,7 +874,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/" data-id="cmpnyclrs013ci5r4gzkjhytg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/" data-id="cmpojeml9013do4r4bokqc4ew" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1458,7 +1007,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E5%B8%83%E5%B1%80/" data-id="cmpnyclrs013hi5r4062a9edg" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E5%B8%83%E5%B1%80/" data-id="cmpojeml9013ho4r4001r1m9m" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1559,7 +1108,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" data-id="cmpnyclrt013ki5r44tp84z1v" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" data-id="cmpojemla013lo4r480un8cwl" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1647,7 +1196,147 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/" data-id="cmpnyclrt013pi5r4cttn364l" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/" data-id="cmpojemla013oo4r4egh6bt6l" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/视图/3视图-更新机制" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/">
+    
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-08-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/">视图-更新机制</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<p>系统有基本稳定的刷新频率，在layer内容改变的时候，把这个layer做个<strong>需要刷新</strong>的标记，即是<code>setNeedsDisplay</code>。</p>
+<p>然后每次刷新时，把上次刷新之后被标记的layer一次性全部提交给图形系统，所以这里还有一个东西，就是**事务(CATransaction)**。</p>
+<p>其他类似举例：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tableView.beginUpdates()</span><br><span class="line">tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-2</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">    tableView.insertRows(at: [IndexPath(row: tableData.count<span class="number">-1</span>, section: <span class="number">0</span>)], with: <span class="built_in">UITableViewRowAnimation</span>.automatic)</span><br><span class="line">tableView.endUpdates()</span><br></pre></td></tr></table></figure>
+
+<p><code>beginUpdates</code> 和 <code>endUpdates</code> 方法的作用是，让这两条语句之间的对 tableView 的操作( insert&#x2F;delete)<strong>不立即执行，而是先聚合起来，然后同时更新 UI</strong>。</p>
+<h3 id="1、刷新频率"><a href="#1、刷新频率" class="headerlink" title="1、刷新频率"></a>1、刷新频率</h3><h4 id="1-1、显示器的刷新率-VS-显卡渲染的帧率"><a href="#1-1、显示器的刷新率-VS-显卡渲染的帧率" class="headerlink" title="1.1、显示器的刷新率 VS 显卡渲染的帧率"></a>1.1、显示器的刷新率 VS 显卡渲染的帧率</h4><p>1、显示器的刷新率为 50Hz，显卡渲染的帧率是 200FPS</p>
+<p>即显示器20ms显示一帧，显卡5ms渲染一帧。</p>
+<p>则20ms里，显卡渲染了4帧数据，但显示器只能显示了一次，该画面由4帧数据组成，造成撕裂。</p>
+<p>所以需要压制显卡的渲染速率，使显卡的帧缓冲区切换行为与显示器的帧绘制保持同步。<strong>垂直同步（Vertical Synchronization, VSync）</strong>即是为了处理此。</p>
+<p>好文推荐： <a href="https://daily.elepover.com/2021/03/27/vsync/index.html">扫描，撕裂和垂直同步 - VSync 技术实现</a></p>
+<h5 id="1-1-1、显示数据的提供来源：帧缓冲区"><a href="#1-1-1、显示数据的提供来源：帧缓冲区" class="headerlink" title="1.1.1、显示数据的提供来源：帧缓冲区"></a>1.1.1、显示数据的提供来源：帧缓冲区</h5><p>问：帧完全渲染后直接显示不是更快，为什么先放到缓冲区等待下一次刷新频率？</p>
+<p>答：如果帧完全渲染后<strong>直接显示</strong>，而不经过缓冲区，理论上听起来更直接，但实际上会带来一些问题，尤其是在现代显示系统中。1. <strong>直接显示的问题，屏幕撕裂（Tearing）</strong>：</p>
+<ul>
+<li>如果帧直接显示，而屏幕正在刷新（例如从上到下逐行刷新），可能会导致屏幕上半部分显示旧帧，下半部分显示新帧，这种现象称为“屏幕撕裂”。</li>
+<li>撕裂会严重影响视觉体验，尤其是在快速移动的场景中（如游戏或视频）。</li>
+</ul>
+<p>通常，显示器是一台独立工作的设备，状态与显卡无关，会以恒定不变的频率从某个「池」里面读取画面，以保证稳定的图像输出。与此同时，显卡也会往这个「池」里写画面，以供显示器读取。这个「池」叫「<strong>Framebuffer（帧缓冲区）</strong>」。</p>
+<p>一张显卡通常有 2 个帧缓冲区：<strong>主&#x2F;副（Primary&#x2F;Secondary）缓冲区（也称前&#x2F;后缓冲区（Front&#x2F;Back））</strong>，由数据选择器（Multiplexer）选择连接到显示器的缓冲区。连接到显示器的缓冲区总是主缓冲区，显示器从中读取图像内容；未连接到显示器的缓冲区总是副缓冲区，显卡向其中写入渲染好的内容。</p>
+<p>显卡总是会尝试以最快的速度渲染内容，每完成一帧渲染即切换主&#x2F;副缓冲区，与显示器的工作状态完全无关。</p>
+<img src="/iOS/基础/视图/3视图-更新机制/image-20240905163331025.png" alt="image-20240905163331025" style="width:50%;" />
+
+<blockquote>
+<p>当渲染完成后，副缓冲区的内容会与主缓冲区的内容进行交换，这个过程是双缓冲（Double Buffering）技术的一部分，用于避免屏幕撕裂和闪烁，同时提高图像渲染的效率。下面详细解释这个过程：</p>
+<ol>
+<li><strong>主缓冲区（Front Buffer）</strong>：这是当前正在屏幕上显示的图像所在的缓冲区。用户看到的所有内容都存储在这里，显示器会不断读取这个缓冲区的内容来显示图像。</li>
+<li><strong>副缓冲区（Back Buffer）</strong>：这是显卡用来准备下一帧图像的缓冲区。当一帧图像显示在屏幕上时，显卡可以在副缓冲区中渲染下一帧图像，而不会影响当前显示的内容。</li>
+<li><strong>渲染过程</strong>：显卡开始在副缓冲区中渲染新的一帧图像。这个过程可能包括执行复杂的图形计算，如光照计算、纹理映射、深度测试等。</li>
+<li><strong>缓冲区交换（Buffer Swap）</strong>：一旦副缓冲区中的新帧渲染完成，显卡会执行一个缓冲区交换操作。这个操作会将副缓冲区的内容复制到主缓冲区，这样显示器就可以开始显示新的一帧图像，而副缓冲区则准备好接受下一帧的渲染数据。</li>
+<li><strong>避免屏幕撕裂</strong>：由于显示器是逐行刷新的，如果在显示器刷新过程中显卡正在渲染新的帧，就可能出现屏幕撕裂现象。双缓冲技术通过在渲染完成后才进行缓冲区交换，确保了显示器在任何时候都不会读取到半成品的帧，从而避免了屏幕撕裂。</li>
+<li><strong>提高效率</strong>：在双缓冲机制下，显卡可以在一帧显示的同时准备下一帧，这样可以更有效地利用显卡资源，提高渲染效率。</li>
+<li><strong>垂直同步（V-Sync）</strong>：为了进一步提高图像质量和减少撕裂，有时会使用垂直同步技术。垂直同步会同步显卡的渲染速度和显示器的刷新率，确保缓冲区交换发生在显示器刷新周期的合适时刻。</li>
+</ol>
+<p>通过这种方式，双缓冲技术能够在不牺牲渲染效率的情况下，提供流畅且无撕裂的图像显示。</p>
+</blockquote>
+<h4 id="1-2、垂直同步（Vertical-synchronization）"><a href="#1-2、垂直同步（Vertical-synchronization）" class="headerlink" title="1.2、垂直同步（Vertical synchronization）"></a>1.2、垂直同步（Vertical synchronization）</h4><p><strong>cpu渲染完一帧后会立即渲染下一帧吗？还是需要等到V-Sync？</strong></p>
+<ul>
+<li><strong>开启 V-Sync 时</strong>：<ul>
+<li>CPU 和 GPU 需要等待 V-Sync 信号才能开始下一帧的工作。（当开启 <strong>V-Sync（垂直同步）</strong> 时，<strong>CPU 和 GPU 需要等待 V-Sync 信号才能开始下一帧的工作</strong>，这看起来似乎浪费了时间，但实际上这是为了<strong>保证帧的同步显示</strong>和<strong>避免资源浪费</strong>。如果 CPU 和 GPU 不等待 V-Sync 信号，而是尽快处理下一帧，可能会导致在一个V-Sync内生成了两帧，但等下只会使用一帧，从而多余的帧会被丢弃，浪费 CPU 和 GPU 的计算资源。）</li>
+<li>这是为了避免帧率超过屏幕刷新率，减少屏幕撕裂和功耗。</li>
+</ul>
+</li>
+<li><strong>关闭 V-Sync 时</strong>：<ul>
+<li>CPU 和 GPU 会尽可能快地渲染帧，不受屏幕刷新率的限制。</li>
+<li>这可能会导致屏幕撕裂，但可以提高帧率（例如在游戏中）。</li>
+</ul>
+</li>
+</ul>
+<p>V-Sync 的主要作用就是保证<strong>只有在帧缓冲区中的图像被渲染之后，后备缓冲区中的内容才可以被拷贝到帧缓冲区中</strong>。</p>
+<p>其实到这里关于屏幕渲染的内容就已经差不多结束了。</p>
+<p><strong>iOS 的显示系统是由 VSync 信号驱动的</strong>，VSync 信号由硬件时钟生成，每秒钟发出 60 次（这个值取决设备硬件，比如 iPhone 真机上通常是 59.97）。</p>
+<p><strong>RunLoop是一个事件循环对象</strong>，用于管理线程的事件处理。每个线程都有一个与之对应的RunLoop对象，主线程的RunLoop在应用程序启动时自动创建并运行，而子线程的RunLoop需要手动创建和维护。<strong>RunLoop的作用是让线程能够随时处理事件而不退出，它通过循环检查输入源（如Timer、Source等）和定时源，等待接收事件，当没有事件时让线程休眠以节省资源。</strong></p>
+<p>Core Animation（CA）是 iOS 中的动画和图形渲染引擎，它在 RunLoop 中注册了 Observer 来监听特定的事件，以便在适当的时机进行渲染操作。这些 Observer 可以监听多种 RunLoop 的事件，包括：</p>
+<ol>
+<li><strong>BeforeWaiting</strong>：RunLoop 即将进入休眠状态之前，此时没有待处理的事件，系统可能在等待新的输入事件或定时器事件。Core Animation 会在这个时候进行渲染操作，准备下一帧的显示内容。</li>
+<li><strong>Exit</strong>：RunLoop 即将退出时，这通常意味着线程将结束运行。在这个阶段，Core Animation 可能会进行一些清理工作。</li>
+</ol>
+<p>手机硬件时钟生成Vsync信号 </p>
+<p>&#x3D;&gt; 图形服务接收到 VSync 信号后，会通过 IPC 通知到 App 内。</p>
+<p>&#x3D;&gt; app收到当VSync信号到达时，应用程序的主线程开始处理显示内容，如视图创建、布局计算等，然后将内容提交给GPU进行渲染。渲染完成后，GPU将结果提交到帧缓冲区，等待下一个VSync信号到来时显示到屏幕上。</p>
+<p>&#x3D;&gt; Runloop接收到时钟信号（<strong>App 的 Runloop 在启动后会注册对应的 CFRunLoopSource 通过 mach_port 接收传过来的时钟信号通知</strong>，随后 Source 的回调会驱动整个 App 的动画与显示。</p>
+<p>当VSync信号到来时，系统图形服务会通过CADisplayLink等机制通知应用程序，</p>
+<h2 id="离屏渲染"><a href="#离屏渲染" class="headerlink" title="离屏渲染"></a>离屏渲染</h2><p>在iOS设备上，<strong>GPU渲染通常发生在帧缓冲区中</strong>，这是GPU用来临时存储即将显示到屏幕上的像素数据的区域。帧缓冲区通常采用双缓冲机制，即存在一个前台缓冲区和一个后台缓冲区。前台缓冲区是当前显示在屏幕上的帧，而后台缓冲区是GPU正在渲染的下一帧。</p>
+<p><strong>离屏渲染（Off-Screen Rendering）是当GPU无法直接在帧缓冲区中渲染某些效果时所采用的一种技术。以下是一些可以在帧缓冲区处理的效果，以及一些需要离屏渲染的效果：</strong></p>
+<p>可以在帧缓冲区处理的效果：</p>
+<ol>
+<li><strong>简单的颜色填充和边框绘制</strong>：这些可以直接在GPU的帧缓冲区中进行，因为它们不涉及复杂的像素操作。</li>
+<li><strong>使用<code>contents</code>属性设置的图像</strong>：如果图层的内容是一个简单的图像，且没有复杂的变换或混合，这些可以直接在帧缓冲区中渲染。</li>
+</ol>
+<p>需要离屏渲染的效果：</p>
+<ol>
+<li><strong>圆角（Rounded Corners）</strong>：当为UIView或其子类设置<code>cornerRadius</code>属性时，如果视图同时具有不透明背景色或复杂的背景图像，可能会触发离屏渲染。</li>
+<li><strong>阴影（Shadows）</strong>：设置layer的shadow属性（如shadowColor、shadowOffset、shadowRadius等）会产生阴影效果，这些效果通常需要离屏渲染。</li>
+<li><strong>透明度（Opacity）</strong>：当视图的alpha值小于1或使用了CALayer的opacity属性时，如果有复杂混合层级，可能触发离屏渲染。</li>
+<li><strong>遮罩（Masking）</strong>：使用CALayer的mask属性或UIView的maskView时，遮罩效果通常需要离屏渲染。</li>
+<li><strong>非默认混合模式</strong>：当视图或图层使用非默认的混合模式（如multiply、screen、overlay等）时，系统可能需要在离屏缓冲区中进行混合操作。</li>
+<li><strong>多重渲染目标（Multiple Render Passes）</strong>：需要多次渲染才能完成的效果，如复杂动画、多重叠加效果等，可能需要离屏缓冲区进行中间结果的存储和合并。</li>
+</ol>
+<h3 id="为什么某些效果不行："><a href="#为什么某些效果不行：" class="headerlink" title="为什么某些效果不行："></a>为什么某些效果不行：</h3><p>某些效果需要在渲染过程中进行多次像素级的处理，这<strong>在帧缓冲区的单次渲染流程中难以实现</strong>。例如，阴影效果需要在原始图层渲染后，再在其周围绘制额外的阴影像素，这涉及到对已经渲染的像素进行二次处理，因此需要在离屏缓冲区中先进行渲染，然后再与主帧缓冲区的内容合并。</p>
+<h3 id="优化建议："><a href="#优化建议：" class="headerlink" title="优化建议："></a>优化建议：</h3><ul>
+<li><strong>避免不必要的离屏渲染</strong>：例如，对于圆角效果，可以考虑使用系统提供的圆角属性，而不是通过离屏渲染实现。</li>
+<li><strong>合理利用视图层级关系</strong>：在iOS中，视图层级关系会影响渲染的优先级，可以通过调整视图的层级来优化渲染性能。</li>
+<li><strong>使用offscreen rendering进行调试</strong>：通过打开offscreen rendering的调试选项，可以观察到应用在进行离屏渲染时的具体情况，帮助定位性能瓶颈。</li>
+</ul>
+<p>通过深入理解离屏渲染的原理并采取有效的优化措施，可以提升应用的性能和用户体验。在实际开发中，应尽量避免不必要的离屏渲染操作，合理利用视图层级关系和Metal API进行自定义渲染，从而打造出流畅、高效的iOS应用。</p>
+<h2 id="Flutter刷新机制"><a href="#Flutter刷新机制" class="headerlink" title="Flutter刷新机制"></a>Flutter刷新机制</h2><p>Flutter setState 标脏 子widget build 等是什么关系？</p>
+<p><strong>Widget不可改变。</strong></p>
+<p>StatefulWidget是有状态的Widget，其持有一个关联的<code>State</code>对象，用来保存状态信息，并可以通过调用<code>setState</code>来更新状态。StatefulWidget调用setState时候，该Widget被标记为“脏”（dirty），且它的所有子Widget也会被标记为脏。</p>
+<p>通常情况下，被标记为“脏”的Widget会在下一次绘制帧中调用其<code>build</code>方法。然而，这并不意味着它的<code>build</code>方法<strong>一定</strong>会被调用，即如果Flutter框架能够确定一个Widget及其子树在逻辑上没有变化，即使它被标记为“脏”，Flutter也可能跳过重建过程，复用之前的Widget实例。这种情况通常发生在为一个Widget设置了<code>GlobalKey</code>或<code>UniqueKey</code>，并且Flutter能够识别出这个Widget在逻辑上没有变化，即使它被标记为“脏”，它的<code>build</code>方法也可能不会被调用。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/" data-id="cmpojemla013ro4r47g6y7w5o" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1699,11 +1388,351 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%AE%9E%E7%94%A8/Xcode%20Extensions/Swifttify%20for%20Xcode/" data-id="cmpnyclr300opi5r4ebzt57ub" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%AE%9E%E7%94%A8/Xcode%20Extensions/Swifttify%20for%20Xcode/" data-id="cmpojemkk00oyo4r48z81eo4g" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li></ul>
 
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-Architecture架构/网络/HTTP与网络基础" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/">
+    
+      <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-26</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-05-23</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%BD%91%E7%BB%9C/">网络</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/">HTTP与网络基础</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="必备知识架构-线程与网络-③网络"><a href="#必备知识架构-线程与网络-③网络" class="headerlink" title="必备知识架构-线程与网络-③网络"></a>必备知识架构-线程与网络-③网络</h1>
+<h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><ul>
+<li><p><a href="#HTTP%E8%AF%B7%E6%B1%82">九、在一个https连接的网站里，输入账号密码点击登录后，到服务器返回这个请求前，中间经历了什么</a></p>
+<blockquote>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1、一次完整的HTTP请求过程</span><br><span class="line">2、TCP三次握手</span><br><span class="line">3、TCP四次挥手</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="#TCP%E4%B8%8EUDP">十、TCP与UDP</a></p>
+<blockquote>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、TCP与UDP的区别</span><br><span class="line">2、为什么说UDP是不可靠的？</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="#%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E7%BC%93%E5%AD%98">十一、网络数据缓存</a></p>
+</li>
+<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
+<blockquote>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？</span><br><span class="line">2、cookie 和session 的区别</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><a href="#%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E7%BC%93%E5%AD%98">网络数据缓存</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<h3 id="1、传输层协议"><a href="#1、传输层协议" class="headerlink" title="1、传输层协议"></a>1、传输层协议</h3><p><strong>传输层</strong>的主要协议有TCP、UDP。</p>
+<p>TCP是一种面向连接的、可靠的、基于字节流的传输层通信协议。应用于需要可靠传输的应用中，如网页浏览（HTTP）、文件传输（FTP）、邮件传输（SMTP）、远程登录（SSH）等。</p>
+<ul>
+<li><strong>UDP</strong>：适用于对实时性要求高的应用，如在线游戏、VoIP（Voice over IP）、视频会议、DNS查询等。</li>
+</ul>
+<p>UDP是一种无连接的传输层协议。相比TCP不用建立三次握手，请求更快。适用于对实时性要求高的应用，如视频会议、在线游戏、实时监控等。</p>
+<h3 id="2、应用层协议"><a href="#2、应用层协议" class="headerlink" title="2、应用层协议"></a>2、应用层协议</h3><p><strong>HTTP基于tcp，且默认是短连接，如果要长链接，则设置Connection “keep-alive”</strong></p>
+<p>WebSocket也是基于tpc，固定是长链接。</p>
+<p>RTSP基于TCP或UDP，通常使用TCP来保证控制消息的可靠传输。</p>
+<p>HTTP、RTSP都是<strong>应用层</strong>、WebSocket也可算是应用层（在四层模型：TCP&#x2F;IP模型中，<strong>应用层</strong>是一个综合层，它包括了七层模型：OSI模型中的会话层、表示层和应用层的功能。）。</p>
+<p id="HTTP请求"></p>
+## 九、在一个https连接的网站里，输入账号密码点击登录后，到服务器返回这个请求前，中间经历了什么
+> [< 返回目录](#目录)
+
+<p>回答这个问题，我们必须要先了解，一次完整的HTTP请求过程，大概是什么样的。</p>
+<p>点击登录和服务器返回这个请求前，中间发生的起始就是一个域名解析和一次完整的http请求过程。</p>
+<p>域名解析：即请求DNS服务器，进行域名解析。DNS服务器负责将你的网络地址解析成IP地址，这个IP地址对应网上一台机器；</p>
+<p>而一次完整的HTTP请求过程，下面介绍之。</p>
+<h3 id="1、一次完整的HTTP请求过程"><a href="#1、一次完整的HTTP请求过程" class="headerlink" title="1、一次完整的HTTP请求过程"></a>1、一次完整的HTTP请求过程</h3><p>一次完整的HTTP请求过程如下图所示：</p>
+<blockquote>
+<p><img src="/Architecture架构/网络/HTTP与网络基础/%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84HTTP%E8%AF%B7%E6%B1%82%E8%BF%87%E7%A8%8B.png" alt="一次完整的HTTP请求过程"><br>详情可参考：<a href="http://android.jobbole.com/85218/">一次完整的HTTP请求过程</a></p>
+</blockquote>
+<h4 id="HTTP与HTTPS的区别"><a href="#HTTP与HTTPS的区别" class="headerlink" title="HTTP与HTTPS的区别"></a>HTTP与HTTPS的区别</h4><p> http和https使用的是完全不同的连接方式。</p>
+<p> 区别统计：</p>
+<p>①HTTP是不安全的(它的信息使用明文传输)，而HTTPS是安全的(会进行加密)；</p>
+<p>②使用的端口也不同，http使用的是80端口，https使用的是443端口。</p>
+<p>③HTTP无需证书，而HTTPS需要认证证书。</p>
+<p>在网络模型中，HTTP工作于应用层，而HTTPS工作在传输层；</p>
+<h3 id="2、TCP三次握手"><a href="#2、TCP三次握手" class="headerlink" title="2、TCP三次握手"></a>2、TCP三次握手</h3><p>一个故事让大家明白为什么会有tcp三次握手</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">敌人封锁江面, 我方间谍和联络员只能通过电报机隔着江面交流. 但是那时的电报机质量不稳定, 有可能会出现失灵的情况. 所以就出现了如下对话:</span><br><span class="line">间谍: 联络员, 你能收到我发的话么? 你要是能收到, 就说明我这个电报机可以发电报.</span><br><span class="line">联络员: 间谍, 我收到你发的话了, 这说明我的电报机可以收. 但是我不确定我的电报机能不能发, 你能收到我发的这句话么? 你要是能收到, 就说明我的电报机是可以发电报的. </span><br><span class="line">间谍: 联络员, 我收到你的话了. 我的电报机也是能发能收, 我们可以正式交流情报了.</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>TCP三次握手过程</p>
+<blockquote>
+<p>第一次握手： 客户端给服务器发送一个含有<code>同步序列号SYN</code> 报文。</p>
+<blockquote>
+<p><em>主机A通过向主机B 发送一个含有同步序列号SYN的标志位的数据段给主机B ,向主机B <code>请求建立连接</code>,通过这个数据段,主机A告诉主机B 两件事:<code>我想要和你通信</code>;你可以用哪个序列号作为起始数据段来回应我.</em></p>
+</blockquote>
+<p>第二次握手： 服务器收到 SYN 报文之后，会应答一个 SYN+ACK 报文。</p>
+<blockquote>
+<p><em>主机B 收到主机A的请求后,用一个带有<code>确认应答(ACK)</code>和同步序列号(SYN)标志位的数据段响应主机A,也告诉主机A两件事:<code>我已经收到你的请求了,你可以传输数据了</code>;你要用哪佧序列号作为起始数据段来回应我</em></p>
+</blockquote>
+<p>第三次握手： 客户端收到 SYN+ACK 报文之后，会回应一个 ACK 报文。</p>
+<blockquote>
+<p><em>主机A收到这个数据段后,再发送一个<code>确认应答</code>,确认已收到主机B 的数据段:”<code>我已收到回复,我现在要开始传输实际数据了</code>,这样三次握手就完成了,主机A和主机B 就可以传输数据了.</em></p>
+</blockquote>
+<p>服务器收到 ACK 报文之后，三次握手建立完成。</p>
+</blockquote>
+<p>附：</p>
+<p>TCP三次握手的作用是为了确认双方的接收与发送能力是否正常。</p>
+<p>握手过程中传送的包里正常不包含数据，三次握手完毕后，客户端与服务器才正式开始传送数据</p>
+<p>但其实第三次握手的时候，是可以携带数据的。也就是说，第一次、第二次握手不可以携带数据，而第三次握手是可以携带数据的。</p>
+<h3 id="3、TCP四次挥手"><a href="#3、TCP四次挥手" class="headerlink" title="3、TCP四次挥手"></a>3、TCP四次挥手</h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">举个栗子：把客户端比作男孩，服务器比作女孩。通过他们的分手来说明“四次挥手”过程。</span><br><span class="line">&quot;第一次挥手&quot;：日久见人心，男孩发现女孩变成了自己讨厌的样子，忍无可忍，于是决定分手，随即写了一封信告诉女孩。</span><br><span class="line">“第二次挥手”：女孩收到信之后，知道了男孩要和自己分手，立马给男孩写了一封回信：分手就分手，给我点时间，我要把你的东西整理好，全部还给你！男孩收到女孩的第一封信之后，明白了女孩知道自己要和她分手。随后等待女孩把自己的东西收拾好。</span><br><span class="line">“第三次挥手”：过了几天，女孩把男孩送的东西都整理好了，于是再次写信给男孩：你的东西我整理好了，快把它们拿走，从此你我恩断义绝！</span><br><span class="line">“第四次挥手”：男孩收到女孩第二封信之后，知道了女孩收拾好东西了，可以正式分手了，于是再次写信告诉女孩：我知道了，这就去拿回来！</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="4、为什么TCP建立连接要进行3次握手-而断开连接要进行4次？"><a href="#4、为什么TCP建立连接要进行3次握手-而断开连接要进行4次？" class="headerlink" title="4、为什么TCP建立连接要进行3次握手,而断开连接要进行4次？"></a>4、为什么TCP建立连接要进行3次握手,而断开连接要进行4次？</h3><p><a href="https://www.cnblogs.com/xiaolincoding/p/12638546.html"><strong>35 张图解：被问千百遍的 TCP 三次握手和四次挥手面试题</strong></a></p>
+<p><a href="https://baijiahao.baidu.com/s?id=1654225744653405133&wfr=spider&for=pc">详解 TCP 连接的“ 三次握手 ”与“ 四次挥手 ”&#x2F;为什么“握手”是三次，“挥手”却要四次？</a></p>
+<blockquote>
+<p>建立连接时，被动方服务器端结束CLOSED阶段进入“握手”阶段并不需要任何准备，可以直接返回SYN和ACK报文，开始建立连接。</p>
+<p>释放连接时，被动方服务器，突然收到主动方客户端释放连接的请求时并不能立即释放连接，因为还有必要的数据需要处理，所以服务器先返回ACK确认收到报文，经过CLOSE-WAIT阶段准备好释放连接之后，才能返回FIN释放连接报文。</p>
+<p>所以是“三次握手”，“四次挥手”。</p>
+</blockquote>
+<p><img src="/Architecture架构/网络/HTTP与网络基础/tcp_三次握手.png" alt="tcp_三次握手" style="width:40%;" /><img src="/Architecture架构/网络/HTTP与网络基础/tcp_四次挥手.png" alt="tcp_四次挥手" style="width:25%;" />   </p>
+<p>四次握手与三次握手</p>
+<p>四次握手其实也能够可靠的同步双方的初始化序号，但由于<strong>第二步和第三步可以优化成一步</strong>，所以就成了「三次握手」。</p>
+<p>为什么需要四次挥手。</p>
+<ul>
+<li>关闭连接时，客户端向服务端发送 <code>FIN</code> 时，仅仅表示客户端不再发送数据了但是还能接收数据。</li>
+<li>服务器收到客户端的 <code>FIN</code> 报文时，先回一个 <code>ACK</code> 应答报文，而服务端可能还有数据需要处理和发送，等服务端不再发送数据时，才发送 <code>FIN</code> 报文给客户端来表示同意现在关闭连接。</li>
+</ul>
+<p>如果第三次握手丢失了，服务端那一方迟迟收不到这个确认报文，就会触发超时重传机制，重传 SYN-ACK 报文，直到收到第三次握手，或者达到最大重传次数。</p>
+<p>如果第四次挥手的 ACK 报文没有到达服务端，服务端就会重发 FIN 报文。</p>
+<h3 id="5、TCP两次握手会出现什么问题"><a href="#5、TCP两次握手会出现什么问题" class="headerlink" title="5、TCP两次握手会出现什么问题"></a>5、TCP两次握手会出现什么问题</h3><blockquote>
+<p>《计算机网络》（谢希仁 译）中讲了原因：<br>1.采用两次握手，那么**若Client向Server发起的包A1如果在传输链路上遇到的故障，导致传输到Server的时间相当滞后，在这个时间段由于Client没有收到Server的对于包A1的确认(如果有确认，即Server有收到的话，会发送回一个B1包)，那么就会重传一个包A2(应该是等超时了)**，假设服务器正常收到了A2的包，然后返回确认B2包。由于没有第三次握手，这个时候Client和Server就被认为是已经建立连接，可以传输数据了。</p>
+<p><strong>接着假设Client发送的第一个A1包随后在链路中传到了Server，对于Server来说这是一个新连接请求，然后Server又为这个连接申请资源，返回B1包</strong>，但是由于Client现在用的是A2包，A1包是无效的，Client对于返回的B1包也不会去理会，即后面建立的这个连接其实是没用的(相当于“僵尸”的连接)，Server一直为这个连接维持着资源，造成资源的浪费。</p>
+<p>所以采用两次握手，有可能会浪费Server的网络资源。</p>
+<p>TCP的三次握手最主要是防止已过期&#x2F;失效的连接再次传到被连接的主机。</p>
+</blockquote>
+<p><strong>为什么要进行第三次握手？</strong></p>
+<p>为了防止服务器端开启一些无用的连接增加服务器开销以及防止已失效的连接请求报文段突然又传送到了服务端，因而产生错误。</p>
+<p id="TCP与UDP"></p>
+## 十、TCP与UDP
+> [< 返回目录](#目录)
+
+<h3 id="1、TCP与UDP的区别"><a href="#1、TCP与UDP的区别" class="headerlink" title="1、TCP与UDP的区别"></a>1、TCP与UDP的区别</h3><p>TCP（Transmission Control Protocol，传输控制协议）是基于连接的协议，也就是说，在正式收发数据前，必须和对方建立可靠的连接。<br>UDP（User Data Protocol，用户数据报协议）是与TCP相对应的协议。它是面向非连接的协议，它不与对方建立连接，而是直接就把数据包发送过去！<br>UDP适用于一次只传送少量数据、对可靠性要求不高的应用环境。</p>
+<p>TCP与UDP的区别：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 基于连接与无连接；</span><br><span class="line">2. 对系统资源的要求（TCP较多，UDP少）；</span><br><span class="line">3. UDP程序结构较简单；</span><br><span class="line">4. 流模式与数据报模式 ；</span><br><span class="line">5. TCP保证数据正确性，UDP可能丢包，TCP保证数据顺序，UDP不保证。</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、为什么说UDP是不可靠的？"><a href="#2、为什么说UDP是不可靠的？" class="headerlink" title="2、为什么说UDP是不可靠的？"></a>2、为什么说UDP是不可靠的？</h3><blockquote>
+<p>答：UDP不是面向连接的，UDP传送数据前并不与对方建立连接，对接收到的数据也不发送确认信号，发送端不知道数据是否会正确接收，当然也不用重发，所以说UDP是无连接的、不可靠的一种数据传输协议<br>也正由于上面的特点，使得UDP的开销更小数据传输速率更高，因为不必进行收发数据的确认，所以UDP的实时性更好。</p>
+</blockquote>
+<blockquote>
+<p>也正由于上面的特点，使得UDP的开销更小数据传输速率更高，因为不必进行收发数据的确认，所以UDP的实时性更好。</p>
+</blockquote>
+<blockquote>
+<p>所以采用TCP传输协议的MSN比采用UDP的QQ传输文件慢，<br>但并不能说QQ的通信是不安全的，因为程序员可以手动对UDP的数据收发进行验证，比如发送方对每个数据包进行编号然后由接收方进行验证啊什么的，即使是这样，UDP因为在底层协议的封装上没有采用类似 TCP的“三次握手”而实现了TCP所无法达到的传输效率。 </p>
+</blockquote>
+<p>UDP（User Datagram Protocol）被认为是不可靠的，主要基于以下几个关键特性：</p>
+<hr>
+<p><strong>1. 无连接（Connectionless）</strong></p>
+<p>UDP 不建立连接，数据包（Datagram）是<strong>独立</strong>的，发送端直接将数据发往目标 IP+端口，接收端只要监听该端口就能收到数据。</p>
+<p><strong>影响</strong>：</p>
+<p>​	•	发送方不会知道接收方是否<strong>在线</strong>或<strong>是否能收到数据</strong>。</p>
+<p>​	•	可能会出现数据丢失的情况。</p>
+<hr>
+<p><strong>2. 不保证数据到达</strong></p>
+<p>UDP 发送数据后，不会确认数据是否成功送达。</p>
+<p><strong>影响</strong>：</p>
+<p>​	•	如果网络不稳定，数据包可能会丢失。</p>
+<p>​	•	需要上层应用自己实现<strong>重传机制</strong>（如 QUIC 协议或 RTP 协议）。</p>
+<hr>
+<p><strong>3. 不保证数据顺序</strong></p>
+<p>UDP 发送的数据包<strong>可能会乱序</strong>，因为数据包在网络中可能经过不同的路径，不同数据包的传输时间可能不同。</p>
+<p><strong>影响</strong>：</p>
+<p>​	•	接收方可能会收到无序的数据，需要<strong>应用层自己排序</strong>。</p>
+<h3 id="3、移动端IM系统的协议选型：UDP还是TCP？"><a href="#3、移动端IM系统的协议选型：UDP还是TCP？" class="headerlink" title="3、移动端IM系统的协议选型：UDP还是TCP？"></a>3、移动端IM系统的协议选型：UDP还是TCP？</h3><p><a href="https://www.jianshu.com/p/e58064496e40">移动端IM系统的协议选型：UDP还是TCP？</a></p>
+<ul>
+<li>《<a href="https://link.jianshu.com/?t=http://www.52im.net/thread-279-1-1.html">为什么QQ用的是UDP协议而不是TCP协议？</a>》</li>
+</ul>
+<blockquote>
+<p>TCP还是UDP？长连接如何实现？如何实现心跳机制？心跳的间隔如何确定？这些问题都是讨论<strong>移动端IM</strong>、<strong>消息推送</strong>等类似话题时，几乎一定被问到的问题。</p>
+</blockquote>
+<blockquote>
+<p>个人认为，更恰当的方式应该是：两种通信协议同时使用，各有侧重。UDP用于保持大量终端的在线与控制，应用与业务则通过TCP去实现。这个和FTP服务控制与数据分离，采取不同的连接，有异曲同工之处。<br>事实上，这个也是即时通讯巨头QQ所采用的方式。早期的时候，QQ还是主要使用TCP协议，而后来就转向了采用UDP的方式来保持在线，TCP的方式来上传和下载数据。现在，UDP是QQ的默认工作方式，表现良好。相信这个也被沿用到了微信上。<br>简单的考证：登录PC版QQ，关闭多余的QQ窗口只留下主窗口，并将其最小化。几分钟过后，查看系统网络连接，会发现QQ进程已不保有任何TCP连接，但有UDP网络活动。这时在发送聊天信息，或者打开其他窗口和功能，将发现QQ进程会启用TCP连接。</p>
+</blockquote>
+<p id="网络数据缓存"></p>
+## 十一、网络数据缓存
+> [< 返回目录](#目录)
+
+<p><a href="http://www.cnblogs.com/wendingding/p/3950198.html">iOS开发网络篇—数据缓存</a></p>
+<h2 id="RTMP-VS-RTSP"><a href="#RTMP-VS-RTSP" class="headerlink" title="RTMP VS RTSP"></a>RTMP VS RTSP</h2><p>RTMP（Real-Time Messaging Protocol）和RTSP（Real-Time Streaming Protocol）都是用于流媒体数据传输的协议，但它们在设计和应用上有一些关键的区别。</p>
+<ul>
+<li>RTMP是基于TCP的协议，RTSP是一种基于TCP或UDP的网络控制协议。</li>
+</ul>
+<ol>
+<li><strong>延迟</strong>：<ul>
+<li>RTMP的延迟通常在3-30秒，适合于对实时性要求不是极高的应用。</li>
+<li>RTSP的延迟通常在2-5秒，适合于对实时性要求较高的应用。</li>
+</ul>
+</li>
+<li><strong>编解码器支持</strong>：<ul>
+<li>RTMP通常支持H.264视频编码和AAC音频编码。</li>
+<li>RTSP支持多种视频编码，包括H.265、H.264、VP9等。</li>
+</ul>
+</li>
+</ol>
+<p>在选择使用RTMP还是RTSP时，需要根据具体应用场景、对实时性的要求、客户端兼容性以及安全性需求来决定。例如，如果需要与HTML5兼容且对实时性要求不高，可能会选择基于HTTP的流媒体协议如HLS或DASH。如果需要低延迟和复杂的交互控制，则可能会选择RTSP。而RTMP可能更适合那些已经建立在Flash基础上的旧系统。</p>
+<h3 id="1、RTSP"><a href="#1、RTSP" class="headerlink" title="1、RTSP"></a>1、RTSP</h3><p>RTSP（Real-Time Streaming Protocol）和TCP、UDP都是网络协议，它们在数据传输和流媒体领域中扮演着重要的角色。下面我将分别介绍它们的特点和用途：</p>
+<ol>
+<li><strong>RTSP（Real-Time Streaming Protocol）</strong>：<ul>
+<li><strong>定义</strong>：RTSP是一种网络控制协议，用于控制流媒体服务器上的媒体流。它允许客户端发出播放、暂停、停止等控制命令。</li>
+<li><strong>用途</strong>：RTSP常用于视频监控系统中，通过它可以实现对视频流的控制，如请求视频流的开始、停止、快进、倒退等。</li>
+<li>特点：<ul>
+<li><strong>基于TCP或UDP，通常使用TCP来保证控制消息的可靠传输</strong>。</li>
+<li>它不传输媒体本身，而是控制媒体流的传输，媒体数据通常通过RTP（Real-time Transport Protocol）传输。</li>
+<li>支持多种媒体类型，包括音频和视频。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>TCP（Transmission Control Protocol）</strong>：<ul>
+<li><strong>定义</strong>：TCP是一种面向连接的、可靠的、基于字节流的传输层通信协议。</li>
+<li><strong>用途</strong>：TCP广泛应用于需要可靠传输的应用中，如网页浏览（HTTP）、文件传输（FTP）、邮件传输（SMTP）等。</li>
+<li>特点：<ul>
+<li>确保数据包按顺序到达，如果数据包丢失，会重新发送。</li>
+<li>建立连接需要三次握手，断开连接需要四次挥手，这增加了一定的延迟。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>UDP（User Datagram Protocol）</strong>：<ul>
+<li><strong>定义</strong>：UDP是一种无连接的传输层协议，它在IP协议的基础上提供一种简单的数据传输服务。</li>
+<li><strong>用途</strong>：UDP适用于对实时性要求高的应用，如视频会议、在线游戏、实时监控等。</li>
+<li>特点：<ul>
+<li>不保证数据包的顺序、完整性或可靠性，如果数据包丢失，不会重发。</li>
+<li>没有建立连接的过程，发送数据前不需要握手，因此延迟较低。</li>
+<li>适用于那些可以容忍一定丢包率的应用，或者应用层自己实现数据的重传和顺序控制。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>在实际应用中，RTSP通常与RTP（Real-time Transport Protocol）配合使用，RTSP用于控制媒体流，而RTP用于实际传输媒体数据。RTP可以选择在TCP或UDP上运行，但在流媒体传输中，UDP更常见，因为它的低延迟特性更适合实时媒体流的传输。而TCP则因其可靠性，适用于需要确保数据完整性的场景。</p>
+<h3 id="2、RTP"><a href="#2、RTP" class="headerlink" title="2、RTP"></a>2、RTP</h3><p>实时传输协议（RTP）是一种网络协议，专门设计用于在互联网上传输音频和视频数据。它通常与实时传输控制协议（RTCP）一起使用，后者用于监控数据传输的质量和提供反馈。<strong>RTP 被设计为一个基于数据包的协议，将媒体流分成数据包进行传输，每个数据包都有一个序列号，使得接收方能够以正确的顺序重新组合数据包</strong>。此外，RTP 还包括一个时间戳，允许接收器同步音频和视频流。</p>
+<p>RTP 通常用于各种实时音频和视频传输的应用，如IP语音（VoIP）、视频会议、流媒体和广播电视等。它被广泛支持，并经常与其他协议如RTSP和SIP结合使用，以在互联网上传输音频和视频内容。</p>
+<p>RTP 数据包的结构包括一个固定头部和可选的扩展头部，以及实际的媒体数据。</p>
+<h1 id="网络-http常见错误码"><a href="#网络-http常见错误码" class="headerlink" title="网络 | http常见错误码"></a>网络 | http常见错误码</h1><ul>
+<li><p><a href="https://baijiahao.baidu.com/s?id=1609940322276045505&wfr=spider&for=pc">HTTP状态码介绍，以及HTTP错误代码的故障修复？</a></p>
+<blockquote>
+<p>HTTP 状态码是一个客户发出请求时候，WEB服务器返回给客户的一个状态回应，常见HTTP状态有以下五类：</p>
+<p>1.信息代码：1xx，</p>
+<p>2.成功代码：2xx，</p>
+<p>3.重定向：3xx，</p>
+<p>4.客户端错误：4xx，</p>
+<p>5.服务器错误：5xx</p>
+<p>其中，我们需要关注的是客户端和服务器端错误代码，即4xx和5xx代码以及这些代码的常见解决方案。</p>
+<p>客户端错误，从400到499编码的客户端错误是由客户端引起的某些错误导致的，该客户端是Web浏览器、curl命令或postman等其他服务器测试软件发出的请求等。</p>
+<p>服务器错误，当服务器发生错误或服务器识别出无法处理请求时，将发送代码为500到599的服务器错误。</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="常见状态码："><a href="#常见状态码：" class="headerlink" title="常见状态码："></a>常见状态码：</h2><p>一些常见的状态码为：</p>
+<ul>
+<li><p>200 – 服务器成功返回网页</p>
+</li>
+<li><p>302</p>
+</li>
+<li><p>304（未修改）</p>
+</li>
+<li><p>404 – 请求的网页不存在</p>
+</li>
+<li><p>503 – 服务器超时</p>
+</li>
+</ul>
+<p>1xx（临时响应）</p>
+<p>表示临时响应并需要请求者继续执行操作的状态代码。</p>
+<p>2xx （成功）</p>
+<p>表示成功处理了请求的状态代码。</p>
+<p>3xx （重定向）</p>
+<p>表示要完成请求，需要进一步操作。 通常，这些状态代码用来重定向。</p>
+<p>4xx（请求错误）</p>
+<p>这些状态代码表示请求可能出错，妨碍了服务器的处理。</p>
+<p>5xx（服务器错误）</p>
+<p>这些状态代码表示服务器在尝试处理请求时发生内部错误。 这些错误可能是服务器本身的错误，而不是请求出错。</p>
+<h1 id="AFNetworking-302-重定向"><a href="#AFNetworking-302-重定向" class="headerlink" title="AFNetworking 302 重定向"></a>AFNetworking 302 重定向</h1><ul>
+<li><a href="https://www.jianshu.com/p/4fcba7db11c2">AFNetworking 302 重定向</a></li>
+</ul>
+<p>所有的AF请求都会在post get等请求前执行下面这个方法，所以只需重写这个方法就能拦截请求</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">@interface AFURLSessionManager ()</span><br><span class="line">// 省略一堆代码</span><br><span class="line">@property (readwrite, nonatomic, copy) AFURLSessionTaskWillPerformHTTPRedirectionBlock taskWillPerformHTTPRedirection;</span><br><span class="line">// 省略一堆代码</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+
+<p>使用举例如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">manager = [AFHTTPSessionManager manager];</span><br><span class="line">[manager setTaskWillPerformHTTPRedirectionBlock:^NSURLRequest * _Nonnull(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSURLResponse * _Nonnull response, NSURLRequest * _Nonnull request) &#123;</span><br><span class="line">            NSHTTPURLResponse *resPonse = (NSHTTPURLResponse *)response;</span><br><span class="line">           //1、如果要忽略重定向</span><br><span class="line">          /*</span><br><span class="line">            if (resPonse.statusCode == 302)&#123;</span><br><span class="line">                return nil;</span><br><span class="line">            &#125;else &#123;//正常请求</span><br><span class="line">                return request;</span><br><span class="line">            &#125;</span><br><span class="line">             */</span><br><span class="line">         // 2、通过重定向url去获取数据</span><br><span class="line">            if (resPonse.statusCode == 302)&#123;//如果响应code==302 就是重定向</span><br><span class="line">                NSMutableURLRequest *res = [NSMutableURLRequest requestWithURL:request.URL];</span><br><span class="line">              //通过抓包发现请求头不见了 所以在这里添加请求头，如果没有这个需求的可以忽略</span><br><span class="line">                NSMutableDictionary *headers = [NSMutableDictionary dictionaryWithDictionary:request.allHTTPHeaderFields];</span><br><span class="line">                NSString *valueStr = [NSString stringWithFormat:@&quot; %@&quot;,localToken];</span><br><span class="line">                [headers setObject:valueStr forKey:@&quot;Authorization&quot;];</span><br><span class="line">                res.allHTTPHeaderFields = headers;</span><br><span class="line"></span><br><span class="line">                return res;</span><br><span class="line">            &#125;else &#123;//正常请求</span><br><span class="line">                return request;</span><br><span class="line">            &#125;</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+<p id="常见笔试/面试题"></p>
+## 常见笔试/面试题
+[< 返回目录](#目录)
+
+<h6 id="1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？"><a href="#1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？" class="headerlink" title="1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？"></a>1、简要说下Http通信协议的原理，与Socket协议的区别有哪些？</h6><blockquote>
+<p>答：HTTP协议：简单对象访问协议，对应于应用层，HTTP协议是基于TCP连接的</p>
+</blockquote>
+<p>tcp协议：对应于传输层</p>
+<blockquote>
+</blockquote>
+<p>ip协议：对应于网络层</p>
+<blockquote>
+</blockquote>
+<p>TCP&#x2F;IP是传输层协议，主要解决数据如何在网络中传输；而HTTP是应用层协议，主要解决如何包装数据。</p>
+<blockquote>
+</blockquote>
+<p>Socket是对TCP&#x2F;IP协议的封装，Socket本身并不是协议，而是一个调用接口（API），通过Socket，才能使用TCP&#x2F;IP协议。</p>
+<blockquote>
+</blockquote>
+<p>http连接：http连接就是所谓的短连接，即客户端向服务器端发送一次请求，服务器端响应后连接即会断掉；</p>
+<blockquote>
+</blockquote>
+<p>socket连接：socket连接就是所谓的长连接，理论上客户端和服务器端一旦建立起连接将不会主动断掉；但是由于各种环境因素可能会是连接断开，比如说：服务器端或客户端主机down了，网络故障，或者两者之间长时间没有数据传输，网络防火墙可能会断开该连接以释放网络资源。</p>
+<h6 id="2、cookie-和session-的区别："><a href="#2、cookie-和session-的区别：" class="headerlink" title="2、cookie 和session 的区别："></a>2、cookie 和session 的区别：</h6><p>1、cookie数据存放在客户的浏览器上，session数据放在服务器上。</p>
+<p>2、安全性：<br>cookie不是很安全，别人可以分析存放在本地的COOKIE并进行COOKIE欺骗。<br>考虑到安全应当使用session。</p>
+<p>3、session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能<br>   考虑到减轻服务器性能方面，应当使用COOKIE。</p>
+<p>4、单个cookie保存的数据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie。</p>
+<p>5、所以个人建议：<br>   将登陆信息等重要信息存放为SESSION<br>   其他信息如果需要保留，可以放在COOKIE中</p>
+<p id="END"></p>
+## END
+> < [返回目录](#目录)
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" data-id="cmpojemjz00a0o4r438kr8v4n" class="article-share-link">Share</a>
+      
+      
     </footer>
   </div>
   
