@@ -72,82 +72,6 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-iOS/第三方库/数据库FMDB/数据库-①FMDB" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/">
-    
-      <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-26</time>
-    </a>
-    <span class="article-updated"> · 更新于 2021-12-17</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/">数据库FMDB</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h2 id="一、FMDB的多线程问题"><a href="#一、FMDB的多线程问题" class="headerlink" title="一、FMDB的多线程问题"></a>一、FMDB的多线程问题</h2><p>你项目用FMDB吗？你写的数据库类是线程安全的吗？如果不是，希望这篇小文章会对你有点帮助</p>
-<h3 id="1、FMDB如何保证多线程处理的数据安全"><a href="#1、FMDB如何保证多线程处理的数据安全" class="headerlink" title="1、FMDB如何保证多线程处理的数据安全"></a>1、FMDB如何保证多线程处理的数据安全</h3><p>对于数据操作，最重要的一点就是数据安全的问题，在多线程中，线程安全是数据安全的首要前提，下面谈谈FMDB 是如何对多线程进行处理的。</p>
-<p>详情参考：<a href="https://www.jianshu.com/p/cb60951cdc31">FMDB 中的多线程处理</a></p>
-<p><a href="https://blog.csdn.net/gdutxzy/article/details/43307643">FMDatabaseQueue为何会线程安全的一点心得</a></p>
-<h3 id="2、FMDatabaseQueue为何能保证线程安全"><a href="#2、FMDatabaseQueue为何能保证线程安全" class="headerlink" title="2、FMDatabaseQueue为何能保证线程安全"></a>2、FMDatabaseQueue为何能保证线程安全</h3><p>在做iOS项目的时候，会用到许多第三方的框架，比如用FMDB来处理数据库的东西。但是FMDatabase并不是线程安全的，当你在不同的线程里同时操作一个Database的时候，就容易产生崩溃。但是好在FMDB提供了一个解决的方法，就是FMDatabaseQueue。通过它来操作数据库就是线程安全的了。<br>即：FMDB是使用databaseQueue实现数据库操作线程安全</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FMDatabaseQueue *queue = [FMDatabaseQueue databaseQueueWithPath:_dbPath];</span><br><span class="line">[queue inDatabase:^(FMDatabase *db) &#123;</span><br><span class="line">	[db executeUpdateWithFormat:@&quot;INSERT INTO TABLENAME(id, name) VALUES (%zd, %@);&quot;, @1, @&quot;idage&quot;];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-
-<p>queue inDatabase:的本质如下：</p>
-<p><img src="/iOS/第三方库/数据库FMDB/数据库-①FMDB/FMDB%E6%95%B0%E6%8D%AE%E5%AE%89%E5%85%A81.jpg" alt="FMDB数据安全1"></p>
-<p>_queue的初始化为：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_queue = dispatch_queue_create([[NSString stringWithFormat:@&quot;fmdb.%@&quot;, self] UTF8String], NULL);</span><br></pre></td></tr></table></figure>
-
-<p>FMDB是怎么处理线程安全的？</p>
-<p><strong>综上所述：FMDB的线程处理就是强行就所有的多线程逻辑在一个串行队列中同步处理。</strong></p>
-<h2 id="二、FMDB的数据库事务-Database-Transaction"><a href="#二、FMDB的数据库事务-Database-Transaction" class="headerlink" title="二、FMDB的数据库事务(Database Transaction)"></a>二、FMDB的数据库事务(Database Transaction)</h2><p>数据库事务(Database Transaction) ，是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。 通过将一组相关操作组合为一个要么全部成功要么全部失败的单元，可以简化错误恢复并使应用程序更加可靠。简单的来说就是可以同时处理多个数据库操作，并且速度很快。</p>
-<p>FMDB是支持数据库事务的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[queue inTransaction:^(FMDatabase *db, BOOL *rollback) &#123;</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @1];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @2];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @3];</span><br><span class="line">    [db executeUpdate:@&quot;INSERT INTO myTable VALUES (?)&quot;, @4];</span><br><span class="line">&#125;];</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h2 id="三、为什么要从FMDB迁移到WCDB？"><a href="#三、为什么要从FMDB迁移到WCDB？" class="headerlink" title="三、为什么要从FMDB迁移到WCDB？"></a>三、为什么要从FMDB迁移到WCDB？</h2><p><a href="https://www.juhe.cn/news/index/id/1998">为什么要从FMDB迁移到WCDB？</a></p>
-<p>表结构</p>
-<p>WCDB 提供了 ORM 的功能，将类的属性绑定到数据库表的字段。在日常实践中，类的属性名和表的字段名通常不一致。因此，WCDB 提供了 WCDB_SYNTHESIZE_COLUMN(className, propertyName, columnName) 宏，用于映射属性名。</p>
-<h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93FMDB/%E6%95%B0%E6%8D%AE%E5%BA%93-%E2%91%A0FMDB/" data-id="cmpojscgf015hn7r4eoc485lr" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
       <article id="post-Architecture架构/基础框架设计及接口文档/UI提示规范" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -366,7 +290,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/UI%E6%8F%90%E7%A4%BA%E8%A7%84%E8%8C%83/" data-id="cmpojsceu0087n7r4eig5gtip" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E5%8F%8A%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/UI%E6%8F%90%E7%A4%BA%E8%A7%84%E8%8C%83/" data-id="cmpojwt75008r89r42lkz1i2q" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -447,7 +371,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%AF%81%E4%B9%A6/" data-id="cmpojscfg00lin7r4h7ll0fog" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%AF%81%E4%B9%A6/" data-id="cmpojwt7n00kb89r4b7ayb9j5" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -537,7 +461,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E6%8E%A8%E9%80%81%E6%A8%A1%E6%8B%9F/" data-id="cmpojscfh00lyn7r46a092go2" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E6%8E%A8%E9%80%81%E6%A8%A1%E6%8B%9F/" data-id="cmpojwt7n00km89r40x6u5a9h" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -615,61 +539,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%B8%8A%E6%98%BE%E7%A4%BA%E4%BA%8C%E7%BB%B4%E7%A0%81%E5%9B%BE%E7%89%87/" data-id="cmpojscfq00shn7r469t2gy0w" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-工具开发/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">
-    
-      <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-24</time>
-    </a>
-    <span class="article-updated"> · 更新于 2020-09-28</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>►<a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">第7节：Jenkins参数化构建</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf">Jenkins自定义构建参数使用</a></p>
-<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
-<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/" data-id="cmpojscfr00sln7r4b7t0ftx4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%B8%8A%E6%98%BE%E7%A4%BA%E4%BA%8C%E7%BB%B4%E7%A0%81%E5%9B%BE%E7%89%87/" data-id="cmpojwt7x00rb89r4405j5sqh" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
@@ -813,7 +683,61 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98%E5%B8%B8%E8%A7%81/" data-id="cmpojscfr00spn7r4gei6bp9o" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98%E5%B8%B8%E8%A7%81/" data-id="cmpojwt7y00rj89r40a5sadcd" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-工具开发/Jenkins/Jenkins参数化构建" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">
+    
+      <time datetime="2019-04-24T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-24</time>
+    </a>
+    <span class="article-updated"> · 更新于 2020-09-28</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>►<a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/">第7节：Jenkins参数化构建</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h1 id="Jenkins自定义构建参数使用"><a href="#Jenkins自定义构建参数使用" class="headerlink" title="Jenkins自定义构建参数使用"></a>Jenkins自定义构建参数使用</h1><p><a href="https://blog.csdn.net/qq_21047625/article/details/99643894?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.add_param_isCf">Jenkins自定义构建参数使用</a></p>
+<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized1.png" alt="parameterized1"></p>
+<p><img src="/工具开发/Jenkins/Jenkins参数化构建/parameterized2.png" alt="parameterized2"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA/" data-id="cmpojwt7y00rr89r4fhcib2qm" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
@@ -1014,10 +938,194 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E6%89%93%E5%8C%85%E8%87%AA%E5%8A%A8%E5%8C%96/iOS%E8%BF%9B%E9%98%B6_%E6%89%93%E5%8C%85/" data-id="cmpojscfv00v8n7r45ar4e4z4" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E6%89%93%E5%8C%85%E8%87%AA%E5%8A%A8%E5%8C%96/iOS%E8%BF%9B%E9%98%B6_%E6%89%93%E5%8C%85/" data-id="cmpojwt8400vi89r49sok5ox3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">APP自动化</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag">自动化</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/进阶/iOS进阶_多Target" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/">
+    
+      <time datetime="2019-04-23T02:30:02.000Z" itemprop="datePublished">发表于 2019-04-23</time>
+    </a>
+    <span class="article-updated"> · 更新于 2019-11-10</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/">iOS进阶_多Target</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h1 id="利用多Target开发相似app"><a href="#利用多Target开发相似app" class="headerlink" title="利用多Target开发相似app"></a>利用多Target开发相似app</h1><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>开发一个与之前几乎一样的app。只是app名字等基本信息变更。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>错误做法</th>
+<th>正确做法</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>项目</td>
+<td>再创建了新的项目</td>
+<td>使用同一项目</td>
+<td></td>
+</tr>
+<tr>
+<td>原因</td>
+<td>极容易出现后来新开发的功能两个app都要支持</td>
+<td>保证可共用到以后新开发的功能</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>下面我们开始介绍如何利用多Target开发相似app。</p>
+<h2 id="二、操作步骤"><a href="#二、操作步骤" class="headerlink" title="二、操作步骤"></a>二、操作步骤</h2><h4 id="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-New-Target）"><a href="#1、生成新的Target（这里推荐采用Duplicate方式，而不是File-New-Target）" class="headerlink" title="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）"></a>1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）</h4><h5 id="1-1、Duplicate方法略。"><a href="#1-1、Duplicate方法略。" class="headerlink" title="1.1、Duplicate方法略。"></a>1.1、Duplicate方法略。</h5><h5 id="1-2、Duplicate后，需要修改的东西"><a href="#1-2、Duplicate后，需要修改的东西" class="headerlink" title="1.2、Duplicate后，需要修改的东西"></a>1.2、Duplicate后，需要修改的东西</h5><table>
+<thead>
+<tr>
+<th>必选需修改项</th>
+<th>操作方法</th>
+<th>得到</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Info.plist</td>
+<td>①复制一份。<br>②并重新为Target选择Info.plist<br>③跟新Info.plist中的名字、签名等</td>
+<td>App1Info.plist、App2Info.plist</td>
+</tr>
+<tr>
+<td>Scheme</td>
+<td>Manager Scheme -&gt; 双击重命名</td>
+<td>新的App2Scheme</td>
+</tr>
+<tr>
+<td>证书&amp;描述文件</td>
+<td>更具新的BundleId，添加证书&amp;描述文件</td>
+<td>真机编译通过</td>
+</tr>
+</tbody></table>
+<p><strong>特别注意</strong>：add Info.plist等文件的时候，一定要注意选择对应的Target。不多多勾选☑️，也不要少勾选。</p>
+<h5 id="1-3、其他APP定制项更改"><a href="#1-3、其他APP定制项更改" class="headerlink" title="1.3、其他APP定制项更改"></a>1.3、其他APP定制项更改</h5><table>
+<thead>
+<tr>
+<th>可选修改项</th>
+<th>操作方法</th>
+<th>得到</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>icon</td>
+<td>修改InfoPlist</td>
+<td>新APP的Icon</td>
+</tr>
+<tr>
+<td>名字</td>
+<td>修改InfoPlist</td>
+<td>新APP的名字</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h4 id="2、Target区分"><a href="#2、Target区分" class="headerlink" title="2、Target区分"></a>2、Target区分</h4><p>需求背景：有些共用的文件在不同的Target下是有细微不同的，那么我们在具体实现的时候就需要作出区分。</p>
+<h5 id="2-1、Objective-C、C、C-的LLVM预处理宏的添加"><a href="#2-1、Objective-C、C、C-的LLVM预处理宏的添加" class="headerlink" title="2.1、Objective-C、C、C++的LLVM预处理宏的添加"></a>2.1、Objective-C、C、C++的LLVM预处理宏的添加</h5><p>Objective-C、C、C++的LLVM预处理宏在Preprocessor Macros处定义。如图创建工程时已经默认创建好了在Debug时定义DEBUG&#x3D;1 宏标记。</p>
+<h5 id="2-2、Swift"><a href="#2-2、Swift" class="headerlink" title="2.2、Swift"></a>2.2、Swift</h5><p>因为Swift 中没有宏定义的概念，因此我们不能使用 <code>#ifdef</code> 的方法来检查某个符号是否经过宏定义。</p>
+<p>在项目的 Build Settings 中，找到 Swift Compiler - Custom Flags，并在其中的 Other Swift Flags </p>
+<p>为APP1加上 <code>-D APPTARGET1</code> 就可以了；为APP2加上 <code>-D APPTARGET2</code> 就可以了；</p>
+<p>其他参考文章：<a href="https://blog.csdn.net/kaiyuanheshang/article/details/78862382">https://blog.csdn.net/kaiyuanheshang/article/details/78862382</a></p>
+<p>解决办法：这里解决的方法是针对不同的Target在<code>Preprocessor Macros</code>中定义宏，如添加<code>TargetTYPE</code>。</p>
+<ul>
+<li>在Preprocessor Macros中添加<code>TARGETTYPE</code>后</li>
+</ul>
+<p><img src="/iOS/进阶/iOS进阶_多Target/PreprocessorMacros%E6%B7%BB%E5%8A%A0%E5%90%8E.png" alt="PreprocessorMacros添加后"></p>
+<p>Target代码区分需用到的知识：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>#if</code></td>
+<td>既关心宏是否定义，又关心宏的逻辑的真假</td>
+<td></td>
+</tr>
+<tr>
+<td><code>#ifdef</code><br><code>#ifndef</code></td>
+<td>仅仅关心宏是否被定义，不关心宏的逻辑真假</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>代码区分如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if TARGETTYPE == 0</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;6d79992bc988b60f68e059edeef82538&quot;;</span><br><span class="line">#elif TARGETTYPE == 1</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;aef6d9dabe4cdd1da9e923e52b5d40ca&quot;;</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+
+<p>至此，你直接编译，发现”好像”完成了。实际上如果你的项目没有使用POD的，确实是到此就完成了 。</p>
+<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%88%86%E5%89%B2%E5%9B%BE1.jpg" alt="分割图1"></p>
+<p>下面我们额外补充，当你的项目有使用POD的时候，你还需要处理的东西。</p>
+<h4 id="3、Pod修改"><a href="#3、Pod修改" class="headerlink" title="3、Pod修改"></a>3、Pod修改</h4><p>在上述中，你可能发现好像我使用了POD的但是依然正确编译通过啊。</p>
+<p>是的，是通过了，但是这是假象。或者准确的说，当你下次使用POD相关命令，如<code>pod install</code>的时候，你会发现之前的项目编译不通过了。</p>
+<p>所以，你需要修改PodFile，并重新pod install。PodFile的修改方法如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">target &#x27;APP1&#x27; do</span><br><span class="line">	pod &#x27;AFNetworking&#x27;</span><br><span class="line"> 	pod &#x27;APP1SDK&#x27;</span><br><span class="line">end</span><br><span class="line">  </span><br><span class="line">target &#x27;APP2&#x27; do</span><br><span class="line">  pod &#x27;AFNetworking&#x27;</span><br><span class="line">  pod &#x27;APP2SDK&#x27;</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>修改方式1：</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">There are no targets called <span class="string">&quot;APPCommon&quot;</span> <span class="keyword">in</span> any Xcode projects</span></span><br><span class="line">abstract_target &#x27;APPCommon&#x27; do</span><br><span class="line">  pod &#x27;AFNetworking&#x27;</span><br><span class="line">  </span><br><span class="line"><span class="meta prompt_">  # </span><span class="language-bash">Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target &#x27;APP1&#x27; do</span><br><span class="line">    pod &#x27;APP1SDK&#x27;</span><br><span class="line">  end</span><br><span class="line">  </span><br><span class="line"><span class="meta prompt_">  # </span><span class="language-bash">Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target &#x27;APP2&#x27; do</span><br><span class="line">    pod &#x27;APP2SDK&#x27;</span><br><span class="line">  end</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>修改方式2：</li>
+</ul>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 共用的第三方库</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">AppCommon_Pods</span></span><br><span class="line">  pod <span class="string">&#x27;AFNetworking&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP1所需的第三方库</span></span><br><span class="line">target <span class="string">&#x27;APP1&#x27;</span> <span class="keyword">do</span></span><br><span class="line">	<span class="title class_">AppCommon</span>_Pods</span><br><span class="line"> 	pod <span class="string">&#x27;APP1SDK&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP2所需的第三方库</span></span><br><span class="line">target <span class="string">&#x27;APP2&#x27;</span> <span class="keyword">do</span></span><br><span class="line">  <span class="title class_">AppCommon</span>_Pods</span><br><span class="line">  pod <span class="string">&#x27;APP2SDK&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>最后修改完后，重新pod install后即可。</p>
+<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%88%86%E5%89%B2%E5%9B%BE1.jpg" alt="分割图1"></p>
+<h4 id="4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题"><a href="#4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题" class="headerlink" title="4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题"></a>4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题</h4><p>多Target后旧的libPods-xxx引起的问题</p>
+<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%A4%9ATarget%E5%90%8E%E6%97%A7%E7%9A%84libPods-xxx%E5%BC%95%E8%B5%B7%E7%9A%84%E9%97%AE%E9%A2%98.png" alt="多Target后旧的libPods-xxx引起的问题"></p>
+<p>多Target后旧的libPods-xxx的问题解决否的判断</p>
+<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%A4%9ATarget%E5%90%8E%E6%97%A7%E7%9A%84libPods-xxx%E7%9A%84%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E5%90%A6%E7%9A%84%E5%88%A4%E6%96%AD.png" alt="多Target后旧的libPods-xxx的问题解决否的判断"></p>
+<h2 id="三、Swift中的条件编译"><a href="#三、Swift中的条件编译" class="headerlink" title="三、Swift中的条件编译"></a>三、Swift中的条件编译</h2><p>在C 系语言中，我们可以通过预处理宏定义一些参数，使用#if或者#ifdef编译条件分支来控制哪些代码需要编译，而哪些代码不需要。但是在swift中没有宏定义的概念，虽然不能使用 #ifdef 的方法来检查某个符号是否经过宏定义，但是可以支持“#if&#x2F;#else&#x2F;#endif”语句。</p>
+<h2 id="四、其他"><a href="#四、其他" class="headerlink" title="四、其他"></a>四、其他</h2><p><a href="#https://www.jianshu.com/p/cce38ab8bf91">只用一个target，配合一个脚本，可以进行茫茫多target的管理了</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/" data-id="cmpojwt7n00kj89r4apxcexaf" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
 
     </footer>
   </div>
@@ -1256,7 +1364,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9AConfiguration/" data-id="cmpojscfg00lmn7r42cvg1rlv" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9AConfiguration/" data-id="cmpojwt7n00kp89r4fz9mcfg0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1268,21 +1376,21 @@
 
 
   
-      <article id="post-iOS/进阶/iOS进阶_多Target" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-工具开发/Jenkins/Jenkins使用技巧常用" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
     
-      <a href="/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/">
+      <a href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7%E5%B8%B8%E7%94%A8/">
     
-      <time datetime="2019-04-23T02:30:02.000Z" itemprop="datePublished">发表于 2019-04-23</time>
+      <time datetime="2019-04-23T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-23</time>
     </a>
-    <span class="article-updated"> · 更新于 2019-11-10</span>
+    <span class="article-updated"> · 更新于 2020-09-27</span>
   </span>
 
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>
+    <a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a>►<a class="article-category-link" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/Jenkins/">Jenkins</a>
   </div>
 
   </div>
@@ -1293,7 +1401,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/">iOS进阶_多Target</a>
+      <a class="article-title" href="/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7%E5%B8%B8%E7%94%A8/">第3节：Jenkins使用技巧常用</a>
     </h1>
   
 
@@ -1302,148 +1410,18 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        
-<h1 id="利用多Target开发相似app"><a href="#利用多Target开发相似app" class="headerlink" title="利用多Target开发相似app"></a>利用多Target开发相似app</h1><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>开发一个与之前几乎一样的app。只是app名字等基本信息变更。</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>错误做法</th>
-<th>正确做法</th>
-<th></th>
-</tr>
-</thead>
-<tbody><tr>
-<td>项目</td>
-<td>再创建了新的项目</td>
-<td>使用同一项目</td>
-<td></td>
-</tr>
-<tr>
-<td>原因</td>
-<td>极容易出现后来新开发的功能两个app都要支持</td>
-<td>保证可共用到以后新开发的功能</td>
-<td></td>
-</tr>
-</tbody></table>
-<p>下面我们开始介绍如何利用多Target开发相似app。</p>
-<h2 id="二、操作步骤"><a href="#二、操作步骤" class="headerlink" title="二、操作步骤"></a>二、操作步骤</h2><h4 id="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-New-Target）"><a href="#1、生成新的Target（这里推荐采用Duplicate方式，而不是File-New-Target）" class="headerlink" title="1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）"></a>1、生成新的Target（这里推荐采用Duplicate方式，而不是File-&gt;New-&gt;Target）</h4><h5 id="1-1、Duplicate方法略。"><a href="#1-1、Duplicate方法略。" class="headerlink" title="1.1、Duplicate方法略。"></a>1.1、Duplicate方法略。</h5><h5 id="1-2、Duplicate后，需要修改的东西"><a href="#1-2、Duplicate后，需要修改的东西" class="headerlink" title="1.2、Duplicate后，需要修改的东西"></a>1.2、Duplicate后，需要修改的东西</h5><table>
-<thead>
-<tr>
-<th>必选需修改项</th>
-<th>操作方法</th>
-<th>得到</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Info.plist</td>
-<td>①复制一份。<br>②并重新为Target选择Info.plist<br>③跟新Info.plist中的名字、签名等</td>
-<td>App1Info.plist、App2Info.plist</td>
-</tr>
-<tr>
-<td>Scheme</td>
-<td>Manager Scheme -&gt; 双击重命名</td>
-<td>新的App2Scheme</td>
-</tr>
-<tr>
-<td>证书&amp;描述文件</td>
-<td>更具新的BundleId，添加证书&amp;描述文件</td>
-<td>真机编译通过</td>
-</tr>
-</tbody></table>
-<p><strong>特别注意</strong>：add Info.plist等文件的时候，一定要注意选择对应的Target。不多多勾选☑️，也不要少勾选。</p>
-<h5 id="1-3、其他APP定制项更改"><a href="#1-3、其他APP定制项更改" class="headerlink" title="1.3、其他APP定制项更改"></a>1.3、其他APP定制项更改</h5><table>
-<thead>
-<tr>
-<th>可选修改项</th>
-<th>操作方法</th>
-<th>得到</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>icon</td>
-<td>修改InfoPlist</td>
-<td>新APP的Icon</td>
-</tr>
-<tr>
-<td>名字</td>
-<td>修改InfoPlist</td>
-<td>新APP的名字</td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody></table>
-<h4 id="2、Target区分"><a href="#2、Target区分" class="headerlink" title="2、Target区分"></a>2、Target区分</h4><p>需求背景：有些共用的文件在不同的Target下是有细微不同的，那么我们在具体实现的时候就需要作出区分。</p>
-<h5 id="2-1、Objective-C、C、C-的LLVM预处理宏的添加"><a href="#2-1、Objective-C、C、C-的LLVM预处理宏的添加" class="headerlink" title="2.1、Objective-C、C、C++的LLVM预处理宏的添加"></a>2.1、Objective-C、C、C++的LLVM预处理宏的添加</h5><p>Objective-C、C、C++的LLVM预处理宏在Preprocessor Macros处定义。如图创建工程时已经默认创建好了在Debug时定义DEBUG&#x3D;1 宏标记。</p>
-<h5 id="2-2、Swift"><a href="#2-2、Swift" class="headerlink" title="2.2、Swift"></a>2.2、Swift</h5><p>因为Swift 中没有宏定义的概念，因此我们不能使用 <code>#ifdef</code> 的方法来检查某个符号是否经过宏定义。</p>
-<p>在项目的 Build Settings 中，找到 Swift Compiler - Custom Flags，并在其中的 Other Swift Flags </p>
-<p>为APP1加上 <code>-D APPTARGET1</code> 就可以了；为APP2加上 <code>-D APPTARGET2</code> 就可以了；</p>
-<p>其他参考文章：<a href="https://blog.csdn.net/kaiyuanheshang/article/details/78862382">https://blog.csdn.net/kaiyuanheshang/article/details/78862382</a></p>
-<p>解决办法：这里解决的方法是针对不同的Target在<code>Preprocessor Macros</code>中定义宏，如添加<code>TargetTYPE</code>。</p>
-<ul>
-<li>在Preprocessor Macros中添加<code>TARGETTYPE</code>后</li>
-</ul>
-<p><img src="/iOS/进阶/iOS进阶_多Target/PreprocessorMacros%E6%B7%BB%E5%8A%A0%E5%90%8E.png" alt="PreprocessorMacros添加后"></p>
-<p>Target代码区分需用到的知识：</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>含义</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>#if</code></td>
-<td>既关心宏是否定义，又关心宏的逻辑的真假</td>
-<td></td>
-</tr>
-<tr>
-<td><code>#ifdef</code><br><code>#ifndef</code></td>
-<td>仅仅关心宏是否被定义，不关心宏的逻辑真假</td>
-<td></td>
-</tr>
-</tbody></table>
-<p>代码区分如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#if TARGETTYPE == 0</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;6d79992bc988b60f68e059edeef82538&quot;;</span><br><span class="line">#elif TARGETTYPE == 1</span><br><span class="line">    [AMapServices sharedServices].apiKey = @&quot;aef6d9dabe4cdd1da9e923e52b5d40ca&quot;;</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
-
-<p>至此，你直接编译，发现”好像”完成了。实际上如果你的项目没有使用POD的，确实是到此就完成了 。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%88%86%E5%89%B2%E5%9B%BE1.jpg" alt="分割图1"></p>
-<p>下面我们额外补充，当你的项目有使用POD的时候，你还需要处理的东西。</p>
-<h4 id="3、Pod修改"><a href="#3、Pod修改" class="headerlink" title="3、Pod修改"></a>3、Pod修改</h4><p>在上述中，你可能发现好像我使用了POD的但是依然正确编译通过啊。</p>
-<p>是的，是通过了，但是这是假象。或者准确的说，当你下次使用POD相关命令，如<code>pod install</code>的时候，你会发现之前的项目编译不通过了。</p>
-<p>所以，你需要修改PodFile，并重新pod install。PodFile的修改方法如下：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">target &#x27;APP1&#x27; do</span><br><span class="line">	pod &#x27;AFNetworking&#x27;</span><br><span class="line"> 	pod &#x27;APP1SDK&#x27;</span><br><span class="line">end</span><br><span class="line">  </span><br><span class="line">target &#x27;APP2&#x27; do</span><br><span class="line">  pod &#x27;AFNetworking&#x27;</span><br><span class="line">  pod &#x27;APP2SDK&#x27;</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>修改方式1：</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">There are no targets called <span class="string">&quot;APPCommon&quot;</span> <span class="keyword">in</span> any Xcode projects</span></span><br><span class="line">abstract_target &#x27;APPCommon&#x27; do</span><br><span class="line">  pod &#x27;AFNetworking&#x27;</span><br><span class="line">  </span><br><span class="line"><span class="meta prompt_">  # </span><span class="language-bash">Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target &#x27;APP1&#x27; do</span><br><span class="line">    pod &#x27;APP1SDK&#x27;</span><br><span class="line">  end</span><br><span class="line">  </span><br><span class="line"><span class="meta prompt_">  # </span><span class="language-bash">Has its own copy of APPCommon + APP2SDK</span></span><br><span class="line">  target &#x27;APP2&#x27; do</span><br><span class="line">    pod &#x27;APP2SDK&#x27;</span><br><span class="line">  end</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>修改方式2：</li>
-</ul>
-<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 共用的第三方库</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">AppCommon_Pods</span></span><br><span class="line">  pod <span class="string">&#x27;AFNetworking&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP1所需的第三方库</span></span><br><span class="line">target <span class="string">&#x27;APP1&#x27;</span> <span class="keyword">do</span></span><br><span class="line">	<span class="title class_">AppCommon</span>_Pods</span><br><span class="line"> 	pod <span class="string">&#x27;APP1SDK&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># APP2所需的第三方库</span></span><br><span class="line">target <span class="string">&#x27;APP2&#x27;</span> <span class="keyword">do</span></span><br><span class="line">  <span class="title class_">AppCommon</span>_Pods</span><br><span class="line">  pod <span class="string">&#x27;APP2SDK&#x27;</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-
-<p>最后修改完后，重新pod install后即可。</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%88%86%E5%89%B2%E5%9B%BE1.jpg" alt="分割图1"></p>
-<h4 id="4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题"><a href="#4、脚本打包时候，因为多Target后旧的libPods-xxx-Framework）忘删除引起的问题" class="headerlink" title="4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题"></a>4、脚本打包时候，因为多Target后旧的libPods-xxx(Framework）忘删除引起的问题</h4><p>多Target后旧的libPods-xxx引起的问题</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%A4%9ATarget%E5%90%8E%E6%97%A7%E7%9A%84libPods-xxx%E5%BC%95%E8%B5%B7%E7%9A%84%E9%97%AE%E9%A2%98.png" alt="多Target后旧的libPods-xxx引起的问题"></p>
-<p>多Target后旧的libPods-xxx的问题解决否的判断</p>
-<p><img src="/iOS/进阶/iOS进阶_多Target/%E5%A4%9ATarget%E5%90%8E%E6%97%A7%E7%9A%84libPods-xxx%E7%9A%84%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E5%90%A6%E7%9A%84%E5%88%A4%E6%96%AD.png" alt="多Target后旧的libPods-xxx的问题解决否的判断"></p>
-<h2 id="三、Swift中的条件编译"><a href="#三、Swift中的条件编译" class="headerlink" title="三、Swift中的条件编译"></a>三、Swift中的条件编译</h2><p>在C 系语言中，我们可以通过预处理宏定义一些参数，使用#if或者#ifdef编译条件分支来控制哪些代码需要编译，而哪些代码不需要。但是在swift中没有宏定义的概念，虽然不能使用 #ifdef 的方法来检查某个符号是否经过宏定义，但是可以支持“#if&#x2F;#else&#x2F;#endif”语句。</p>
-<h2 id="四、其他"><a href="#四、其他" class="headerlink" title="四、其他"></a>四、其他</h2><p><a href="#https://www.jianshu.com/p/cce38ab8bf91">只用一个target，配合一个脚本，可以进行茫茫多target的管理了</a></p>
+        <h2 id="一、正确实现并测试一个Jenkins脚本的步骤"><a href="#一、正确实现并测试一个Jenkins脚本的步骤" class="headerlink" title="一、正确实现并测试一个Jenkins脚本的步骤"></a>一、正确实现并测试一个Jenkins脚本的步骤</h2><p><strong>原则</strong>：将脚本中的命令分布测试通过后再一起合成。</p>
+<h3 id="1、将一行行命令单独在终端中操作，验证是否通过；"><a href="#1、将一行行命令单独在终端中操作，验证是否通过；" class="headerlink" title="1、将一行行命令单独在终端中操作，验证是否通过；"></a>1、将一行行命令单独在终端中操作，验证是否通过；</h3><h3 id="2、整理到-sh-py-中，通过终端验证；"><a href="#2、整理到-sh-py-中，通过终端验证；" class="headerlink" title="2、整理到*.sh&#x2F;.py*中，通过终端验证；"></a>2、整理到*<code>.sh</code><em>&#x2F;</em><code>.py</code>*中，通过终端验证；</h3><h3 id="3、放到-Jenkins-的shell脚本中，构建验证；"><a href="#3、放到-Jenkins-的shell脚本中，构建验证；" class="headerlink" title="3、放到 Jenkins 的shell脚本中，构建验证；"></a>3、放到 <em>Jenkins</em> 的shell脚本中，构建验证；</h3><h4 id="3-1、现在本地验证后，再托管到服务器上；"><a href="#3-1、现在本地验证后，再托管到服务器上；" class="headerlink" title="3.1、现在本地验证后，再托管到服务器上；"></a>3.1、现在本地验证后，再托管到服务器上；</h4><p>在本地通过*<code>cd 脚本绝对路径</code><em>，</em><code>sh 脚本.sh</code>*，构建验证；</p>
+<h4 id="3-2、本地验证后，使用-git-SVN-管理源码"><a href="#3-2、本地验证后，使用-git-SVN-管理源码" class="headerlink" title="3.2、本地验证后，使用 git&#x2F;SVN 管理源码"></a>3.2、本地验证后，使用 <em><code>git</code></em>&#x2F;<em><code>SVN</code></em> 管理源码</h4><h2 id="二、源码托管"><a href="#二、源码托管" class="headerlink" title="二、源码托管"></a>二、源码托管</h2><p>问：Jenkins中的项目一般都是托管在 <em><code>Git</code></em>&#x2F;<em><code>SVN</code></em> 上，如果你想要在本地尝试呢？如何操作？</p>
+<p>答：源码管理选择None。然后直接在Jenkins中的脚本里cd到执行路径，再操作即可。</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/iOS%E8%BF%9B%E9%98%B6_%E5%A4%9ATarget/" data-id="cmpojscfh00lqn7r42rw581zm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/Jenkins/Jenkins%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7%E5%B8%B8%E7%94%A8/" data-id="cmpojwt7x00rf89r4g2x3ekjn" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jenkins/" rel="tag">Jenkins</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" rel="tag">开发工具</a></li></ul>
 
     </footer>
   </div>
@@ -1575,11 +1553,6 @@
               
                 <li class="category-list-item">
                   <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
-                  
-                </li>
-              
-                <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
                   
                 </li>
               
@@ -2134,7 +2107,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/AI/" style="font-size: 14.38px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.63px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.75px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.13px;">Git</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.75px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.25px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.25px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.25px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.63px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.25px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.25px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.13px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.63px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.25px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.63px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.75px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 16.88px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.75px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 10.63px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.63px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.63px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.25px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.25px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.88px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.25px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 10.63px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.75px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" style="font-size: 10px;">编程范式</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.88px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.63px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.38px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.25px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 13.13px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.25px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 13.13px;">项目整理</a>
+      <a href="/tags/AI/" style="font-size: 14.38px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.63px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.75px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.13px;">Git</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.75px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.25px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.25px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.25px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.63px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.25px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.25px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.13px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.63px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.25px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.63px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.75px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 16.88px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.75px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 10.63px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.63px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.63px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.25px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.25px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.88px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.25px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 10.63px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.13px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" style="font-size: 10px;">编程范式</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.88px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.63px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.38px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.25px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 13.13px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.25px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 13.13px;">项目整理</a>
     </div>
   </div>
 

@@ -72,371 +72,6 @@
       <div class="outer">
         <section id="main">
   
-      <article id="post-iOS/基础/内存/2内存-③内存泄漏定位" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/">
-    
-      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
-    </a>
-    <span class="article-updated"> · 更新于 2025-03-10</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/">内存</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/">内存-③内存泄漏定位</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <p>未整合的文章：</p>
-<ul>
-<li><a href="https://blog.csdn.net/clovejq/article/details/78689759">iOS检测内存泄漏的方法</a></li>
-<li><a href="https://blog.csdn.net/mr_zhangrmwork/article/details/76210448">xcode8 使用Instruments检测定位并解决iOS内存泄露</a></li>
-</ul>
-<p id="目录"></p>
-# 目录
-* [重要文章](#重要文章)
-* [一、Analyze—静态分析](#Analyze)
-
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、常见的三种泄露情形</span><br><span class="line">(1)、创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to &#x27;number&#x27; is never read。翻译一下：存储在&#x27;number&#x27;里的值从未被读取过。</span><br><span class="line">(2)、创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to &#x27;str&#x27; during its initialization is never read</span><br><span class="line">(3)、调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into &#x27;subImageRef&#x27;。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</span><br><span class="line"></span><br><span class="line">2、.....</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#Leaks">二、Leaks—内存泄露</a></p>
-</li>
-<li><p><a href="#dealloc">三、ARC下的dealloc</a></p>
-</li>
-</ul>
-<blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1、ARC下dealloc的使用</span><br><span class="line">ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</span><br><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br><span class="line"></span><br><span class="line">2、controller 不能释放，不走dealloc方法的几种可能</span><br></pre></td></tr></table></figure>
-</blockquote>
-<ul>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p>以下内容摘自：<a href="https://www.cnblogs.com/lisaloveyou1900/p/5383760.html">iOS性能优化之内存管理：Analyze、Leaks、Allocations的使用和案例代码</a></p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>内存空间的划分: 我们知道，一个进程占用的内存空间，包含5种不同的数据区：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">（1）BSS段：通常是存放未初始化的全局变量；</span><br><span class="line">（2）数据段：通常是存放已初始化的全局变量。</span><br><span class="line">（3）代码段：通常是存放程序执行代码。</span><br><span class="line">（4）堆：通常是用于存放进程运行中被动态分配的内存段，OC对象（所有继承自NSObject的对象）就存放在堆里。</span><br><span class="line">（5）栈：由编译器自动分配释放，存放函数的参数值，局部变量等值。</span><br></pre></td></tr></table></figure>
-
-<p>栈内存是系统来管理的，因此我们常说的内存管理，指的是堆内存的管理，也就是所有OC对象的创建和销毁的管理。</p>
-<p>伴随着iOS5的到来，苹果推出了ARC（自动引用计数）技术，此模式下编译器会自动在合适的地方插入retain、release、autorelease语句，也就是说编译器会自动生成内存管理的代码，解放了广大程序猿的双手，也基本上避免了内存泄露问题，但是呢…</p>
-<p>内存泄露的定义是：用动态存储分配函数动态开辟的空间，在使用完毕后未释放，结果导致一直占据该内存单元。直到程序结束。（其实说白了就是该内存空间使用完毕之后未回收）。</p>
-<p>在iOS应用中的内存泄露，原因一般有循环引用、错用Strong&#x2F;copy等。</p>
-<p id="重要文章"></p>
-## 重要文章
-* [iOS检测内存泄漏的方法](https://blog.csdn.net/clovejq/article/details/78689759)
-* [iOS 内存泄漏的查找](https://www.jianshu.com/p/b72d0a442342)
-* [iOS 内存泄漏监测自动化](https://www.jianshu.com/p/33bda0eed3aa?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation)
-
-<p id="Analyze"></p>
-## 一、Analyze—静态分析
-> [< 返回目录](#目录)
-
-<p>顾名思义，静态分析不需要运行程序，就能检查到存在内存泄露的地方。</p>
-<p>使用方法：打开Xcode，command + shift + B；或者Xcode - Product - Analyze；</p>
-<h3 id="1、常见的三种泄露情形："><a href="#1、常见的三种泄露情形：" class="headerlink" title="1、常见的三种泄露情形："></a>1、常见的三种泄露情形：</h3><blockquote>
-</blockquote>
-<p>（1）创建了一个对象，但是并没有使用。Xcode提示信息：Value Stored to ‘number’ is never read。翻译一下：存储在’number’里的值从未被读取过。</p>
-<blockquote>
-</blockquote>
-<p>（2）创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。Xcode提示信息：Value Stored to ‘str’ during its initialization is never read</p>
-<blockquote>
-</blockquote>
-<p>（3）调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。Xcode提示信息：Potential leak of an object stored into ‘subImageRef’。 翻译一下：subImageRef对象的内存单元有潜在的泄露风险。ARC中常见于CGxxxRef未release。</p>
-<p>贴上三种常见情形的Demo代码，如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"> /**</span><br><span class="line"> * 情 形 一：创建了一个对象，但是并没有使用。</span><br><span class="line"> * 提示信息：Value Stored to &#x27;number&#x27; is never read</span><br><span class="line"> * 翻译一下：存储在&#x27;number&#x27;里的值从未被读取过，</span><br><span class="line"> */</span><br><span class="line">- (void)leakOne &#123;</span><br><span class="line">    NSString *str1 = [NSString string];</span><br><span class="line">    NSNumber *number;</span><br><span class="line">    number = @(str1.length);</span><br><span class="line">    /*</span><br><span class="line">     说我们没有读取过它，那就读取一下，比如打开下面这句代码，对它发送class消息，就不再会有这个提示了。</span><br><span class="line">     当然最好的方法还是将有关number的代码都删掉，因为，你只对number赋值，又不使用，那干嘛创建出来呢。</span><br><span class="line">     这是一个比较常见和典型的错误，也很容易检查出来</span><br><span class="line">     */</span><br><span class="line">    // [number class];</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 二：创建了一个（指针可变的）对象，且初始化了，但是初始化的值一直没读取过。</span><br><span class="line"> * 提示信息：Value Stored to &#x27;str&#x27; during its initialization is never read</span><br><span class="line"> */</span><br><span class="line">- (void)leakTwo &#123;</span><br><span class="line">    NSString *str = [NSString string]; // 创建并初始化str，此时已经有一个内存单元保存str初始化的值</span><br><span class="line">    // NSString *str; // 这样就内存不泄露，因为str是可变的，只需要先声明就行。</span><br><span class="line">    // printf(&quot;str前 = %p\n&quot;,str);</span><br><span class="line">    str = @&quot;ceshi&quot;;             // str被改变了，指向了&quot;ceshi&quot;所在的地址，指针改变了，但之前保存初始化值的内存空间还未释放，保存str初始化值的内存单元泄露了。</span><br><span class="line">    // printf(&quot;str后 = %p\n&quot;,str); // 指针改变了</span><br><span class="line">    [str class];</span><br><span class="line">     </span><br><span class="line">    // 再举两个例子，同理</span><br><span class="line">     </span><br><span class="line">    NSArray *arr = [NSArray array];</span><br><span class="line">    // printf(&quot;arr前 = %p\n&quot;,arr);</span><br><span class="line">    // NSArray *arr;            // 这样就内存不泄露</span><br><span class="line">    arr = @[@&quot;1&quot;,@&quot;2&quot;];</span><br><span class="line">    // printf(&quot;arr后 = %p\n&quot;,arr); // 指针改变了</span><br><span class="line">    [arr class];</span><br><span class="line">     </span><br><span class="line">    CGRect rect = self.view.frame;</span><br><span class="line">    // CGRect rect = CGRectZero; // 这样就内存不泄露</span><br><span class="line">    rect = CGRectMake(0, 0, 0, 0);</span><br><span class="line">    NSLog(@&quot;rect = %@&quot;,NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">/**</span><br><span class="line"> * 情 形 三：调用了让某个对象引用计数加1的函数，但没有调用相应让其引用计数减1的函数。</span><br><span class="line"> * 提示信息：Potential leak of an object stored into &#x27;subImageRef&#x27;</span><br><span class="line"> * 翻译一下：subImageRef对象的内存单元有潜在的泄露风险</span><br><span class="line"> */</span><br><span class="line">- (void)leakThree &#123;</span><br><span class="line">    CGRect rect = CGRectMake(0, 0, 50, 50);</span><br><span class="line">    UIImage *image;</span><br><span class="line">    CGImageRef subImageRef = CGImageCreateWithImageInRect(image.CGImage, rect); // subImageRef 引用计数 + 1;</span><br><span class="line">     </span><br><span class="line">    UIImage* smallImage = [UIImage imageWithCGImage:subImageRef];</span><br><span class="line">     </span><br><span class="line">    // 应该调用对应的函数，让subImageRef的引用计数减1,就不会泄露了</span><br><span class="line">    // CGImageRelease(subImageRef);</span><br><span class="line">     </span><br><span class="line">    [smallImage class];</span><br><span class="line">    UIGraphicsEndImageContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>自己遇到的实例:</p>
-<blockquote>
-<p>情形2：<a href="https://blog.csdn.net/sinat_30898863/article/details/51142127">静态检测内存泄露Analyze－－Value stored to ‘dataArr’ during its initialization is never read</a><br>即初始化的时候开辟了一块内存，却始终没用到，导致该块内存泄漏</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NSMutableArray *tempMutArr = [NSMutableArray arrayWithCapacity:0];</span><br><span class="line">   if ([self.clickedButtonTpye isEqualToString:KClickedButtonTypeLast]) &#123;</span><br><span class="line">       tempMutArr = self.lastDataSourceArr;</span><br><span class="line">   &#125;else&#123;</span><br><span class="line">       tempMutArr = self.hotDataSourceArr;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p><a name="Leaks"></a></p>
-<h2 id="二、Leaks—内存泄露"><a href="#二、Leaks—内存泄露" class="headerlink" title="二、Leaks—内存泄露"></a>二、Leaks—内存泄露</h2><blockquote>
-<p><a href="#%E7%9B%AE%E5%BD%95">&lt; 返回目录</a></p>
-</blockquote>
-<ul>
-<li><p><a href="https://wereadteam.github.io/2016/02/22/MLeaksFinder/">MLeaksFinder：精准 iOS 内存泄露检测工具</a></p>
-<blockquote>
-<p>项目 <a href="https://github.com/Zepo/MLeaksFinder/blob/master/MLeaksFinder/UIViewController%2BMemoryLeak.m">UIViewController+MemoryLeak.m     NSObject+MemoryLeak.m</a></p>
-<p>原理：MLeaksFinder 一开始从 UIViewController 入手。我们知道，当一个 UIViewController 被 pop 或 dismiss 后，该 UIViewController 包括它的 view，view 的 subviews 等等将很快被释放（除非你把它设计成单例，或者持有它的强引用，但一般很少这样做）。于是，我们只需在一个 ViewController 被 pop 或 dismiss 一小段时间后，看看该 UIViewController，它的 view，view 的 subviews 等等是否还存在。</p>
-<p>即我们hook <code>viewDidDisappear:</code> 和 <code>dismissViewControllerAnimated: completion:</code> 都去执行NSObject的<code>willDealloc</code>方法。</p>
-<p>在NSObject的<code>willDealloc</code>方法中，隔2秒后再去尝试调用另一个方法<code>assertNotDealloc</code>。如果UIViewController已经被成功释放，则肯定是 nil 执行 assertNotDealloc，即assertNotDealloc不会被执行，也就不会弹出内存泄露的弹窗。反之，若UIViewController没有释放，则会弹出内存泄露的弹窗。</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UIViewController+MemoryLeak.m</span></span><br><span class="line">- (<span class="type">void</span>)swizzled_viewDidDisappear:(<span class="type">BOOL</span>)animated &#123;</span><br><span class="line">    [<span class="keyword">self</span> swizzled_viewDidDisappear:animated];</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> ([objc_getAssociatedObject(<span class="keyword">self</span>, kHasBeenPoppedKey) boolValue]) &#123;</span><br><span class="line">        [<span class="keyword">self</span> willDealloc];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)swizzled_dismissViewControllerAnimated:(<span class="type">BOOL</span>)flag completion:(<span class="type">void</span> (^)(<span class="type">void</span>))completion &#123;</span><br><span class="line">    [<span class="keyword">self</span> swizzled_dismissViewControllerAnimated:flag completion:completion];</span><br><span class="line">    ......</span><br><span class="line">    </span><br><span class="line">    [dismissedViewController willDealloc];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NSObject+MemoryLeak.m</span></span><br><span class="line">- (<span class="type">BOOL</span>)willDealloc &#123;</span><br><span class="line">    ......</span><br><span class="line">    </span><br><span class="line">    __<span class="keyword">weak</span> <span class="type">id</span> weakSelf = <span class="keyword">self</span>;</span><br><span class="line">    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">2</span> * <span class="built_in">NSEC_PER_SEC</span>)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line">        __<span class="keyword">strong</span> <span class="type">id</span> strongSelf = weakSelf;</span><br><span class="line">        [strongSelf assertNotDealloc];</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">YES</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)assertNotDealloc &#123;</span><br><span class="line">    <span class="keyword">if</span> ([MLeakedObjectProxy isAnyObjectLeakedAtPtrs:[<span class="keyword">self</span> parentPtrs]]) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    [MLeakedObjectProxy addLeakedObject:<span class="keyword">self</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSString</span> *className = <span class="built_in">NSStringFromClass</span>([<span class="keyword">self</span> <span class="keyword">class</span>]);</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;Possibly Memory Leak.\nIn case that %@ should not be dealloced, override -willDealloc in %@ by returning NO.\nView-ViewController stack: %@&quot;</span>, className, className, [<span class="keyword">self</span> viewStack]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-</blockquote>
-</li>
-<li><p><a href="https://maxieewong.com/Flutter%20%E8%87%AA%E5%8A%A8%E5%8C%96%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B.html">自动化内存泄漏检测</a> 项目 <a href="https://github.com/liujiakuoyx/leak_detector/blob/main/lib/src/leak_navigator_observer.dart#L121">https://github.com/liujiakuoyx/leak_detector&#x2F;blob&#x2F;main&#x2F;lib&#x2F;src&#x2F;leak_navigator_observer.dart#L121</a></p>
-<blockquote>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">///<span class="language-markdown">Such as WebSocket is delay close connect.</span></span></span><br><span class="line"><span class="keyword">const</span> <span class="built_in">int</span> _defaultCheckLeakDelay = <span class="number">500</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> ShouldAddedRoute = <span class="built_in">bool</span> <span class="built_in">Function</span>(Route route);</span><br><span class="line"></span><br><span class="line"><span class="comment">///<span class="language-markdown">NavigatorObserver</span></span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LeakNavigatorObserver</span> <span class="keyword">extends</span> <span class="title">NavigatorObserver</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> ShouldAddedRoute? shouldCheck;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">int</span> checkLeakDelay;</span><br><span class="line"></span><br><span class="line">  <span class="comment">///<span class="language-markdown">[callback] if &#x27;null&#x27;,the all route can added to LeakDetector.</span></span></span><br><span class="line">  <span class="comment">///<span class="language-markdown">if not &#x27;null&#x27;, returns ‘true’, then this route will be added to the LeakDetector.</span></span></span><br><span class="line">  LeakNavigatorObserver(</span><br><span class="line">      &#123;<span class="keyword">this</span>.checkLeakDelay = _defaultCheckLeakDelay, <span class="keyword">this</span>.shouldCheck&#125;);</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didPop(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _remove(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didPush(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _add(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didRemove(Route route, Route? previousRoute) &#123;</span><br><span class="line">    _remove(route);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> didReplace(&#123;Route? newRoute, Route? oldRoute&#125;) &#123;</span><br><span class="line">    <span class="keyword">if</span> (newRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">      _add(newRoute);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (oldRoute != <span class="keyword">null</span>) &#123;</span><br><span class="line">      _remove(oldRoute);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-</blockquote>
-</li>
-<li><p><a href="https://docs.flutter.cn/community/tutorials/memory-leak-monitoring-on-flutter">快手 Flutter 上的内存泄漏监控</a></p>
-</li>
-</ul>
-<p>Leaks是动态的内存泄露检查工具，需要一边运行程序，一边检测。</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak1.jpg" alt="内存泄漏Leak1"></p>
-</blockquote>
-<p>先不切换到Call Trees，先看看Statistics(统计数据)下的情况</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak2.jpg" alt="内存泄漏Leak2"><br>Allocation中我们主要关注的是Persistent和Persistent Bytes，分别表示当前时间段，申请了但是还没释放的内存数量和大小。</p>
-</blockquote>
-<p>切换到Call Trees后世这样的</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak3.jpg" alt="内存泄漏Leak3"></p>
-</blockquote>
-<h4 id="项目中遇到过的内存泄漏"><a href="#项目中遇到过的内存泄漏" class="headerlink" title="项目中遇到过的内存泄漏"></a>项目中遇到过的内存泄漏</h4><p>这里我们不是去查看<code>Call Tree</code>,而是查看<code>Cycles &amp; Roots</code>。</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D1.jpg" alt="循环引用定位1"></p>
-<p>点击标记4处为黑色，即代表该处会发生内存泄漏，双击进入代码，如图：<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/%E5%BE%AA%E7%8E%AF%E5%BC%95%E7%94%A8%E5%AE%9A%E4%BD%8D2.jpg" alt="循环引用定位2"><br>果然存在内存泄漏</p>
-</blockquote>
-<p>自己遇到的其他例子：</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_1.jpg" alt="Leak_mine_1"><br>开始不明白为什么这个变量会内存泄漏后面才能白，其实_priceDetailModel这个本身已经用OrderPriceDetailModel赋值过一次了，而这里你又赋值了一次，导致多了一个。代码情况如下两个图：<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_2.jpg" alt="Leak_mine_2"><br>又在set方法中生成了一个地址<br><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/Leak_mine_3.jpg" alt="Leak_mine_3"></p>
-</blockquote>
-<p><a name="dealloc"></a></p>
-<h2 id="三、ARC下的dealloc"><a href="#三、ARC下的dealloc" class="headerlink" title="三、ARC下的dealloc"></a>三、ARC下的dealloc</h2><h4 id="1、ARC下dealloc的使用"><a href="#1、ARC下dealloc的使用" class="headerlink" title="1、ARC下dealloc的使用"></a>1、ARC下dealloc的使用</h4><p>ARC下,系统可以帮我们释放该对象,及其包含的对象;但是却无法释放不属于该对象的一些东西,如:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(1)、通知的观察者,或KVO的观察者；</span><br><span class="line">(2)、对象强委托/引用的解除；</span><br><span class="line">(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</span><br></pre></td></tr></table></figure>
-
-<h6 id="1-、通知的观察者-或KVO的观察者；"><a href="#1-、通知的观察者-或KVO的观察者；" class="headerlink" title="(1)、通知的观察者,或KVO的观察者；"></a>(1)、通知的观察者,或KVO的观察者；</h6><blockquote>
-<p>由于通知中心是系统的一个单例,你在注册通知的观察者时,实际上是在通知中心注册的,</p>
-</blockquote>
-<p>这时,即使ARC下系统帮我们释放了对象,但是在通知中心的观察还是没有移除,那么当有</p>
-<blockquote>
-</blockquote>
-<p>该通知时,依然会尝试调用该对象的接受通知的方法,这可能会导致一些问题.</p>
-<h6 id="2-、对象强委托-引用的解除；"><a href="#2-、对象强委托-引用的解除；" class="headerlink" title="(2)、对象强委托&#x2F;引用的解除；"></a>(2)、对象强委托&#x2F;引用的解除；</h6><blockquote>
-<p>对于其他的对象来把你当做委托 delegate时,并且是 强引用时,即时你自身被释放,但是引用你的对象依然还在,</p>
-</blockquote>
-<p>这时需要在引用你的对象移除该delegate</p>
-<h6 id="3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。"><a href="#3-、做一些其他的注销之类的操作-如一个ViewController在销毁之前有可能需要和server打交道。" class="headerlink" title="(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。"></a>(3)、做一些其他的注销之类的操作,如一个ViewController在销毁之前有可能需要和server打交道。</h6><blockquote>
-<p>一个对象,如一个ViewController在销毁之前有可能需要和server打交道;</p>
-</blockquote>
-<p>这时我们也可以在dealloc中写</p>
-<h4 id="2、controller-不能释放，不走dealloc方法的几种可能"><a href="#2、controller-不能释放，不走dealloc方法的几种可能" class="headerlink" title="2、controller 不能释放，不走dealloc方法的几种可能"></a>2、controller 不能释放，不走dealloc方法的几种可能</h4><p>主要原因还是循环引用，引起的内存泄漏。</p>
-<p>详情参考：<a href="https://blog.csdn.net/flg1554112450/article/details/70228353">controller 不能释放，不走dealloc方法的4种可能</a></p>
-<p id="Time Profile"></p>
-## 四、Time Profile
-> [< 返回目录](#目录)
-
-<p>详情参考：<a href="http://www.cocoachina.com/ios/20160805/17300.html">instrument Time Profiler总结</a></p>
-<p>使用Time Profile前有两点需要注意的地方：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、一定要使用真机调试</span><br><span class="line">2、应用程序一定要使用发布配置</span><br></pre></td></tr></table></figure>
-
-
-<p>图标为黑色头像的就是Time Profiler给我们的提示，有可能存在性能瓶颈的地方</p>
-<blockquote>
-<p><img src="/iOS/基础/内存/2内存-③内存泄漏定位/Instruments/TimeProfile1.png" alt="TimeProfile1"></p>
-</blockquote>
-<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>其他参考材料：</p>
-<p>问：Xcode 运行程序，左侧memory 不显示内存。。</p>
-<blockquote>
-<p>答：运行程序后，xcode 不显示当前使用的内存情况，问题是打开了僵尸–enable zoombie Objects，关闭即可。<br>即打开 product—&gt;SCheme–&gt;EditSCheme –&gt;enable zoombie Objects  取消选中 ok</p>
-</blockquote>
-<p>就可以继续显示了</p>
-<h2 id="附"><a href="#附" class="headerlink" title="附"></a>附</h2><h3 id="1、MLeaksFinder-适配新版本"><a href="#1、MLeaksFinder-适配新版本" class="headerlink" title="1、MLeaksFinder 适配新版本"></a>1、MLeaksFinder 适配新版本</h3><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="type">void</span>)alertWithTitle:(<span class="built_in">NSString</span> *)title</span><br><span class="line">               message:(<span class="built_in">NSString</span> *)message</span><br><span class="line">              delegate:(<span class="type">id</span>&lt;<span class="built_in">UIAlertViewDelegate</span>&gt;)delegate</span><br><span class="line"> additionalButtonTitle:(<span class="built_in">NSString</span> *)additionalButtonTitle &#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    [alertView dismissWithClickedButtonIndex:0 animated:NO];</span></span><br><span class="line"><span class="comment">    UIAlertView *alertViewTemp = [[UIAlertView alloc] initWithTitle:title</span></span><br><span class="line"><span class="comment">                                                            message:message</span></span><br><span class="line"><span class="comment">                                                           delegate:delegate</span></span><br><span class="line"><span class="comment">                                                  cancelButtonTitle:@&quot;OK&quot;</span></span><br><span class="line"><span class="comment">                                                  otherButtonTitles:additionalButtonTitle, nil];</span></span><br><span class="line"><span class="comment">    [alertViewTemp show];</span></span><br><span class="line"><span class="comment">    alertView = alertViewTemp;</span></span><br><span class="line"><span class="comment">    </span></span><br><span class="line"><span class="comment">    NSLog(@&quot;%@: %@&quot;, title, message);</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取当前的根视图控制器</span></span><br><span class="line">    <span class="built_in">UIViewController</span> *rootViewController = [<span class="built_in">UIApplication</span> sharedApplication].keyWindow.rootViewController;</span><br><span class="line">    <span class="keyword">while</span> (rootViewController.presentedViewController) &#123;</span><br><span class="line">        rootViewController = rootViewController.presentedViewController;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">UIAlertController</span> *alertController = [<span class="built_in">UIAlertController</span> alertControllerWithTitle:title message:message preferredStyle:<span class="built_in">UIAlertControllerStyleAlert</span>];</span><br><span class="line">    <span class="built_in">UIAlertAction</span> *okAction = [<span class="built_in">UIAlertAction</span> actionWithTitle:<span class="string">@&quot;OK&quot;</span> style:<span class="built_in">UIAlertActionStyleDefault</span> handler:<span class="literal">nil</span>];</span><br><span class="line">    [alertController addAction:okAction];</span><br><span class="line">    <span class="keyword">if</span> (additionalButtonTitle) &#123;</span><br><span class="line">        <span class="built_in">UIAlertAction</span> *additionalAction = [<span class="built_in">UIAlertAction</span> actionWithTitle:additionalButtonTitle style:<span class="built_in">UIAlertActionStyleDefault</span> handler:<span class="literal">nil</span>];</span><br><span class="line">        [alertController addAction:additionalAction];</span><br><span class="line">    &#125;</span><br><span class="line">    [rootViewController presentViewController:alertController animated:<span class="literal">YES</span> completion:<span class="literal">nil</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;%@: %@&quot;</span>, title, message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-> [< 返回目录](#目录)
-
-
-<p id="END"></p>
-## END
-> [< 返回目录](#目录)
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E5%86%85%E5%AD%98/2%E5%86%85%E5%AD%98-%E2%91%A2%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%AE%9A%E4%BD%8D/" data-id="cmpojscg8011yn7r43rlxhtky" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/视图/3视图-①本质RunLoop" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/">
-    
-      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-10-25</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/">视图-①Runloop</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<p id="RunLoop"></p>
-## 一、RunLoop的理解
-
-<p>让线程永不休眠。</p>
-<p>背景：负责持续性的处理各种任务（比如Source，Timer，Observer），让<strong>线程</strong>能一直运行，且在没有任务的时候能够进入休眠，减少 CPU 的使用率，从而节省电量和资源。</p>
-<p>1、正常一个线程一次只能执行一个任务，执行完成后线程就退出了。为了让线程能随时处理事件但并不退出，使用do－while循环实现。</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">loop</span>(<span class="params"></span>) &#123;</span><br><span class="line">	<span class="title function_">initialize</span>();  </span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">  	<span class="keyword">var</span> message = <span class="title function_">get_next_message</span>();</span><br><span class="line">    <span class="title function_">process_message</span>(message);  </span><br><span class="line"> 	&#125; <span class="keyword">while</span> (message != quit);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>2、do-while的检查是一直主动检查？线程使用RunLoop时，不需要一直主动检查输入源是否有事件到来。而是靠<strong>事件驱动</strong>。即</p>
-<blockquote>
-<p>事件驱动（Event-Driven）</p>
-<p>在事件驱动的编程模型中，应用程序的执行流程是由事件（如用户操作、消息、定时器超时等）来驱动的。应用程序不需要不断地检查某个条件，而是注册事件处理函数，并让操作系统在相应的事件发生时通知应用程序。这样，应用程序就可以在没有事件发生时执行其他任务或者进入休眠状态，从而节省资源。</p>
-</blockquote>
-<p>3、do-while性能消耗？</p>
-<p>当 RunLoop 检测到没有待处理的事件时，它会<strong>将线程置于”休眠等待”状态</strong>，而不是忙等。这时，线程不会消耗 CPU 资源。当事件到来时，如用户输入、定时器超时或 I&#x2F;O 完成等，RunLoop 会被唤醒，处理相应的事件，然后再次进入休眠状态。</p>
-<p>Runloop是绑定到线程上的（每个线程可以有一个对应的 RunLoop 对象。这些 RunLoop 对象被保存在一个全局的 Dictionary 中，其中线程作为 Key，RunLoop 作为 Value。）。每个线程可以有自己的 RunLoop，这样每个线程可以独立地处理与自己任务相关的事件，提高了事件处理的效率和局部性。</p>
-<p>每个Runloop有多种Model。不同的 Mode 可以包含不同的事件源（Sources）和定时器（Timers）。通过切换 Mode，RunLoop 可以过滤掉一些不想要的事件，只处理当前 Mode 下相关的事件。这样可以避免在处理特定任务时被不相关的事件打扰，提高程序的响应性和效率。例如当用户滚动列表时，iOS 应用程序的 RunLoop 通常会切换到 <code>UITrackingRunLoopMode</code> 模式。这个模式会降低非滚动相关的事件（如未将定时器添加到 <code>NSRunLoopCommonModes</code> 模式则timer会暂停）处理优先级，从而确保滚动操作的流畅性 。</p>
-<p>主线程是如何切换runloop？</p>
-<p>当系统检测到有scrollerview滑动时，系统就会将当前进程的主线程切换到UITrackingRunLoopMode,直到滑动结束，又会切换到NSDefaultRunLoopMode。</p>
-<p>模拟主线程runloop的mode切换。在touchbegan的时候切换到UITrackingRunLoopMode，touchend的时候又切换回NSDefaultRunLoopMode。<strong>从模拟中可以看出如果所切到的mode是timer未添加的，则timer会暂停。</strong>这也就是为什么NSTimer需要设置在NSRunLoopCommonModes模式下运行。</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">  <span class="built_in">dispatch_async</span>(dispatch_get_global_queue(<span class="number">0</span>, <span class="number">0</span>), ^&#123;</span><br><span class="line">     <span class="keyword">self</span>.rl = <span class="built_in">CFRunLoopGetCurrent</span>();</span><br><span class="line"></span><br><span class="line">      <span class="comment">//timer1 运行在 default mode</span></span><br><span class="line">      <span class="built_in">NSTimer</span> *timer1 = [<span class="built_in">NSTimer</span> timerWithTimeInterval:<span class="number">1.</span>f repeats:<span class="literal">YES</span> block:^(<span class="built_in">NSTimer</span> * _Nonnull timer) &#123;</span><br><span class="line">          <span class="built_in">NSLog</span>(<span class="string">@&quot;timer1 fired&quot;</span>);</span><br><span class="line">      &#125;];</span><br><span class="line">      [[<span class="built_in">NSRunLoop</span> currentRunLoop] addTimer:timer1 forMode:<span class="built_in">NSDefaultRunLoopMode</span>];	<span class="comment">// NSDefaultRunLoopMode</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">//timer2 运行在 track Mode</span></span><br><span class="line">      <span class="built_in">NSTimer</span> *timer2 = [<span class="built_in">NSTimer</span> timerWithTimeInterval:<span class="number">1.</span>f repeats:<span class="literal">YES</span> block:^(<span class="built_in">NSTimer</span> * _Nonnull timer) &#123;</span><br><span class="line">          <span class="built_in">NSLog</span>(<span class="string">@&quot;timer2 fired&quot;</span>);</span><br><span class="line">      &#125;];</span><br><span class="line">      [[<span class="built_in">NSRunLoop</span> currentRunLoop] addTimer:timer2 forMode:<span class="built_in">UITrackingRunLoopMode</span>];	<span class="comment">// UITrackingRunLoopMode</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">//指定当前运行mode</span></span><br><span class="line">      <span class="keyword">self</span>.currentMode = <span class="built_in">NSDefaultRunLoopMode</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">          [[<span class="built_in">NSRunLoop</span> currentRunLoop] runMode:<span class="keyword">self</span>.currentMode beforeDate:[<span class="built_in">NSDate</span> distantFuture]];</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event &#123;</span><br><span class="line">      <span class="built_in">NSLog</span>(<span class="string">@&quot;touch began&quot;</span>)</span><br><span class="line">      <span class="comment">//touchbegan 切换成track mode</span></span><br><span class="line">      <span class="keyword">self</span>.currentMode = <span class="built_in">UITrackingRunLoopMode</span>;</span><br><span class="line">      <span class="built_in">CFRunLoopStop</span>(<span class="keyword">self</span>.rl);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> - (<span class="type">void</span>)touchesEnded:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event &#123;</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;touch end&quot;</span>);</span><br><span class="line">    <span class="comment">//touchend 切换成kCFRunLoopDefaultMode</span></span><br><span class="line">    <span class="keyword">self</span>.currentMode = kCFRunLoopDefaultMode;</span><br><span class="line">    <span class="built_in">CFRunLoopStop</span>(<span class="keyword">self</span>.rl);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>runloop与卡顿的关系</p>
-<blockquote>
-<p>在iOS开发中，卡顿通常是由于主线程被长时间占用导致的。<code>CFRunLoop</code>的状态变化可以反映主线程的运行情况，因此通过监听<code>CFRunLoop</code>的状态，我们可以检测到应用的卡顿现象。</p>
-<p>正常情况下，<code>CFRunLoop</code>会经历以下几个状态：</p>
-<ol>
-<li><p><code>kCFRunLoopEntry</code>：即将进入<code>RunLoop</code>。</p>
-</li>
-<li><p><code>kCFRunLoopBeforeTimers</code>：即将处理定时器。</p>
-</li>
-<li><p><strong><code>kCFRunLoopBeforeSources</code>：即将处理输入源。</strong></p>
-</li>
-<li><p><code>kCFRunLoopBeforeWaiting</code>：即将进入休眠。</p>
-</li>
-<li><p><strong><code>kCFRunLoopAfterWaiting</code>：刚从休眠中唤醒。</strong></p>
-</li>
-<li><p><code>kCFRunLoopExit</code>：即将退出<code>RunLoop</code>。</p>
-</li>
-</ol>
-<p>为什么通常选择<code>kCFRunLoopBeforeSources</code>和<code>kCFRunLoopAfterWaiting</code>这两个状态来作为卡顿的判断依据，而不使用<code>kCFRunLoopBeforeWaiting</code>和<code>kCFRunLoopBeforeTimers</code>呢？</p>
-<p>因为①卡顿通常发生在事件处理阶段，而<code>kCFRunLoopBeforeWaiting</code>状态标志着<code>RunLoop</code>即将进入休眠，而不是正在处理事件。<strong>当应用处于静止状态，即用户没有进行任何操作时，<code>RunLoop</code>通常处于<code>kCFRunLoopBeforeWaiting</code>状态，等待新的事件到来。在这种状态下，线程会进入休眠模式，以节省CPU资源。</strong></p>
-<p>②至于<code>kCFRunLoopBeforeTimers</code>状态，虽然它也是<code>RunLoop</code>状态之一，但它主要表示<code>RunLoop</code>即将处理定时器事件。如果定时器回调执行时间过长，确实可能导致卡顿，但是在实际应用中，定时器回调通常执行时间较短，且定时器回调的执行时间可以通过调整定时器的触发频率来控制，因此<code>kCFRunLoopBeforeTimers</code>状态不是卡顿判断的主要依据。</p>
-<p>在没有卡顿的情况下，<code>CFRunLoop</code>在<code>kCFRunLoopBeforeSources</code>和<code>kCFRunLoopAfterWaiting</code>这两个状态的停留时间通常是非常短的。<code>kCFRunLoopBeforeSources</code>状态表示<code>RunLoop</code>即将处理输入源，而<code>kCFRunLoopAfterWaiting</code>状态表示<code>RunLoop</code>从休眠中被唤醒。如果主线程在这两个状态之间花费的时间过长，说明线程可能被阻塞，导致应用无法响应用户操作，从而出现卡顿。</p>
-<p>这两个状态是<code>RunLoop</code>循环中的关键点，它们分别代表了事件处理前后的状态。如果主线程在这两个状态之间花费的时间过长，说明线程可能被阻塞，导致应用无法响应用户操作，从而出现卡顿。因此，通过监控这两个状态，我们可以有效地检测和优化应用的性能，提高用户体验。</p>
-</blockquote>
-<p>runloop与崩溃的关系</p>
-<p>在 iOS 开发中，由于 RunLoop 导致的崩溃通常不是直接由 RunLoop 本身引起的，而是由于 RunLoop 中的事件处理代码存在问题。</p>
-<p>《起死回生&#x2F;回光返照》见《<a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7/%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%B4%A9%E6%BA%83/">异常与崩溃.md</a>》</p>
-<p>runtime</p>
-<p>运行时（Runtime）是 Objective-C 语言的核心特性之一，它提供了一组丰富的 API，允许程序在运行时查询和修改程序的行为。这种动态性使得 Objective-C 语言具有很高的灵活性。</p>
-<h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
-<h3 id="2、RunLoop和线程的关系？"><a href="#2、RunLoop和线程的关系？" class="headerlink" title="2、RunLoop和线程的关系？"></a>2、RunLoop和线程的关系？</h3><p>run loop和线程是紧密相连的，可以这样说run loop是为了线程而生，没有线程，它就没有存在的必要。Run loops是线程相关的基础框架的一部分，Cocoa和CoreFundation都提供了run loop对象方便配置和管理线程的run loop（以下都已Cocoa为例）。</p>
-<p>每个线程，包括程序的主线程（main thread）都有与之相应的run loop对象。</p>
-<p>①、主线程的run loop默认是启动的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>重点是UIApplicationMain()函数，这个方法会为main thread设置一个NSRunLoop对象，这就解释了本文开始说的为什么我们的应用可以在无人操作的时候休息，需要让它干活的时候又能立马响应。</p>
-</blockquote>
-<p>②、对其它线程来说，run loop默认是没有启动的。</p>
-<p>③、在任何一个Cocoa程序的线程中，都可以通过：<code>NSRunLoop *runloop = [NSRunLoop currentRunLoop];</code>来获取到当前线程的run loop。</p>
-<h3 id="3、RunLoop相关各类关系"><a href="#3、RunLoop相关各类关系" class="headerlink" title="3、RunLoop相关各类关系"></a>3、RunLoop相关各类关系</h3><p>在 CoreFoundation 里面关于 RunLoop 有5个类:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
-<p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系&#x2F;RunLoop相关各类关系，如下图所示：</p>
-<blockquote>
-<p><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9B%B8%E5%85%B3%E5%90%84%E7%B1%BB%E5%85%B3%E7%B3%BB.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source&#x2F;Timer&#x2F;Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source&#x2F;Timer&#x2F;Observer，让其互不影响。</p>
-<p>RunLoop的内部逻辑<br><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9A%84%E5%86%85%E9%83%A8%E9%80%BB%E8%BE%91.png" alt="RunLoop的内部逻辑"></p>
-</blockquote>
-<h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
-<ul>
-<li>Source0 只包含了一个回调（函数指针），它并不能主动触发事件。使用时，你需要先调用 CFRunLoopSourceSignal(source)，将这个 Source 标记为待处理，然后手动调用 CFRunLoopWakeUp(runloop) 来唤醒 RunLoop，让其处理这个事件。</li>
-<li>Source1 包含了一个 mach_port 和一个回调（函数指针），被用于通过内核和其他线程相互发送消息。这种 Source 能主动唤醒 RunLoop 的线程，其原理在下面会讲到。</li>
-</ul>
-<p>苹果注册了一个 Source1 (基于 mach port 的) 用来接收系统事件，其回调函数为 __IOHIDEventSystemClientQueueCallback()。</p>
-<p>在iOS 中，除了source1可以自己唤醒run loop之外，其他的事件都需要用户手动唤醒run loop才可以。</p>
-<h5 id="3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述"><a href="#3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述" class="headerlink" title="3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)"></a>3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)</h5><blockquote>
-<p>大概为：当一个硬件事件(触摸&#x2F;锁屏&#x2F;摇晃等)发生后，<br>①、首先由 IOKit.framework 生成一个 IOHIDEvent 事件，Source1 接收到系统事件，<em>RunLoop被唤醒</em>。<br>②、RunLoop<em>通知Observer，处理Timer和Source 0</em>。<br>③、<em>RunLoop处理Source 1，Source1 触发回调，并调用_UIApplicationHandleEventQueue() 进行应用内部的分发</em>。<br>_UIApplicationHandleEventQueue() 会把 IOHIDEvent 处理并包装成 UIEvent 进行处理或分发，其中包括识别 UIGesture&#x2F;处理屏幕旋转&#x2F;发送给 UIWindow 等。通常事件比如 UIButton 点击、touchesBegin&#x2F;Move&#x2F;End&#x2F;Cancel 事件都是在这个回调中完成的。<br>④、Springboard接受touch event，并用source1 的 之后mach port 转发给App进程。<br>⑤、<em>RunLoop处理完毕进入睡眠，此前会释放旧的autorelease pool并新建一个autorelease pool。</em></p>
-</blockquote>
-<h4 id="3-2-CFRunLoopTimerRef"><a href="#3-2-CFRunLoopTimerRef" class="headerlink" title="3.2 CFRunLoopTimerRef"></a>3.2 CFRunLoopTimerRef</h4><p>CFRunLoopTimerRef 是基于时间的触发器，它和 NSTimer 是toll-free bridged 的，可以混用。其包含一个时间长度和一个回调（函数指针）。<strong>当其加入到 RunLoop 时，RunLoop会注册对应的时间点，当时间点到时，RunLoop会被唤醒以执行那个回调</strong>（NSTimer 其实就是 CFRunLoopTimerRef）。</p>
-<h4 id="3-3-CFRunLoopObserverRef"><a href="#3-3-CFRunLoopObserverRef" class="headerlink" title="3.3 CFRunLoopObserverRef"></a>3.3 CFRunLoopObserverRef</h4><p>CFRunLoopObserverRef 是观察者，每个 Observer 都包含了一个回调（函数指针），当 RunLoop 的状态发生变化时，观察者就能通过回调接受到这个变化。</p>
-<p>上面的 Source&#x2F;Timer&#x2F;Observer 被统称为 mode item，一个 item 可以被同时加入多个 mode。但一个 item 被重复加入同一个 mode 时是不会有效果的。如果一个 mode 中一个 item 都没有，则 RunLoop 会直接退出，不进入循环。</p>
-<h3 id="4、RunLoop的应用"><a href="#4、RunLoop的应用" class="headerlink" title="4、RunLoop的应用"></a>4、RunLoop的应用</h3><p>最常见的为定时器 NSTimer</p>
-<blockquote>
-<p>NSTimer 其实就是 CFRunLoopTimerRef，他们之间是 toll-free bridged 的。一个 NSTimer 注册到 RunLoop 后，RunLoop 会为其重复的时间点注册好事件。例如 10:00, 10:10, 10:20 这几个时间点。RunLoop为了节省资源，并不会在非常准确的时间点回调这个Timer。Timer 有个属性叫做 Tolerance (宽容度)，标示了当时间点到后，容许有多少最大误差。</p>
-</blockquote>
-<p>如果某个时间点被错过了，例如执行了一个很长的任务，则那个时间点的回调也会跳过去，不会延后执行。就比如等公交，如果 10:10 时我忙着玩手机错过了那个点的公交，那我只能等 10:20 这一趟了。</p>
-<p>讲到RunLoop，我们需明确一点。<strong>runloop会对timer有强引用，timer会对目标对象进行强引用</strong></p>
-<p>其他详细参考以下文章：</p>
-<ul>
-<li><a href="https://blog.ibireme.com/2015/05/18/runloop/">深入理解RunLoop</a></li>
-<li><a href="https://www.cnblogs.com/jiangzzz/p/5619512.html">iOS面试题之runloop</a></li>
-</ul>
-<h4 id="4-1、autoreleasepool-自动释放池"><a href="#4-1、autoreleasepool-自动释放池" class="headerlink" title="4.1、autoreleasepool 自动释放池"></a>4.1、autoreleasepool 自动释放池</h4><p>既然说到runloop，简单说下autoreleasepool自动释放池。runloop会默认创建autoreleasepool，在runloop睡眠前或者退出前会执行pop操作。线程池详情查看下面的内存管理中的介绍。</p>
-<p>@autoreleasepool是自动释放池，让我们更自由的管理内存;所以我们下面说说内存管理。</p>
-<h4 id="4-2、runloop、autorelease-pool以及线程之间的关系"><a href="#4-2、runloop、autorelease-pool以及线程之间的关系" class="headerlink" title="4.2、runloop、autorelease pool以及线程之间的关系"></a>4.2、runloop、autorelease pool以及线程之间的关系</h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p>其他参考文档：<a href="https://www.cnblogs.com/zyzmlc/p/14087616.html">runloop</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/" data-id="cmpojscg90126n7r4b535cblu" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
       <article id="post-iOS/基础/视图/3视图-①本质" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -675,7 +310,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/" data-id="cmpojscg9012bn7r49myn8955" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8/" data-id="cmpojwt8h012489r41j2zd62a" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -687,12 +322,12 @@
 
 
   
-      <article id="post-iOS/基础/视图/3视图-②生命周期" class="article article-type-post" itemscope itemprop="blogPost">
+      <article id="post-iOS/基础/视图/3视图-①本质RunLoop" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
   <span class="article-date">
     
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/">
     
       <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
     </a>
@@ -712,7 +347,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">视图-②生命周期</a>
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/">视图-①Runloop</a>
     </h1>
   
 
@@ -721,150 +356,109 @@
     <div class="article-entry" itemprop="articleBody">
       
       
-        <p id="目录"></p>
-# 目录
-
-<ul>
-<li><p><a href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F">五、控制器View的生命周期</a></p>
-</li>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p id="生命周期"></p>
-## 五、控制器View的生命周期
-[< 返回目录](#目录)
-
-<p>更详细的生命周期请查看：<a href="https://www.jianshu.com/p/d60b388b19f5">iOS程序执行顺序和UIViewController 的生命周期(整理)</a></p>
-<h5 id="题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的"><a href="#题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的" class="headerlink" title="题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?"></a>题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?</h5><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1.在视图显示之前调用viewWillAppear;该函数可以调用多次; </span><br><span class="line">2.视图显示完毕,调用viewDidAppear;</span><br><span class="line">3.在视图消失之前调用viewWillDisAppear;该函数可以调用多次(如需要);</span><br><span class="line">4.在布局变化前后,调用viewWill/DidLayoutSubviews处理相关信息;</span><br></pre></td></tr></table></figure>
-
-
-<p>viewWillAppear——-》viewWillLayoutSubviews—–》viewDidLayoutSubviews———–》</p>
-<p>viewDidAppear</p>
-<h5 id="题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的"><a href="#题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的" class="headerlink" title="题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的."></a>题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</h5><p><a href="http://blog.csdn.net/w_sx_/article/details/39431205">loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</a></p>
-<h4 id="3、layoutSubviews布局与drawRect重绘"><a href="#3、layoutSubviews布局与drawRect重绘" class="headerlink" title="3、layoutSubviews布局与drawRect重绘"></a>3、layoutSubviews布局与drawRect重绘</h4><h6 id="1-、layoutSubviews布局"><a href="#1-、layoutSubviews布局" class="headerlink" title="(1)、layoutSubviews布局"></a>(1)、layoutSubviews布局</h6><p>layoutSubviews是对subviews重新布局；<br>比如，我们想更新子视图的位置的时候，可以通过调用layoutSubviews方法，即可以实现对子视图重新布局。但实际上<strong>一般我们都是不要直接手动调用layoutSubviews方法</strong>。因为有操作时候，系统会自动调用layoutSubviews。</p>
-<blockquote>
-<p>那我们进行哪些操作会触发layoutSubviews方法呢？答如下：</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">首先注意：</span><br><span class="line">①init初始化不会触发layoutSubviews，</span><br><span class="line">但是使用initWithFrame进行初始化时，当rect的值不为CGRectZero时，会触发layoutSubviews。</span><br><span class="line">②、直接调用setLayoutSubviews。</span><br><span class="line">③、addSubview的时候一般都会触发layoutSubviews。(最常见) 注：但当本View的frame为0时,addSubView也不会调用layoutSubViews。</span><br><span class="line">④、当view的frame发生改变的时候触发layoutSubviews。</span><br><span class="line">⑤、滑动UIScrollView的时候触发layoutSubviews。</span><br><span class="line">⑥、旋转Screen会触发父UIView上的layoutSubviews事件。</span><br><span class="line">⑦、改变一个UIView大小的时候也会触发父UIView上的layoutSubviews事件。</span><br></pre></td></tr></table></figure>
-
-<p>所以我们可以看出当视图约束&#x2F;frame变化时候，会触发layoutSubviews，进行重新布局。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：</span><br><span class="line">如果你还是想强制更新布局，你可以调用setNeedsLayout方法；</span><br><span class="line">如果你想立即显示你的views，你需要调用layoutIfNeed方法。</span><br><span class="line"></span><br><span class="line">①、- (void)layoutSubviews; </span><br><span class="line">这个方法，默认没有做任何事情，需要子类进行重写；</span><br><span class="line">②、- (void)setNeedsLayout; </span><br><span class="line">标记为需要重新布局，异步调用layoutIfNeeded刷新布局，不立即刷新，但layoutSubviews一定会被调用；</span><br><span class="line">③、- (void)layoutIfNeeded; </span><br><span class="line">如果，有需要刷新的标记，立即调用layoutSubviews进行布局（如果没有标记，不会调用layoutSubviews）。</span><br></pre></td></tr></table></figure>
-
-<p>其他参考文章:<a href="https://blog.csdn.net/u011146511/article/details/51234907">iOS layoutSubview的方法总结／重绘drawRect</a></p>
-<p>什么时候用layoutSubviews?</p>
-<blockquote>
-<p>答：仅仅在以下情况下:自动布局达不到想要效果时你才有必要重写这个方法.可以直接设置subviews的尺寸.</p>
-</blockquote>
-<h6 id="2-、drawRect重绘"><a href="#2-、drawRect重绘" class="headerlink" title="(2)、drawRect重绘"></a>(2)、drawRect重绘</h6><p>重绘作用：重写该方法以实现自定义的绘制内容</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drawRect:(CGRect)rect方法：重写此方法，执行重绘任务</span><br><span class="line">-setNeedsDisplay方法：标记为需要重绘，异步调用drawRect</span><br><span class="line">-setNeedsDisplayInRect:(CGRect)invalidRect方法：标记为需要局部重绘</span><br></pre></td></tr></table></figure>
-
-<h6 id="3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"><a href="#3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序" class="headerlink" title="(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"></a>(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">layoutSubviews是对subviews重新布局；</span><br><span class="line">drawRect重绘；</span><br><span class="line">layoutSubviews方法调用先于drawRect，也就是先布局子视图，在重绘。</span><br></pre></td></tr></table></figure>
-
-<p>所以，在调用updateConstraintsIfNeeded可能会立即执行updateConstraints，然后调用layoutSubviews。因为按照Autolayout布局的步骤，应该是先更新约束然后更新布局的。</p>
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-[< 返回目录](#目录)
-
-
-
-
-<p id="END"></p>
-## END
-[< 返回目录](#目录)
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" data-id="cmpojscg9012en7r420a3h9gy" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/基础/视图/3视图-③跳转" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/">
-    
-      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-10-25</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/">视图-③跳转</a>
-    </h1>
-  
+<p id="RunLoop"></p>
+## 一、RunLoop的理解
 
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <p>–</p>
-<p id="目录"></p>
-# 目录
+<p>让线程永不休眠。</p>
+<p>背景：负责持续性的处理各种任务（比如Source，Timer，Observer），让<strong>线程</strong>能一直运行，且在没有任务的时候能够进入休眠，减少 CPU 的使用率，从而节省电量和资源。</p>
+<p>1、正常一个线程一次只能执行一个任务，执行完成后线程就退出了。为了让线程能随时处理事件但并不退出，使用do－while循环实现。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">loop</span>(<span class="params"></span>) &#123;</span><br><span class="line">	<span class="title function_">initialize</span>();  </span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">  	<span class="keyword">var</span> message = <span class="title function_">get_next_message</span>();</span><br><span class="line">    <span class="title function_">process_message</span>(message);  </span><br><span class="line"> 	&#125; <span class="keyword">while</span> (message != quit);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li><p><a href="#%E8%A7%86%E5%9B%BE%E7%9A%84%E8%B7%B3%E8%BD%AC">一、视图的跳转</a></p>
-</li>
-<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
-</li>
-<li><p><a href="#END">END</a></p>
-</li>
-</ul>
-<p id="视图的跳转"></p>
-## 一、视图的跳转
-[< 返回目录](#目录)
-
-<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
-<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
-
-<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
-<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
-<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
+<p>2、do-while的检查是一直主动检查？线程使用RunLoop时，不需要一直主动检查输入源是否有事件到来。而是靠<strong>事件驱动</strong>。即</p>
+<blockquote>
+<p>事件驱动（Event-Driven）</p>
+<p>在事件驱动的编程模型中，应用程序的执行流程是由事件（如用户操作、消息、定时器超时等）来驱动的。应用程序不需要不断地检查某个条件，而是注册事件处理函数，并让操作系统在相应的事件发生时通知应用程序。这样，应用程序就可以在没有事件发生时执行其他任务或者进入休眠状态，从而节省资源。</p>
 </blockquote>
-<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>3、do-while性能消耗？</p>
+<p>当 RunLoop 检测到没有待处理的事件时，它会<strong>将线程置于”休眠等待”状态</strong>，而不是忙等。这时，线程不会消耗 CPU 资源。当事件到来时，如用户输入、定时器超时或 I&#x2F;O 完成等，RunLoop 会被唤醒，处理相应的事件，然后再次进入休眠状态。</p>
+<p>Runloop是绑定到线程上的（每个线程可以有一个对应的 RunLoop 对象。这些 RunLoop 对象被保存在一个全局的 Dictionary 中，其中线程作为 Key，RunLoop 作为 Value。）。每个线程可以有自己的 RunLoop，这样每个线程可以独立地处理与自己任务相关的事件，提高了事件处理的效率和局部性。</p>
+<p>每个Runloop有多种Model。不同的 Mode 可以包含不同的事件源（Sources）和定时器（Timers）。通过切换 Mode，RunLoop 可以过滤掉一些不想要的事件，只处理当前 Mode 下相关的事件。这样可以避免在处理特定任务时被不相关的事件打扰，提高程序的响应性和效率。例如当用户滚动列表时，iOS 应用程序的 RunLoop 通常会切换到 <code>UITrackingRunLoopMode</code> 模式。这个模式会降低非滚动相关的事件（如未将定时器添加到 <code>NSRunLoopCommonModes</code> 模式则timer会暂停）处理优先级，从而确保滚动操作的流畅性 。</p>
+<p>主线程是如何切换runloop？</p>
+<p>当系统检测到有scrollerview滑动时，系统就会将当前进程的主线程切换到UITrackingRunLoopMode,直到滑动结束，又会切换到NSDefaultRunLoopMode。</p>
+<p>模拟主线程runloop的mode切换。在touchbegan的时候切换到UITrackingRunLoopMode，touchend的时候又切换回NSDefaultRunLoopMode。<strong>从模拟中可以看出如果所切到的mode是timer未添加的，则timer会暂停。</strong>这也就是为什么NSTimer需要设置在NSRunLoopCommonModes模式下运行。</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">  <span class="built_in">dispatch_async</span>(dispatch_get_global_queue(<span class="number">0</span>, <span class="number">0</span>), ^&#123;</span><br><span class="line">     <span class="keyword">self</span>.rl = <span class="built_in">CFRunLoopGetCurrent</span>();</span><br><span class="line"></span><br><span class="line">      <span class="comment">//timer1 运行在 default mode</span></span><br><span class="line">      <span class="built_in">NSTimer</span> *timer1 = [<span class="built_in">NSTimer</span> timerWithTimeInterval:<span class="number">1.</span>f repeats:<span class="literal">YES</span> block:^(<span class="built_in">NSTimer</span> * _Nonnull timer) &#123;</span><br><span class="line">          <span class="built_in">NSLog</span>(<span class="string">@&quot;timer1 fired&quot;</span>);</span><br><span class="line">      &#125;];</span><br><span class="line">      [[<span class="built_in">NSRunLoop</span> currentRunLoop] addTimer:timer1 forMode:<span class="built_in">NSDefaultRunLoopMode</span>];	<span class="comment">// NSDefaultRunLoopMode</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">//timer2 运行在 track Mode</span></span><br><span class="line">      <span class="built_in">NSTimer</span> *timer2 = [<span class="built_in">NSTimer</span> timerWithTimeInterval:<span class="number">1.</span>f repeats:<span class="literal">YES</span> block:^(<span class="built_in">NSTimer</span> * _Nonnull timer) &#123;</span><br><span class="line">          <span class="built_in">NSLog</span>(<span class="string">@&quot;timer2 fired&quot;</span>);</span><br><span class="line">      &#125;];</span><br><span class="line">      [[<span class="built_in">NSRunLoop</span> currentRunLoop] addTimer:timer2 forMode:<span class="built_in">UITrackingRunLoopMode</span>];	<span class="comment">// UITrackingRunLoopMode</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">//指定当前运行mode</span></span><br><span class="line">      <span class="keyword">self</span>.currentMode = <span class="built_in">NSDefaultRunLoopMode</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">          [[<span class="built_in">NSRunLoop</span> currentRunLoop] runMode:<span class="keyword">self</span>.currentMode beforeDate:[<span class="built_in">NSDate</span> distantFuture]];</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)touchesBegan:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event &#123;</span><br><span class="line">      <span class="built_in">NSLog</span>(<span class="string">@&quot;touch began&quot;</span>)</span><br><span class="line">      <span class="comment">//touchbegan 切换成track mode</span></span><br><span class="line">      <span class="keyword">self</span>.currentMode = <span class="built_in">UITrackingRunLoopMode</span>;</span><br><span class="line">      <span class="built_in">CFRunLoopStop</span>(<span class="keyword">self</span>.rl);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> - (<span class="type">void</span>)touchesEnded:(<span class="built_in">NSSet</span>&lt;<span class="built_in">UITouch</span> *&gt; *)touches withEvent:(<span class="built_in">UIEvent</span> *)event &#123;</span><br><span class="line">    <span class="built_in">NSLog</span>(<span class="string">@&quot;touch end&quot;</span>);</span><br><span class="line">    <span class="comment">//touchend 切换成kCFRunLoopDefaultMode</span></span><br><span class="line">    <span class="keyword">self</span>.currentMode = kCFRunLoopDefaultMode;</span><br><span class="line">    <span class="built_in">CFRunLoopStop</span>(<span class="keyword">self</span>.rl);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
-<p id="常见笔试/面试题"></p>
-## 常见笔试/面试题
-[< 返回目录](#目录)
+<p>runloop与卡顿的关系</p>
+<blockquote>
+<p>在iOS开发中，卡顿通常是由于主线程被长时间占用导致的。<code>CFRunLoop</code>的状态变化可以反映主线程的运行情况，因此通过监听<code>CFRunLoop</code>的状态，我们可以检测到应用的卡顿现象。</p>
+<p>正常情况下，<code>CFRunLoop</code>会经历以下几个状态：</p>
+<ol>
+<li><p><code>kCFRunLoopEntry</code>：即将进入<code>RunLoop</code>。</p>
+</li>
+<li><p><code>kCFRunLoopBeforeTimers</code>：即将处理定时器。</p>
+</li>
+<li><p><strong><code>kCFRunLoopBeforeSources</code>：即将处理输入源。</strong></p>
+</li>
+<li><p><code>kCFRunLoopBeforeWaiting</code>：即将进入休眠。</p>
+</li>
+<li><p><strong><code>kCFRunLoopAfterWaiting</code>：刚从休眠中唤醒。</strong></p>
+</li>
+<li><p><code>kCFRunLoopExit</code>：即将退出<code>RunLoop</code>。</p>
+</li>
+</ol>
+<p>为什么通常选择<code>kCFRunLoopBeforeSources</code>和<code>kCFRunLoopAfterWaiting</code>这两个状态来作为卡顿的判断依据，而不使用<code>kCFRunLoopBeforeWaiting</code>和<code>kCFRunLoopBeforeTimers</code>呢？</p>
+<p>因为①卡顿通常发生在事件处理阶段，而<code>kCFRunLoopBeforeWaiting</code>状态标志着<code>RunLoop</code>即将进入休眠，而不是正在处理事件。<strong>当应用处于静止状态，即用户没有进行任何操作时，<code>RunLoop</code>通常处于<code>kCFRunLoopBeforeWaiting</code>状态，等待新的事件到来。在这种状态下，线程会进入休眠模式，以节省CPU资源。</strong></p>
+<p>②至于<code>kCFRunLoopBeforeTimers</code>状态，虽然它也是<code>RunLoop</code>状态之一，但它主要表示<code>RunLoop</code>即将处理定时器事件。如果定时器回调执行时间过长，确实可能导致卡顿，但是在实际应用中，定时器回调通常执行时间较短，且定时器回调的执行时间可以通过调整定时器的触发频率来控制，因此<code>kCFRunLoopBeforeTimers</code>状态不是卡顿判断的主要依据。</p>
+<p>在没有卡顿的情况下，<code>CFRunLoop</code>在<code>kCFRunLoopBeforeSources</code>和<code>kCFRunLoopAfterWaiting</code>这两个状态的停留时间通常是非常短的。<code>kCFRunLoopBeforeSources</code>状态表示<code>RunLoop</code>即将处理输入源，而<code>kCFRunLoopAfterWaiting</code>状态表示<code>RunLoop</code>从休眠中被唤醒。如果主线程在这两个状态之间花费的时间过长，说明线程可能被阻塞，导致应用无法响应用户操作，从而出现卡顿。</p>
+<p>这两个状态是<code>RunLoop</code>循环中的关键点，它们分别代表了事件处理前后的状态。如果主线程在这两个状态之间花费的时间过长，说明线程可能被阻塞，导致应用无法响应用户操作，从而出现卡顿。因此，通过监控这两个状态，我们可以有效地检测和优化应用的性能，提高用户体验。</p>
+</blockquote>
+<p>runloop与崩溃的关系</p>
+<p>在 iOS 开发中，由于 RunLoop 导致的崩溃通常不是直接由 RunLoop 本身引起的，而是由于 RunLoop 中的事件处理代码存在问题。</p>
+<p>《起死回生&#x2F;回光返照》见《<a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7/%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%B4%A9%E6%BA%83/">异常与崩溃.md</a>》</p>
+<p>runtime</p>
+<p>运行时（Runtime）是 Objective-C 语言的核心特性之一，它提供了一组丰富的 API，允许程序在运行时查询和修改程序的行为。这种动态性使得 Objective-C 语言具有很高的灵活性。</p>
+<h3 id="1、RunLoop概念"><a href="#1、RunLoop概念" class="headerlink" title="1、RunLoop概念"></a>1、RunLoop概念</h3><p>Run loop，正如其名，loop表示某种循环，和run放在一起就表示一直在运行着的循环。一个run loop就是一个事件处理的循环，用来不停的调度工作以及处理输入事件。其内部就是do－while循环，这个循环内部不断地处理各种任务（比如Source，Timer，Observer）。使用run loop的目的是让你的线程在有工作的时候忙于工作，而没工作的时候处于休眠状态。</p>
+<h3 id="2、RunLoop和线程的关系？"><a href="#2、RunLoop和线程的关系？" class="headerlink" title="2、RunLoop和线程的关系？"></a>2、RunLoop和线程的关系？</h3><p>run loop和线程是紧密相连的，可以这样说run loop是为了线程而生，没有线程，它就没有存在的必要。Run loops是线程相关的基础框架的一部分，Cocoa和CoreFundation都提供了run loop对象方便配置和管理线程的run loop（以下都已Cocoa为例）。</p>
+<p>每个线程，包括程序的主线程（main thread）都有与之相应的run loop对象。</p>
+<p>①、主线程的run loop默认是启动的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    @autoreleasepool &#123;</span><br><span class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>重点是UIApplicationMain()函数，这个方法会为main thread设置一个NSRunLoop对象，这就解释了本文开始说的为什么我们的应用可以在无人操作的时候休息，需要让它干活的时候又能立马响应。</p>
+</blockquote>
+<p>②、对其它线程来说，run loop默认是没有启动的。</p>
+<p>③、在任何一个Cocoa程序的线程中，都可以通过：<code>NSRunLoop *runloop = [NSRunLoop currentRunLoop];</code>来获取到当前线程的run loop。</p>
+<h3 id="3、RunLoop相关各类关系"><a href="#3、RunLoop相关各类关系" class="headerlink" title="3、RunLoop相关各类关系"></a>3、RunLoop相关各类关系</h3><p>在 CoreFoundation 里面关于 RunLoop 有5个类:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CFRunLoopRef</span><br><span class="line">CFRunLoopModeRef</span><br><span class="line">CFRunLoopSourceRef</span><br><span class="line">CFRunLoopTimerRef</span><br><span class="line">CFRunLoopObserverRef</span><br></pre></td></tr></table></figure>
+<p>其中 CFRunLoopModeRef 类并没有对外暴露，只是通过 CFRunLoopRef 的接口进行了封装。他们的关系&#x2F;RunLoop相关各类关系，如下图所示：</p>
+<blockquote>
+<p><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9B%B8%E5%85%B3%E5%90%84%E7%B1%BB%E5%85%B3%E7%B3%BB.png" alt="RunLoop相关各类关系"><br>一个 RunLoop 包含若干个 Mode，每个 Mode 又包含若干个 Source&#x2F;Timer&#x2F;Observer。每次调用 RunLoop 的主函数时，只能指定其中一个 Mode，这个Mode被称作 CurrentMode。如果需要切换 Mode，只能退出 Loop，再重新指定一个 Mode 进入。这样做主要是为了分隔开不同组的 Source&#x2F;Timer&#x2F;Observer，让其互不影响。</p>
+<p>RunLoop的内部逻辑<br><img src="/iOS/基础/视图/3视图-①本质RunLoop/RunLoop%E7%9A%84%E5%86%85%E9%83%A8%E9%80%BB%E8%BE%91.png" alt="RunLoop的内部逻辑"></p>
+</blockquote>
+<h4 id="3-1-CFRunLoopSourceRef"><a href="#3-1-CFRunLoopSourceRef" class="headerlink" title="3.1 CFRunLoopSourceRef"></a>3.1 CFRunLoopSourceRef</h4><p>Source有两个版本：Source0 和 Source1。</p>
+<ul>
+<li>Source0 只包含了一个回调（函数指针），它并不能主动触发事件。使用时，你需要先调用 CFRunLoopSourceSignal(source)，将这个 Source 标记为待处理，然后手动调用 CFRunLoopWakeUp(runloop) 来唤醒 RunLoop，让其处理这个事件。</li>
+<li>Source1 包含了一个 mach_port 和一个回调（函数指针），被用于通过内核和其他线程相互发送消息。这种 Source 能主动唤醒 RunLoop 的线程，其原理在下面会讲到。</li>
+</ul>
+<p>苹果注册了一个 Source1 (基于 mach port 的) 用来接收系统事件，其回调函数为 __IOHIDEventSystemClientQueueCallback()。</p>
+<p>在iOS 中，除了source1可以自己唤醒run loop之外，其他的事件都需要用户手动唤醒run loop才可以。</p>
+<h5 id="3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述"><a href="#3-1-附上题中button点击后，关于RunLoop的过程-此处略过对响应链的描述" class="headerlink" title="3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)"></a>3.1.附上题中button点击后，关于RunLoop的过程(此处略过对响应链的描述)</h5><blockquote>
+<p>大概为：当一个硬件事件(触摸&#x2F;锁屏&#x2F;摇晃等)发生后，<br>①、首先由 IOKit.framework 生成一个 IOHIDEvent 事件，Source1 接收到系统事件，<em>RunLoop被唤醒</em>。<br>②、RunLoop<em>通知Observer，处理Timer和Source 0</em>。<br>③、<em>RunLoop处理Source 1，Source1 触发回调，并调用_UIApplicationHandleEventQueue() 进行应用内部的分发</em>。<br>_UIApplicationHandleEventQueue() 会把 IOHIDEvent 处理并包装成 UIEvent 进行处理或分发，其中包括识别 UIGesture&#x2F;处理屏幕旋转&#x2F;发送给 UIWindow 等。通常事件比如 UIButton 点击、touchesBegin&#x2F;Move&#x2F;End&#x2F;Cancel 事件都是在这个回调中完成的。<br>④、Springboard接受touch event，并用source1 的 之后mach port 转发给App进程。<br>⑤、<em>RunLoop处理完毕进入睡眠，此前会释放旧的autorelease pool并新建一个autorelease pool。</em></p>
+</blockquote>
+<h4 id="3-2-CFRunLoopTimerRef"><a href="#3-2-CFRunLoopTimerRef" class="headerlink" title="3.2 CFRunLoopTimerRef"></a>3.2 CFRunLoopTimerRef</h4><p>CFRunLoopTimerRef 是基于时间的触发器，它和 NSTimer 是toll-free bridged 的，可以混用。其包含一个时间长度和一个回调（函数指针）。<strong>当其加入到 RunLoop 时，RunLoop会注册对应的时间点，当时间点到时，RunLoop会被唤醒以执行那个回调</strong>（NSTimer 其实就是 CFRunLoopTimerRef）。</p>
+<h4 id="3-3-CFRunLoopObserverRef"><a href="#3-3-CFRunLoopObserverRef" class="headerlink" title="3.3 CFRunLoopObserverRef"></a>3.3 CFRunLoopObserverRef</h4><p>CFRunLoopObserverRef 是观察者，每个 Observer 都包含了一个回调（函数指针），当 RunLoop 的状态发生变化时，观察者就能通过回调接受到这个变化。</p>
+<p>上面的 Source&#x2F;Timer&#x2F;Observer 被统称为 mode item，一个 item 可以被同时加入多个 mode。但一个 item 被重复加入同一个 mode 时是不会有效果的。如果一个 mode 中一个 item 都没有，则 RunLoop 会直接退出，不进入循环。</p>
+<h3 id="4、RunLoop的应用"><a href="#4、RunLoop的应用" class="headerlink" title="4、RunLoop的应用"></a>4、RunLoop的应用</h3><p>最常见的为定时器 NSTimer</p>
+<blockquote>
+<p>NSTimer 其实就是 CFRunLoopTimerRef，他们之间是 toll-free bridged 的。一个 NSTimer 注册到 RunLoop 后，RunLoop 会为其重复的时间点注册好事件。例如 10:00, 10:10, 10:20 这几个时间点。RunLoop为了节省资源，并不会在非常准确的时间点回调这个Timer。Timer 有个属性叫做 Tolerance (宽容度)，标示了当时间点到后，容许有多少最大误差。</p>
+</blockquote>
+<p>如果某个时间点被错过了，例如执行了一个很长的任务，则那个时间点的回调也会跳过去，不会延后执行。就比如等公交，如果 10:10 时我忙着玩手机错过了那个点的公交，那我只能等 10:20 这一趟了。</p>
+<p>讲到RunLoop，我们需明确一点。<strong>runloop会对timer有强引用，timer会对目标对象进行强引用</strong></p>
+<p>其他详细参考以下文章：</p>
+<ul>
+<li><a href="https://blog.ibireme.com/2015/05/18/runloop/">深入理解RunLoop</a></li>
+<li><a href="https://www.cnblogs.com/jiangzzz/p/5619512.html">iOS面试题之runloop</a></li>
+</ul>
+<h4 id="4-1、autoreleasepool-自动释放池"><a href="#4-1、autoreleasepool-自动释放池" class="headerlink" title="4.1、autoreleasepool 自动释放池"></a>4.1、autoreleasepool 自动释放池</h4><p>既然说到runloop，简单说下autoreleasepool自动释放池。runloop会默认创建autoreleasepool，在runloop睡眠前或者退出前会执行pop操作。线程池详情查看下面的内存管理中的介绍。</p>
+<p>@autoreleasepool是自动释放池，让我们更自由的管理内存;所以我们下面说说内存管理。</p>
+<h4 id="4-2、runloop、autorelease-pool以及线程之间的关系"><a href="#4-2、runloop、autorelease-pool以及线程之间的关系" class="headerlink" title="4.2、runloop、autorelease pool以及线程之间的关系"></a>4.2、runloop、autorelease pool以及线程之间的关系</h4><h2 id="END"><a href="#END" class="headerlink" title="END"></a>END</h2><p>其他参考文档：<a href="https://www.cnblogs.com/zyzmlc/p/14087616.html">runloop</a></p>
 
-
-
-
-
-<p id="END"></p>
-## END
-[< 返回目录](#目录)
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/" data-id="cmpojscg9012jn7r460y06lqc" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A0%E6%9C%AC%E8%B4%A8RunLoop/" data-id="cmpojwt8i012c89r4dv2068vi" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -997,7 +591,95 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E5%B8%83%E5%B1%80/" data-id="cmpojscg9012mn7r4augld03k" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E5%B8%83%E5%B1%80/" data-id="cmpojwt8i012g89r46n7wf6xz" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/视图/3视图-③跳转" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/">
+    
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-10-25</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/">视图-③跳转</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <p>–</p>
+<p id="目录"></p>
+# 目录
+
+<ul>
+<li><p><a href="#%E8%A7%86%E5%9B%BE%E7%9A%84%E8%B7%B3%E8%BD%AC">一、视图的跳转</a></p>
+</li>
+<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p id="视图的跳转"></p>
+## 一、视图的跳转
+[< 返回目录](#目录)
+
+<h4 id="1、获取当前显示的视图控制器ViewController"><a href="#1、获取当前显示的视图控制器ViewController" class="headerlink" title="1、获取当前显示的视图控制器ViewController"></a>1、获取当前显示的视图控制器ViewController</h4><h4 id="2、如何在多次presentViewController后直接返回到指定层"><a href="#2、如何在多次presentViewController后直接返回到指定层" class="headerlink" title="2、如何在多次presentViewController后直接返回到指定层"></a>2、如何在多次presentViewController后直接返回到指定层</h4><p>场景：如果多个控制器都通过 present 的方式跳转呢？比如从A跳转到B，从B跳转到C，从C跳转到D，如何由D直接返回到A呢？</p>
+<p>答：可以通过 presentingViewController 一直找到A控制器，然后调用A控制器的 dismissViewControllerAnimated 方法。方法如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UIViewController *controller = self;</span><br><span class="line">while(controller.presentingViewController != nil)&#123;</span><br><span class="line">    controller = controller.presentingViewController;</span><br><span class="line">&#125;</span><br><span class="line">[controller dismissViewControllerAnimated:YES completion:nil];</span><br></pre></td></tr></table></figure>
+
+<p>PS：如果不是想直接返回到A控制器，比如想回到B控制器，while循环的终止条件可以通过控制器的类来判断。</p>
+<h4 id="3、presentedViewController-与-presentingViewController"><a href="#3、presentedViewController-与-presentingViewController" class="headerlink" title="3、presentedViewController 与  presentingViewController"></a>3、presentedViewController 与  presentingViewController</h4><blockquote>
+<p>假设从A控制器通过present的方式跳转到了B控制器，那么 A.presentedViewController 就是B控制器；<br>B.presentingViewController 就是A控制器。</p>
+</blockquote>
+<h4 id="4、如何通过视图-view-获取该视图所在的控制器-viewController"><a href="#4、如何通过视图-view-获取该视图所在的控制器-viewController" class="headerlink" title="4、如何通过视图(view)获取该视图所在的控制器(viewController)"></a>4、如何通过视图(view)获取该视图所在的控制器(viewController)</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">+ (nullable UIViewController *)findBelongViewControllerForView:(UIView *)view &#123;</span><br><span class="line">    UIResponder *responder = view;</span><br><span class="line">    while ((responder = [responder nextResponder]))</span><br><span class="line">        if ([responder isKindOfClass: [UIViewController class]]) &#123;</span><br><span class="line">            return (UIViewController *)responder;</span><br><span class="line">        &#125;</span><br><span class="line">    return nil;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p id="常见笔试/面试题"></p>
+## 常见笔试/面试题
+[< 返回目录](#目录)
+
+
+
+
+
+<p id="END"></p>
+## END
+[< 返回目录](#目录)
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A2%E8%B7%B3%E8%BD%AC/" data-id="cmpojwt8i012k89r46hhp4hg7" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1137,7 +819,108 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/" data-id="cmpojscga012qn7r4hiyv18us" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E6%9B%B4%E6%96%B0%E6%9C%BA%E5%88%B6/" data-id="cmpojwt8i012o89r40jwe5plj" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-iOS/基础/视图/3视图-②生命周期" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+    
+      <time datetime="2019-04-28T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-28</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-10-25</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/">基础</a>►<a class="article-category-link" href="/categories/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/">视图</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">视图-②生命周期</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <p id="目录"></p>
+# 目录
+
+<ul>
+<li><p><a href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F">五、控制器View的生命周期</a></p>
+</li>
+<li><p><a href="#%E5%B8%B8%E8%A7%81%E7%AC%94%E8%AF%95/%E9%9D%A2%E8%AF%95%E9%A2%98">常见笔试&#x2F;面试题</a></p>
+</li>
+<li><p><a href="#END">END</a></p>
+</li>
+</ul>
+<p id="生命周期"></p>
+## 五、控制器View的生命周期
+[< 返回目录](#目录)
+
+<p>更详细的生命周期请查看：<a href="https://www.jianshu.com/p/d60b388b19f5">iOS程序执行顺序和UIViewController 的生命周期(整理)</a></p>
+<h5 id="题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的"><a href="#题目1：控制器View的生命周期及相关函数是什么-你在开发中是如何用的" class="headerlink" title="题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?"></a>题目1：控制器View的生命周期及相关函数是什么?你在开发中是如何用的?</h5><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1.在视图显示之前调用viewWillAppear;该函数可以调用多次; </span><br><span class="line">2.视图显示完毕,调用viewDidAppear;</span><br><span class="line">3.在视图消失之前调用viewWillDisAppear;该函数可以调用多次(如需要);</span><br><span class="line">4.在布局变化前后,调用viewWill/DidLayoutSubviews处理相关信息;</span><br></pre></td></tr></table></figure>
+
+
+<p>viewWillAppear——-》viewWillLayoutSubviews—–》viewDidLayoutSubviews———–》</p>
+<p>viewDidAppear</p>
+<h5 id="题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的"><a href="#题目2：loadView-viewDidLoad-viewDidUnLoad-分别是在什么时候被调用的" class="headerlink" title="题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的."></a>题目2：loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</h5><p><a href="http://blog.csdn.net/w_sx_/article/details/39431205">loadView, viewDidLoad, viewDidUnLoad,分别是在什么时候被调用的.</a></p>
+<h4 id="3、layoutSubviews布局与drawRect重绘"><a href="#3、layoutSubviews布局与drawRect重绘" class="headerlink" title="3、layoutSubviews布局与drawRect重绘"></a>3、layoutSubviews布局与drawRect重绘</h4><h6 id="1-、layoutSubviews布局"><a href="#1-、layoutSubviews布局" class="headerlink" title="(1)、layoutSubviews布局"></a>(1)、layoutSubviews布局</h6><p>layoutSubviews是对subviews重新布局；<br>比如，我们想更新子视图的位置的时候，可以通过调用layoutSubviews方法，即可以实现对子视图重新布局。但实际上<strong>一般我们都是不要直接手动调用layoutSubviews方法</strong>。因为有操作时候，系统会自动调用layoutSubviews。</p>
+<blockquote>
+<p>那我们进行哪些操作会触发layoutSubviews方法呢？答如下：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">首先注意：</span><br><span class="line">①init初始化不会触发layoutSubviews，</span><br><span class="line">但是使用initWithFrame进行初始化时，当rect的值不为CGRectZero时，会触发layoutSubviews。</span><br><span class="line">②、直接调用setLayoutSubviews。</span><br><span class="line">③、addSubview的时候一般都会触发layoutSubviews。(最常见) 注：但当本View的frame为0时,addSubView也不会调用layoutSubViews。</span><br><span class="line">④、当view的frame发生改变的时候触发layoutSubviews。</span><br><span class="line">⑤、滑动UIScrollView的时候触发layoutSubviews。</span><br><span class="line">⑥、旋转Screen会触发父UIView上的layoutSubviews事件。</span><br><span class="line">⑦、改变一个UIView大小的时候也会触发父UIView上的layoutSubviews事件。</span><br></pre></td></tr></table></figure>
+
+<p>所以我们可以看出当视图约束&#x2F;frame变化时候，会触发layoutSubviews，进行重新布局。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">附：</span><br><span class="line">如果你还是想强制更新布局，你可以调用setNeedsLayout方法；</span><br><span class="line">如果你想立即显示你的views，你需要调用layoutIfNeed方法。</span><br><span class="line"></span><br><span class="line">①、- (void)layoutSubviews; </span><br><span class="line">这个方法，默认没有做任何事情，需要子类进行重写；</span><br><span class="line">②、- (void)setNeedsLayout; </span><br><span class="line">标记为需要重新布局，异步调用layoutIfNeeded刷新布局，不立即刷新，但layoutSubviews一定会被调用；</span><br><span class="line">③、- (void)layoutIfNeeded; </span><br><span class="line">如果，有需要刷新的标记，立即调用layoutSubviews进行布局（如果没有标记，不会调用layoutSubviews）。</span><br></pre></td></tr></table></figure>
+
+<p>其他参考文章:<a href="https://blog.csdn.net/u011146511/article/details/51234907">iOS layoutSubview的方法总结／重绘drawRect</a></p>
+<p>什么时候用layoutSubviews?</p>
+<blockquote>
+<p>答：仅仅在以下情况下:自动布局达不到想要效果时你才有必要重写这个方法.可以直接设置subviews的尺寸.</p>
+</blockquote>
+<h6 id="2-、drawRect重绘"><a href="#2-、drawRect重绘" class="headerlink" title="(2)、drawRect重绘"></a>(2)、drawRect重绘</h6><p>重绘作用：重写该方法以实现自定义的绘制内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drawRect:(CGRect)rect方法：重写此方法，执行重绘任务</span><br><span class="line">-setNeedsDisplay方法：标记为需要重绘，异步调用drawRect</span><br><span class="line">-setNeedsDisplayInRect:(CGRect)invalidRect方法：标记为需要局部重绘</span><br></pre></td></tr></table></figure>
+
+<h6 id="3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"><a href="#3-、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序" class="headerlink" title="(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序"></a>(3)、updateConstraints更新约束、layoutSubviews重新布局与drawRect重绘的调用顺序</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">layoutSubviews是对subviews重新布局；</span><br><span class="line">drawRect重绘；</span><br><span class="line">layoutSubviews方法调用先于drawRect，也就是先布局子视图，在重绘。</span><br></pre></td></tr></table></figure>
+
+<p>所以，在调用updateConstraintsIfNeeded可能会立即执行updateConstraints，然后调用layoutSubviews。因为按照Autolayout布局的步骤，应该是先更新约束然后更新布局的。</p>
+<p id="常见笔试/面试题"></p>
+## 常见笔试/面试题
+[< 返回目录](#目录)
+
+
+
+
+<p id="END"></p>
+## END
+[< 返回目录](#目录)
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%A7%86%E5%9B%BE/3%E8%A7%86%E5%9B%BE-%E2%91%A1%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" data-id="cmpojwt8j012w89r42i7h51qu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1189,7 +972,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%AE%9E%E7%94%A8/Xcode%20Extensions/Swifttify%20for%20Xcode/" data-id="cmpojscfl00oyn7r43pxf1may" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E5%B7%A5%E5%85%B7%E5%AE%9E%E7%94%A8/Xcode%20Extensions/Swifttify%20for%20Xcode/" data-id="cmpojwt7u00p789r4eve6ef9d" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li></ul>
@@ -1531,7 +1314,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" data-id="cmpojscew00aen7r49di47crk" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%BD%91%E7%BB%9C/HTTP%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" data-id="cmpojwt7700af89r424mqalsn" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1581,7 +1364,144 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/APNS+TCP%E6%8E%A8%E9%80%81%E6%B5%81%E7%A8%8B/" data-id="cmpojscfg00len7r4fv7m18ag" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E8%BF%9B%E9%98%B6/APNS+TCP%E6%8E%A8%E9%80%81%E6%B5%81%E7%A8%8B/" data-id="cmpojwt7n00k789r4hbqj86qc" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-Architecture架构/监控相关/性能相关/性能优化-②其他" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96-%E2%91%A1%E5%85%B6%E4%BB%96/">
+    
+      <time datetime="2019-04-26T01:27:20.000Z" itemprop="datePublished">发表于 2019-04-26</time>
+    </a>
+    <span class="article-updated"> · 更新于 2025-08-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/">第九章：监控相关</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%B9%9D%E7%AB%A0%EF%BC%9A%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%B8%E5%85%B3/">性能相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96-%E2%91%A1%E5%85%B6%E4%BB%96/">性能优化：耗电量、耗流量等其他优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        <h1 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h1>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><p><a href="#%E8%80%97%E7%94%B5%E9%87%8F%E3%80%81%E8%80%97%E6%B5%81%E9%87%8F%E4%BC%98%E5%8C%96">一、耗电量、耗流量优化</a></p>
+</li>
+<li><p><a href="#%E5%86%85%E5%AD%98%E4%BC%98%E5%8C%96%E3%80%81%E5%86%85%E5%AD%98%E6%B3%84%E9%9C%B2%E5%A4%84%E7%90%86">二、内存优化、内存泄露处理</a></p>
+</li>
+<li><p><a href="#UITableView%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96">三、UITableView的性能优化</a></p>
+</li>
+<li><p><a href="#%E5%85%B6%E4%BB%96%E4%BC%98%E5%8C%96">四、其他优化</a></p>
+</li>
+</ul>
+<p>帧率优化？卡顿优化？</p>
+<p><a href="https://simi.studio/flutter-devtools/">Flutter DevTools 的视频使用教程：轻松调试和提高 APP 性能</a></p>
+<p id="耗电量、耗流量优化"></p>
+## 一、耗电量、耗流量优化
+> [< 返回目录](#目录)
+
+<p>通过</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">①优化位置服务(尽量降低定位精度)、</span><br><span class="line">②网络操作(减少传输、压缩数据、缓存数据)、</span><br><span class="line">③任务处理(减少任务处理量、按需处理，常见于一些后台任务的处理，比如不需要计算里程时候，鹰眼服务可以先关闭)、</span><br><span class="line">④内容更新(减少app使用的视图数量、去除不必要的内容更新)、</span><br><span class="line">⑤定时器(降低触发频率、及时关闭不再需要的重复性定时器)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>优化参考文章：<a href="http://www.cocoachina.com/ios/20171204/21413.html">iOS进阶–App功耗优化看这篇就够了</a></p>
+<h6 id="定位服务：按需取用，定位频率该降低降低，该关闭关闭"><a href="#定位服务：按需取用，定位频率该降低降低，该关闭关闭" class="headerlink" title="定位服务：按需取用，定位频率该降低降低，该关闭关闭"></a>定位服务：按需取用，定位频率该降低降低，该关闭关闭</h6><blockquote>
+<p>根据位置特性对静止不动的点、位置变化小的点、位置变化大的点，结合不同业务决定位置上报情况，减少不必要的上报，降低耗电量与节省流量。</p>
+<p>相似问题参考：<a href="https://www.cnblogs.com/quxiangfu/p/6622551.html">解决iOS地图持续定位耗电问题</a></p>
+</blockquote>
+<h6 id="网络请求优化的"><a href="#网络请求优化的" class="headerlink" title="网络请求优化的"></a>网络请求优化的</h6><blockquote>
+<p>这个需要和后台API一起优化，尽量减少不必要的请求，比如一次API请求尽量把客户端要用到的数据都返回过来，而不是要通过多个请求去返回，同时最好注意数据分页，不要几万条数据都扔给客户端了。</p>
+</blockquote>
+<h6 id="CPU"><a href="#CPU" class="headerlink" title="CPU:"></a>CPU:</h6><blockquote>
+<p>使用 Instruments 中的 Time Profile 时间分析工具用来检测应用CPU的使用情况。 定位 app 使用过程中占用高CPU、耗时长的地方。</p>
+<p>使用方法参考：<a href="https://www.jianshu.com/p/21d29be26479">Instrument 的 Time Profiler总结</a></p>
+</blockquote>
+<h6 id="Timer：合理使用Timer数和Timer时间间隔，不宜太短，满足需求即可"><a href="#Timer：合理使用Timer数和Timer时间间隔，不宜太短，满足需求即可" class="headerlink" title="Timer：合理使用Timer数和Timer时间间隔，不宜太短，满足需求即可"></a>Timer：合理使用Timer数和Timer时间间隔，不宜太短，满足需求即可</h6><blockquote>
+<p>设置上报检测计时器(一般设为1秒，但合理的是取不同业务上报频率的最大公约数，比如报班状态下需要5秒上传一次位置，未报班状态只需要20上传一次位置，则取5秒)</p>
+</blockquote>
+<h6 id="合理使用线程，线程适量，不宜过多，不要阻塞主线程"><a href="#合理使用线程，线程适量，不宜过多，不要阻塞主线程" class="headerlink" title="合理使用线程，线程适量，不宜过多，不要阻塞主线程"></a>合理使用线程，线程适量，不宜过多，不要阻塞主线程</h6><blockquote>
+<p>太多线程会导致消耗大量内存（在iOS中，如果把需要消耗大量时间的操作放在主线程上面，会妨碍主线程中被称为RunLoop的主循环的执行，从而导致不能更新用户界面、应用程序的画面长时间停滞等问题。）。</p>
+</blockquote>
+<h6 id="优化算法，减少循环次数"><a href="#优化算法，减少循环次数" class="headerlink" title="优化算法，减少循环次数"></a>优化算法，减少循环次数</h6><p>​	</p>
+<p>还有关键的就是图片尺寸了，最好客户端需要啥尺寸，服务端就直接给啥尺寸，而不是到客户端上再缩放。</p>
+<p id="其他优化"></p>
+## 二、其他优化
+##### 问题：优化多线程处理，改善多线程嵌套严重，请求耗时的问题
+解决：优化多线程处理，改善多线程嵌套严重，请求耗时的问题。
+
+<p>详细：原本项目，采用多线程嵌套的同步方式处理多个线程请求到数据后，再执行最后操作。经优化多线程处理为异步执行时，改善了多线程嵌套严重，请求耗时的问题。</p>
+<h4 id="定时器使用的优化"><a href="#定时器使用的优化" class="headerlink" title="定时器使用的优化"></a>定时器使用的优化</h4><p>问题：定时器多，其在主线程</p>
+<p>为什么要在非主线程创建NSTimer</p>
+<p>将 timer 添加到主线程的Runloop里面本身会增加线程负荷<br>如果主线程因为某些原因阻塞卡顿了，timer 定时任务触发的时间精度肯定也会受到影响<br>有些定时任务不是UI相关的，本来就没必要在主线程执行，给主线程增加不必要的负担。当然也可以在定时任务执行时，手动将任务指派到非主线程上，但这也是有额外开销的。</p>
+<h6 id="iOS-应用性能调优其他参考："><a href="#iOS-应用性能调优其他参考：" class="headerlink" title="iOS 应用性能调优其他参考："></a>iOS 应用性能调优其他参考：</h6><p>耗时(instruments的Time Profiler)、卡顿(主线程)</p>
+<p><a href="http://www.jianshu.com/p/5cf9ac335aec">iOS app性能优化的那些事</a> </p>
+<p><a href="http://www.cocoachina.com/ios/20150408/11501.html">iOS应用性能调优的25个建议和技巧</a></p>
+<h2 id="四、渲染"><a href="#四、渲染" class="headerlink" title="四、渲染"></a>四、渲染</h2><p>参考文章：<a href="https://mp.weixin.qq.com/s/CfPw-UR4Jseix62bl3JlqQ">iOS 渲染原理解析</a></p>
+<h3 id="1、渲染原理CPU-与-GPU"><a href="#1、渲染原理CPU-与-GPU" class="headerlink" title="1、渲染原理CPU 与 GPU"></a>1、渲染原理CPU 与 GPU</h3><ul>
+<li><strong>CPU（Central Processing Unit）</strong>：现代计算机整个系统的运算核心、控制核心。</li>
+<li><strong>GPU（Graphics Processing Unit）</strong>：可进行绘图运算工作的专用微处理器，是连接计算机和显示终端的纽带。</li>
+</ul>
+<p>GPU 的渲染流程图</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/zOnpE47IbCXG1mn3cZ1bv9KCvBA9qaWiancVQbr9rtnYjNFlyfIvPic8qzReTnwe2feBAEjaKhbVoRtkPlYmEr0g/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1" alt="GPU 的渲染流程图"></p>
+<p><strong>1、Application 应用处理阶段：得到图元</strong></p>
+<p>这个阶段具体指的就是<strong>图像在应用中被处理的阶段</strong>，此时还处于 CPU 负责的时期。在这个阶段应用可能会对图像进行一系列的操作或者改变，最终将新的图像信息传给下一阶段。这部分信息被叫做<strong>图元（primitives）</strong>，通常是三角形、线段、顶点等。</p>
+<p><strong>2、Geometry 几何处理阶段：处理图元</strong></p>
+<p><strong>3、Rasterization 光栅化阶段：图元转换为像素</strong></p>
+<p><strong>光栅化的主要目的是将几何渲染之后的图元信息，转换为一系列的像素，以便后续显示在屏幕上。</strong>这个阶段中会根据图元信息，计算出每个图元所覆盖的像素信息等，从而将像素划分成不同的部分。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/zOnpE47IbCXG1mn3cZ1bv9KCvBA9qaWiap8ic9w90fcbJzp9tX0LKbUKzUp8YdQYUO9xAkARaxRE5PjUva3Ha48g/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p><strong>一种简单的划分就是根据中心点</strong>，如果像素的中心点在图元内部，那么这个像素就属于这个图元。如上图所示，深蓝色的线就是图元信息所构建出的三角形；而通过是否覆盖中心点，可以遍历出所有属于该图元的所有像素，即浅蓝色部分。</p>
+<p><strong>4、Pixel 像素处理阶段：处理像素，得到位图</strong></p>
+<p>经过上述光栅化阶段，我们得到了图元所对应的像素，此时，我们需要给这些像素填充颜色和效果。所以最后这个阶段就是给像素填充正确的内容，最终显示在屏幕上。这些经过处理、蕴含大量信息的像素点集合，被称作位图（bitmap）。</p>
+<h2 id="2-屏幕成像与卡顿"><a href="#2-屏幕成像与卡顿" class="headerlink" title="2. 屏幕成像与卡顿"></a>2. 屏幕成像与卡顿</h2><h4 id="屏幕撕裂-Screen-Tearing"><a href="#屏幕撕裂-Screen-Tearing" class="headerlink" title="屏幕撕裂 Screen Tearing"></a>屏幕撕裂 Screen Tearing</h4><p>CPU+GPU 的渲染流程是一个非常耗时的过程。如果在电子束开始扫描新的一帧时，位图还没有渲染好，而是在扫描到屏幕中间时才渲染完成，那么已扫描的部分和未扫描的部分就不是同一帧图像，这就造成屏幕撕裂。</p>
+<p>解决屏幕撕裂、提高显示效率的一个策略就是使用垂直同步信号 Vsync 与双缓冲机制 Double Buffering。</p>
+<h4 id="屏幕卡顿的本质"><a href="#屏幕卡顿的本质" class="headerlink" title="屏幕卡顿的本质"></a>屏幕卡顿的本质</h4><p>手机使用卡顿的直接原因，就是掉帧。前文也说过，屏幕刷新频率必须要足够高才能流畅。对于 iPhone 手机来说，屏幕最大的刷新频率是 60 FPS，一般只要保证 50 FPS 就已经是较好的体验了。但是如果掉帧过多，导致刷新频率过低，就会造成不流畅的使用体验。</p>
+<h4 id="CALayer-与-UIView-的关系"><a href="#CALayer-与-UIView-的关系" class="headerlink" title="CALayer 与 UIView 的关系"></a>CALayer 与 UIView 的关系</h4><p>当我们创建一个 UIView 的时候，UIView 会自动创建一个 CALayer，为自身提供存储 bitmap 的地方（也就是前文说的 <strong>backing store</strong>），并将自身固定设置为 CALayer 的代理。</p>
+<p><strong>核心关系</strong>：</p>
+<ol>
+<li>CALayer 是 UIView 的属性之一，负责渲染和动画，提供可视内容的呈现。</li>
+<li>UIView 提供了对 CALayer 部分功能的封装，同时也另外负责了交互事件的处理。</li>
+</ol>
+<p>有了这两个最关键的根本关系，那么下面这些经常出现在面试答案里的显性的异同就很好解释了。举几个例子：</p>
+<ul>
+<li><strong>相同的层级结构</strong>：我们对 UIView 的层级结构非常熟悉，由于每个 UIView 都对应 CALayer 负责页面的绘制，所以 CALayer 也具有相应的层级结构。</li>
+<li><strong>部分效果的设置</strong>：因为 UIView 只对 CALayer 的部分功能进行了封装，而另一部分如圆角、阴影、边框等特效都需要通过调用 layer 属性来设置。</li>
+<li><strong>是否响应点击事件</strong>：CALayer 不负责点击事件，所以不响应点击事件，而 UIView 会响应。</li>
+<li><strong>不同继承关系</strong>：CALayer 继承自 NSObject，UIView 由于要负责交互事件，所以继承自 UIResponder。</li>
+</ul>
+<p>当然还剩最后一个问题，为什么要将 CALayer 独立出来，直接使用 UIView 统一管理不行吗？为什么不用一个统一的对象来处理所有事情呢？</p>
+<p>这样设计的主要原因就是为了职责分离，拆分功能，方便代码的复用。通过 Core Animation 框架来负责可视内容的呈现，这样在 iOS 和 OS X 上都可以使用 Core Animation 进行渲染。与此同时，两个系统还可以根据交互规则的不同来进一步封装统一的控件，比如 iOS 有 UIKit 和 UIView，OS X 则是AppKit 和 NSView。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E7%9B%B8%E5%85%B3/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96-%E2%91%A1%E5%85%B6%E4%BB%96/" data-id="cmpojwt8c00zx89r470t5boiu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1716,11 +1636,6 @@
               
                 <li class="category-list-item">
                   <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E8%B4%A6%E5%8F%B7%E7%AE%A1%E7%90%86/">第一章：账号管理</a>
-                  
-                </li>
-              
-                <li class="category-list-item">
-                  <a class="category-list-link" href="/categories/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86/">第二章：项目管理</a>
                   
                 </li>
               
@@ -2275,7 +2190,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/AI/" style="font-size: 14.38px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.63px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.75px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.13px;">Git</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.75px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.25px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.25px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.25px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.63px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.25px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.25px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.13px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.63px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.25px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.63px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.75px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 16.88px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.75px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 10.63px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.63px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.63px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.25px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.25px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.88px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.25px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 10.63px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.75px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" style="font-size: 10px;">编程范式</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.88px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.63px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.38px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.25px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 13.13px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.25px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 13.13px;">项目整理</a>
+      <a href="/tags/AI/" style="font-size: 14.38px;">AI</a> <a href="/tags/APP%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">APP自动化</a> <a href="/tags/Architecture/" style="font-size: 20px;">Architecture</a> <a href="/tags/ChatGPT/" style="font-size: 10.63px;">ChatGPT</a> <a href="/tags/CocoaPods/" style="font-size: 10px;">CocoaPods</a> <a href="/tags/Flutter/" style="font-size: 18.75px;">Flutter</a> <a href="/tags/Git/" style="font-size: 13.13px;">Git</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JQuery/" style="font-size: 10px;">JQuery</a> <a href="/tags/JavaScript/" style="font-size: 10px;">JavaScript</a> <a href="/tags/Jenkins/" style="font-size: 13.75px;">Jenkins</a> <a href="/tags/Mac%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C/" style="font-size: 10px;">Mac快速操作</a> <a href="/tags/OmniGraffle/" style="font-size: 11.25px;">OmniGraffle</a> <a href="/tags/Python/" style="font-size: 11.25px;">Python</a> <a href="/tags/QA/" style="font-size: 10px;">QA</a> <a href="/tags/README/" style="font-size: 10px;">README</a> <a href="/tags/ReactNative/" style="font-size: 16.25px;">ReactNative</a> <a href="/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/tags/Script/" style="font-size: 15.63px;">Script</a> <a href="/tags/Shell/" style="font-size: 11.25px;">Shell</a> <a href="/tags/Swift/" style="font-size: 11.25px;">Swift</a> <a href="/tags/Weex/" style="font-size: 10px;">Weex</a> <a href="/tags/h5%E4%B8%8Eapp%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">h5与app交互</a> <a href="/tags/iOS/" style="font-size: 18.13px;">iOS</a> <a href="/tags/npmjs/" style="font-size: 10.63px;">npmjs</a> <a href="/tags/%E4%B8%8A%E6%9E%B6%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">上架相关</a> <a href="/tags/%E4%BA%A4%E4%BA%92/" style="font-size: 11.88px;">交互</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 11.25px;">博客</a> <a href="/tags/%E5%8D%9A%E5%AE%A2%E7%BB%B4%E6%8A%A4/" style="font-size: 10px;">博客维护</a> <a href="/tags/%E5%90%8E%E5%8F%B0/" style="font-size: 10px;">后台</a> <a href="/tags/%E5%9F%8B%E7%82%B9/" style="font-size: 10px;">埋点</a> <a href="/tags/%E5%9F%BA%E7%B1%BB/" style="font-size: 10.63px;">基类</a> <a href="/tags/%E5%AE%89%E5%85%A8/" style="font-size: 13.75px;">安全</a> <a href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" style="font-size: 17.5px;">实用工具</a> <a href="/tags/%E5%B7%A5%E4%BD%9C%E5%B8%B8%E8%AF%86/" style="font-size: 10px;">工作常识</a> <a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size: 16.88px;">开发工具</a> <a href="/tags/%E6%89%93%E5%8C%85/" style="font-size: 10px;">打包</a> <a href="/tags/%E6%8A%80%E6%9C%AF%E5%B8%B8%E8%AF%86/" style="font-size: 13.75px;">技术常识</a> <a href="/tags/%E6%8A%93%E5%8C%85/" style="font-size: 10px;">抓包</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">搜索相关</a> <a href="/tags/%E6%96%87%E6%A1%A3%E7%AE%A1%E7%90%86/" style="font-size: 15px;">文档管理</a> <a href="/tags/%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3/" style="font-size: 10px;">权限相关</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F/" style="font-size: 10.63px;">架构模式</a> <a href="/tags/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 10.63px;">环境搭建</a> <a href="/tags/%E7%94%9F%E6%B4%BB%E5%B8%B8%E8%AF%86/" style="font-size: 10.63px;">生活常识</a> <a href="/tags/%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8/" style="font-size: 11.25px;">电脑使用</a> <a href="/tags/%E7%98%A6%E8%BA%AB/" style="font-size: 11.25px;">瘦身</a> <a href="/tags/%E7%99%BB%E5%BD%95%E9%A1%B5%E5%AE%9E%E6%88%98/" style="font-size: 11.88px;">登录页实战</a> <a href="/tags/%E7%A0%B4%E8%A7%A3/" style="font-size: 11.25px;">破解</a> <a href="/tags/%E7%A7%91%E5%AD%A6%E5%B7%A5%E5%85%B7/" style="font-size: 10px;">科学工具</a> <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%88%86%E6%9E%90/" style="font-size: 10.63px;">移动分析</a> <a href="/tags/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E5%AD%A6/" style="font-size: 10px;">算法与数学</a> <a href="/tags/%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3/" style="font-size: 13.13px;">管理相关</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E5%B7%A5%E5%85%B7/" style="font-size: 12.5px;">编程工具</a> <a href="/tags/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%BC%8F/" style="font-size: 10px;">编程范式</a> <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" style="font-size: 13.75px;">自动化</a> <a href="/tags/%E8%A1%8C%E4%B8%9A%E7%9B%B8%E5%85%B3/" style="font-size: 11.88px;">行业相关</a> <a href="/tags/%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">语言</a> <a href="/tags/%E8%AF%B7%E6%B1%82/" style="font-size: 10.63px;">请求</a> <a href="/tags/%E8%B7%A8%E5%B9%B3%E5%8F%B0/" style="font-size: 19.38px;">跨平台</a> <a href="/tags/%E8%B7%AF%E7%94%B1%E5%8F%8A%E8%B7%B3%E8%BD%AC/" style="font-size: 11.25px;">路由及跳转</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" style="font-size: 10px;">阿里云</a> <a href="/tags/%E9%98%BF%E9%87%8C%E4%BA%91oss/" style="font-size: 13.13px;">阿里云oss</a> <a href="/tags/%E9%9B%86%E6%88%90/" style="font-size: 11.25px;">集成</a> <a href="/tags/%E9%A1%B9%E7%9B%AE%E6%95%B4%E7%90%86/" style="font-size: 13.13px;">项目整理</a>
     </div>
   </div>
 
