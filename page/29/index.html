@@ -72,6 +72,125 @@
       <div class="outer">
         <section id="main">
   
+      <article id="post-Architecture架构/基础规范/埋点相关/埋点方案-页面和视图的进入和离开" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E6%96%B9%E6%A1%88-%E9%A1%B5%E9%9D%A2%E5%92%8C%E8%A7%86%E5%9B%BE%E7%9A%84%E8%BF%9B%E5%85%A5%E5%92%8C%E7%A6%BB%E5%BC%80/">
+    
+      <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">发表于 2019-04-20</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-08-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">第三章：基础规范</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E6%96%B9%E6%A1%88-%E9%A1%B5%E9%9D%A2%E5%92%8C%E8%A7%86%E5%9B%BE%E7%9A%84%E8%BF%9B%E5%85%A5%E5%92%8C%E7%A6%BB%E5%BC%80/">埋点方案</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h1 id="埋点方案-页面和视图的进入和离开"><a href="#埋点方案-页面和视图的进入和离开" class="headerlink" title="埋点方案-页面和视图的进入和离开"></a>埋点方案-页面和视图的进入和离开</h1><h2 id="一、整个页面进入、离开的监控方案"><a href="#一、整个页面进入、离开的监控方案" class="headerlink" title="一、整个页面进入、离开的监控方案"></a>一、整个页面进入、离开的监控方案</h2><p>视图创建基类 <code>LifeCyclePage</code>，使用 route 方法，并提供以下方法</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当前页面显示了，底层必须先执行 super.viewDidAppear</span></span><br><span class="line"><span class="keyword">void</span> viewDidAppear(AppearBecause appearBecause)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 当前页面消失了，底层必须先执行 super.viewDidDisappear</span></span><br><span class="line"><span class="keyword">void</span> viewDidDisappear(DisAppearBecause disAppearBecause);</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="二、页面内部分视图进入、离开的监控方案"><a href="#二、页面内部分视图进入、离开的监控方案" class="headerlink" title="二、页面内部分视图进入、离开的监控方案"></a>二、页面内部分视图进入、离开的监控方案</h2><p>场景：运行需要知道页面下的tab、页面下的tab的《子tab&#x2F;子视图》的浏览时间。</p>
+<h3 id="方案1：点击–view-show-hide–不推荐"><a href="#方案1：点击–view-show-hide–不推荐" class="headerlink" title="方案1：点击–view_show&#x2F;hide–不推荐"></a>方案1：点击–view_show&#x2F;hide–不推荐</h3><p>使用点击 view_show&#x2F;hide 方案，实现步骤如下：</p>
+<p>点击tab1：记tab1 view_show 事件，并记下当前显示的tab，备后续切换的时候为本tab添加 view_hide 事件。</p>
+<p>点击tab2：记tab1 view_hide 事件，tab2 view_show 事件，并记下当前显示的tab，备后续切换的时候为本tab添加 view_hide 事件。</p>
+<p><strong>缺点</strong>：tab点击时候，记下当前显示的tab，备后续切换的时候为本tab添加 view_hide 事件。</p>
+<h3 id="方案2：视图是否显示监控–visibility–推荐方案"><a href="#方案2：视图是否显示监控–visibility–推荐方案" class="headerlink" title="方案2：视图是否显示监控–visibility–推荐方案"></a>方案2：视图是否显示监控–visibility–推荐方案</h3><p>视图创建基类 <code>LifeCycleView</code>，使用 visibility 方案，并提供以下方法</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当前页面显示了，底层必须先执行 super.viewDidAppear</span></span><br><span class="line"><span class="keyword">void</span> viewDidAppear(AppearBecause appearBecause)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 当前页面消失了，底层必须先执行 super.viewDidDisappear</span></span><br><span class="line"><span class="keyword">void</span> viewDidDisappear(DisAppearBecause disAppearBecause);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1、原理：创建-VisibilityDetector-视图类，并设置-onVisibilityChanged-回调方法；"><a href="#2-1、原理：创建-VisibilityDetector-视图类，并设置-onVisibilityChanged-回调方法；" class="headerlink" title="2.1、原理：创建 VisibilityDetector 视图类，并设置 onVisibilityChanged 回调方法；"></a>2.1、原理：创建 VisibilityDetector 视图类，并设置 onVisibilityChanged 回调方法；</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> VisibilityDetector(&#123;</span><br><span class="line">    <span class="keyword">required</span> Key key,</span><br><span class="line">    <span class="keyword">required</span> Widget child,</span><br><span class="line">    <span class="keyword">required</span> <span class="keyword">this</span>.onVisibilityChanged,</span><br><span class="line">  &#125;)  : <span class="keyword">assert</span>(key != <span class="keyword">null</span>),</span><br><span class="line">        <span class="keyword">assert</span>(child != <span class="keyword">null</span>),</span><br><span class="line">        <span class="keyword">super</span>(key: key, child: child);</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点</strong>：不用每个视图(如tab页)去处理。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>页面和视图的进入和离开方案，总结如下：</p>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>类型</th>
+<th>方案</th>
+<th>优点与不足</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>页面</td>
+<td>LifeCyclePage + route</td>
+<td>能比view增加具体显示和离开的原因</td>
+</tr>
+<tr>
+<td>2</td>
+<td>页面内的视图</td>
+<td>LifeCycleView + visibility</td>
+<td>只能知道显示、还是离开</td>
+</tr>
+</tbody></table>
+<h2 id="附一、Flutter-曝光埋点"><a href="#附一、Flutter-曝光埋点" class="headerlink" title="附一、Flutter 曝光埋点"></a>附一、Flutter 曝光埋点</h2><p>1、使用 <code>VisibilityDetector</code> 监听子组件可见性的变化（什么时候触发变化）</p>
+<p>2、</p>
+<h2 id="附二、iOS-tableview的曝光埋点"><a href="#附二、iOS-tableview的曝光埋点" class="headerlink" title="附二、iOS tableview的曝光埋点"></a>附二、iOS tableview的曝光埋点</h2><p>其他参考文档：<a href="https://www.jianshu.com/p/57219a368e9a">iOS-曝光埋点</a></p>
+<ol>
+<li><strong>使用<code>UIView</code>的<code>window</code>属性</strong>：可以通过检查视图的<code>window</code>属性是否为空来判断视图是否在屏幕上可见。如果<code>window</code>属性为非空值，表示视图正在显示。</li>
+<li><strong>使用<code>CGRect</code>和<code>CGRectIntersectsRect</code>函数</strong>：可以通过将视图的<code>frame</code>转换到屏幕坐标系中，然后与屏幕的<code>bounds</code>进行比较，来确定视图是否在屏幕上可见以及可见的比例。</li>
+<li>**使用<code>CADisplayLink</code>**：可以通过<code>CADisplayLink</code>来定期检查视图的可见性。在每次屏幕刷新时，都可以检查视图的<code>window</code>属性和<code>frame</code>，从而实现对视图可见性的实时监控。</li>
+<li><strong>使用<code>isDisplayedInScreen</code>类别方法</strong>：可以通过为<code>UIView</code>添加一个类别，并在该类别中实现<code>isDisplayedInScreen</code>方法，来判断视图是否在屏幕上可见。</li>
+</ol>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UIView+isDisplayedInScreen.h</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用CADisplayLink定期检查</span></span><br><span class="line">- (<span class="type">void</span>)startMonitoringViewVisibility:(<span class="built_in">UIView</span> *)view &#123;</span><br><span class="line">    <span class="built_in">CADisplayLink</span> *displayLink = [<span class="built_in">CADisplayLink</span> displayLinkWithTarget:<span class="keyword">self</span> selector:<span class="keyword">@selector</span>(checkViewVisibility:)];</span><br><span class="line">    [displayLink addToRunLoop:[<span class="built_in">NSRunLoop</span> currentRunLoop] forMode:<span class="built_in">NSDefaultRunLoopMode</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (<span class="type">void</span>)checkViewVisibility:(<span class="built_in">CADisplayLink</span> *)displayLink &#123;</span><br><span class="line">    <span class="comment">// 在这里检查视图的可见性</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 检查视图是否在屏幕上可见</span></span><br><span class="line">- (<span class="type">BOOL</span>)isViewVisible:(<span class="built_in">UIView</span> *)view &#123;</span><br><span class="line">    <span class="built_in">CGRect</span> viewRect = [view convertRect:view.bounds toView:<span class="literal">nil</span>];</span><br><span class="line">    <span class="built_in">CGRect</span> screenRect = [<span class="built_in">UIScreen</span> mainScreen].bounds;</span><br><span class="line">    <span class="built_in">CGRect</span> intersectionRect = <span class="built_in">CGRectIntersection</span>(viewRect, screenRect);</span><br><span class="line">    <span class="built_in">CGFloat</span> visibleArea = <span class="built_in">CGRectGetArea</span>(intersectionRect);</span><br><span class="line">    <span class="built_in">CGFloat</span> viewArea = <span class="built_in">CGRectGetArea</span>(view.bounds);</span><br><span class="line">    <span class="keyword">return</span> (visibleArea / viewArea) &gt; <span class="number">0.5</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="1、Flutter-visibility-detector-原理解析"><a href="#1、Flutter-visibility-detector-原理解析" class="headerlink" title="1、Flutter visibility_detector 原理解析"></a>1、Flutter visibility_detector 原理解析</h3><ul>
+<li><p><a href="https://juejin.cn/post/6985043598051901477">Flutter visibility_detector 原理解析</a></p>
+<blockquote>
+<p><a href="https://link.juejin.cn/?target=https://pub.dev/packages/visibility_detector">visibility_detector</a> 是由谷歌官方团队开发的一款拓展组件，主要用于监听子组件可见性的变化。</p>
+</blockquote>
+</li>
+</ul>
+<p>使用方法：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@override</span></span><br><span class="line"> Widget build(BuildContext context) &#123;</span><br><span class="line">   <span class="keyword">return</span> VisibilityDetector(</span><br><span class="line">     key: Key(<span class="string">&#x27;exposure_<span class="subst">$hashCode</span>&#x27;</span>),</span><br><span class="line">     onVisibilityChanged: (visibilityInfo) &#123;</span><br><span class="line">       <span class="keyword">var</span> visiblePercentage = visibilityInfo.visibleFraction * <span class="number">100</span>;</span><br><span class="line">       <span class="keyword">var</span> inScreen = visiblePercentage &gt;= widget.exposeFactor;</span><br><span class="line">       <span class="keyword">if</span> (inScreen != <span class="keyword">show</span>) &#123;</span><br><span class="line">         <span class="keyword">if</span> (inScreen) &#123;</span><br><span class="line">           _onExpose();</span><br><span class="line">         &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">           _onHide();</span><br><span class="line">         &#125;</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;,</span><br><span class="line">     child: widget.child,</span><br><span class="line">   );</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>底层核心逻辑代码如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1、VisibilityDetector 继承自 SingleChildRenderObjectWidget 类</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VisibilityDetector</span> <span class="keyword">extends</span> <span class="title">SingleChildRenderObjectWidget</span></span></span><br><span class="line"><span class="class"></span></span><br><span class="line"><span class="class">  // 2、 重写其 <span class="title">createRenderObject</span>(<span class="title">BuildContext</span> <span class="title">context</span>) 方法 返回<span class="title">RenderVisibilityDetector</span></span></span><br><span class="line"><span class="class">  @<span class="title">override</span></span></span><br><span class="line"><span class="class">  <span class="title">RenderVisibilityDetector</span> <span class="title">createRenderObject</span>(<span class="title">BuildContext</span> <span class="title">context</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> RenderVisibilityDetector(</span><br><span class="line">      key: key,</span><br><span class="line">      onVisibilityChanged: onVisibilityChanged,</span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RenderVisibilityDetector</span> <span class="keyword">extends</span> <span class="title">RenderProxyBox</span> </span>&#123;</span><br><span class="line">  RenderVisibilityDetector(&#123;</span><br><span class="line">    RenderBox child,</span><br><span class="line">    <span class="meta">@required</span> <span class="keyword">this</span>.key,</span><br><span class="line">    <span class="meta">@required</span> VisibilityChangedCallback onVisibilityChanged,</span><br><span class="line">  &#125;)  : <span class="keyword">assert</span>(key != <span class="keyword">null</span>),</span><br><span class="line">        _onVisibilityChanged = onVisibilityChanged,</span><br><span class="line">        <span class="keyword">super</span>(child);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 省略一些代码...</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 3、在 RenderVisibilityDetector 中，重写绘制方法 paint()，push 一个用于监听可见状态的 Layer(VisibilityDetector)</span></span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  <span class="keyword">void</span> paint(PaintingContext context, Offset offset) &#123;</span><br><span class="line">    <span class="keyword">if</span> (onVisibilityChanged == <span class="keyword">null</span>) &#123;</span><br><span class="line">      VisibilityDetectorLayer.forget(key);</span><br><span class="line">      <span class="keyword">super</span>.paint(context, offset);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> layer = VisibilityDetectorLayer(</span><br><span class="line">        key: key,</span><br><span class="line">        widgetSize: semanticBounds.size,</span><br><span class="line">        paintOffset: offset,</span><br><span class="line">        onVisibilityChanged: onVisibilityChanged);</span><br><span class="line">    context.pushLayer(layer, <span class="keyword">super</span>.paint, offset);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在 RenderVisibilityDetector 中，在绘制方法 paint() 里 push 了一个 Layer，这个Layer就是 VisibilityDetector 用于监听可见状态的关键。</p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E6%96%B9%E6%A1%88-%E9%A1%B5%E9%9D%A2%E5%92%8C%E8%A7%86%E5%9B%BE%E7%9A%84%E8%BF%9B%E5%85%A5%E5%92%8C%E7%A6%BB%E5%BC%80/" data-id="cmq1izdvn00w6fmr4an7v8xs7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%9F%8B%E7%82%B9/" rel="tag">埋点</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
       <article id="post-Architecture架构/基础规范/埋点相关/埋点规范_结构" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     
@@ -1074,7 +1193,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E8%A7%84%E8%8C%83_%E7%BB%93%E6%9E%84/" data-id="cmpojwt8500we89r4h87d0raq" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/%E5%9F%8B%E7%82%B9%E7%9B%B8%E5%85%B3/%E5%9F%8B%E7%82%B9%E8%A7%84%E8%8C%83_%E7%BB%93%E6%9E%84/" data-id="cmq1izdvn00wbfmr44nyjg1cn" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1171,146 +1290,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/4%E7%98%A6%E8%BA%AB/%E7%98%A6%E8%BA%AB-%E2%91%A2app%E5%AE%89%E8%A3%85%E5%8C%85/" data-id="cmpojwt8900yd89r45jbtfcr1" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%9E%B6%E6%9E%84%E7%9B%B8%E5%85%B3/4%E7%98%A6%E8%BA%AB/%E7%98%A6%E8%BA%AB-%E2%91%A2app%E5%AE%89%E8%A3%85%E5%8C%85/" data-id="cmq1izdvq00y9fmr43aan43b4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%98%A6%E8%BA%AB/" rel="tag">瘦身</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-Architecture架构/框架相关/网络相关/网络ApiMock" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/">
-    
-      <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">发表于 2019-04-20</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-08-26</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/">网络ApiMock</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h1 id="网络Api-mock"><a href="#网络Api-mock" class="headerlink" title="网络Api mock"></a>网络Api mock</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>为了避免后端因为其他任务，来不及开发接口，特意建立mock环境，以此来保证后续出现类似情况，app也能够正常的开发，并能够在后端开发结束时候，快速完成整体的联调，从而在某个环节断档的情况下，也能够保证整体的进度。</p>
-<h2 id="二、功能介绍"><a href="#二、功能介绍" class="headerlink" title="二、功能介绍"></a>二、功能介绍</h2><ul>
-<li>远程模拟</li>
-<li>本地模拟</li>
-</ul>
-<h2 id="三、远程模拟"><a href="#三、远程模拟" class="headerlink" title="三、远程模拟"></a>三、远程模拟</h2><h3 id="1、远程界面样式"><a href="#1、远程界面样式" class="headerlink" title="1、远程界面样式"></a>1、远程界面样式</h3><p>目前该环境，已对现有所有app接口实现mock。</p>
-<p><img src="/Architecture架构/框架相关/网络相关/网络ApiMock/apimock1.png" alt="image-20220119193932769"></p>
-<h3 id="2、使用简介"><a href="#2、使用简介" class="headerlink" title="2、使用简介"></a>2、使用简介</h3><h4 id="2-1、修改地址"><a href="#2-1、修改地址" class="headerlink" title="2.1、修改地址"></a>2.1、修改地址</h4><p>如果你已在<strong>api mock后台</strong>创建了模拟的接口，则只需要在项目中进行如下修改即可，其会自动将所请求的地址进行模拟。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">&quot;/account/wallet/virtualAsset/page&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toSimulateApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">&quot;/account/wallet/virtualAsset/page&quot;</span>.toSimulateApi();</span><br></pre></td></tr></table></figure>
-
-<h4 id="2-2、修改mock数据"><a href="#2-2、修改mock数据" class="headerlink" title="2.2、修改mock数据"></a>2.2、修改mock数据</h4><p>因为从Swagger同步过来的接口，其返回值不是完整的response结构。</p>
-<p>完整的response&#x3D;{“code”:0, “msg”: “成功”, data:xxx};</p>
-<p>同步的response&#x3D;data</p>
-<p>所以为避免每个接口都得重复的去添加response外层来调整结构，我们通过在本地网络上进行兼容，从而实现了即使你没对同步的接口进行操作，也能够直接调用请求，得到完整的数据结构。</p>
-<h2 id="四、本地模拟"><a href="#四、本地模拟" class="headerlink" title="四、本地模拟"></a>四、本地模拟</h2><h3 id="1、使用简介"><a href="#1、使用简介" class="headerlink" title="1、使用简介"></a>1、使用简介</h3><p>以模拟<code>/account/wallet/wishStar/page</code>接口为例</p>
-<h4 id="1-1、添加本地json"><a href="#1-1、添加本地json" class="headerlink" title="1.1、添加本地json"></a>1.1、添加本地json</h4><p>在项目中asset下的的data文件夹里添加该以请求路径命名的json文件。</p>
-<p><img src="/Architecture架构/框架相关/网络相关/网络ApiMock/image-20220322134145737.png" alt="image-20220322134145737"></p>
-<h4 id="1-2、修改地址"><a href="#1-2、修改地址" class="headerlink" title="1.2、修改地址"></a>1.2、修改地址</h4><p>将请求地址的尾部加上<code>.toLocalApi()</code>，即可自动将所请求的地址进行本地数据模拟。</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> wishStar = <span class="string">&quot;/account/wallet/wishStar/page&quot;</span>; <span class="comment">//愿望星流水明细</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toLocalApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> wishStar = <span class="string">&quot;/account/wallet/wishStar/page&quot;</span>.toLocalApi(); <span class="comment">//愿望星流水明细</span></span><br></pre></td></tr></table></figure>
-
-<h4 id=""><a href="#" class="headerlink" title=""></a></h4><p> <em>_random.nextDouble() 获取的是0-1之间不为负数的小数</em></p>
-<p>四舍五入</p>
-<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> foo = <span class="number">6.28</span>;</span><br><span class="line"><span class="built_in">print</span>(foo.round()); <span class="comment">// 6</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/" data-id="cmpojwt8a00z189r4dqyrf5xf" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-Architecture架构/框架相关/网络相关/网络扩展" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/">
-    
-      <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">发表于 2019-04-20</time>
-    </a>
-    <span class="article-updated"> · 更新于 2024-09-05</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/">网络扩展</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        
-<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p><a href="https://github.com/pzhtpf/TPFVPN">TPFVPN</a></p>
-<p><a href="https://juejin.cn/post/6865609720690900999?from=search-suggest">NetworkExtension2-Client开发</a></p>
-<p><a href="https://juejin.cn/post/6867030091748196366">NetworkExtension3-Tunnel开发</a></p>
-<p><a href="https://juejin.cn/post/6867030286480179208">NetworkExtension4-Server开发</a></p>
-<p><a href="https://www.jianshu.com/p/1427937cbcc1">NetworkExtension5-App和Extension通信</a></p>
-<p><a href="https://github.com/cgcym1234/YYVPN">https://github.com/cgcym1234/YYVPN</a></p>
-<p><a href="https://cloud.tencent.com/developer/article/1908977">移动&#x2F;PC客户端流量拦截与转发</a></p>
-<p><a href="https://bbs.sangfor.com.cn/vpnsdk/index.html">深信服移动终端EasyApp SDK介绍</a></p>
-<p>其他github搜索结果：<a href="https://github.com/search?q=vpn+language:Objective-C+&type=repositories&s=stars&o=desc">https://github.com/search?q=vpn+language%3AObjective-C+&amp;type=repositories&amp;s=stars&amp;o=desc</a></p>
-<p>其他文章：<a href="https://blog.csdn.net/qq_30513483/article/details/81100414">App extension实战 - NetworkExtension 讲解连接并捕获packet</a></p>
-<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/" data-id="cmpojwt8b00z989r4ge0f24vh" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
 
     </footer>
   </div>
@@ -1533,7 +1516,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/app%E5%86%85%E5%AD%98%E9%97%AE%E9%A2%98/" data-id="cmpojwt8d010l89r42ngb47ua" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/app%E5%86%85%E5%AD%98%E9%97%AE%E9%A2%98/" data-id="cmq1izdvs00z1fmr4d18scowt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1601,7 +1584,143 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/app%E5%8F%91%E7%83%AD%E9%97%AE%E9%A2%98/" data-id="cmpojwt8d010p89r44vvv24je" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E7%9B%91%E6%8E%A7%E7%9B%B8%E5%85%B3/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/app%E5%8F%91%E7%83%AD%E9%97%AE%E9%A2%98/" data-id="cmq1izdvs00z9fmr4a85u965b" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-Architecture架构/框架相关/网络相关/网络ApiMock" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/">
+    
+      <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">发表于 2019-04-20</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-08-26</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/">网络ApiMock</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h1 id="网络Api-mock"><a href="#网络Api-mock" class="headerlink" title="网络Api mock"></a>网络Api mock</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>为了避免后端因为其他任务，来不及开发接口，特意建立mock环境，以此来保证后续出现类似情况，app也能够正常的开发，并能够在后端开发结束时候，快速完成整体的联调，从而在某个环节断档的情况下，也能够保证整体的进度。</p>
+<h2 id="二、功能介绍"><a href="#二、功能介绍" class="headerlink" title="二、功能介绍"></a>二、功能介绍</h2><ul>
+<li>远程模拟</li>
+<li>本地模拟</li>
+</ul>
+<h2 id="三、远程模拟"><a href="#三、远程模拟" class="headerlink" title="三、远程模拟"></a>三、远程模拟</h2><h3 id="1、远程界面样式"><a href="#1、远程界面样式" class="headerlink" title="1、远程界面样式"></a>1、远程界面样式</h3><p>目前该环境，已对现有所有app接口实现mock。</p>
+<p><img src="/Architecture架构/框架相关/网络相关/网络ApiMock/apimock1.png" alt="image-20220119193932769"></p>
+<h3 id="2、使用简介"><a href="#2、使用简介" class="headerlink" title="2、使用简介"></a>2、使用简介</h3><h4 id="2-1、修改地址"><a href="#2-1、修改地址" class="headerlink" title="2.1、修改地址"></a>2.1、修改地址</h4><p>如果你已在<strong>api mock后台</strong>创建了模拟的接口，则只需要在项目中进行如下修改即可，其会自动将所请求的地址进行模拟。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">&quot;/account/wallet/virtualAsset/page&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toSimulateApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> getVirtualList = <span class="string">&quot;/account/wallet/virtualAsset/page&quot;</span>.toSimulateApi();</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2、修改mock数据"><a href="#2-2、修改mock数据" class="headerlink" title="2.2、修改mock数据"></a>2.2、修改mock数据</h4><p>因为从Swagger同步过来的接口，其返回值不是完整的response结构。</p>
+<p>完整的response&#x3D;{“code”:0, “msg”: “成功”, data:xxx};</p>
+<p>同步的response&#x3D;data</p>
+<p>所以为避免每个接口都得重复的去添加response外层来调整结构，我们通过在本地网络上进行兼容，从而实现了即使你没对同步的接口进行操作，也能够直接调用请求，得到完整的数据结构。</p>
+<h2 id="四、本地模拟"><a href="#四、本地模拟" class="headerlink" title="四、本地模拟"></a>四、本地模拟</h2><h3 id="1、使用简介"><a href="#1、使用简介" class="headerlink" title="1、使用简介"></a>1、使用简介</h3><p>以模拟<code>/account/wallet/wishStar/page</code>接口为例</p>
+<h4 id="1-1、添加本地json"><a href="#1-1、添加本地json" class="headerlink" title="1.1、添加本地json"></a>1.1、添加本地json</h4><p>在项目中asset下的的data文件夹里添加该以请求路径命名的json文件。</p>
+<p><img src="/Architecture架构/框架相关/网络相关/网络ApiMock/image-20220322134145737.png" alt="image-20220322134145737"></p>
+<h4 id="1-2、修改地址"><a href="#1-2、修改地址" class="headerlink" title="1.2、修改地址"></a>1.2、修改地址</h4><p>将请求地址的尾部加上<code>.toLocalApi()</code>，即可自动将所请求的地址进行本地数据模拟。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> wishStar = <span class="string">&quot;/account/wallet/wishStar/page&quot;</span>; <span class="comment">//愿望星流水明细</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟时候，在字符串尾部加上`.toLocalApi()`即可</span></span><br><span class="line"><span class="keyword">static</span> <span class="built_in">String</span> wishStar = <span class="string">&quot;/account/wallet/wishStar/page&quot;</span>.toLocalApi(); <span class="comment">//愿望星流水明细</span></span><br></pre></td></tr></table></figure>
+
+<h4 id=""><a href="#" class="headerlink" title=""></a></h4><p> <em>_random.nextDouble() 获取的是0-1之间不为负数的小数</em></p>
+<p>四舍五入</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> foo = <span class="number">6.28</span>;</span><br><span class="line"><span class="built_in">print</span>(foo.round()); <span class="comment">// 6</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9CApiMock/" data-id="cmq1izdvu0109fmr4g6b97e2b" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+      <article id="post-Architecture架构/框架相关/网络相关/网络扩展" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    
+  <span class="article-date">
+    
+      <a href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/">
+    
+      <time datetime="2019-04-20T09:05:41.000Z" itemprop="datePublished">发表于 2019-04-20</time>
+    </a>
+    <span class="article-updated"> · 更新于 2024-09-05</span>
+  </span>
+
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Architecture/">Architecture</a>►<a class="article-category-link" href="/categories/Architecture/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9A%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/">第二章：框架相关</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/">网络扩展</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+        
+<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p><a href="https://github.com/pzhtpf/TPFVPN">TPFVPN</a></p>
+<p><a href="https://juejin.cn/post/6865609720690900999?from=search-suggest">NetworkExtension2-Client开发</a></p>
+<p><a href="https://juejin.cn/post/6867030091748196366">NetworkExtension3-Tunnel开发</a></p>
+<p><a href="https://juejin.cn/post/6867030286480179208">NetworkExtension4-Server开发</a></p>
+<p><a href="https://www.jianshu.com/p/1427937cbcc1">NetworkExtension5-App和Extension通信</a></p>
+<p><a href="https://github.com/cgcym1234/YYVPN">https://github.com/cgcym1234/YYVPN</a></p>
+<p><a href="https://cloud.tencent.com/developer/article/1908977">移动&#x2F;PC客户端流量拦截与转发</a></p>
+<p><a href="https://bbs.sangfor.com.cn/vpnsdk/index.html">深信服移动终端EasyApp SDK介绍</a></p>
+<p>其他github搜索结果：<a href="https://github.com/search?q=vpn+language:Objective-C+&type=repositories&s=stars&o=desc">https://github.com/search?q=vpn+language%3AObjective-C+&amp;type=repositories&amp;s=stars&amp;o=desc</a></p>
+<p>其他文章：<a href="https://blog.csdn.net/qq_30513483/article/details/81100414">App extension实战 - NetworkExtension 讲解连接并捕获packet</a></p>
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://dvlproad.github.io/Architecture%E6%9E%B6%E6%9E%84/%E6%A1%86%E6%9E%B6%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E7%9B%B8%E5%85%B3/%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95/" data-id="cmq1izdvv010hfmr48l2kgyj3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Architecture/" rel="tag">Architecture</a></li></ul>
@@ -1687,7 +1806,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/Swift/2.Swift%E6%89%A9%E5%B1%95(Extensions)/" data-id="cmpojwt8r017289r4572x5tzm" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/iOS/%E5%9F%BA%E7%A1%80/%E8%AF%AD%E8%A8%80/Swift/2.Swift%E6%89%A9%E5%B1%95(Extensions)/" data-id="cmq1izdw7016tfmr48iai8o4g" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Swift/" rel="tag">Swift</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1822,7 +1941,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/iOS%E5%BC%80%E5%8F%91%E9%9A%8F%E7%AC%94/" data-id="cmpojwt72006m89r4hyvr23j9" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/iOS%E5%BC%80%E5%8F%91%E9%9A%8F%E7%AC%94/" data-id="cmq1izduf006jfmr4191517xj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
@@ -1877,68 +1996,11 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/%E8%AE%A1%E6%97%B6%E5%99%A8%E7%9B%B8%E5%85%B3%E9%9A%8F%E7%AC%94/" data-id="cmpojwt73007189r4fx650c8d" class="article-share-link">Share</a>
+      <a data-url="https://dvlproad.github.io/%E9%9A%8F%E7%AC%94%E5%92%8C%E9%9D%A2%E8%AF%95/%E8%AE%A1%E6%97%B6%E5%99%A8%E7%9B%B8%E5%85%B3%E9%9A%8F%E7%AC%94/" data-id="cmq1izduf006tfmr4fapdekbj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/" rel="tag">iOS</a></li></ul>
 
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-      <article id="post-iOS/开发规范/iOS代码开发规范" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    
-  <span class="article-date">
-    
-      <a href="/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/iOS%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">
-    
-      <time datetime="2019-04-11T05:15:07.000Z" itemprop="datePublished">发表于 2019-04-11</time>
-    </a>
-    <span class="article-updated"> · 更新于 2020-11-13</span>
-  </span>
-
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/iOS/">iOS</a>►<a class="article-category-link" href="/categories/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">开发规范</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/iOS%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/">iOS代码开发规范</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-      
-        <h1 id="iOS-够逼格的注释总结"><a href="#iOS-够逼格的注释总结" class="headerlink" title="iOS 够逼格的注释总结"></a>iOS 够逼格的注释总结</h1><p><a href="https://blog.csdn.net/yusirxiaer/article/details/52511059">https://blog.csdn.net/yusirxiaer/article/details/52511059</a></p>
-<h1 id="正确使用NS-DESIGNATED-INITIALIZER"><a href="#正确使用NS-DESIGNATED-INITIALIZER" class="headerlink" title="正确使用NS_DESIGNATED_INITIALIZER"></a>正确使用NS_DESIGNATED_INITIALIZER</h1><p><a href="https://blog.csdn.net/zcube/article/details/51657417">https://blog.csdn.net/zcube/article/details/51657417</a></p>
-<p>NS_REQUIRES_SUPER：表示类的这个方法在子类重写时，必须在方法内部使用super调用父类的这个方法。</p>
-<h1 id="代码编写技巧"><a href="#代码编写技巧" class="headerlink" title="代码编写技巧"></a>代码编写技巧</h1><figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.selectedBackgroundView = (&#123;</span><br><span class="line">  <span class="built_in">UIView</span> *view = [<span class="built_in">UIView</span> new];</span><br><span class="line">  view.backgroundColor = [<span class="built_in">UIColor</span> colorWithRed:<span class="number">244</span>/<span class="number">255.0</span> green:<span class="number">244</span>/<span class="number">255.0</span> blue:<span class="number">244</span>/<span class="number">255.0</span> alpha:<span class="number">1.0</span>]; <span class="comment">//#f4f4f4</span></span><br><span class="line">  view;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-
-
-<h1 id="Swift中-0、-1的实际含义"><a href="#Swift中-0、-1的实际含义" class="headerlink" title="Swift中$0、$1的实际含义"></a>Swift中$0、$1的实际含义</h1><p><a href="https://www.jianshu.com/p/b36a0f8108aa">https://www.jianshu.com/p/b36a0f8108aa</a></p>
-<p><a href="https://swift.gg/2016/08/03/swift-prettify-your-print-statements-pt-1/">Swift:如何优雅地使用 print()（一）</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://dvlproad.github.io/iOS/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/iOS%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/" data-id="cmpojwt7m00jz89r46w4m357t" class="article-share-link">Share</a>
-      
-      
     </footer>
   </div>
   
@@ -2517,6 +2579,21 @@
               
                 <li class="category-list-item">
                   <a class="category-list-link" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96/APP%E8%87%AA%E5%8A%A8%E5%8C%96/">APP自动化</a>
+                  
+                </li>
+              
+              </ul>
+            
+          </li>
+        
+          <li class="category-list-item">
+            <a class="category-list-link" href="/categories/Architecture%E6%9E%B6%E6%9E%84/">Architecture架构</a>
+            
+            
+              <ul class="category-list-child">
+              
+                <li class="category-list-item">
+                  <a class="category-list-link" href="/categories/Architecture%E6%9E%B6%E6%9E%84/%E5%9F%BA%E7%A1%80%E8%A7%84%E8%8C%83/">基础规范</a>
                   
                 </li>
               
